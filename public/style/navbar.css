@@ -1,0 +1,222 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "TH Sarabun New", sans-serif;
+}
+body {
+  background-color: #e6f3ff;
+}
+
+.header {
+  background-color: #cff0ff;
+  border-bottom: 1px solid #ccc;
+}
+
+.dis {
+  background-color: #e6f3ff;
+  padding: 5px;
+  border-bottom: 1px solid #ccc;
+}
+
+.dis p {
+  text-align: right;
+  padding-right: 20px;
+  font-size: 16px;
+  color: #333;
+  font-weight: bold;
+}
+
+.navbar {
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.logo {
+  height: 45px;
+  /*border: 1px solid red;*/
+}
+.logo img {
+  width: 100%;
+  height: 100%;
+  /*border: 1px solid rgb(0, 255, 140);*/
+}
+
+.link ul {
+  margin-top: 3px;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  background-color: #eaf7fd;
+}
+
+.navbar ul li {
+  position: relative;
+  border: 1px solid #ccc;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.navbar ul li:last-child {
+  border-right: none;
+}
+
+.navbar ul li a {
+  color: #333;
+  text-decoration: none;
+  padding: 8px 15px;
+  display: block;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.navbar ul li a:hover {
+  background-color: #8fd2ff;
+}
+
+.navbar ul li a.active {
+  background-color: #1da5ff; /* เปลี่ยนสีพื้นหลังของลิงก์ที่ถูกเลือก */
+  color: #ffffff; /* เปลี่ยนสีตัวอักษร */
+}
+
+/* Dropdown styling */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: white;
+  min-width: 200px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  border: 1px solid #ccc;
+}
+
+.dropdown-content a {
+  color: #333;
+  padding: 8px 16px;
+  text-decoration: none;
+  display: block;
+  border-bottom: 1px solid #eee;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown-content a:hover {
+  background-color: #f5f5f5;
+}
+
+.box {
+  background-color: #c9e3fb;
+  padding: 2px;
+}
+/* Icon section */
+.icon-section {
+  background-color: #cff0ff;
+  margin-left: 10px;
+  width: 380px;
+  padding-top: 10px;
+  border-bottom: 1px solid #ccc;
+  align-items: center;
+  border-radius: 4px;
+  border: 1px solid rgb(205, 205, 205);
+}
+
+.icon-list {
+  display: flex;
+  gap: 10px;
+  list-style: none;
+  padding: 0 10px;
+}
+
+.icon-list li {
+  text-align: center;
+  padding: 5px 10px;
+}
+.icon-list li i {
+  color: #333;
+}
+.icon-list img {
+  width: auto;
+  height: 42px;
+}
+
+.icon-list span {
+  display: block;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+.icon-section p {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border: 1px solid rgb(205, 205, 205);
+  background-color: #aacad9;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* All list section */
+.all-list {
+  background-color: white;
+  border: 1px solid #ccc;
+  margin: 10px;
+}
+
+.all-list h3 {
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #ccc;
+}
+
+.all-list ul {
+  list-style: none;
+}
+
+.all-list li {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bodybg {
+  background-color: #e6f3ff;
+  padding: 10px;
+}
+table {
+  border: 1px solid #ddd;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table thead {
+  background-color: #c9e3fb;
+}
+
+table th {
+  padding: 10px;
+  border-bottom: 2px solid #ccc;
+  text-align: left;
+  color: #333;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+table tbody {
+  background-color: white;
+}
+
+table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+table tbody tr:hover {
+  background-color: #ddf1fa;
+}
+
