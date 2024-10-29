@@ -1,22 +1,27 @@
 <?php
-require_once __DIR__ . '/../config/database_server.php';
+require_once __DIR__ . '../../../config/database_server.php';
+
+
+$query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
+$results = $pdo->query($query);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'];
     $name = $_POST['name'];
+    $typename = $_POST['typename'];
     $address = $_POST['address'];
     $phone = $_POST['phone'];
     $username = $_POST['username'];
-    $password = $_POST['password']; 
+    $password = $_POST['password'];
 
     $stmt = $pdo->prepare("
         UPDATE personnel 
-        SET personnel_name = ?, personnel_address = ?, personnel_phone = ?, personnel_username = ?, personnel_password = ? 
+        SET personnel_name = ?,personnel_type_id = ?, personnel_address = ?, personnel_phone = ?, personnel_username = ?, personnel_password = ? 
         WHERE personnel_id = ?
     ");
-    $stmt->execute([$name,  $address, $phone, $username, $password, $id]);
+    $stmt->execute([$name, $typename, $address,  $phone, $username, $password, $id]);
 
-    header("Location: index.php");
+    header("Location: http://localhost:8000/home.php?page=personnel_list");    
     exit;
 }
 
@@ -32,7 +37,28 @@ $personnel = $stmt->fetch();
 
     <label for="name">Name:</label>
     <input type="text" name="name" value="<?= htmlspecialchars($personnel['personnel_name']) ?>" required>
- 
+
+
+
+    <!-- loop -->
+    <?php
+    if ($results->rowCount() > 0) {
+    ?>
+        <label for="typename">ประเภทบุคคลากร:</label>
+        <select name="typename" id="typename" required>
+            <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
+                <option value="<?php echo htmlspecialchars($row['personnel_type_id']); ?>">
+                    <?php echo htmlspecialchars($row['personnel_type_name']); ?>
+                </option>
+            <?php } ?>
+        </select><br>
+    <?php
+    } else {
+        echo "No personnel types available.";
+    }
+    ?>
+    <!--  -->
+
     <label for="address">Address:</label>
     <input type="text" name="address" value="<?= htmlspecialchars($personnel['personnel_address']) ?>" required>
 

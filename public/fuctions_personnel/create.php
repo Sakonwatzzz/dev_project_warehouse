@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config/database_server.php';
+require_once __DIR__ . '../../../config/database_server.php';
     
    
 
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            VALUES (?, ?, ?, ?, ?, ?)');
     $stmt->execute([$name, $typename, $address, $phone, $username, $password]);
 
-    header('Location: index.php');  // กลับไปหน้าแสดงผล
+    header('Location: ../index.php');  // กลับไปหน้าแสดงผล
     exit;
 }
 ?>

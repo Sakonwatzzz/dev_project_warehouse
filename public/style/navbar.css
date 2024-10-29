@@ -132,6 +132,9 @@ body {
   text-align: center;
   padding: 5px 10px;
 }
+.icon-list li a{
+  text-decoration: none;
+}
 .icon-list li i {
   color: #333;
 }

@@ -24,14 +24,14 @@ $results = $conn->query($query);
         <h1 class="title">ข้อมูลบุคลากร</h1>
 
         <h2 class="sub-title">เพิ่มบุคลากร</h2>
-        <form class="form-container" action="create.php" method="POST">
+        <form class="form-container" action="fuctions_personnel/create.php" method="POST">
             <label for="name">ชื่อ นามสกุลบุคลากร:</label>
             <input type="text" id="name" name="name" required>
 
-<!-- loop -->
+            <!-- loop -->
             <?php
             if ($results->num_rows > 0) {
-                ?>
+            ?>
                 <label for="typename">ประเภทบุคคลากร:</label>
                 <select name="typename" id="typename" required>
                     <?php while ($row = $results->fetch_assoc()) { ?>
@@ -40,12 +40,12 @@ $results = $conn->query($query);
                         </option>
                     <?php } ?>
                 </select><br>
-                <?php
+            <?php
             } else {
                 echo "No personnel types available.";
             }
             ?>
-<!--  -->
+            <!--  -->
 
             <label for="address">ที่อยู่บุคลากร:</label>
             <input type="text" id="address" name="address" required>
@@ -84,8 +84,8 @@ $results = $conn->query($query);
                         <td><?= htmlspecialchars($row['personnel_phone']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_username']) ?></td>
                         <td>
-                            <a href="edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a> |
-                            <a href="delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
+                            <a href="fuctions_personnel/edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a> |
+                            <a href="fuctions_personnel/delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
