@@ -14,37 +14,36 @@ $results = fetchAll($pdo, 'personnel');
 </head>
 
 <body>
-    <table>
-        <thead>
-            <tr>
-                <th>รหัส</th>
-                <th>ชื่อ</th>
-                <th>นามสกุล</th>
-                <th>ที่อยู่</th>
-                <th>เบอร์โทรศัพท์</th>
-                <th>ชื่อผู้ใช้</th>
-                <th>การจัดการ</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($results as $row): ?>
+<table class="data-table">
+            <thead>
                 <tr>
-                    <td><?= htmlspecialchars($row['personnel_id']) ?></td>
-                    <td><?= htmlspecialchars($row['personnel_name']) ?></td>
-                    <td><?= htmlspecialchars($row['personnel_surname']) ?></td>
-                    <td><?= htmlspecialchars($row['personnel_address']) ?></td>
-                    <td><?= htmlspecialchars($row['personnel_phone']) ?></td>
-                    <td><?= htmlspecialchars($row['personnel_username']) ?></td>
-                    <td>
-                        <a href="edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a>
-                        |
-                        <a href="delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
-                            onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                    </td>
+                    <th>รหัส</th>
+                    <th>ชื่อ นามสกุล</th>
+                    <th>ประเภทบุคคลากร</th>
+                    <th>ที่อยู่</th>
+                    <th>เบอร์โทรศัพท์</th>
+                    <th>ชื่อผู้ใช้</th>
+                    <th>การจัดการ</th>
                 </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php foreach ($result as $row): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($row['personnel_id']) ?></td>
+                        <td><?= htmlspecialchars($row['personnel_name']) ?></td>
+                        <td><?= htmlspecialchars($row['personnel_type_id']) ?></td>
+                        <td><?= htmlspecialchars($row['personnel_address']) ?></td>
+                        <td><?= htmlspecialchars($row['personnel_phone']) ?></td>
+                        <td><?= htmlspecialchars($row['personnel_username']) ?></td>
+                        <td>
+                            <a href="edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a> |
+                            <a href="delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
+                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
 </body>
 
 </html>

@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/../config/database_server.php';
-$results = fetchAll($pdo, 'personnel');
+$result = fetchAll($pdo, 'personnel');
+
+include_once("./db/warehouse_db.php");
+
+$query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
+$results = $conn->query($query);
 ?>
 
 <!DOCTYPE html>
@@ -10,6 +15,7 @@ $results = fetchAll($pdo, 'personnel');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>หน้าบุคลากร</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style/index.css">
 </head>
 
@@ -19,11 +25,27 @@ $results = fetchAll($pdo, 'personnel');
 
         <h2 class="sub-title">เพิ่มบุคลากร</h2>
         <form class="form-container" action="create.php" method="POST">
-            <label for="name">ชื่อบุคลากร:</label>
+            <label for="name">ชื่อ นามสกุลบุคลากร:</label>
             <input type="text" id="name" name="name" required>
 
-            <label for="surname">นามสกุลบุคลากร:</label>
-            <input type="text" id="surname" name="surname" required>
+<!-- loop -->
+            <?php
+            if ($results->num_rows > 0) {
+                ?>
+                <label for="typename">ประเภทบุคคลากร:</label>
+                <select name="typename" id="typename" required>
+                    <?php while ($row = $results->fetch_assoc()) { ?>
+                        <option value="<?php echo htmlspecialchars($row['personnel_type_id']); ?>">
+                            <?php echo htmlspecialchars($row['personnel_type_name']); ?>
+                        </option>
+                    <?php } ?>
+                </select><br>
+                <?php
+            } else {
+                echo "No personnel types available.";
+            }
+            ?>
+<!--  -->
 
             <label for="address">ที่อยู่บุคลากร:</label>
             <input type="text" id="address" name="address" required>
@@ -44,8 +66,8 @@ $results = fetchAll($pdo, 'personnel');
             <thead>
                 <tr>
                     <th>รหัส</th>
-                    <th>ชื่อ</th>
-                    <th>นามสกุล</th>
+                    <th>ชื่อ นามสกุล</th>
+                    <th>ประเภทบุคคลากร</th>
                     <th>ที่อยู่</th>
                     <th>เบอร์โทรศัพท์</th>
                     <th>ชื่อผู้ใช้</th>
@@ -53,11 +75,11 @@ $results = fetchAll($pdo, 'personnel');
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($results as $row): ?>
+                <?php foreach ($result as $row): ?>
                     <tr>
                         <td><?= htmlspecialchars($row['personnel_id']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_name']) ?></td>
-                        <td><?= htmlspecialchars($row['personnel_surname']) ?></td>
+                        <td><?= htmlspecialchars($row['personnel_type_id']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_address']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_phone']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_username']) ?></td>

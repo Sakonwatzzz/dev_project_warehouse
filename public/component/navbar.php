@@ -14,10 +14,11 @@
         <div class="dis">
             <p>Administrater System - Power by Wisdom Planet</p>
         </div>
+        
         <div class="navbar">
-            <!--<div class="logo">
-                <img src="image/logo.png" alt="">
-            </div>-->
+        <div class="logo">
+                <img src="image/stock-rotation.png" alt="">
+            </div>
             <div class="link">
                 <ul>
                     <li><a href="#">เบิกจ่าย</a></li>
@@ -31,9 +32,9 @@
                         </div>
                     </li>
                     <li><a href="?page=personnel" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'personnel') ? 'active' : ''; ?>">สมาชิก</a></li>
-                    <li><a href="#">โครงการ</a></li>
+                    <!-- <li><a href="#">โครงการ</a></li> -->
                     <li><a href="#">ขาย</a></li>
-                    <li><a href="#">อสังหา</a></li>
+                    <!-- <li><a href="#">อสังหา</a></li>
                     <li><a href="#">สถิติ</a></li>
                     <li><a href="#">Course</a></li>
                     <li><a href="#">เพิ่มเติม</a></li>
@@ -43,7 +44,7 @@
                     <li><a href="#">งบประมาณ</a></li>
                     <li><a href="#">คงระบบ</a></li>
                     <li><a href="#">นักศึกษา</a></li>
-                    <li><a href="#">หน้าเว็บ</a></li>
+                    <li><a href="#">หน้าเว็บ</a></li> -->
                 </ul>
             </div>
         </div>
