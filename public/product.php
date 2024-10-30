@@ -3,7 +3,49 @@ require_once __DIR__ . '/../config/database_server.php';
 
 include_once("./db/warehouse_db.php");
 
+$query = "SELECT
+    product.product_id, 
+    product.product_barcode, 
+    product.product_name, 
+    product.product_price1, 
+    product.product_price2, 
+    product.product_price3, 
+    product.product_price4, 
+    product.product_capital, 
+    product.product_type_id, 
+    product.product_brand_id,
+    product_brand.product_brand_name, 
+    product_type.product_type_name
+FROM
+    product
+INNER JOIN
+    product_brand ON product.product_brand_id = product_brand.product_brand_id
+INNER JOIN
+    product_type ON product.product_type_id = product_type.product_type_id;
+";
+$productResults = $conn->query($query); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
+// Query สำหรับประเภทสินค้า
+$queryTypes = "SELECT
+    product_type.product_type_id, 
+    product_type.product_type_name
+FROM product_type";
+$typeResults = $conn->query($queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+
+if (!$typeResults) {
+    die("Query failed: " . $conn->error); 
+}
+
+// Query สำหรับประเภทแบรนด์สินค้า
+$querybrandTypes = "SELECT
+    product_brand.product_brand_id, 
+    product_brand.product_brand_name
+FROM product_brand";
+$brandResults = $conn->query($querybrandTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+
+if (!$brandResults) {
+    die("Query failed: " . $conn->error); 
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,31 +65,31 @@ include_once("./db/warehouse_db.php");
         <!-- Form for adding products -->
         <form class="form-container" action="functions_product/product_create.php" method="POST">
             <label for="barcode">บาร์โค้ดสินค้า:</label>
-            <input type="text" name="barcode" id="barcode" required>
+            <input type="text" name="barcode" id="barcode" >
 
             <label for="name">ชื่อสินค้า:</label>
-            <input type="text" name="name" id="name" required>
+            <input type="text" name="name" id="name" >
 
-            <label for="priceone">ราคาที่1:</label>
-            <input type="text" name="priceone" id="priceone" required>
+            <label for="price_1">ราคาที่1:</label>
+            <input type="text" name="price_1" id="price_1" >
 
-            <label for="pricetwo">ราคาที่2:</label>
-            <input type="text" name="pricetwo" id="pricetwo" required>
+            <label for="price_2">ราคาที่2:</label>
+            <input type="text" name="price_2" id="price_2" >
 
-            <label for="pricethree">ราคาที่3:</label>
-            <input type="text" name="pricethree" id="pricethree" required>
+            <label for="price_3">ราคาที่3:</label>
+            <input type="text" name="price_3" id="price_3" >
 
-            <label for="pricefour">ราคาที่4:</label>
-            <input type="text" name="pricefour" id="pricefour" required>
+            <label for="price_4">ราคาที่4:</label>
+            <input type="text" name="price_4" id="price_4" >
 
             <label for="capital">เมือง:</label>
-            <input type="text" name="capital" id="capital" required>
+            <input type="text" name="capital" id="capital" >
 
-            <?php if ($results->num_rows > 0) { ?>
+            <?php if ($typeResults->num_rows > 0) { ?>
                 <label for="typename">ประเภทสินค้า:</label>
-                <select name="typename" id="typename" required>
+                <select name="typename" id="typename" >
                     <option value="">-- เลือกประเภทสินค้า --</option>
-                    <?php while ($row = $results->fetch_assoc()) { ?>
+                    <?php while ($row = $typeResults->fetch_assoc()) { ?>
                         <option value="<?= htmlspecialchars($row['product_type_id']); ?>">
                             <?= htmlspecialchars($row['product_type_name']); ?>
                         </option>
@@ -57,13 +99,13 @@ include_once("./db/warehouse_db.php");
                 <p>ไม่พบข้อมูลประเภทสินค้า</p>
             <?php } ?>
 
-            <?php if ($results->num_rows > 0) { ?>
+            <?php if ($brandResults->num_rows > 0) { ?>
                 <label for="typebrandname">ประเภทแบรนด์สินค้า:</label>
                 <select name="typebrandname" id="typebrandname" required>
                     <option value="">-- ประเภทแบรนด์สินค้า --</option>
-                    <?php while ($row = $results->fetch_assoc()) { ?>
-                        <option value="<?= htmlspecialchars($row['product_type_id']); ?>">
-                            <?= htmlspecialchars($row['product_type_name']); ?>
+                    <?php while ($row = $brandResults->fetch_assoc()) { ?>
+                        <option value="<?= htmlspecialchars($row['product_brand_id']); ?>">
+                            <?= htmlspecialchars($row['product_brand_name']); ?>
                         </option>
                     <?php } ?>
                 </select>
@@ -93,7 +135,7 @@ include_once("./db/warehouse_db.php");
         </thead>
 
         <tbody>
-            <?php while ($row = $result->fetch_assoc()): ?>
+            <?php while ($row = $productResults->fetch_assoc()): ?>
                 <tr>
                     <td><?= htmlspecialchars($row['product_id']) ?></td>
                     <td><?= htmlspecialchars($row['product_barcode']) ?></td>

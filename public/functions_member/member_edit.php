@@ -44,7 +44,7 @@ $member = $stmt->fetch();
         <h2 class="sub-title">แก้ไขสมาชิก</h2>
 
         <form class="form-container" action="member_edit.php" method="POST">
-            <input type="hidden" name="id" value="<?= htmlspecialchars($member['member_id']) ?>">
+            <input type="hidden" name="id" value="<?= htmlspecialchars(string: $member['member_id']) ?>">
 
 
             <label for="name">ชื่อ นามสกุลสมาชิก:</label>

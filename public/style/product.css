@@ -48,7 +48,11 @@
   }
   
   input[type="text"],
-  input[type="password"] {
+  input[type="password"],
+  select[name="typename"],
+  select[name="typebrandname"]
+  {
+  
     padding: 10px;
     margin-top: 5px;
     border: 1px solid #ccc;

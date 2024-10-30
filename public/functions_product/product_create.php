@@ -13,14 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $typename = $_POST['typename'];
     $typebrandname = $_POST['typebrandname'];
 
-    $stmt = $pdo->prepare('INSERT INTO product (product_name,  product_price1, product_price2, product_price3, product_price4,product_type_id,product_brand_id) 
-                           VALUES (?, ?, ?, ?, ?,?,?)');
+    $stmt = $pdo->prepare('INSERT INTO product (product_barcode, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([$barcode, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
     header('Location: ../product.php');  // กลับไปหน้าแสดงผล
     exit;
-
-
 }
-
-?>
