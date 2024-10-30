@@ -1,49 +1,92 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Tahoma, sans-serif;
+  background-color: #e8f5e9; 
+  color: #333;
+}
+
+.personnel-list {
+  width: 90%;
+  margin: 30px auto;
+}
+
+.search {
+  margin-bottom: 20px;
+}
+
+.search p {
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+.search input[type="search"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #4caf50; 
+  border-radius: 5px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.search input[type="search"]:focus {
+  border-color: #388e3c; /* สีเขียวเข้มเมื่อ focus */
+}
+
 .data-table {
-    width: 90%;
-    margin: 30px auto;
-    border-collapse: collapse;
-    background-color: #ffffff;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  th,
-  td {
-    padding: 15px;
-    border: 1px solid #ddd;
-    text-align: center;
-    color: #333;
-    font-size: 1rem;
-  }
-  
-  th {
-    background-color: #aacad9;
-    color: #333;
-    font-weight: bold;
-  }
-  
-  td a {
-    color: #00529b;
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-  
-  td a:hover {
-    color: #003f73;
-    text-decoration: underline;
-  }
-  
-  /* Table rows */
-  tbody tr:nth-child(even) {
-    background-color: #f9fcff;
-  }
-  
-  tbody tr:hover {
-    background-color: #e0efff;
-  }
-  .dropdown-content a {
-    color: #333;
-    padding: 8px 16px;
-    text-decoration: none;
-    display: block;
-    border-bottom: 1px solid #eee;
-  }
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+  border: 1px solid #4caf50; /* สีเขียวสำหรับกรอบตาราง */
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+th,
+td {
+  padding: 10px;
+  border: 1px solid #d3d3d3;
+  text-align: center;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+th {
+  background-color: #81c784; /* สีเขียวอ่อน */
+  color: #fff; /* ตัวอักษรสีขาว */
+  font-weight: bold;
+}
+
+td {
+  background-color: #ffffff;
+}
+
+td a {
+  color: #4caf50; /* สีเขียวสำหรับลิงก์ */
+  text-decoration: none;
+}
+
+td a:hover {
+  color: #388e3c; /* สีเข้มขึ้นเมื่อ hover */
+  text-decoration: underline;
+}
+
+/* Table rows */
+tbody tr:nth-child(even) {
+  background-color: #c8e6c9; /* สีเขียวอ่อนสำหรับแถวสลับ */
+}
+
+tbody tr:hover {
+  background-color: #a5d6a7; /* สีเขียวเข้มขึ้นเมื่อวางเมาส์ */
+  cursor: pointer;
+}
+
+/* เพิ่มเงาที่ทำให้ดูเหมือนมีเอฟเฟกต์ 3D */
+.data-table th,
+.data-table td {
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.1);
+}

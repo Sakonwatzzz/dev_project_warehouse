@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $typename, $address,  $phone, $username, $password, $id]);
 
-    header("Location: http://localhost:8000/home.php?page=personnel_list");    
+    header("Location: /home.php?page=personnel_list");    
     exit;
 }
 
