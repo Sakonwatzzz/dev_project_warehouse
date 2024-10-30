@@ -36,7 +36,7 @@ $personnel = $stmt->fetch();
     <input type="hidden" name="id" value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
 
     <label for="name">Name:</label>
-    <input type="text" name="name" value="<?= htmlspecialchars($personnel['personnel_name']) ?>" required>
+    <input type="text" name="name" value="<?= htmlspecialchars($personnel['personnel_name']) ?>" >
 
 
 
@@ -45,7 +45,7 @@ $personnel = $stmt->fetch();
     if ($results->rowCount() > 0) {
     ?>
         <label for="typename">ประเภทบุคคลากร:</label>
-        <select name="typename" id="typename" required>
+        <select name="typename" id="typename" >
             <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
                 <option value="<?php echo htmlspecialchars($row['personnel_type_id']); ?>">
                     <?php echo htmlspecialchars($row['personnel_type_name']); ?>
@@ -60,15 +60,15 @@ $personnel = $stmt->fetch();
     <!--  -->
 
     <label for="address">Address:</label>
-    <input type="text" name="address" value="<?= htmlspecialchars($personnel['personnel_address']) ?>" required>
+    <input type="text" name="address" value="<?= htmlspecialchars($personnel['personnel_address']) ?>" >
 
-    <label for="address">Phone:</label>
-    <input type="text" name="phone" value="<?= htmlspecialchars($personnel['personnel_phone']) ?>" required>
+    <label for="phone">Phone:</label>
+    <input type="text" name="phone" value="<?= htmlspecialchars($personnel['personnel_phone']) ?>" >
 
-    <label for="address">Username:</label>
-    <input type="text" name="username" value="<?= htmlspecialchars($personnel['personnel_username']) ?>" required>
+    <label for="username">Username:</label>
+    <input type="text" name="username" value="<?= htmlspecialchars($personnel['personnel_username']) ?>" >
 
-    <label for="address">Password:</label>
-    <input type="text" name="password" value="<?= htmlspecialchars($personnel['personnel_password']) ?>" required>
+    <label for="password">Password:</label>
+    <input type="text" name="password" value="<?= htmlspecialchars($personnel['personnel_password']) ?>" >
     <input type="submit" value="Update">
 </form>

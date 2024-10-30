@@ -1,0 +1,131 @@
+/* General styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  .main-body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f8fb;
+    color: #333;
+    padding: 20px;
+  }
+  
+  /* Header styling */
+  .title {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 2.5rem;
+    color: #00529b;
+  }
+  
+  .sub-title {
+    text-align: center;
+    margin: 20px;
+    color: #0073e6;
+    font-weight: normal;
+    font-size: 1.5rem;
+  }
+  
+  /* Form styling */
+  .form-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 450px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  label {
+    margin-top: 10px;
+    color: #333;
+    font-weight: bold;
+  }
+  input[type="text"],
+  input[type="password"], 
+  input[type="date"],
+  select[name="typename"]
+  {
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+  
+  .submit-button {
+    margin-top: 20px;
+    padding: 12px;
+    background-color: #aacad9;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .submit-button:hover {
+    background-color: #5b97b2;
+  }
+  
+  /* Table styling */
+  .data-table {
+    width: 90%;
+    margin: 30px auto;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  th,
+  td {
+    padding: 15px;
+    border: 1px solid #ddd;
+    text-align: center;
+    color: #333;
+    font-size: 1rem;
+  }
+  
+  th {
+    background-color: #aacad9;
+    color: #333;
+    font-weight: bold;
+  }
+  
+  td a {
+    
+    color: #00529b;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  td{
+    text-align: start;
+  }
+
+  
+  td a:hover {
+    color: #003f73;
+    text-decoration: underline;
+  }
+  
+  /* Table rows */
+  tbody tr:nth-child(even) {
+    background-color: #f9fcff;
+  }
+  
+  tbody tr:hover {
+    background-color: #e0efff;
+  }
+  .dropdown-content a {
+    color: #333;
+    padding: 8px 16px;
+    text-decoration: none;
+    display: block;
+    border-bottom: 1px solid #eee;
+  }
