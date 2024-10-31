@@ -17,10 +17,10 @@ $results = fetchAll($pdo, 'personnel');
 
 <body>
     <div class="personnel-list">
-        <div class="search">
+        <!-- <div class="search">
             <p>ค้นหารายการ</p>
             <input type="search" name="" id="">
-        </div>
+        </div> -->
 
 
         <table class="data-table">
@@ -45,8 +45,8 @@ $results = fetchAll($pdo, 'personnel');
                         <td><?= htmlspecialchars($row['personnel_phone']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_username']) ?></td>
                         <td>
-                            <a href="fuctions_personnel/edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a> |
-                            <a href="fuctions_personnel/delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
+                            <a href="functions_personel/edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a> |
+                            <a href="functions_personel/delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>

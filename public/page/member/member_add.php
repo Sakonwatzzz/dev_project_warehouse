@@ -1,6 +1,7 @@
 <?php
-require_once __DIR__ . '/../config/database_server.php';
+require_once __DIR__ . '../../../../config/database_server.php';
 require_once './db/warehouse_db.php'; // Include database connection
+$resultmember = fetchAll($pdo, 'member');
 
 // SQL query to get all members with their types
 $query = "SELECT
@@ -17,7 +18,7 @@ INNER JOIN member_type ON member.member_type_id = member_type.member_type_id";
 $result = $conn->query($query);
 
 if (!$result) {
-    die("Query failed: " . $conn->error); 
+    die("Query failed: " . $conn->error);
 }
 
 // SQL query to get member types for the dropdown
@@ -39,7 +40,7 @@ if (!$results) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="style/member.css">
+    <link rel="stylesheet" href="../../style/member.css">
 </head>
 
 <body>
@@ -78,37 +79,6 @@ if (!$results) {
             <input class="submit-button" type="submit" value="เพิ่ม">
         </form>
     </div>
-
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>รหัส</th>
-                <th>ชื่อ นามสกุล</th>
-                <th>ที่อยู่สมาชิก</th>
-                <th>เบอร์โทรศัพท์สมาชิก</th>
-                <th>วันที่</th>
-                <th>ประเภทสมาชิก</th>
-                <th>การจัดการ</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                    <td><?= htmlspecialchars($row['member_id']) ?></td>
-                    <td><?= htmlspecialchars($row['member_name']) ?></td>
-                    <td><?= htmlspecialchars($row['member_address']) ?></td>
-                    <td><?= htmlspecialchars($row['member_phone']) ?></td>
-                    <td><?= htmlspecialchars($row['member_register_date']) ?></td>
-                    <td><?= htmlspecialchars($row['member_type_name']) ?></td> <!-- Display member type name -->
-                    <td>
-                        <a href="functions_member/member_edit.php?id=<?= htmlspecialchars($row['member_id']) ?>">แก้ไข</a> |
-                        <a href="functions_member/member_delete.php?id=<?= htmlspecialchars($row['member_id']) ?>"
-                            onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                    </td>
-                </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
 </body>
 
 </html>

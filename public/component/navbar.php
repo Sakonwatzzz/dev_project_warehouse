@@ -17,8 +17,9 @@
                 <ul>
                     <li><a href="?page=bar_index" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_index') ? 'active' : ''; ?>">หน้าแรก</a></li>
                     <li><a href="#">เบิกจ่าย</a></li>
-                    <li><a href="?page=bar_stor" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_stor') ? 'active' : ''; ?>">คลัง</a></li>
-                    <li><a href="?page=bar_personnel" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_personnel') ? 'active' : ''; ?>">สมาชิก</a></li>
+                    <li><a href="?page=bar_product" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_product') ? 'active' : ''; ?>">คลัง</a></li>
+                    <li><a href="?page=bar_personnel" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
+                    <li><a href="?page=bar_member" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
                     <li><a href="#">ขาย</a></li>
                 </ul>
             </div>
@@ -31,11 +32,15 @@
         switch ($page) {
             case 'bar_personnel':
                 include 'component/bar_personnel.php';
-                include 'page/personnels/personnel_list.php';
+                include 'page/personnel/personnel_list.php';
                 break;
-            case 'bar_stor':
-                include 'component/bar_stor.php';
+            case 'bar_product':
+                include 'component/bar_product.php';
+                include 'page/product/product_list.php';
                 break;
+            case 'bar_member':
+                include 'component/bar_memer.php';
+                include 'page/member/member_list.php';
             case 'bar_index':
                 include 'component/bar_index.php';
                 include 'component/dashboard.php';

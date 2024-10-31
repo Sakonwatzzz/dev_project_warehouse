@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/../config/database_server.php';
+require_once __DIR__ . '../../../../config/database_server.php';
 
-include_once("./db/warehouse_db.php");
+require_once './db/warehouse_db.php'; 
 
 $query = "SELECT
     product.product_id, 
@@ -116,49 +116,6 @@ if (!$brandResults) {
             <input class="submit-button" type="submit" value="เพิ่ม">
         </form>
     </div>
-
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>รหัสสินค้า</th>
-                <th>บาร์โค้ด</th>
-                <th>ชื่อสินค้า</th>
-                <th>ราคา 1</th>
-                <th>ราคา 2</th>
-                <th>ราคา 3</th>
-                <th>ราคา 4</th>
-                <th>เมือง/ทุน</th>
-                <th>ประเภทสินค้า</th>
-                <th>แบรนด์สินค้า</th>
-                <th>การจัดการ</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            <?php while ($row = $productResults->fetch_assoc()): ?>
-                <tr>
-                    <td><?= htmlspecialchars($row['product_id']) ?></td>
-                    <td><?= htmlspecialchars($row['product_barcode']) ?></td>
-                    <td><?= htmlspecialchars($row['product_name']) ?></td>
-                    <td><?= htmlspecialchars($row['product_price1']) ?></td>
-                    <td><?= htmlspecialchars($row['product_price2']) ?></td>
-                    <td><?= htmlspecialchars($row['product_price3']) ?></td>
-                    <td><?= htmlspecialchars($row['product_price4']) ?></td>
-                    <td><?= htmlspecialchars($row['product_capital']) ?></td>
-                    <td><?= htmlspecialchars($row['product_type_name']) ?></td>
-                    <td><?= htmlspecialchars($row['product_brand_name']) ?></td>
-                    <td>
-                        <a
-                            href="functions_product/product_edit.php?id=<?= htmlspecialchars($row['product_id']) ?>">แก้ไข</a>
-                        |
-                        <a href="functions_product/product_delete.php?id=<?= htmlspecialchars($row['product_id']) ?>"
-                            onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                    </td>
-                </tr>
-            <?php endwhile; ?>
-        </tbody>
-
-    </table>
 </body>
 
 </html>

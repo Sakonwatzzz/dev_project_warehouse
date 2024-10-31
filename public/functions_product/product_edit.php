@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$barcode, $name, $price_1,  $price_2,  $price_3, $price_4, $capital, $typename, $typebrandname, $id]);
 
-    header('Location: ../product.php');  // กลับไปหน้าแสดงผล
+    header('Location:   /?page=bar_product');  // กลับไปหน้าแสดงผล
     exit;
 }
 // ตรวจสอบให้แน่ใจว่า ID ถูกตั้งค่า

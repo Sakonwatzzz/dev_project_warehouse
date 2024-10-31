@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-$result = fetchAll($pdo, 'personnel');
+$results = fetchAll($pdo, 'personnel');
 
 $query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
 $results = $conn->query($query);
@@ -22,7 +22,7 @@ $results = $conn->query($query);
 
     <div class="add-box">
         <h2 class="sub-title">เพิ่มสมาชิก</h2>
-        <form class="form-container" action="fuctions_personnel/create.php" method="POST">
+        <form class="form-container" action="functions_personel/create.php" method="POST">
             <div class="box">
                 <label for="name">ชื่อ นามสกุลบุคลากร:</label>
                 <input type="text" id="name" name="name" required>

@@ -73,27 +73,27 @@
             <a href="?page=personnel_list" class="button-link">
                 <button>
                     <img src="../image/team.png" alt="">
-                    <p>รายชื่อสมาชิก</p>
+                    <p>รายชื่อบุคลากร</p>
                 </button>
             </a>
             <a href="?page=personnel_add" class="button-link">
                 <button>
                     <img src="../image/add.png" alt="">
-                    <p>เพิ่มสมาชิก</p>
+                    <p>เพิ่มบุคลากร</p>
                 </button>
             </a>
             <a href="?page=personnel_type" class="button-link">
                 <button>
                     <img src="../image/customer.png" alt="">
-                    <p>ประเภท</p>
+                    <p>ประเภทบุคลากร</p>
                 </button>
             </a>
-            <a href="?page=personnel_status" class="button-link">
+            <!-- <a href="?page=personnel_status" class="button-link">
                 <button>
                     <img src="../image/team-building.png" alt="">
                     <p>สถานะ</p>
                 </button>
-            </a>
+            </a> -->
         </div>
     </div>
 </body>

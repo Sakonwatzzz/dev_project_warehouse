@@ -1,20 +1,15 @@
-<?php
-require_once __DIR__ . '../../../config/database_server.php';
-$results = fetchAll($pdo, 'personnel');
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <title>Document</title>
     <style>
         /* พื้นหลังแบบ Windows XP */
         body {
             font-family: Tahoma, sans-serif;
-            background-color: #e8f5e9; 
+            background-color: #e8f5e9;
             color: #333;
         }
 
@@ -79,48 +74,47 @@ $results = fetchAll($pdo, 'personnel');
             gap: 5px;
         }
     </style>
-    <title>Document</title>
 </head>
 
 <body>
     <div class="button-bb">
         <div class="button-bar-1">
-            <a href="#" class="button-link">
+            <a href="?page=product_list" class="button-link">
                 <button>
                     <img src="../image/box.png" alt="">
                     <p>รายการ</p>
                 </button>
             </a>
-            <a href="#" class="button-link">
+            <a href="?page=product_add" class="button-link">
                 <button>
                     <img src="../image/add-product.png" alt="">
                     <p>เพิ่มสินค้า</p>
                 </button>
             </a>
-            <a href="#" class="button-link">
+            <a href="?page=product_type" class="button-link">
                 <button>
                     <img src="../image/box.png" alt="">
                     <p>ประเภทสินค้า</p>
                 </button>
             </a>
-            <a href="#" class="button-link">
+            <a href="?page=product_brand" class="button-link">
                 <button>
                     <img src="../image/box.png" alt="">
-                    <p>กลุ่ม</p>
+                    <p>แบรนด์</p>
                 </button>
             </a>
-            <a href="#" class="button-link">
-                <button>
-                    <img src="../image/box.png" alt="">
-                    <p>สถานะ</p>
-                </button>
-            </a>
+            <!-- <a href="#" class="button-link">
+                        <button>
+                            <img src="../image/box.png" alt="">
+                            <p>สถานะ</p>
+                        </button>
+                    </a> -->
 
             <!--<select class="dropdown">
-            <option>2 state</option>
-        </select>
-        <button class="tool-button">🔍</button>
-    -->
+                    <option>2 state</option>
+                </select>
+                <button class="tool-button">🔍</button>
+                                -->
         </div>
 
         <div class="button-bar-2">
