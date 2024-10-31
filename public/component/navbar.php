@@ -11,47 +11,40 @@
 
 <body>
     <div class="header">
-        <div class="dis">
-            <p>Administrater System - Power by Wisdom Planet</p>
-        </div>
-        
+        <p>Admin Management system</p>
         <div class="navbar">
-        <div class="logo">
-                <img src="image/stock-rotation.png" alt="">
-            </div>
             <div class="link">
                 <ul>
+                    <li><a href="?page=bar_index" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_index') ? 'active' : ''; ?>">หน้าแรก</a></li>
                     <li><a href="#">เบิกจ่าย</a></li>
-                    <li class="dropdown">
-                        <a href="#" class="nav-link">คลัง <i class="fa fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="#">รายการสินค้า</a>
-                            <a href="#">คลังสินค้า</a>
-                            <a href="#">การรับสินค้า</a>
-                            <a href="#">การเบิกสินค้า</a>
-                        </div>
-                    </li>
-                    <li><a href="?page=personnel" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'personnel') ? 'active' : ''; ?>">สมาชิก</a></li>
-                    <!-- <li><a href="#">โครงการ</a></li> -->
+                    <li><a href="?page=bar_stor" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_stor') ? 'active' : ''; ?>">คลัง</a></li>
+                    <li><a href="?page=bar_personnel" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_personnel') ? 'active' : ''; ?>">สมาชิก</a></li>
                     <li><a href="#">ขาย</a></li>
-                    <!-- <li><a href="#">อสังหา</a></li>
-                    <li><a href="#">สถิติ</a></li>
-                    <li><a href="#">Course</a></li>
-                    <li><a href="#">เพิ่มเติม</a></li>
-                    <li><a href="#">ระบบเฉพาะ</a></li>
-                    <li><a href="#">รายงาน</a></li>
-                    <li><a href="#">องค์กร</a></li>
-                    <li><a href="#">งบประมาณ</a></li>
-                    <li><a href="#">คงระบบ</a></li>
-                    <li><a href="#">นักศึกษา</a></li>
-                    <li><a href="#">หน้าเว็บ</a></li> -->
                 </ul>
             </div>
         </div>
     </div>
 
+    <div class="button-bar">
+        <?php
+        $page = $_GET['page'] ?? 'bar_index';
+        switch ($page) {
+            case 'bar_personnel':
+                include 'component/bar_personnel.php';
+                include 'page/personnels/personnel_list.php';
+                break;
+            case 'bar_stor':
+                include 'component/bar_stor.php';
+                break;
+            case 'bar_index':
+                include 'component/bar_index.php';
+                include 'component/dashboard.php';
+                break;
+        }
+        ?>
+    </div>
 
-    
+
 </body>
 
 </html>
