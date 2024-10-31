@@ -17,7 +17,7 @@
                 <ul>
                     <li><a href="?page=bar_index" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_index') ? 'active' : ''; ?>">หน้าแรก</a></li>
                     <li><a href="#">เบิกจ่าย</a></li>
-                    <li><a href="?page=bar_product" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_product') ? 'active' : ''; ?>">คลัง</a></li>
+                    <li><a href="?page=bar_product" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_product') ? 'active' : ''; ?>">สินค้า</a></li>
                     <li><a href="?page=bar_personnel" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
                     <li><a href="?page=bar_member" class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
                     <li><a href="#">ขาย</a></li>
@@ -39,8 +39,9 @@
                 include 'page/product/product_list.php';
                 break;
             case 'bar_member':
-                include 'component/bar_memer.php';
+                include 'component/bar_member.php';
                 include 'page/member/member_list.php';
+                break;
             case 'bar_index':
                 include 'component/bar_index.php';
                 include 'component/dashboard.php';

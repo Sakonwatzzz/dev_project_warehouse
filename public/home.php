@@ -15,25 +15,31 @@
         if (isset($_GET['page'])) {
             $page = $_GET['page'];
             $is_page = explode("_", $page);
-            $pageFile = './page/' . $is_page[1] . '/' . $page . '.php';
-            if (file_exists($pageFile)) {
-                include $pageFile;
-            } else {
-                echo "<p>หน้าที่คุณเรียกไม่พบ</p>";
-            }
-        } else {
-            echo "<p>กรุณาเลือกเมนูเพื่อแสดงข้อมูล</p>";
+
+            // include './component/bar_' . $is_page[1] . '.php';
+            // include './page/'.$is_page[1].'/'.$page.'.php';
+            // include ''.$is_page[1].'/'.$page.'.php';
+            
+            // echo '<br>';
+            // echo './component/bar_' . $is_page[1] . '.php';
+            // echo '<br>';
+            // echo './page/' . $is_page[1] . '/' . $page . '.php';
+
+     
         }
 
-        // include './component/bar_' . $is_page[1] . '.php';
-        // include './page/'.$is_page[1].'/'.$page.'.php';
-        // include ''.$is_page[1].'/'.$page.'.php';
         
-        // echo '<br>';
-        // echo './component/bar_' . $is_page[1] . '.php';
-        // echo '<br>';
-        // echo './page/' . $is_page[1] . '/' . $page . '.php';
         
+           //     if (file_exists($pageFile)) {
+        //         include $pageFile;
+        //     } else {
+        //         echo "<p>หน้าที่คุณเรียกไม่พบ</p>";
+        //     }
+        // } else {
+        //     echo "<p>กรุณาเลือกเมนูเพื่อแสดงข้อมูล</p>";
+
+
+
 
         // if ($page === 'personnel_list') {
         //     include './component/bar_personnel.php';

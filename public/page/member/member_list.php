@@ -1,7 +1,38 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once './db/warehouse_db.php'; 
-$results = fetchAll($pdo, 'member');
+require_once './db/warehouse_db.php';
+$resultmember = fetchAll($pdo, 'member');
+
+// SQL query to get all members with their types
+$query = "SELECT
+    member.member_id, 
+    member.member_name, 
+    member.member_address, 
+    member.member_phone, 
+    member.member_register_date,
+    member_type.member_type_id,
+    member_type.member_type_name
+FROM member
+INNER JOIN member_type ON member.member_type_id = member_type.member_type_id";
+
+$resultmember = $conn->query($query);
+
+if (!$resultmember) {
+    die("Query failed: " . $conn->error);
+}
+
+// SQL query to get member types for the dropdown
+$queryTypes = "SELECT
+    member_type.member_type_id, 
+    member_type.member_type_name
+FROM member_type";
+$results = $conn->query($queryTypes);
+
+if (!$results) {
+    die("Query failed: " . $conn->error); // แสดงข้อความหากเกิดข้อผิดพลาดในการ query
+} elseif (is_array($results)) {
+    die("Unexpected array result. Verify database connection and query syntax.");
+}
 ?>
 
 <!DOCTYPE html>
@@ -30,7 +61,7 @@ $results = fetchAll($pdo, 'member');
             </tr>
         </thead>
         <tbody>
-            <?php while ($row = $results->fetch_assoc()): ?>
+            <?php while ($row = $resultmember->fetch_assoc()): ?>
                 <tr>
                     <td><?= htmlspecialchars($row['member_id']) ?></td>
                     <td><?= htmlspecialchars($row['member_name']) ?></td>
