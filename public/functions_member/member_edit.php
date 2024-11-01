@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $address, $phone, $registerdate, $typename, $id]);
 
-    header('Location: ../member.php');  // กลับไปหน้าแสดงผล
+    header('Location: /index.php?page=member_list');  // กลับไปหน้าแสดงผล
     exit;
 
 }

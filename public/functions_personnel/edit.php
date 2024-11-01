@@ -30,7 +30,17 @@ $stmt = $pdo->prepare("SELECT * FROM personnel WHERE personnel_id = ?");
 $stmt->execute([$id]);
 $personnel = $stmt->fetch();
 ?>
+   
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="/style/member_edit.css">
 
+</head>
+<body>
 <h2>Edit Personnel</h2>
 <form action="edit.php" method="POST">
     <input type="hidden" name="id" value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
@@ -72,3 +82,5 @@ $personnel = $stmt->fetch();
     <input type="text" name="password" value="<?= htmlspecialchars($personnel['personnel_password']) ?>" >
     <input type="submit" value="Update">
 </form>
+</body>
+</html>

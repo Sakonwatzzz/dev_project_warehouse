@@ -1,6 +1,31 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
+require_once './db/warehouse_db.php';
 $results = fetchAll($pdo, 'personnel');
+
+$query = "SELECT    
+    persennel.persennel_name, 
+    persennel.persennel_adress, 
+    persennel.persennel_phone, 
+    persennel.persennel_username , 
+    persennel.persennel_type_id, 
+    persennel_type.persennel_type_name
+FROM
+    persennel
+INNER JOIN
+    persennel_type ON persennel.persennel_type_id = persennel_type.persennel_type_id;
+";
+
+// Query สำหรับประเภท
+$queryTypes = "SELECT
+    personnel_type.personnel_type_id, 
+    personnel_type.personnel_type_name
+FROM personnel_type";
+$typeResults = $conn->query($queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+
+if (!$typeResults) {
+    die("Query failed: " . $conn->error);
+}
 ?>
 
 <!DOCTYPE html>
@@ -9,8 +34,8 @@ $results = fetchAll($pdo, 'personnel');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../style//navbar.css">
-    <link rel="stylesheet" href="../style//personnel_list.css">
+    <link rel="stylesheet" href="/style/product.css">
+
 
     <title>Document</title>
 </head>
@@ -36,21 +61,21 @@ $results = fetchAll($pdo, 'personnel');
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($results as $row): ?>
+                <?php while ($row = $results->fetch_assoc()): ?>
                     <tr>
                         <td><?= htmlspecialchars($row['personnel_id']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_name']) ?></td>
-                        <td><?= htmlspecialchars($row['personnel_type_id']) ?></td>
+                        <td><?= htmlspecialchars($row['personnel_type_name']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_address']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_phone']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_username']) ?></td>
                         <td>
-                            <a href="functions_personel/edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a> |
-                            <a href="functions_personel/delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
+                            <a href="functions_personnel/edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a> |
+                            <a href="functions_personnel/delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
-                <?php endforeach; ?>
+                <?php endwhile; ?>
             </tbody>
         </table>
 

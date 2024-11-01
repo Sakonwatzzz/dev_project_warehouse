@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            VALUES (?, ?, ?, ?, ?, ?)');
     $stmt->execute([$name, $typename, $address, $phone, $username, $password]);
 
-    header('Location: /index.php?page=personnel_add');  
+    header('Location: /index.php?page=personnel_list');  
     exit;
 }
 ?>

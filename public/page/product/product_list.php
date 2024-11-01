@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once './db/warehouse_db.php'; 
+require_once __DIR__ .'../../../db/warehouse_db.php';
 $productResults = fetchAll($pdo,'product');
 
 $query = "SELECT
@@ -23,6 +23,7 @@ INNER JOIN
 INNER JOIN
     product_type ON product.product_type_id = product_type.product_type_id;
 ";
+
 $productResults = $conn->query($query); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
 // Query สำหรับประเภทสินค้า
@@ -36,16 +37,17 @@ if (!$typeResults) {
     die("Query failed: " . $conn->error);
 }
 
-// Query สำหรับประเภทแบรนด์สินค้า
-$querybrandTypes = "SELECT
-    product_brand.product_brand_id, 
-    product_brand.product_brand_name
-FROM product_brand";
-$brandResults = $conn->query($querybrandTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+// // Query สำหรับประเภทแบรนด์สินค้า
+// $querybrandTypes = "SELECT
+//     product_brand.product_brand_id, 
+//     product_brand.product_brand_name
+// FROM product_brand";
+// $brandResults = $conn->query($querybrandTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
-if (!$brandResults) {
-    die("Query failed: " . $conn->error);
-}
+// if (!$brandResults) {
+//     die("Query failed: " . $conn->error);
+    
+// }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,7 +72,7 @@ if (!$brandResults) {
                     <th>ราคา 2</th>
                     <th>ราคา 3</th>
                     <th>ราคา 4</th>
-                    <th>เมือง/ทุน</th>
+                    <th>เงินทุน</th>
                     <th>ประเภทสินค้า</th>
                     <th>แบรนด์สินค้า</th>
                     <th>การจัดการ</th>
@@ -78,7 +80,7 @@ if (!$brandResults) {
             </thead>
 
             <tbody>
-                <?php while ($row = $productResults->fetch_assoc()): ?>
+                <?php foreach ($productResults as $row ): ?>
                     <tr>
                         <td><?= htmlspecialchars($row['product_id']) ?></td>
                         <td><?= htmlspecialchars($row['product_barcode']) ?></td>
@@ -93,12 +95,11 @@ if (!$brandResults) {
                         <td>
                             <a
                                 href="functions_product/product_edit.php?id=<?= htmlspecialchars($row['product_id']) ?>">แก้ไข</a>
-                            |
                             <a href="functions_product/product_delete.php?id=<?= htmlspecialchars($row['product_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </tbody>
 
         </table>

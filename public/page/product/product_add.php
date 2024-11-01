@@ -81,7 +81,7 @@ if (!$brandResults) {
             <label for="price_4">ราคาที่4:</label>
             <input type="text" name="price_4" id="price_4" >
 
-            <label for="capital">เมือง:</label>
+            <label for="capital">ราคาทุน:</label>
             <input type="text" name="capital" id="capital" >
 
             <?php if ($typeResults->num_rows > 0) { ?>

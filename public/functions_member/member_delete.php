@@ -5,5 +5,5 @@ $id = $_GET['id'];
 $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
 $stmt->execute([$id]);
 
-header("Location: ../member.php");    
+header("Location: /index.php?page=member_list");    
 exit;

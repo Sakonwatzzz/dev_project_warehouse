@@ -17,6 +17,7 @@ INNER JOIN member_type ON member.member_type_id = member_type.member_type_id";
 
 $result = $conn->query($query);
 
+
 if (!$result) {
     die("Query failed: " . $conn->error);
 }
@@ -31,6 +32,7 @@ $results = $conn->query($queryTypes);
 if (!$results) {
     die("Query failed: " . $conn->error); // Error handling for member types query
 }
+
 ?>
 
 <!DOCTYPE html>

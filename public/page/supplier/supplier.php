@@ -15,14 +15,14 @@ $results = fetchAll($pdo, 'supplier');
 
 <body>
     <div class="main-body">
-        <h1 class="title">Data Supplier</h1>
+        <h1 class="title">ข้อมูลผู้ส่งมอบ</h1>
 
-        <h2 class="sub-title">add supplier</h2>
+        <h2 class="sub-title">เพิ่มข้อมูลผู้ส่งมอบ</h2>
         <form class="form-container" action="supplier_create.php" method="POST">
-            <label for="name">ชื่อ:</label>
+            <label for="name">ชื่อผู้ส่งมอบ:</label>
             <input type="text" id="name" name="name" required>
 
-            <label for="address">ที่อยู่:</label>
+            <label for="address">ที่อยู่ผู้ส่งมอบ:</label>
             <input type="text" id="address" name="address" required>
 
             <label for="phone">เบอร์โทรศัพท์:</label>

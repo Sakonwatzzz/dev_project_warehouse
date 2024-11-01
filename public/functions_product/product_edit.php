@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$barcode, $name, $price_1,  $price_2,  $price_3, $price_4, $capital, $typename, $typebrandname, $id]);
 
-    header('Location:   /?page=bar_product');  // กลับไปหน้าแสดงผล
+    header('Location: /index.php?page=bar_product');  // กลับไปหน้าแสดงผล
     exit;
 }
 // ตรวจสอบให้แน่ใจว่า ID ถูกตั้งค่า
@@ -87,7 +87,7 @@ $brandResults = $conn->query($querybrandTypes);
             <label for="price_4">ราคาที่4:</label>
             <input type="text" name="price_4" id="price_4" value="<?= htmlspecialchars($product['product_price4']) ?>">
 
-            <label for="capital">เมือง:</label>
+            <label for="capital">ราคาทุน:</label>
             <input type="text" name="capital" id="capital" value="<?= htmlspecialchars($product['product_capital']) ?>">
 
             <?php if ($typeResults->num_rows > 0) { ?>
