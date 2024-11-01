@@ -88,13 +88,10 @@
                     <p>ประเภทบุคลากร</p>
                 </button>
             </a>
-            <!-- <a href="?page=personnel_status" class="button-link">
-                <button>
-                    <img src="../image/team-building.png" alt="">
-                    <p>สถานะ</p>
-                </button>
-            </a> -->
         </div>
+
+
+
     </div>
 </body>
 

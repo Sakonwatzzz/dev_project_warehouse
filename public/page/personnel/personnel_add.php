@@ -1,9 +1,28 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-$results = fetchAll($pdo, 'personnel');
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = $_POST['name'];
+    $typename = $_POST['typename'];
+    $address = $_POST['address'];
+    $phone = $_POST['phone'];
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $stmt = $pdo->prepare('INSERT INTO personnel (personnel_name, personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password) 
+                           VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt->execute([$name, $typename, $address, $phone, $username, $password]);
+
+    header('Location: /index.php?page=personnel_add');  
+    exit;
+}
+
+// Fetch personnel types for dropdown
 $query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
-$results = $conn->query($query);
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+
+$personnelTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -13,30 +32,27 @@ $results = $conn->query($query);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_add.css">
-
     <title>Document</title>
-
 </head>
 
 <body>
 
     <div class="add-box">
         <h2 class="sub-title">เพิ่มสมาชิก</h2>
-        <form class="form-container" action="functions_personel/create.php" method="POST">
+        <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
             <div class="box">
                 <label for="name">ชื่อ นามสกุลบุคลากร:</label>
                 <input type="text" id="name" name="name" required>
             </div>
 
-
             <!-- loop -->
             <?php
-            if ($results->num_rows > 0) {
+            if (count($personnelTypes) > 0) {
             ?>
                 <div class="box">
-                    <label for="typename">ประเภทบุคคลากร:</label>
+                    <label for="typename">ประเภทบุคลากร:</label>
                     <select name="typename" id="typename" required>
-                        <?php while ($row = $results->fetch_assoc()) { ?>
+                        <?php foreach ($personnelTypes as $row) { ?> <!-- เปลี่ยนเป็น foreach -->
                             <option value="<?php echo htmlspecialchars($row['personnel_type_id']); ?>">
                                 <?php echo htmlspecialchars($row['personnel_type_name']); ?>
                             </option>
@@ -69,15 +85,11 @@ $results = $conn->query($query);
                 <input type="password" id="password" name="password" required>
             </div>
 
-
-            <!--<input class="submit-button" type="submit" value="เพิ่ม">-->
             <div class="box">
                 <label for=""></label>
-                <button lass="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button> <!-- แก้คำว่า "lass" เป็น "class" -->
             </div>
-
         </form>
-
     </div>
 </body>
 

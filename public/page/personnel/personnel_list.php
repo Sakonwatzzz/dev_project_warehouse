@@ -17,7 +17,7 @@ $results = fetchAll($pdo, 'personnel');
 
 <body>
     <div class="personnel-list">
-        <!-- <div class="search">
+        <!--<div class="search">
             <p>ค้นหารายการ</p>
             <input type="search" name="" id="">
         </div> -->

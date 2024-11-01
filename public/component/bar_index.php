@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '../../../config/database_server.php';
-$results = fetchAll($pdo, 'personnel');
 ?>
 
 <!DOCTYPE html>

@@ -28,27 +28,47 @@
 
     <div class="button-bar">
         <?php
-        $page = $_GET['page'] ?? 'bar_index';
-        switch ($page) {
-            case 'bar_personnel':
-                include 'component/bar_personnel.php';
-                include 'page/personnel/personnel_list.php';
-                break;
-            case 'bar_product':
-                include 'component/bar_product.php';
-                include 'page/product/product_list.php';
-                break;
-            case 'bar_member':
-                include 'component/bar_member.php';
-                include 'page/member/member_list.php';
-                break;
-            case 'bar_index':
-                include 'component/bar_index.php';
-                include 'component/dashboard.php';
-                break;
+        if (isset($_GET['page'])) {
+            $page = $_GET['page'];
+            $parts = explode("_", $page);
+
+            if (count($parts) === 2) {
+                $module = $parts[0];
+                $action = $parts[1];
+
+                switch ("{$module}_{$action}") {
+                    case "bar_index":
+                        include __DIR__ . "/bar_index.php";
+                        break;
+                    case "bar_product":
+                        include __DIR__ . "/bar_product.php";
+                        break;
+                    case "bar_personnel":
+                        include __DIR__ . "/bar_personnel.php";
+                        include __DIR__ . "../../page/personnel/personnel_list.php";
+                        break;
+                    case "bar_member":
+                        include __DIR__ . "/bar_member.php";
+                        include __DIR__ . "../../page/member/member_list.php";
+                        break;
+                    default:
+                        if (in_array($page, ['personnel_list', 'personnel_add'])) {
+                            include __DIR__ . "/bar_personnel.php";
+                        }
+                        if (in_array($page, ['member_list', 'member_add'])) {
+                            include __DIR__ . "/bar_member.php";
+                        }
+                        break;
+                }
+            } else {
+                echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง</h2>";
+            }
+        } else {
+            include __DIR__ . "/bar_index.php";
         }
         ?>
     </div>
+
 
 
 </body>

@@ -156,7 +156,7 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<!-- <body>
+<body>
     <div class="container">
         <div class="main-content">
             <div class="dashboard">
@@ -262,5 +262,5 @@
         }
         setInterval(updateTime, 1000);
     </script>
-</body> -->
+</body> 
 </html>
