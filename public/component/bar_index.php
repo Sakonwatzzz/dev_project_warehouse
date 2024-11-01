@@ -13,19 +13,18 @@ require_once __DIR__ . '../../../config/database_server.php';
         /* พื้นหลังแบบ Windows XP */
         body {
             font-family: Tahoma, sans-serif;
-            background-color: #e8f5e9; 
+            background-color: #bbdefb; 
             color: #333;
         }
 
-        /* สไตล์ปุ่ม Windows XP */
+       
         .button-bb {
             padding: 5px;
             display: flex;
             gap: 5px;
             align-items: center;
-            background-color: #c3e6c5;
-            /* พื้นหลังปุ่มโทนเขียว */
-            border: 1px solid #8bb58a;
+            background-color: #bbdefb;
+            border: 1px solid #90caf9;
             padding: 10px;
             border-radius: 4px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
@@ -40,8 +39,8 @@ require_once __DIR__ . '../../../config/database_server.php';
         .button-bb button {
             display: flex;
             align-items: center;
-            background-color: #e2f5e3;
-            /* สีเขียวอ่อนปุ่ม */
+            background-color: #e1f5fe;
+           
             border: 1px solid #7d9b7d;
             padding: 6px 12px;
             cursor: pointer;
@@ -50,18 +49,18 @@ require_once __DIR__ . '../../../config/database_server.php';
         }
 
         .button-bb button:hover {
-            background-color: #c8e6c9;
-            border-color: #6e8e6e;
+            background-color: #b3e5fc;
+            border-color: #39a9db;
         }
 
-        /* ขนาดภาพ */
+        
         .button-bb img {
             width: 32px;
             height: auto;
             margin-right: 8px;
         }
 
-        /* สไตล์ข้อความ */
+     
         .button-bb p {
             margin: 0;
             font-size: 12px;

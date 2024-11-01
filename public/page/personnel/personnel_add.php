@@ -1,7 +1,12 @@
 <?php
+// ตรวจสอบให้แน่ใจว่าไม่มีช่องว่างหรือข้อความก่อน <?php ที่นี่
+
 require_once __DIR__ . '../../../../config/database_server.php';
 
+// ส่วนของโค้ดที่เหลือของคุณ...
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // ตรวจสอบการรับค่าข้อมูล
     $name = $_POST['name'];
     $typename = $_POST['typename'];
     $address = $_POST['address'];
@@ -9,21 +14,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
+    // Insert ข้อมูลไปยังฐานข้อมูล
     $stmt = $pdo->prepare('INSERT INTO personnel (personnel_name, personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password) 
                            VALUES (?, ?, ?, ?, ?, ?)');
     $stmt->execute([$name, $typename, $address, $phone, $username, $password]);
 
-    header('Location: /index.php?page=personnel_list');  
+    // เปลี่ยนเส้นทาง
+    header('Location: /index.php?page=bar_personnel');
     exit;
 }
 
-// Fetch personnel types for dropdown
+// ดึงประเภทบุคลากรมาแสดงผล
 $query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
-
 $personnelTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

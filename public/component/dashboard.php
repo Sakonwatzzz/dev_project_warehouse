@@ -13,7 +13,7 @@
 
         body {
             font-family: "Tahoma", "MS Sans Serif", sans-serif;
-            background-color: #e9f5e9; /* สีพื้นหลัง */
+            background-color: #bbdefb; /* สีพื้นหลัง */
             color: #000;
             height: 100vh;
             overflow: hidden;

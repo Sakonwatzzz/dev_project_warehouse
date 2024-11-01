@@ -1,20 +1,22 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once './db/warehouse_db.php';
-$results = fetchAll($pdo, 'personnel');
+require_once __DIR__ . '../../../db/warehouse_db.php';
+$resultspersonnel = fetchAll($pdo, 'personnel');
 
 $query = "SELECT    
-    persennel.persennel_name, 
-    persennel.persennel_adress, 
-    persennel.persennel_phone, 
-    persennel.persennel_username , 
-    persennel.persennel_type_id, 
-    persennel_type.persennel_type_name
+    personnel.personnel_id,
+    personnel.personnel_name, 
+    personnel.personnel_address, 
+    personnel.personnel_phone, 
+    personnel.personnel_username, 
+    personnel.personnel_type_id, 
+    personnel_type.personnel_type_name
 FROM
-    persennel
+    personnel
 INNER JOIN
-    persennel_type ON persennel.persennel_type_id = persennel_type.persennel_type_id;
-";
+    personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id";
+
+$resultspersonnel = $conn->query($query);
 
 // Query สำหรับประเภท
 $queryTypes = "SELECT
@@ -46,7 +48,7 @@ if (!$typeResults) {
             <p>ค้นหารายการ</p>
             <input type="search" name="" id="">
         </div> -->
-
+        <h2>ข้อมูลบุคลากร</h2>
 
         <table class="data-table">
             <thead>
@@ -61,9 +63,8 @@ if (!$typeResults) {
                 </tr>
             </thead>
             <tbody>
-                <?php while ($row = $results->fetch_assoc()): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($row['personnel_id']) ?></td>
+                <?php while ($row = $resultspersonnel->fetch_assoc()): ?>
+                    <tr onclick="window.location='component/detailtest.php?type=personnel&id=<?= htmlspecialchars($row['personnel_id']) ?>'">                        <td><?= htmlspecialchars($row['personnel_id']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_name']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_type_name']) ?></td>
                         <td><?= htmlspecialchars($row['personnel_address']) ?></td>

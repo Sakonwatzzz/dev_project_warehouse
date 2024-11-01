@@ -42,8 +42,8 @@ if (!$results) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="../style/navbar.css">
-    <link rel="stylesheet" href="../style/personnel_list.css">
+    <!-- <link rel="stylesheet" href="../style/navbar.css">
+    <link rel="stylesheet" href="../style/personnel_list.css"> -->
 </head>
 
 <body>
@@ -59,11 +59,12 @@ if (!$results) {
                     <th>วันที่</th>
                     <th>ประเภทสมาชิก</th>
                     <th>การจัดการ</th>
-                </tr>
+                </tr> 
             </thead>
             <tbody>
                 <?php while ($row = $resultmember->fetch_assoc()): ?>
-                    <tr>
+                    <!-- ส่งค่าพารามิเตอร์ type และ id ไปยัง detail.php ในการตั้งค่า onclick -->
+                    <tr onclick="window.location.href='component/detailtest.php?type=member&id=<?= htmlspecialchars($row['member_id']) ?>'"> 
                         <td><?= htmlspecialchars($row['member_id']) ?></td>
                         <td><?= htmlspecialchars($row['member_name']) ?></td>
                         <td><?= htmlspecialchars($row['member_address']) ?></td>

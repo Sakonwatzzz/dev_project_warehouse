@@ -36,8 +36,7 @@ $producttypes = $stmt->fetch();
 
 <body>
     <div class="body-main">
-        <h1 class="title">ข้อมูลประเภทสินค้าสินค้า</h1>
-        <h2 class="sub-title">เพิ่มประเภทสินค้า</h2>
+        <h2 class="sub-title">แก้ไขประเภทสินค้า</h2>
 
         <form class="form-container" action="product_type_edit.php" method="POST">
 

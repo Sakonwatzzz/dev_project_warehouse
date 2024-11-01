@@ -28,6 +28,9 @@
                     <li><a href="?page=bar_member"
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a>
                     </li>
+                    <li><a href="?page=bar_supplier"
+                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_supplier') ? 'active' : ''; ?>">ผู้ส่งมอบ</a>
+                    </li>
                     <li><a href="#">ขาย</a></li>
                 </ul>
             </div>
@@ -60,6 +63,10 @@
                         include __DIR__ . "/bar_member.php";
                         include __DIR__ . "../../page/member/member_list.php";
                         break;
+                    case "bar_supplier":
+                        include __DIR__ . "/bar_supplier.php";
+                        include __DIR__ . "../../page/supplier/supplier.php";
+                        break;
                     default:
                         if (in_array($page, ['personnel_list', 'personnel_add','personnel_type'])) {
                             include __DIR__ . "/bar_personnel.php";
@@ -69,6 +76,9 @@
                         }
                         if (in_array($page, ["product_list", "product_add","product_type","product_brand"])) {
                             include __DIR__ . "/bar_product.php";
+                        }
+                        if (in_array($page, ["supplier_list", "supplier_add"])) {
+                            include __DIR__ . "/bar_supplier.php";
                         }
                         break;
                 }

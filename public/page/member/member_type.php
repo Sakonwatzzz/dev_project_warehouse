@@ -51,8 +51,8 @@ $memberTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <table class="data-table">
         <thead>
             <tr>
-                <th>รหัสประเภทบุคลากร</th>
-                <th>ชื่อประเภทบุคลากร</th>
+                <th>รหัสประเภทสมาชิก</th>
+                <th>ชื่อประเภทสมาชิก</th>
                 <th>การจัดการ</th>
             </tr>
         </thead>
@@ -62,8 +62,8 @@ $memberTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td><?= htmlspecialchars($row['member_type_id']) ?></td>
                     <td><?= htmlspecialchars($row['member_type_name']) ?></td>
                     <td>
-                        <a href="functions_member/type_edit.php?id=<?= htmlspecialchars($row['member_type_id']) ?>">แก้ไข</a> |
-                        <a href="functions_member/type_delete.php?id=<?= htmlspecialchars($row['member_type_id']) ?>"
+                        <a href="functions_member/member_type_edit.php?id=<?= htmlspecialchars($row['member_type_id']) ?>">แก้ไข</a> |
+                        <a href="functions_member/member_type_delete.php?id=<?= htmlspecialchars($row['member_type_id']) ?>"
                             onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>

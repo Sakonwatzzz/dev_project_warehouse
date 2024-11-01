@@ -9,7 +9,7 @@
         /* พื้นหลังแบบ Windows XP */
         body {
             font-family: Tahoma, sans-serif;
-            background-color: #e8f5e9;
+            background-color: #e0f7fa; /* เปลี่ยนเป็นฟ้าอ่อน */
             color: #333;
         }
 
@@ -19,9 +19,8 @@
             display: flex;
             gap: 5px;
             align-items: center;
-            background-color: #c3e6c5;
-            /* พื้นหลังปุ่มโทนเขียว */
-            border: 1px solid #8bb58a;
+            background-color: #b3e5fc; /* พื้นหลังปุ่มโทนฟ้า */
+            border: 1px solid #81d4fa;
             padding: 10px;
             border-radius: 4px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
@@ -36,9 +35,8 @@
         .button-bb button {
             display: flex;
             align-items: center;
-            background-color: #e2f5e3;
-            /* สีเขียวอ่อนปุ่ม */
-            border: 1px solid #7d9b7d;
+            background-color: #b3e5fc; /* สีฟ้าอ่อนปุ่ม */
+            border: 1px solid #4fc3f7;
             padding: 6px 12px;
             cursor: pointer;
             border-radius: 4px;
@@ -46,8 +44,8 @@
         }
 
         .button-bb button:hover {
-            background-color: #c8e6c9;
-            border-color: #6e8e6e;
+            background-color: #81d4fa; /* เปลี่ยนสีเมื่อ hover */
+            border-color: #39a9db; /* เปลี่ยนสีขอบเมื่อ hover */
         }
 
         /* ขนาดภาพ */
@@ -103,18 +101,6 @@
                     <p>แบรนด์</p>
                 </button>
             </a>
-            <!-- <a href="#" class="button-link">
-                        <button>
-                            <img src="../image/box.png" alt="">
-                            <p>สถานะ</p>
-                        </button>
-                    </a> -->
-
-            <!-- <select class="dropdown">
-                    <option>2 state</option>
-                </select>
-                <button class="tool-button">🔍</button>
-                                -->
         </div>
 
         <div class="button-bar-2">

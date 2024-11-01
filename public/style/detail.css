@@ -1,0 +1,59 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #E4E4E4;
+    margin: 0;
+    padding: 0;
+}
+
+.main-body {
+    margin: 20px auto;
+    padding: 15px;
+    max-width: 600px;
+    background-color: #D4E4FF; /* สีพื้นหลังคล้าย Windows XP */
+    border: 1px solid #7A8FAA;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+h1.title {
+    font-size: 18px;
+    color: #0A3C8C;
+    text-align: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #7A8FAA;
+}
+
+/* สไตล์ตาราง */
+.details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+.details-table th, .details-table td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #7A8FAA;
+}
+
+.details-table th {
+    background-color: #B5C9EB;
+    color: #0A3C8C;
+    font-weight: bold;
+}
+
+.details-table td {
+    background-color: #FFFFFF;
+    color: #333;
+}
+
+/* สไตล์ลิงก์ */
+a {
+    display: inline-block;
+    margin-top: 15px;
+    color: #0A3C8C;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}

@@ -1,6 +1,35 @@
 <?php
-require_once __DIR__ . '/../config/database_server.php';
-$results = fetchAll($pdo, 'supplier');
+require_once __DIR__ . '/../../../config/database_server.php';
+require_once __DIR__ . '../../../db/warehouse_db.php';
+$results = fetchAll($pdo,'supplier');
+
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = $_POST['name'];
+    $address = $_POST['address'];
+    $phone = $_POST['phone'];
+    $detail = $_POST['detail'];
+
+    $stmt = $pdo->prepare('INSERT INTO supplier (supplier_name,supplier_address, supplier_phone, supplier_detail) 
+                           VALUES (?, ?, ?, ?)');
+    $stmt->execute([$name, $address, $phone, $detail]);
+    header('Location: /?page=bar_supplier');  // กลับไปหน้าแสดงผล
+    exit;
+}
+
+// $search = $_GET['search'] ?? '';
+// if ($search) {
+//     $query = "SELECT supplier_id, supplier_name,supplier_address,supplier_phone, supplier_detail FROM supplier 
+//     WHERE supplier_name LIKE ? OR supplier_address LIKE ? OR supplier_phone LIKE ? OR supplier_detail LIKE ?";
+//     $stmt = $pdo->prepare($query);
+//     $stmt->execute(["%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%"]);
+// } else {
+//     $query = "SELECT supplier_id, supplier_name, supplier_address, supplier_phone, supplier_detail FROM supplier";
+//     $stmt = $pdo->prepare($query);
+//     $stmt->execute();
+// }
+
+
 ?>
 
 <!DOCTYPE html>
@@ -14,26 +43,14 @@ $results = fetchAll($pdo, 'supplier');
 </head>
 
 <body>
+
     <div class="main-body">
         <h1 class="title">ข้อมูลผู้ส่งมอบ</h1>
+        <!-- <form action="" method="GET">
+            <input type="text" name="search" placeholder="ค้นหาผู้ส่งมอบ.......">
+            <button type="submit">ค้นหา</button>
 
-        <h2 class="sub-title">เพิ่มข้อมูลผู้ส่งมอบ</h2>
-        <form class="form-container" action="supplier_create.php" method="POST">
-            <label for="name">ชื่อผู้ส่งมอบ:</label>
-            <input type="text" id="name" name="name" required>
-
-            <label for="address">ที่อยู่ผู้ส่งมอบ:</label>
-            <input type="text" id="address" name="address" required>
-
-            <label for="phone">เบอร์โทรศัพท์:</label>
-            <input type="text" id="phone" name="phone" required>
-
-            <label for="detail">รายละเอียด:</label>
-            <input type="text" id="detail" name="detail" required>
-
-            <input class="submit-button" type="submit" value="เพิ่ม">
-        </form>
-
+        </form> -->
         <table class="data-table">
             <thead>
                 <tr>
@@ -47,15 +64,16 @@ $results = fetchAll($pdo, 'supplier');
             </thead>
             <tbody>
                 <?php foreach ($results as $row): ?>
-                    <tr>
+                    <tr onclick="window.location='component/detailtest.php?type=supplier&id=<?= htmlspecialchars($row['supplier_id']) ?>'">
                         <td><?= htmlspecialchars($row['supplier_id']) ?></td>
                         <td><?= htmlspecialchars($row['supplier_name']) ?></td>
                         <td><?= htmlspecialchars($row['supplier_address']) ?></td>
                         <td><?= htmlspecialchars($row['supplier_phone']) ?></td>
                         <td><?= htmlspecialchars($row['supplier_detail']) ?></td>
                         <td>
-                            <a href="supplier_edit.php?id=<?= htmlspecialchars($row['supplier_id']) ?>">แก้ไข</a> |
-                            <a href="supplier_delete.php?id=<?= htmlspecialchars($row['supplier_id']) ?>"
+
+                            <a href="functions_supplier/supplier_edit.php?id=<?= htmlspecialchars($row['supplier_id']) ?>">แก้ไข</a> |
+                            <a href="functions_supplier/supplier_delete.php?id=<?= htmlspecialchars($row['supplier_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>

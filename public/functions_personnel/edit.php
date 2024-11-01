@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $typename, $address,  $phone, $username, $password, $id]);
 
-    header("Location: /home.php?page=personnel_list");    
+    header("Location: /home.php?page=personnel_list");
     exit;
 }
 
@@ -30,57 +30,56 @@ $stmt = $pdo->prepare("SELECT * FROM personnel WHERE personnel_id = ?");
 $stmt->execute([$id]);
 $personnel = $stmt->fetch();
 ?>
-   
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="/style/member_edit.css">
-
+    <title>Edit Personnel</title>
+    <link rel="stylesheet" href="/style/personnel.css">
 </head>
+
 <body>
-<h2>Edit Personnel</h2>
-<form action="edit.php" method="POST">
-    <input type="hidden" name="id" value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
+    <div class="main-body">
+        <h2 class="title">Edit Personnel</h2>
+        <p class="sub-title">แก้ไขข้อมูลบุคลากร</p>
 
-    <label for="name">Name:</label>
-    <input type="text" name="name" value="<?= htmlspecialchars($personnel['personnel_name']) ?>" >
+        <form class="form-container" action="edit.php" method="POST">
+            <input type="hidden" name="id" value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
 
+            <label for="name">ชื่อบุคลากร:</label>
+            <input type="text" name="name" value="<?= htmlspecialchars($personnel['personnel_name']) ?>">
 
-
-    <!-- loop -->
-    <?php
-    if ($results->rowCount() > 0) {
-    ?>
-        <label for="typename">ประเภทบุคคลากร:</label>
-        <select name="typename" id="typename" >
-            <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
-                <option value="<?php echo htmlspecialchars($row['personnel_type_id']); ?>">
-                    <?php echo htmlspecialchars($row['personnel_type_name']); ?>
-                </option>
+            <?php if ($results->rowCount() > 0) { ?>
+                <label for="typename">ประเภทบุคลากร:</label>
+                <select name="typename" id="typename">
+                    <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
+                        <option value="<?= htmlspecialchars($row['personnel_type_id']); ?>" <?= ($row['personnel_type_id'] == $personnel['personnel_type_id']) ? 'selected' : ''; ?>>
+                            <?= htmlspecialchars($row['personnel_type_name']); ?>
+                        </option>
+                    <?php } ?>
+                </select>
+            <?php } else { ?>
+                <p>No personnel types available.</p>
             <?php } ?>
-        </select><br>
-    <?php
-    } else {
-        echo "No personnel types available.";
-    }
-    ?>
-    <!--  -->
 
-    <label for="address">Address:</label>
-    <input type="text" name="address" value="<?= htmlspecialchars($personnel['personnel_address']) ?>" >
+            <label for="address">ที่อยู่บุคลากร:</label>
+            <input type="text" name="address" value="<?= htmlspecialchars($personnel['personnel_address']) ?>">
 
-    <label for="phone">Phone:</label>
-    <input type="text" name="phone" value="<?= htmlspecialchars($personnel['personnel_phone']) ?>" >
+            <label for="phone">เบอร์โทรศัพท์บุคลากร:</label>
+            <input type="text" name="phone" value="<?= htmlspecialchars($personnel['personnel_phone']) ?>">
 
-    <label for="username">Username:</label>
-    <input type="text" name="username" value="<?= htmlspecialchars($personnel['personnel_username']) ?>" >
+            <label for="username">ชื่อผู้ใช้:</label>
+            <input type="text" name="username" value="<?= htmlspecialchars($personnel['personnel_username']) ?>">
 
-    <label for="password">Password:</label>
-    <input type="text" name="password" value="<?= htmlspecialchars($personnel['personnel_password']) ?>" >
-    <input type="submit" value="Update">
-</form>
+            <label for="password">รหัสผ่าน:</label>
+            <input type="text" name="password" value="<?= htmlspecialchars($personnel['personnel_password']) ?>">
+
+            <button type="submit" class="submit-button">บันทึก</button>
+        </form>
+    </div>
 </body>
+
 </html>

@@ -9,8 +9,7 @@
         /* พื้นหลังแบบ Windows XP */
         body {
             font-family: Tahoma, sans-serif;
-            background-color: #d4f4d7;
-            /* สีเขียวอ่อน */
+            background-color: #bbdefb; /* สีฟ้าอ่อน */
             color: #333;
         }
 
@@ -20,10 +19,8 @@
             display: flex;
             gap: 5px;
             align-items: center;
-            background-color: #c3e6c5;
-            /* พื้นหลังปุ่มโทนเขียว */
-            border: 1px solid #8bb58a;
-            padding: 10px;
+            background-color: #bbdefb; /* พื้นหลังปุ่มโทนฟ้า */
+            border: 1px solid #90caf9; /* สีขอบปุ่ม */
             border-radius: 4px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
         }
@@ -37,9 +34,8 @@
         .button-bb button {
             display: flex;
             align-items: center;
-            background-color: #e2f5e3;
-            /* สีเขียวอ่อนปุ่ม */
-            border: 1px solid #7d9b7d;
+            background-color: #e1f5fe; /* สีฟ้าอ่อนปุ่ม */
+            border: 1px solid #81d4fa; /* สีขอบปุ่ม */
             padding: 6px 12px;
             cursor: pointer;
             border-radius: 4px;
@@ -47,8 +43,8 @@
         }
 
         .button-bb button:hover {
-            background-color: #c8e6c9;
-            border-color: #6e8e6e;
+            background-color: #b3e5fc; /* เปลี่ยนสีเมื่อ hover */
+            border-color: #39a9db; /* เปลี่ยนสีขอบเมื่อ hover */
         }
 
         /* ขนาดภาพ */

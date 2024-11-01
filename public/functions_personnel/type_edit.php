@@ -31,20 +31,22 @@ $personneltype = $stmt->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/personnel_add.css">
+    <link rel="stylesheet" href="/style/personnel.css">
     <title>Document</title>
 </head>
 
 <body>
-    <h2>แก้ไขประเภทบุคลากร</h2>
-    <form action="type_edit.php" method="POST">
-        <input type="hidden" name="id" value="<?= htmlspecialchars($personneltype['personnel_type_id']) ?>">
+    <div class="main-body">
+        <h2>แก้ไขประเภทบุคลากร</h2>
+        <form class="form-container" action="type_edit.php" method="POST">
+            <input type="hidden" name="id" value="<?= htmlspecialchars($personneltype['personnel_type_id']) ?>">
 
-        <label for="typename">ชื่อประเภทบุคลากร:</label>
-        <input type="text" name="typename" value="<?= htmlspecialchars($personneltype['personnel_type_name']) ?>">
+            <label for="typename">ชื่อประเภทบุคลากร:</label>
+            <input type="text" name="typename" value="<?= htmlspecialchars($personneltype['personnel_type_name']) ?>">
 
-        <input type="submit" value="Update">
-    </form>
+            <input class="submit-button" type="submit" value="Update">
+        </form>
+    </div>
 </body>
 
 </html>

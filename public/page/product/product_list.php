@@ -21,8 +21,9 @@ FROM
 INNER JOIN
     product_brand ON product.product_brand_id = product_brand.product_brand_id
 INNER JOIN
-    product_type ON product.product_type_id = product_type.product_type_id;
-";
+    product_type ON product.product_type_id = product_type.product_type_id
+ORDER BY product.product_id ASC";
+
 
 $productResults = $conn->query($query); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
@@ -31,23 +32,23 @@ $queryTypes = "SELECT
     product_type.product_type_id, 
     product_type.product_type_name
 FROM product_type";
-$typeResults = $conn->query($queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+$typeResults = $conn->query(query: $queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
 if (!$typeResults) {
     die("Query failed: " . $conn->error);
 }
 
-// // Query สำหรับประเภทแบรนด์สินค้า
-// $querybrandTypes = "SELECT
-//     product_brand.product_brand_id, 
-//     product_brand.product_brand_name
-// FROM product_brand";
-// $brandResults = $conn->query($querybrandTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+// Query สำหรับประเภทแบรนด์สินค้า
+$querybrandTypes = "SELECT
+    product_brand.product_brand_id, 
+    product_brand.product_brand_name
+FROM product_brand";
+$brandResults = $conn->query($querybrandTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
-// if (!$brandResults) {
-//     die("Query failed: " . $conn->error);
+if (!$brandResults) {
+    die("Query failed: " . $conn->error);
     
-// }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -74,14 +75,14 @@ if (!$typeResults) {
                     <th>ราคา 4</th>
                     <th>เงินทุน</th>
                     <th>ประเภทสินค้า</th>
-                    <th>แบรนด์สินค้า</th>
+                    <th>แบรนด์สินค้า</th>  
                     <th>การจัดการ</th>
                 </tr>
             </thead>
 
             <tbody>
                 <?php foreach ($productResults as $row ): ?>
-                    <tr>
+                    <tr onclick="window.location='component/detailtest.php?type=product&id=<?= htmlspecialchars($row['product_id']) ?>'">
                         <td><?= htmlspecialchars($row['product_id']) ?></td>
                         <td><?= htmlspecialchars($row['product_barcode']) ?></td>
                         <td><?= htmlspecialchars($row['product_name']) ?></td>

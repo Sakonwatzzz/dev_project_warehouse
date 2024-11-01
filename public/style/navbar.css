@@ -9,13 +9,13 @@ body {
   color: #000;
   height: 100vh;
   overflow: auto;
-  background-color: #f0f4f0; /* สีเขียวอ่อน */
+  background-color: #f0f8ff; /* สีฟ้าอ่อน */
 }
 
 /* Header styling */
 .header {
-  background: linear-gradient(to bottom, #e6ffe6, #ccffcc); /* ไล่สีเขียวอ่อน */
-  border-bottom: 1px solid #8ac78a;
+  background: linear-gradient(to bottom, #e0f7ff, #cceeff); /* ไล่สีฟ้าอ่อน */
+  border-bottom: 1px solid #8abbd8;
 }
 
 .header p {
@@ -25,15 +25,15 @@ body {
   font-size: 14px;
   padding: 8px 10px;
   color: #ffffff;
-  background: linear-gradient(to right, #66b366, #4d944d); /* สีเขียวเข้ม */
+  background: linear-gradient(to right, #3399cc, #267799); /* สีฟ้าเข้ม */
 }
 
 /* Navbar styling */
 .navbar {
   display: flex;
   padding: 10px;
-  background: linear-gradient(to bottom, #d9f2d9, #b2d8b2); /* ไล่สีเขียวอ่อน */
-  border: 1px solid #8ac78a;
+  background: linear-gradient(to bottom, #d0eaff, #b0d8ff); /* ไล่สีฟ้าอ่อน */
+  border: 1px solid #8abbd8;
 }
 
 .navbar ul {
@@ -57,9 +57,9 @@ body {
 }
 
 .navbar ul li a:hover, .navbar ul li .active {
-  background-color: #e6ffe6; /* สีเขียวอ่อน */
-  border: 1px solid #66b366;
-  color: #2d572d;
+  background-color: #e0f7ff; /* สีฟ้าอ่อน */
+  border: 1px solid #3399cc;
+  color: #25597c;
 }
 
 /* Data table styling */
@@ -67,43 +67,51 @@ body {
   width: 90%;
   margin: 30px auto;
   border-collapse: collapse;
-  background-color: #fff8dc; /* สีเหลืองอ่อน */
-  border: 1px solid #d6c07d;
+  background-color: #f0faff; /* สีฟ้าอ่อน */
+  border: 1px solid #a0c0d8;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.data-table th, .data-table td {
+.data-table th {
   padding: 10px;
-  border: 1px solid #d3d3d3;
+  border: 1px solid #a8c7d3;
   text-align: center;
   color: #333;
   font-size: 0.9rem;
 }
 
+.data-table td {
+  padding: 10px;
+  border: 1px solid #a8c7d3;
+  text-align: start;
+  color: #333;
+  font-size: 0.9rem;
+}
+
 .data-table th {
-  background-color: #ffeb99; /* สีเหลือง */
+  background-color: #b3d9ff; /* สีฟ้า */
   color: #333;
   font-weight: bold;
-  background-image: linear-gradient(to bottom, #ffeb99, #ffda66);
+  background-image: linear-gradient(to bottom, #b3d9ff, #99ccee);
 }
 
 .data-table tbody tr:nth-child(even) {
-  background-color: #fffde7; /* สีเหลืองอ่อน */
+  background-color: #e6f4ff; /* สีฟ้าอ่อน */
 }
 
 .data-table tbody tr:hover {
-  background-color: #fff4cc;
+  background-color: #cceeff;
   cursor: pointer;
 }
 
 /* Link styling for table actions */
 .data-table td a {
-  color: #996600; /* สีเหลืองน้ำตาล */
+  color: #005580; /* สีน้ำเงินเข้ม */
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .data-table td a:hover {
-  color: #663300;
+  color: #003d66;
   text-decoration: underline;
 }

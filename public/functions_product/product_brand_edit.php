@@ -36,14 +36,13 @@ $productbrands = $stmt->fetch();
 
 <body>
     <div class="body-main">
-        <h1 class="title">ข้อมูลประเภทสินค้าสินค้า</h1>
-        <h2 class="sub-title">เพิ่มประเภทสินค้า</h2>
+        <h2 class="sub-title">แก้ไขแบรนด์สินค้า</h2>
 
         <form class="form-container" action="product_brand_edit.php" method="POST">
 
             <input type="hidden" name="id" value="<?= htmlspecialchars($productbrands['product_brand_id']) ?>">
 
-            <label for="brandname">ชื่อประเภทสินค้า:</label>
+            <label for="brandname">ชื่อแบรนด์สินค้า:</label>
             <input type="text" name="brandname" id="brandname"
                 value="<?= htmlspecialchars($productbrands['product_brand_name']) ?>">
 

@@ -1,32 +1,35 @@
 <?php
 require_once __DIR__ . '/../../../config/database_server.php';
+require_once __DIR__ . '../../../db/warehouse_db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $typename = $_POST['typename'] ?? '';
+    $typename = trim($_POST['typename'] ?? '');
 
-    // if (!empty($typename)) {
-    //     try {
-    $stmt = $pdo->prepare('INSERT INTO product_type (product_type_name) VALUES (?)');
-    $stmt->execute([$typename]);
+    // ตรวจสอบว่า typename ไม่ว่าง
+    if (!empty($typename)) {
+        try {
+            $stmt = $pdo->prepare('INSERT INTO product_type (product_type_name) VALUES (?)');
+            $stmt->execute([$typename]);
 
-    header('Location: /index.php?page=product_type');
-    exit;
-    //     } catch (PDOException $e) {
-    //         echo 'Database error: ' . $e->getMessage();
-    //     }
-    // } else {
-    //     echo 'Error: Type name is required.';
-    // }
+            // รีเฟรชหน้าเดิมเมื่อบันทึกเสร็จ
+            header("Location: ");
+            exit;
+        } catch (PDOException $e) {
+            // แสดงข้อความผิดพลาดหากมีปัญหาในการเพิ่มข้อมูล
+            echo 'Database error: ' . htmlspecialchars($e->getMessage());
+        }
+    } else {
+        echo 'Error: Type name is required.';
+    }
 }
 
-$query = "SELECT product_type_id, 
-                product_type_name 
-            FROM product_type";
+// ดึงข้อมูลประเภทสินค้าทั้งหมดมาแสดงผล
+$query = "SELECT product_type_id, product_type_name FROM product_type";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
-
 $productTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
