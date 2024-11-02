@@ -108,12 +108,7 @@ if (!$brandResults) {
         <table class="data-table" id="dataTable">
             <thead>
                 <tr>
-                    <th>รหัสสินค้า</th>
-                    <th>บาร์โค้ด</th>
                     <th>ชื่อสินค้า</th>
-                    <th>ราคา 1</th>
-                    <th>ราคา 2</th>
-                    <th>ราคา 3</th>
                     <th>ราคา 4</th>
                     <th>เงินทุน</th>
                     <th>ประเภทสินค้า</th>
@@ -124,13 +119,9 @@ if (!$brandResults) {
 
             <tbody>
                 <?php foreach ($productResults as $row): ?>
-                    <tr onclick="window.location='component/detailtest.php?type=product&id=<?= htmlspecialchars($row['product_id']) ?>'">
-                        <td><?= htmlspecialchars($row['product_id']) ?></td>
-                        <td><?= htmlspecialchars($row['product_barcode']) ?></td>
+                    <tr
+                        onclick="window.location.href='component/detail.php?tabel=product&id=<?= htmlspecialchars($row['product_id']) ?>'">
                         <td><?= htmlspecialchars($row['product_name']) ?></td>
-                        <td><?= htmlspecialchars($row['product_price1']) ?></td>
-                        <td><?= htmlspecialchars($row['product_price2']) ?></td>
-                        <td><?= htmlspecialchars($row['product_price3']) ?></td>
                         <td><?= htmlspecialchars($row['product_price4']) ?></td>
                         <td><?= htmlspecialchars($row['product_capital']) ?></td>
                         <td><?= htmlspecialchars($row['product_type_name']) ?></td>
@@ -197,7 +188,7 @@ if (!$brandResults) {
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
