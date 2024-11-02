@@ -71,7 +71,7 @@
                         if (in_array($page, ['personnel_list', 'personnel_add','personnel_type'])) {
                             include __DIR__ . "/bar_personnel.php";
                         }
-                        if (in_array($page, ['member_list', 'member_add','member_type'])) {
+                        if (in_array($page, ['member_list', 'member_add','member_type','member_edit'])) {
                             include __DIR__ . "/bar_member.php";
                         }
                         if (in_array($page, ["product_list", "product_add","product_type","product_brand"])) {

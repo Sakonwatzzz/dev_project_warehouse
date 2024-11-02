@@ -13,7 +13,7 @@ require_once __DIR__ . '../../../config/database_server.php';
         /* พื้นหลังแบบ Windows XP */
         body {
             font-family: Tahoma, sans-serif;
-            background-color: #bbdefb; 
+            background-color: #e3f2fd; /* เปลี่ยนเป็นฟ้าอ่อน */
             color: #333;
         }
 

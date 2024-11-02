@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $typename, $address,  $phone, $username, $password, $id]);
 
-    header("Location: /home.php?page=personnel_list");
+    header("Location: /home.php?page=personnel_list&success=1");
     exit;
 }
 
@@ -37,47 +37,68 @@ $personnel = $stmt->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href=".././style/personnel_add.css">
+    <style>
+        .edit-box {
+            margin: 3rem 10rem 4rem 8rem;
+        }
+    </style>
     <title>Edit Personnel</title>
-    <link rel="stylesheet" href="/style/personnel.css">
 </head>
 
 <body>
-    <div class="main-body">
-        <h2 class="title">Edit Personnel</h2>
-        <p class="sub-title">แก้ไขข้อมูลบุคลากร</p>
+    <div class="edit-box">
+        <h2 class="title">แก้ไขบุคลากร</h2>
 
         <form class="form-container" action="edit.php" method="POST">
             <input type="hidden" name="id" value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
 
-            <label for="name">ชื่อบุคลากร:</label>
-            <input type="text" name="name" value="<?= htmlspecialchars($personnel['personnel_name']) ?>">
+            <div class="box">
+                <label for="name">ชื่อบุคลากร:</label>
+                <input type="text" name="name" value="<?= htmlspecialchars($personnel['personnel_name']) ?>">
+            </div>
+
 
             <?php if ($results->rowCount() > 0) { ?>
-                <label for="typename">ประเภทบุคลากร:</label>
-                <select name="typename" id="typename">
-                    <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
-                        <option value="<?= htmlspecialchars($row['personnel_type_id']); ?>" <?= ($row['personnel_type_id'] == $personnel['personnel_type_id']) ? 'selected' : ''; ?>>
-                            <?= htmlspecialchars($row['personnel_type_name']); ?>
-                        </option>
-                    <?php } ?>
-                </select>
+                <div class="box">
+                    <label for="typename">ประเภทบุคลากร:</label>
+                    <select name="typename" id="typename">
+                        <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
+                            <option value="<?= htmlspecialchars($row['personnel_type_id']); ?>" <?= ($row['personnel_type_id'] == $personnel['personnel_type_id']) ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($row['personnel_type_name']); ?>
+                            </option>
+                        <?php } ?>
+                    </select>
+                </div>
             <?php } else { ?>
                 <p>No personnel types available.</p>
             <?php } ?>
 
-            <label for="address">ที่อยู่บุคลากร:</label>
-            <input type="text" name="address" value="<?= htmlspecialchars($personnel['personnel_address']) ?>">
+            <div class="box">
+                <label for="address">ที่อยู่บุคลากร:</label>
+                <input type="text" name="address" value="<?= htmlspecialchars($personnel['personnel_address']) ?>">
+            </div>
 
-            <label for="phone">เบอร์โทรศัพท์บุคลากร:</label>
-            <input type="text" name="phone" value="<?= htmlspecialchars($personnel['personnel_phone']) ?>">
+            <div class="box">
+                <label for="phone">เบอร์โทรศัพท์บุคลากร:</label>
+                <input type="text" name="phone" value="<?= htmlspecialchars($personnel['personnel_phone']) ?>">
+            </div>
 
-            <label for="username">ชื่อผู้ใช้:</label>
-            <input type="text" name="username" value="<?= htmlspecialchars($personnel['personnel_username']) ?>">
+            <div class="box">
+                <label for="username">ชื่อผู้ใช้:</label>
+                <input type="text" name="username" value="<?= htmlspecialchars($personnel['personnel_username']) ?>">
+            </div>
 
-            <label for="password">รหัสผ่าน:</label>
-            <input type="text" name="password" value="<?= htmlspecialchars($personnel['personnel_password']) ?>">
+            <div class="box">
+                <label for="password">รหัสผ่าน:</label>
+                <input type="text" name="password" value="<?= htmlspecialchars($personnel['personnel_password']) ?>">
+            </div>
 
-            <button type="submit" class="submit-button">บันทึก</button>
+
+            <div class="box">
+                <label for=""></label>
+                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+            </div>
         </form>
     </div>
 </body>

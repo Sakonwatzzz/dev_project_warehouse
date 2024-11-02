@@ -1,3 +1,8 @@
+<?php
+ob_start();
+require_once __DIR__ . '../../../config/database_server.php';
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +14,8 @@
         /* พื้นหลังแบบ Windows XP */
         body {
             font-family: Tahoma, sans-serif;
-            background-color: #e3f2fd; /* เปลี่ยนเป็นฟ้าอ่อน */
+            background-color: #e3f2fd;
+            /* เปลี่ยนเป็นฟ้าอ่อน */
             color: #333;
         }
 
@@ -19,7 +25,8 @@
             display: flex;
             gap: 5px;
             align-items: center;
-            background-color: #bbdefb; /* พื้นหลังปุ่มโทนฟ้า */
+            background-color: #bbdefb;
+            /* พื้นหลังปุ่มโทนฟ้า */
             border: 1px solid #90caf9;
             padding: 10px;
             border-radius: 4px;
@@ -35,7 +42,8 @@
         .button-bb button {
             display: flex;
             align-items: center;
-            background-color: #e1f5fe; /* สีฟ้าอ่อนปุ่ม */
+            background-color: #e1f5fe;
+            /* สีฟ้าอ่อนปุ่ม */
             border: 1px solid #81d4fa;
             padding: 6px 12px;
             cursor: pointer;
@@ -44,8 +52,10 @@
         }
 
         .button-bb button:hover {
-            background-color: #b3e5fc; /* เปลี่ยนสีเมื่อ hover */
-            border-color: #39a9db; /* เปลี่ยนสีขอบเมื่อ hover */
+            background-color: #b3e5fc;
+            /* เปลี่ยนสีเมื่อ hover */
+            border-color: #39a9db;
+            /* เปลี่ยนสีขอบเมื่อ hover */
         }
 
         /* ขนาดภาพ */

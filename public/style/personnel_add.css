@@ -5,27 +5,27 @@
 
 body {
   font-family: Arial, sans-serif;
-  background-color: #f2f9f2; /* สีพื้นหลังเขียวอ่อน */
+  background-color: #e3f2fd;
   color: #333;
 }
 
 h2 {
   margin: 20px 0 10px 10px;
   padding: 5px;
-  color: #2c5d2c; /* สีเขียวเข้ม */
+  color: #1b4d80; /* สีเขียวเข้ม */
 }
 
 .add-box {
   margin-bottom: 15px;
   padding: 20px;
   border-radius: 8px;
-  background-color: #e8f5e9; /* สีพื้นหลังของกล่องเพิ่มสมาชิก */
+  background-color: #e3f2fd; /* สีพื้นหลังของกล่องเพิ่มสมาชิก */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 form {
   width: 100%;
-  border: 1px solid #a5d6a7; /* สีเขียวอ่อน */
+  border: 1px solid #81d4fa;
   padding: 20px;
   display: block;
   border-radius: 8px;
@@ -71,5 +71,9 @@ form {
 }
 
 .box button:hover {
-  background: linear-gradient(to bottom, #45a049, #2e7d32); /* สีเข้มขึ้นเมื่อ hover */
+  background: linear-gradient(
+    to bottom,
+    #45a049,
+    #2e7d32
+  ); /* สีเข้มขึ้นเมื่อ hover */
 }

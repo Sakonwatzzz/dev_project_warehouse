@@ -19,9 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $address, $phone, $registerdate, $typename, $id]);
 
-    header('Location: /index.php?page=member_list');  // กลับไปหน้าแสดงผล
+    header('Location: /?page=member_list&success=1');
     exit;
-
 }
 
 $id = $_GET['id'];
@@ -29,51 +28,71 @@ $stmt = $pdo->prepare("SELECT * FROM member WHERE member_id = ?");
 $stmt->execute([$id]);
 $member = $stmt->fetch();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href=".././style/personnel_add.css">
+    <style>
+        .edit-box {
+            margin: 3rem 10rem 4rem 8rem;
+        }
+    </style>
     <title>Document</title>
-    <link rel="stylesheet" href="/style/member_edit.css">
 </head>
 
 <body>
-    <div class="main-boy">
+    <div class="edit-box">
         <h2 class="sub-title">แก้ไขสมาชิก</h2>
 
         <form class="form-container" action="member_edit.php" method="POST">
-            <input type="hidden" name="id" value="<?= htmlspecialchars(string: $member['member_id']) ?>">
+            <input type="hidden" name="id" value="<?= htmlspecialchars($member['member_id']) ?>">
 
+            <div class="box">
+                <label for="name">ชื่อ นามสกุลสมาชิก:</label>
+                <input type="text" name="name" value="<?= htmlspecialchars($member['member_name']) ?>">
+            </div>
 
-            <label for="name">ชื่อ นามสกุลสมาชิก:</label>
-            <input type="text" name="name" value="<?= htmlspecialchars($member['member_name']) ?>">
+            <div class="box">
+                <label for="address">ที่อยู่สมาชิก:</label>
+                <input type="text" name="address" value="<?= htmlspecialchars($member['member_address']) ?>">
+            </div>
 
-            <label for="address">ที่อยู่สมาชิก:</label>
-            <input type="text" name="address" value="<?= htmlspecialchars($member['member_address']) ?>">
+            <div class="box">
+                <label for="phone">เบอร์โทรศัพท์สมาชิก:</label>
+                <input type="text" name="phone" value="<?= htmlspecialchars($member['member_phone']) ?>">
+            </div>
 
-            <label for="phone">เบอร์โทรศัพท์สมาชิก:</label>
-            <input type="text" name="phone" value="<?= htmlspecialchars($member['member_phone']) ?>">
+            <div class="box">
+                <label for="registerdate">วันที่:</label>
+                <input type="date" name="registerdate" value="<?= htmlspecialchars($member['member_register_date']) ?>">
 
-            <label for="registerdate">วันที่:</label>
-            <input type="date" name="registerdate" value="<?= date('Y-m-d') ?>">
+            </div>
 
             <?php if ($results->rowCount() > 0) { ?>
-                <label for="typename">ประเภทสมาชิก:</label>
-                <select name="typename" id="typename">
-                    <option value="">-- เลือกประเภทสมาชิก --</option> <!-- ตัวเลือกว่าง -->
-                    <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
-                        <option value="<?php echo htmlspecialchars($row['member_type_id']); ?>">
-                            <?php echo htmlspecialchars($row['member_type_name']); ?>
-                        </option>
-                    <?php } ?>
-                </select>
+                <div class="box">
+                    <label for="typename">ประเภทสมาชิก:</label>
+                    <select name="typename" id="typename">
+                        <option value="">-- เลือกประเภทสมาชิก --</option>
+                        <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
+                            <option value="<?php echo htmlspecialchars($row['member_type_id']); ?>"
+                                <?php if ($row['member_type_id'] == $member['member_type_id']) echo 'selected'; ?>>
+                                <?php echo htmlspecialchars($row['member_type_name']); ?>
+                            </option>
+                        <?php } ?>
+                    </select>
+                </div>
             <?php } else { ?>
                 <p>ไม่พบข้อมูลประเภทสมาชิก</p>
             <?php } ?>
 
-            <input class="submit-button" type="submit" value="Update">
+            <div class="box">
+                <label for=""></label>
+                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+            </div>
         </form>
     </div>
 </body>

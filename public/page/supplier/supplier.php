@@ -1,34 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/database_server.php';
 require_once __DIR__ . '../../../db/warehouse_db.php';
-$results = fetchAll($pdo,'supplier');
-
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = $_POST['name'];
-    $address = $_POST['address'];
-    $phone = $_POST['phone'];
-    $detail = $_POST['detail'];
-
-    $stmt = $pdo->prepare('INSERT INTO supplier (supplier_name,supplier_address, supplier_phone, supplier_detail) 
-                           VALUES (?, ?, ?, ?)');
-    $stmt->execute([$name, $address, $phone, $detail]);
-    header('Location: /?page=bar_supplier');  // กลับไปหน้าแสดงผล
-    exit;
-}
-
-// $search = $_GET['search'] ?? '';
-// if ($search) {
-//     $query = "SELECT supplier_id, supplier_name,supplier_address,supplier_phone, supplier_detail FROM supplier 
-//     WHERE supplier_name LIKE ? OR supplier_address LIKE ? OR supplier_phone LIKE ? OR supplier_detail LIKE ?";
-//     $stmt = $pdo->prepare($query);
-//     $stmt->execute(["%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%"]);
-// } else {
-//     $query = "SELECT supplier_id, supplier_name, supplier_address, supplier_phone, supplier_detail FROM supplier";
-//     $stmt = $pdo->prepare($query);
-//     $stmt->execute();
-// }
-
+$results = fetchAll($pdo, 'supplier');
 
 ?>
 
@@ -38,20 +11,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../style/personnel_list.css">
+    <style>
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            color: #000;
+            border: 2px solid #A0A0A0;
+            border-radius: 5px;
+            font-family: "Tahoma", "Verdana", sans-serif;
+            width: 400px;
+            height: 120px;
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .notification-header {
+            background-color: #ffdfa0;
+            color: #000;
+            padding: 10px;
+            font-weight: bold;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+
+        .notification-body {
+            padding: 20px;
+            font-size: 16px;
+            text-align: center;
+        }
+    </style>
     <title>หน้าบุคลากร</title>
-    <link rel="stylesheet" href="style/index.css">
+
 </head>
 
 <body>
 
-    <div class="main-body">
-        <h1 class="title">ข้อมูลผู้ส่งมอบ</h1>
-        <!-- <form action="" method="GET">
-            <input type="text" name="search" placeholder="ค้นหาผู้ส่งมอบ.......">
-            <button type="submit">ค้นหา</button>
+    <div class="personnel-list">
+        <h2 class="title">ข้อมูลผู้ส่งมอบ</h2>
 
-        </form> -->
-        <table class="data-table">
+        <div class="search">
+            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาสมาชิก...">
+        </div>
+
+        <div id="notification" class="notification">
+            <div class="notification-header">การแจ้งเตือน</div>
+            <div class="notification-body">แก้ไขผู้ส่งมอบสำเร็จ!</div>
+        </div>
+
+        <table class="data-table" id="dataTable">
             <thead>
                 <tr>
                     <th>รหัส</th>
@@ -81,6 +93,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </tbody>
         </table>
     </div>
+
+    <script>
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById("dataTable");
+            const tr = table.getElementsByTagName("tr");
+            let foundAny = false; // ตัวแปรเพื่อเก็บสถานะการค้นหา
+
+            for (let i = 1; i < tr.length; i++) { // เริ่มจาก 1 เพื่อข้าม header
+                let found = false;
+                const td = tr[i].getElementsByTagName("td");
+                for (let j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        const txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = found ? "" : "none"; // แสดงหรือซ่อนแถว
+                if (found) {
+                    foundAny = true; // ถ้าพบข้อมูลอย่างน้อย 1 แถว
+                }
+            }
+
+            // แสดงข้อความเมื่อไม่พบข้อมูล
+            const noDataMessage = document.getElementById("noDataMessage");
+            if (!foundAny) {
+                if (!noDataMessage) {
+                    const message = document.createElement("p");
+                    message.id = "noDataMessage";
+                    message.textContent = "ไม่พบข้อมูล";
+                    message.style.color = "red"; // ปรับสีข้อความ
+                    message.style.fontWeight = "bold"; // ปรับความหนาของข้อความ
+                    message.style.marginTop = "10px"; // เพิ่มระยะห่างด้านบน
+                    table.parentNode.insertBefore(message, table); // เพิ่มข้อความก่อนตาราง
+                }
+            } else {
+                if (noDataMessage) {
+                    noDataMessage.remove(); // ลบข้อความเมื่อพบข้อมูล
+                }
+            }
+        }
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('success')) {
+                const notification = document.getElementById('notification');
+                notification.style.display = 'block'; // แสดงการแจ้งเตือน
+
+                // ลบการแจ้งเตือนหลัง 2 วินาที
+                setTimeout(() => {
+                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
+                }, 2000);
+            }
+        });
+    </script>
 </body>
 
 </html>

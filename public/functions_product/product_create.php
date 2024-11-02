@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '../../../config/database_server.php';
 
 
@@ -17,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([$barcode, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
-    header('Location: /index.php?page=bar_product');  // กลับไปหน้าแสดงผล
+    header('Location: /?page=product_add&success=1');  // กลับไปหน้าแสดงผล
         exit;
 }
+ob_end_flush();

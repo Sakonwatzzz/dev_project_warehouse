@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '../../../config/database_server.php';
 
 
@@ -13,10 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([$name, $address, $phone, $registerdate, $typename]);
 
-    header('Location: /index.php?page=member_list');  // กลับไปหน้าแสดงผล
+    header('Location: /?page=member_add&success=1');  // กลับไปหน้าแสดงผล
     exit;
     
 
 }
-
+ob_end_flush();
 ?>

@@ -3,7 +3,7 @@ require_once __DIR__ . '../../../config/database_server.php';
 require_once __DIR__ . '../../db/warehouse_db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['id'];  
+    $id = $_POST['id'];
     $barcode = $_POST['barcode'];
     $name = $_POST['name'];
     $price_1 = $_POST['price_1'];
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$barcode, $name, $price_1,  $price_2,  $price_3, $price_4, $capital, $typename, $typebrandname, $id]);
 
-    header('Location: /index.php?page=bar_product');  // กลับไปหน้าแสดงผล
+    header('Location: /index.php?page=bar_product&success=1');  // กลับไปหน้าแสดงผล
     exit;
 }
 // ตรวจสอบให้แน่ใจว่า ID ถูกตั้งค่า
@@ -57,71 +57,98 @@ $brandResults = $conn->query($querybrandTypes);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="/style/product.css">
+    <link rel="stylesheet" href=".././style/personnel_add.css">
+
+    <style>
+        .edit-box {
+            margin: 3rem 10rem 4rem 8rem;
+        }
+        h1{
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="body-main">
-        <h1 class="title">ข้อมูลสินค้า</h1>
-        <h2 class="sub-title">เพิ่มสินค้า</h2>
+    <div class="edit-box">
+        <h1 class="title">แก้ไขข้อมูลสินค้า</h1>
 
         <form class="form-container" action="product_edit.php" method="POST">
 
             <input type="hidden" name="id" value="<?= htmlspecialchars($product['product_id']) ?>">
+            <div class="box">
+                <label for="barcode">บาร์โค้ดสินค้า:</label>
+                <input type="text" name="barcode" id="barcode" value="<?= htmlspecialchars(string: $product['product_barcode']) ?>">
+            </div>
 
-            <label for="barcode">บาร์โค้ดสินค้า:</label>
-            <input type="text" name="barcode" id="barcode" value="<?= htmlspecialchars(string: $product['product_barcode']) ?>">
+            <div class="box">
+                <label for="name">ชื่อสินค้า:</label>
+                <input type="text" name="name" id="name" value="<?= htmlspecialchars($product['product_name']) ?>">
 
-            <label for="name">ชื่อสินค้า:</label>
-            <input type="text" name="name" id="name" value="<?= htmlspecialchars($product['product_name']) ?>">
+            </div>
+            <div class="box">
+                <label for="price_1">ราคาที่1:</label>
+                <input type="text" name="price_1" id="price_1" value="<?= htmlspecialchars($product['product_price1']) ?>">
+            </div>
+            <div class="box">
+                <label for="price_2">ราคาที่2:</label>
+                <input type="text" name="price_2" id="price_2" value="<?= htmlspecialchars($product['product_price2']) ?>">
 
-            <label for="price_1">ราคาที่1:</label>
-            <input type="text" name="price_1" id="price_1" value="<?= htmlspecialchars($product['product_price1']) ?>">
+            </div>
+            <div class="box">
+                <label for="price_3">ราคาที่3:</label>
+                <input type="text" name="price_3" id="price_3" value="<?= htmlspecialchars($product['product_price3']) ?>">
 
-            <label for="price_2">ราคาที่2:</label>
-            <input type="text" name="price_2" id="price_2" value="<?= htmlspecialchars($product['product_price2']) ?>">
+            </div>
+            <div class="box">
+                <label for="price_4">ราคาที่4:</label>
+                <input type="text" name="price_4" id="price_4" value="<?= htmlspecialchars($product['product_price4']) ?>">
 
-            <label for="price_3">ราคาที่3:</label>
-            <input type="text" name="price_3" id="price_3" value="<?= htmlspecialchars($product['product_price3']) ?>">
-
-            <label for="price_4">ราคาที่4:</label>
-            <input type="text" name="price_4" id="price_4" value="<?= htmlspecialchars($product['product_price4']) ?>">
-
-            <label for="capital">ราคาทุน:</label>
-            <input type="text" name="capital" id="capital" value="<?= htmlspecialchars($product['product_capital']) ?>">
+            </div>
+            <div class="box">
+                <label for="capital">ราคาทุน:</label>
+                <input type="text" name="capital" id="capital" value="<?= htmlspecialchars($product['product_capital']) ?>">
+            </div>
 
             <?php if ($typeResults->num_rows > 0) { ?>
-                <label for="typename">ประเภทสินค้า:</label>
-                <select name="typename" id="typename">
-                    <option value="<?= htmlspecialchars(string: $product['product_type_id']) ?>">
-                        <?= htmlspecialchars(string: $product['product_type_name']) ?>
-                    </option>
-                    <?php while ($row = $typeResults->fetch_assoc()) { ?>
-                        <option value="<?= htmlspecialchars($row['product_type_id']); ?>">
-                            <?= htmlspecialchars($row['product_type_name']); ?>
+                <div class="box">
+                    <label for="typename">ประเภทสินค้า:</label>
+                    <select name="typename" id="typename">
+                        <option value="<?= htmlspecialchars(string: $product['product_type_id']) ?>">
+                            <?= htmlspecialchars(string: $product['product_type_name']) ?>
                         </option>
-                    <?php } ?>
-                </select>
+                        <?php while ($row = $typeResults->fetch_assoc()) { ?>
+                            <option value="<?= htmlspecialchars($row['product_type_id']); ?>">
+                                <?= htmlspecialchars($row['product_type_name']); ?>
+                            </option>
+                        <?php } ?>
+                    </select>
+                </div>
             <?php } else { ?>
                 <p>ไม่พบข้อมูลประเภทสินค้า</p>
             <?php } ?>
 
 
             <?php if ($brandResults->num_rows > 0) { ?>
-                <label for="typebrandname">ประเภทแบรนด์สินค้า:</label>
-                <select name="typebrandname" id="typebrandname">
-                    <option value="<?= htmlspecialchars($product['product_brand_id']) ?>" selected>
-                        <?= htmlspecialchars($product['product_brand_name']) ?>
-                    </option>
-                    <?php while ($row = $brandResults->fetch_assoc()) { ?>
-                        <option value="<?= htmlspecialchars($row['product_brand_id']); ?>">
-                            <?= htmlspecialchars($row['product_brand_name']); ?>
+                <div class="box">
+                    <label for="typebrandname">ประเภทแบรนด์สินค้า:</label>
+                    <select name="typebrandname" id="typebrandname">
+                        <option value="<?= htmlspecialchars($product['product_brand_id']) ?>" selected>
+                            <?= htmlspecialchars($product['product_brand_name']) ?>
                         </option>
-                    <?php } ?>
-                </select>
+                        <?php while ($row = $brandResults->fetch_assoc()) { ?>
+                            <option value="<?= htmlspecialchars($row['product_brand_id']); ?>">
+                                <?= htmlspecialchars($row['product_brand_name']); ?>
+                            </option>
+                        <?php } ?>
+                    </select>
+                </div>
             <?php } ?>
 
-            <input class="submit-button" type="submit" value="update">
+            <div class="box">
+                <label for=""></label>
+                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+            </div>
         </form>
     </div>
 
