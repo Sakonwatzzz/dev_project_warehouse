@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '../../../config/database_server.php';
-require_once __DIR__ . '../../db/warehouse_db.php';
+require_once __DIR__ . '../../../../config/database_server.php';
+require_once __DIR__ . '../../../db/warehouse_db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'];
@@ -38,7 +38,7 @@ $producttypes = $stmt->fetch();
     <div class="body-main">
         <h2 class="sub-title">แก้ไขประเภทสินค้า</h2>
 
-        <form class="form-container" action="product_type_edit.php" method="POST">
+        <form class="form-container" action="product_type_update.php" method="POST">
 
             <input type="hidden" name="id" value="<?= htmlspecialchars($producttypes['product_type_id']) ?>">
 

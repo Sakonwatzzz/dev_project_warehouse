@@ -1,6 +1,27 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once './db/warehouse_db.php';
+require_once __DIR__ . '../../../db/warehouse_db.php';
+ob_start();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $barcode = $_POST['barcode'];
+    $name = $_POST['name'];
+    $price_1 = $_POST['price_1'];
+    $price_2 = $_POST['price_2'];
+    $price_3 = $_POST['price_3'];
+    $price_4 = $_POST['price_4'];
+    $capital = $_POST['capital'];
+    $typename = $_POST['typename'];
+    $typebrandname = $_POST['typebrandname'];
+
+    $stmt = $pdo->prepare('INSERT INTO product (product_barcode, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt->execute([$barcode, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
+
+    header('Location: /?page=product_insert&success=1');  // กลับไปหน้าแสดงผล
+    exit;
+}
+ob_end_flush();
 
 $query = "SELECT
     product.product_id, 
@@ -102,7 +123,7 @@ if (!$brandResults) {
         <h2 class="sub-title">เพิ่มสินค้า</h2>
 
         <!-- Form for adding products -->
-        <form class="form-container" action="functions_product/product_create.php" method="POST">
+        <form class="form-container" action="" method="POST">
             <div class="box">
                 <label for="barcode">บาร์โค้ดสินค้า:</label>
                 <input type="text" name="barcode" id="barcode">
@@ -180,7 +201,7 @@ if (!$brandResults) {
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../../config/database_server.php';
+require_once __DIR__ . '../../../../config/database_server.php';
 require_once __DIR__ . '../../../db/warehouse_db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -76,8 +76,8 @@ $productTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <td>
                         <a
-                            href="functions_product/product_type_edit.php?id=<?= htmlspecialchars($row['product_type_id']) ?>">แก้ไข</a>
-                        <a href="functions_product/product_type_delete.php?id=<?= htmlspecialchars($row['product_type_id']) ?>"
+                            href="product_type_update.php?id=<?= htmlspecialchars($row['product_type_id']) ?>">แก้ไข</a>
+                        <a href="product_type_delete.php?id=<?= htmlspecialchars($row['product_type_id']) ?>"
                             onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>

@@ -128,8 +128,8 @@ if (!$brandResults) {
                         <td><?= htmlspecialchars($row['product_brand_name']) ?></td>
                         <td>
                             <a
-                                href="functions_product/product_edit.php?id=<?= htmlspecialchars($row['product_id']) ?>">แก้ไข</a>
-                            <a href="functions_product/product_delete.php?id=<?= htmlspecialchars($row['product_id']) ?>"
+                                href="page/product/product_update.php?id=<?= htmlspecialchars($row['product_id']) ?>">แก้ไข</a>
+                            <a href="page/product/product_delete.php?id=<?= htmlspecialchars($row['product_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>

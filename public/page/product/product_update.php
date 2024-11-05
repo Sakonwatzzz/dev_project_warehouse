@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '../../../config/database_server.php';
-require_once __DIR__ . '../../db/warehouse_db.php';
+require_once __DIR__ . '../../../../config/database_server.php';
+require_once __DIR__ . '../../../db/warehouse_db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'];
@@ -20,7 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$barcode, $name, $price_1,  $price_2,  $price_3, $price_4, $capital, $typename, $typebrandname, $id]);
 
-    header('Location: ../component/detail.php?tabel=product&id=' . urlencode($id) . '&success=1'); // กลับไปหน้าแสดงผลรายละเอียดสินค้า
+    header('Location: product_detail.php?tabel=product&id=' . urlencode($id) . '&success=1');
+    // กลับไปหน้าแสดงผลรายละเอียดสินค้า
     exit;
 }
 // ตรวจสอบให้แน่ใจว่า ID ถูกตั้งค่า
@@ -57,7 +58,7 @@ $brandResults = $conn->query($querybrandTypes);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href=".././style/personnel_add.css">
+    <link rel="stylesheet" href="../../style/personnel_insert.css">
 
     <style>
         .edit-box {
@@ -73,7 +74,7 @@ $brandResults = $conn->query($querybrandTypes);
     <div class="edit-box">
         <h1 class="title">แก้ไขข้อมูลสินค้า</h1>
 
-        <form class="form-container" action="product_edit.php" method="POST">
+        <form class="form-container" action="product_update.php" method="POST">
 
             <input type="hidden" name="id" value="<?= htmlspecialchars($product['product_id']) ?>">
             <div class="box">
