@@ -120,7 +120,7 @@ if (!$brandResults) {
             <tbody>
                 <?php foreach ($productResults as $row): ?>
                     <tr
-                        onclick="window.location.href='component/detail.php?tabel=product&id=<?= htmlspecialchars($row['product_id']) ?>'">
+                        onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?= htmlspecialchars($row['product_id']) ?>'">
                         <td><?= htmlspecialchars($row['product_name']) ?></td>
                         <td><?= htmlspecialchars($row['product_price4']) ?></td>
                         <td><?= htmlspecialchars($row['product_capital']) ?></td>

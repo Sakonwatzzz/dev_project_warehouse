@@ -1,6 +1,7 @@
 <?php
-require_once '../../config/database_server.php'; //รวมไฟล์การตั้งค่าและการเชื่อมต่อฐานข้อมูล
-require_once '../db/warehouse_db.php';
+require_once __DIR__ . '../../../../config/database_server.php';
+require_once __DIR__ . '../../../db/warehouse_db.php'; //รวมไฟล์การตั้งค่าและการเชื่อมต่อฐานข้อมูล
+
 
 // ตรวจสอบว่ามีพารามิเตอร์ tabel และ id หรือไม่ ถ้าไม่มีข้อมูลในฐานข้อมูลจะหยุดการทำงานและแสดงข้อความว่าไม่พบข้อมูล
 if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
@@ -64,40 +65,47 @@ if (!$row) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายละเอียด</title>
-    <link rel="stylesheet" href="../style/detail.css">
+    <link rel="stylesheet" href="../style/detail.css"> <!-- ลิงก์ไปยังไฟล์ CSS เพื่อจัดการสไตล์ของหน้าเว็บ -->
 </head>
 
 <body>
     <div class="main-body">
-        <h1 class="title">รายละเอียด <?= htmlspecialchars($tabel) ?></h1>
-        <form action="../functions_product/product_edit.php" method="POST">
-            <input type="hidden" name="product_id" value="<?= htmlspecialchars($row['product_id']) ?>">
+        <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
+        <h1 class="title">รายละเอียด <?php echo $tabel; ?></h1>
+
+        <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการสินค้า โดยจะส่งไปยังไฟล์ `product_update.php` -->
+        <form action="./product_update.php" method="POST">
+            <!-- กำหนดค่า product_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของสินค้านี้ในฟอร์ม -->
+            <input type="hidden" name="product_id" value="<?php echo $row['product_id']; ?>">
+
+            <!-- ตารางแสดงรายละเอียดสินค้า -->
             <table class="details-table">
-                <?php if ($tabel === 'product'): ?> 
-                <!----บรรทัดนี้ใช้เพื่อตรวจสอบว่า tabel ที่ถูกส่งเข้ามาผ่านพารามิเตอร์ GET เป็นประเภท product หรือไม่ ถ้าใช่ จะเข้าไปในบล็อกของเงื่อนไขนี้และแสดงข้อมูลเกี่ยวกับสินค้า--->
+                <?php if ($tabel === 'product'): ?>
+                    <!-- ตรวจสอบว่าประเภทข้อมูลเป็น 'product' เพื่อแสดงรายละเอียดสินค้าเท่านั้น -->
 
                     <tr>
                         <th>รหัสสินค้า:</th>
-                        <td><?= htmlspecialchars($row['product_id']) ?></td>
+                        <!-- แสดงรหัสสินค้า -->
+                        <td><?php echo $row['product_id']; ?></td>
                     </tr>
-                    <!--ถ้าตารางเป็น product จะแสดงรายละเอียดต่างๆ โดยใช้ htmlspecialchars() เพื่อป้องกันการโจมตีแบบ XSS-->
+
                     <tr>
                         <th>ชื่อสินค้า:</th>
                         <td>
-                            <?php if ($is_update): ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_name']) ?>">
-                            <?php else: ?>
-                                <?= htmlspecialchars($row['product_name']) ?>
+                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
+                                <input type="text" value="<?php echo $row['product_name']; ?>">
+                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
+                                <?php echo $row['product_name']; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
                     <tr>
                         <th>บาร์โค้ด:</th>
                         <td>
-                            <?php if ($is_update){ ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_barcode']) ?>">
-                            <?php }else{ ?>
-                                <?= htmlspecialchars($row['product_barcode']) ?>
+                            <?php if ($is_update) { ?>
+                                <input type="text" value="<?php echo $row['product_barcode']; ?>">
+                            <?php } else { ?>
+                                <?php echo $row['product_barcode']; ?>
                             <?php } ?>
                         </td>
                     </tr>
@@ -105,9 +113,9 @@ if (!$row) {
                         <th>ราคาที่1:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_price1']) ?>">
+                                <input type="text" value="<?php echo $row['product_price1']; ?>">
                             <?php else: ?>
-                                <?= htmlspecialchars($row['product_price1']) ?>
+                                <?php echo $row['product_price1']; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -115,9 +123,9 @@ if (!$row) {
                         <th>ราคาที่2:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_price2']) ?>">
+                                <input type="text" value="<?php echo $row['product_price2']; ?>">
                             <?php else: ?>
-                                <?= htmlspecialchars($row['product_price2']) ?>
+                                <?php echo $row['product_price2']; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -125,9 +133,9 @@ if (!$row) {
                         <th>ราคาที่3:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_price3']) ?>">
+                                <input type="text" value="<?php echo $row['product_price3']; ?>">
                             <?php else: ?>
-                                <?= htmlspecialchars($row['product_price3']) ?>
+                                <?php echo $row['product_price3']; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -135,9 +143,9 @@ if (!$row) {
                         <th>ราคาที่4:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_price4']) ?>">
+                                <input type="text" value="<?php echo $row['product_price4']; ?>">
                             <?php else: ?>
-                                <?= htmlspecialchars($row['product_price4']) ?>
+                                <?php echo $row['product_price4']; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -145,9 +153,9 @@ if (!$row) {
                         <th>ราคาทุน:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_capital']) ?>">
+                                <input type="text" value="<?php echo $row['product_capital']; ?>">
                             <?php else: ?>
-                                <?= htmlspecialchars($row['product_capital']) ?>
+                                <?php echo $row['product_capital']; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -155,9 +163,9 @@ if (!$row) {
                         <th>ประเภทสินค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_type_name']) ?>">
+                                <input type="text" value="<?php echo $row['product_type_name']; ?>">
                             <?php else: ?>
-                                <?= htmlspecialchars($row['product_type_name']) ?>
+                                <?php echo $row['product_type_name']; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -165,24 +173,28 @@ if (!$row) {
                         <th>แบรนด์สินค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" value="<?= htmlspecialchars($row['product_brand_name']) ?>">
+                                <input type="text" value="<?php echo $row['product_brand_name']; ?>">
                             <?php else: ?>
-                                <?= htmlspecialchars($row['product_brand_name']) ?>
+                                <?php echo $row['product_brand_name']; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
 
                 <?php endif; ?>
             </table>
-            <?php if ($is_update): // แสดงปุ่มบันทึกเฉพาะเมื่ออยู่ในโหมดแก้ไข ?>
+
+            <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
+            <?php if ($is_update): ?>
                 <button class="submit-button" type="submit">บันทึก</button>
             <?php endif; ?>
         </form>
-        <a href="/?page=bar_<?= htmlspecialchars($tabel) ?>">กลับไปหน้ารายการสินค้า <?= htmlspecialchars($tabel) ?></a>
-        <a href="detail.php?tabel=<?= htmlspecialchars($tabel) ?>&id=<?= htmlspecialchars($row['product_id']) ?>">กลับไปหน้ารายละเอียด <?= htmlspecialchars($tabel) ?></a>
-        <a href="detail.php?tabel=<?= htmlspecialchars($tabel) ?>&id=<?= htmlspecialchars($row['product_id']) ?>&is_update=1">ไปหน้าแก้ไข <?= htmlspecialchars($tabel) ?></a>
-            <!---ลิงก์เพื่อกลับไปยังหน้ารายการสินค้าหรือหน้ารายละเอียด จะมีลิงก์ไปยังหน้าที่สามารถแก้ไขข้อมูลได้ด้วย-->
 
+        <!-- ลิงก์กลับไปยังหน้ารายการสินค้า, หน้ารายละเอียด และหน้าสำหรับแก้ไข -->
+        <a href="/?page=bar_<?php echo $tabel; ?>">กลับไปหน้ารายการสินค้า <?php echo $tabel; ?></a>
+        <a href="product_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $row['product_id']; ?>">กลับไปหน้ารายละเอียด
+            <?php echo $tabel; ?></a>
+        <a href="product_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $row['product_id']; ?>&is_update=1">ไปหน้าแก้ไข
+            <?php echo $tabel; ?></a>
     </div>
 </body>
 
