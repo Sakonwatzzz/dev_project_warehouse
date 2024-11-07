@@ -18,8 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([$barcode, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
-    header('Location: /?page=product_insert&success=1');  // กลับไปหน้าแสดงผล
-    exit;
+    /* เมื่อ INSERT INTO เสร็จสิ้นแล้ว เราจะใช้ lastInsertId() เพื่อดึง product_id ของสินค้าที่เพิ่งเพิ่มขึ้นมา
+จากนั้นใช้ header() เพื่อทำการรีไดเรกต์ไปที่ product_detail.php โดยส่ง id ที่ได้รับจาก lastInsertId() ไปใน URL */
+
+    $product_id = $pdo->lastInsertId(); 
+    
+    header("Location: product/product_detail.php?tabel=product&id=" . $product_id);
+
+    exit();
 }
 ob_end_flush();
 
@@ -74,7 +80,7 @@ if (!$brandResults) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="../../style/personnel_add.css">
+    <link rel="stylesheet" href="../../style/personnel_insert.css">
 
     <style>
         .notification {
@@ -201,7 +207,7 @@ if (!$brandResults) {
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

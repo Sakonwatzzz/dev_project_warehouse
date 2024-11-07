@@ -2,7 +2,43 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 require_once __DIR__ . '../../../db/warehouse_db.php';
 
+// Start output buffering
+ob_start();
+
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
+
+    // แก้ไข SQL Query เพื่อ JOIN ตาราง product_type และ product_brand
+    $stmt = $pdo->prepare("
+       SELECT product.*, 
+                   product_type.product_type_name, 
+                   product_brand.product_brand_name 
+            FROM product 
+            INNER JOIN product_type ON product.product_type_id = product_type.product_type_id 
+            INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id 
+            WHERE product.product_id = ?
+    ");
+    $stmt->execute([$id]);
+    $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$product) {
+        echo "ไม่พบข้อมูลสินค้า";
+        exit;
+    }
+    // ใช้ header() เพื่อรีไดเรกต์ไปยังหน้ารายละเอียดสินค้า
+    $product_id = $_POST['product_id'];
+    header("Location: product_detail.php?tabel=product&id=" . $product_id);
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // ตรวจสอบว่า $_POST['id'] มีค่าหรือไม่
+    $id = $_POST['id'] ?? null;
+    if (!$id) {
+        echo "ไม่พบรหัสสินค้า";
+        exit;
+    }
+
     $id = $_POST['id'];
     $barcode = $_POST['barcode'];
     $name = $_POST['name'];
@@ -13,38 +49,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $capital = $_POST['capital'];
     $typename = $_POST['typename'];
     $typebrandname = $_POST['typebrandname'];
+
     $stmt = $pdo->prepare("
         UPDATE product 
-        SET product_barcode = ?, product_name = ?, product_price1 = ?, product_price2 = ?, product_price3 = ?  ,product_price4 = ?  , product_capital = ?  ,product_type_id = ?  ,product_brand_id = ?  
+        SET product_barcode = ?, product_name = ?, product_price1 = ?, product_price2 = ?, product_price3 = ?, product_price4 = ?, product_capital = ?, product_type_id = ?, product_brand_id = ?  
         WHERE product_id = ?
     ");
-    $stmt->execute([$barcode, $name, $price_1,  $price_2,  $price_3, $price_4, $capital, $typename, $typebrandname, $id]);
+    $stmt->execute([$barcode, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname, $id]);
 
+    // ใช้ header() เพื่อรีไดเรกต์ไปยังหน้ารายละเอียดสินค้า
     header('Location: product_detail.php?tabel=product&id=' . urlencode($id) . '&success=1');
-    // กลับไปหน้าแสดงผลรายละเอียดสินค้า
-    exit;
-}
-// ตรวจสอบให้แน่ใจว่า ID ถูกตั้งค่า
-if (!isset($_GET['id'])) {
-    die("Error: Product ID not provided.");
-}
-$id = $_GET['id'];
-
-// ดึงรายละเอียดผลิตภัณฑ์พร้อมชื่อแบรนด์และประเภท
-$stmt = $pdo->prepare("SELECT product.*, product_brand.product_brand_name, product_type.product_type_name 
-    FROM product 
-    INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
-    INNER JOIN product_type ON product.product_type_id = product_type.product_type_id 
-    WHERE product.product_id = ?
-");
-$stmt->execute([$id]);
-$product = $stmt->fetch();
-
-if (!$product) {
-    die("Error: Product not found.");
+    exit();
 }
 
-// ดึงประเภทและแบรนด์สำหรับ dropdowns
+
 $queryTypes = "SELECT product_type_id, product_type_name FROM product_type";
 $typeResults = $conn->query($queryTypes);
 
@@ -64,7 +82,8 @@ $brandResults = $conn->query($querybrandTypes);
         .edit-box {
             margin: 3rem 10rem 4rem 8rem;
         }
-        h1{
+
+        h1 {
             margin-bottom: 1rem;
         }
     </style>
@@ -79,7 +98,7 @@ $brandResults = $conn->query($querybrandTypes);
             <input type="hidden" name="id" value="<?= htmlspecialchars($product['product_id']) ?>">
             <div class="box">
                 <label for="barcode">บาร์โค้ดสินค้า:</label>
-                <input type="text" name="barcode" id="barcode" value="<?= htmlspecialchars(string: $product['product_barcode']) ?>">
+                <input type="text" name="barcode" id="barcode" value="<?= htmlspecialchars($product['product_barcode']) ?>">
             </div>
 
             <div class="box">
@@ -115,8 +134,8 @@ $brandResults = $conn->query($querybrandTypes);
                 <div class="box">
                     <label for="typename">ประเภทสินค้า:</label>
                     <select name="typename" id="typename">
-                        <option value="<?= htmlspecialchars(string: $product['product_type_id']) ?>">
-                            <?= htmlspecialchars(string: $product['product_type_name']) ?>
+                        <option value="<?= htmlspecialchars($product['product_type_id']) ?>" selected>
+                            <?= htmlspecialchars($product['product_type_name']) ?>
                         </option>
                         <?php while ($row = $typeResults->fetch_assoc()) { ?>
                             <option value="<?= htmlspecialchars($row['product_type_id']); ?>">
