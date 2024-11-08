@@ -1,9 +1,25 @@
 <?php
-
+ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
 require_once './db/warehouse_db.php'; // Include database connection
 $resultmember = fetchAll($pdo, 'member');
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = $_POST['name'];
+    $address = $_POST['address'];
+    $phone = $_POST['phone'];
+    $registerdate = $_POST['registerdate'];
+    $typename = $_POST['typename'];
 
+    $stmt = $pdo->prepare('INSERT INTO member (member_name,  member_address, member_phone, member_register_date, member_type_id) 
+                           VALUES (?, ?, ?, ?, ?)');
+    $stmt->execute([$name, $address, $phone, $registerdate, $typename]);
+
+    header('Location: /?page=member_add&success=1');  // กลับไปหน้าแสดงผล
+    exit;
+    
+
+}
+ob_end_flush();
 // SQL query to get all members with their types
 $query = "SELECT
     member.member_id, 
@@ -90,7 +106,7 @@ if (!$results) {
         </div>
 
 
-        <form class="form-container" action="functions_member/member_create.php" method="POST">
+        <form class="form-container" action="" method="POST">
             <div class="box">
                 <label for="name">ชื่อ นามสกุลสมาชิก:</label>
                 <input type="text" name="name" id="name" required>
@@ -119,12 +135,12 @@ if (!$results) {
                     <label for="typename">ประเภทสมาชิก:</label>
                     <select name="typename" id="typename" required>
                         <option value="">-- เลือกประเภทสมาชิก --</option>
-                        <?php while ($row = $results->fetch_assoc()) { ?>
-                            <option value="<?= htmlspecialchars($row['member_type_id']); ?>">
-                                <?= htmlspecialchars($row['member_type_name']); ?>
+                        <?php while ($member_insert = $results->fetch_assoc()) { ?>
+                            <option value="<?php echo($member_insert['member_type_id']); ?>">
+                                <?php echo($member_insert['member_type_name']); ?>
                             </option>
                         <?php } ?>
-                    </select>
+                    </select> 
                 </div>
 
             <?php } else { ?>

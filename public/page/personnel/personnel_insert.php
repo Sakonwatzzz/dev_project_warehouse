@@ -1,8 +1,30 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 require_once __DIR__ . '../../../db/warehouse_db.php';
-require_once __DIR__ . '../../../functions_personnel/create.php';
+ob_start();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $personnel_name = $_POST['personnel_name'];
+    $typename = $_POST['typename'];
+    $address = $_POST['address'];
+    $phone = $_POST['phone'];
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
+    $stmt = $pdo->prepare('INSERT INTO personnel (personnel_name,  personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password) 
+                           VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt->execute([$name, $typename, $address, $phone, $username, $password]);
+
+    header('Location: /?page=personnel_add&success=1');
+    exit;
+}
+
+// ดึงประเภทบุคลากรมาแสดงผล
+$query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$personnelTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+ob_end_flush();
 ?>
 
 
@@ -64,7 +86,7 @@ require_once __DIR__ . '../../../functions_personnel/create.php';
         <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
             <div class="box">
                 <label for="name">ชื่อ นามสกุลบุคลากร:</label>
-                <input type="text" id="name" name="name" required>
+                <input type="text" id="name" name="name">
             </div>
 
             <!-- loop -->
@@ -73,10 +95,10 @@ require_once __DIR__ . '../../../functions_personnel/create.php';
             ?>
                 <div class="box">
                     <label for="typename">ประเภทบุคลากร:</label>
-                    <select name="typename" id="typename" required>
-                        <?php foreach ($personnelTypes as $row) { ?> <!-- เปลี่ยนเป็น foreach -->
-                            <option value="<?php echo htmlspecialchars($row['personnel_type_id']); ?>">
-                                <?php echo htmlspecialchars($row['personnel_type_name']); ?>
+                    <select name="typename" id="typename">
+                        <?php foreach ($personnelTypes as $personnel_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
+                            <option value="<?php echo ($personnel_insert['personnel_type_id']); ?>">
+                                <?php echo ($personnel_insert['personnel_type_name']); ?>
                             </option>
                         <?php } ?>
                     </select><br>
@@ -90,21 +112,21 @@ require_once __DIR__ . '../../../functions_personnel/create.php';
             <!--  -->
             <div class="box">
                 <label for="address">ที่อยู่บุคลากร:</label>
-                <input type="text" id="address" name="address" required>
+                <input type="text" id="address" name="address">
             </div>
             <div class="box">
                 <label for="phone">เบอร์โทรศัพท์:</label>
-                <input type="text" id="phone" name="phone" required>
+                <input type="text" id="phone" name="phone">
             </div>
 
             <div class="box">
                 <label for="username">ชื่อผู้ใช้:</label>
-                <input type="text" id="username" name="username" required>
+                <input type="text" id="username" name="username">
             </div>
 
             <div class="box">
                 <label for="password">รหัสผ่าน:</label>
-                <input type="password" id="password" name="password" required>
+                <input type="password" id="password" name="password">
             </div>
 
             <div class="box">

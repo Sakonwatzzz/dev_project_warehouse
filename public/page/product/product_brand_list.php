@@ -19,6 +19,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     //     echo 'Error: brand name is required.';
     // }
 }
+    //ส่งตัวแปร 2 ตัว
+if (isset($_GET['is_del'])) {
+    $product_brand_id = $_GET['product_brand_id'];
+    $stmt = $pdo->prepare("DELETE FROM product_brand WHERE product_brand_id = ?");
+    $stmt->execute([$product_brand_id]);
+    header('Location: /index.php?page=product_brand');
+    // กลับไปหน้าแสดงผล
+}
 
 $query = "SELECT product_brand_id, 
                 product_brand_name 
@@ -27,6 +35,7 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 
 $productbrands = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 ?>
 
 <!DOCTYPE html>
@@ -66,16 +75,16 @@ $productbrands = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($productbrands as $row): ?>
+            <?php foreach ($productbrands as $product_brand_list): ?>
                 <tr>
-                    <td><?= htmlspecialchars($row['product_brand_id']) ?></td>
+                    <td><?php echo ($product_brand_list['product_brand_id']) ?></td>
 
-                    <td><?= htmlspecialchars($row['product_brand_name']) ?></td>
+                    <td><?php echo ($product_brand_list['product_brand_name']) ?></td>
 
-                    <td>    
+                    <td>
                         <a
-                            href="functions_product/product_brand_edit.php?id=<?= htmlspecialchars($row['product_brand_id']) ?>">แก้ไข</a>
-                        <a href="functions_product/product_brand_delete.php?id=<?= htmlspecialchars($row['product_brand_id']) ?>"
+                            href="product_brand_update.php?id=<?php echo ($product_brand_list['product_brand_id']) ?>">แก้ไข</a>
+                        <a href="?id=<?php echo ($product_brand_list['product_brand_id']) ?>"
                             onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>

@@ -18,6 +18,13 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 
 $personnelTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$id = $_GET['id'];
+$stmt = $pdo->prepare("DELETE FROM personnel_type WHERE personnel_type_id = ?");
+$stmt->execute([$id]);
+
+// header("Location: http://localhost:8000/home.php?page=personnel_type");    
+// exit;
 ?>
 
 <!DOCTYPE html>
@@ -57,13 +64,13 @@ $personnelTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($personnelTypes as $row): ?>
+            <?php foreach ($personnelTypes as $personnel_type_list): ?>
                 <tr>
-                    <td><?= htmlspecialchars($row['personnel_type_id']) ?></td>
-                    <td><?= htmlspecialchars($row['personnel_type_name']) ?></td>
+                    <td><?php echo ($personnel_type_list['personnel_type_id']) ?></td>
+                    <td><?php echo ($personnel_type_list['personnel_type_name']) ?></td>
                     <td>
-                        <a href="functions_personnel/type_edit.php?id=<?= htmlspecialchars($row['personnel_type_id']) ?>">แก้ไข</a> |
-                        <a href="functions_personnel/type_delete.php?id=<?= htmlspecialchars($row['personnel_type_id']) ?>"
+                        <a href="functions_personnel/type_edit.php?id=<?php echo ($personnel_type_list['personnel_type_id']) ?>">แก้ไข</a> |
+                        <a href="functions_personnel/type_delete.php?id=<?php echo ($personnel_type_list['personnel_type_id']) ?>"
                             onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>

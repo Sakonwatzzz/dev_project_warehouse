@@ -38,7 +38,7 @@ $member = $stmt->fetch();
         <h2 class="sub-title">แก้ไขประเภทสมาชิก</h2>
 
         <form class="form-container" action="" method="POST">
-            <input type="hidden" name="id" value="<?= htmlspecialchars($member['member_type_id']) ?>">
+            <input type="hidden" name="id" value="<?php echo($member['member_type_id']) ?>">
 
 
 
@@ -46,9 +46,9 @@ $member = $stmt->fetch();
                 <label for="typename">ประเภทสมาชิก:</label>
                 <select name="typename" id="typename">
                     <option value="">-- เลือกประเภทสมาชิก --</option> <!-- Empty option -->
-                    <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
-                        <option value="<?= htmlspecialchars($row['member_type_id']); ?>" <?= $row['member_type_id'] == $member['member_type_id'] ? 'selected' : ''; ?>>
-                            <?= htmlspecialchars($row['member_type_name']); ?>
+                    <?php while ($member_type_update = $results->fetch(PDO::FETCH_ASSOC)) { ?>
+                        <option value="<?php echo($member_type_update['member_type_id']); ?>" <?= $member_type_update['member_type_id'] == $member['member_type_id'] ? 'selected' : ''; ?>>
+                            <?php echo($member_type_update['member_type_name']); ?>
                         </option>
                     <?php } ?>
                 </select>

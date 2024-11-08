@@ -66,7 +66,7 @@ $brandResults = $conn->query($querybrandTypes)
         <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการสินค้า โดยจะส่งไปยังไฟล์ `product_update.php` -->
         <form action="product_update.php" method="POST">
             <!-- กำหนดค่า product_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของสินค้านี้ในฟอร์ม -->
-            <input type="hidden" name="product_id" value="<?php echo $row['product_id']; ?>">
+            <input type="hidden" name="product_id" value="<?php echo $product_detail['product_id']; ?>">
 
             <!-- ตารางแสดงรายละเอียดสินค้า -->
             <table class="details-table">

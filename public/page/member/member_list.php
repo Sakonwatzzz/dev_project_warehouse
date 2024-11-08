@@ -33,6 +33,14 @@ if (!$results) {
 } elseif (is_array($results)) {
     die("Unexpected array result. Verify database connection and query syntax.");
 }
+
+$id = $_GET['id'];
+$stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
+$stmt->execute([$id]);
+
+// header("Location: /index.php?page=member_list");    
+// exit;
+
 ?>
 
 <!DOCTYPE html>
@@ -104,19 +112,19 @@ if (!$results) {
                 </tr>
             </thead>
             <tbody>
-                <?php while ($row = $resultmember->fetch_assoc()): ?>
+                <?php while ($member_list = $resultmember->fetch_assoc()): ?>
                     <!-- ส่งค่าพารามิเตอร์ type และ id ไปยัง detail.php ในการตั้งค่า onclick -->
-                    <tr onclick="window.location.href='component/detailtest.php?type=member&id=<?= htmlspecialchars($row['member_id']) ?>'">
-                        <td><?= htmlspecialchars($row['member_id']) ?></td>
-                        <td><?= htmlspecialchars($row['member_name']) ?></td>
-                        <td><?= htmlspecialchars($row['member_address']) ?></td>
-                        <td><?= htmlspecialchars($row['member_phone']) ?></td>
-                        <td><?= htmlspecialchars($row['member_register_date']) ?></td>
-                        <td><?= htmlspecialchars($row['member_type_name']) ?></td> <!-- Display member type name -->
+                    <tr onclick="window.location.href='component/detailtest.php?type=member&id=<?php echo($member_list['member_id']) ?>'">
+                        <td><?php echo($member_list['member_id']) ?></td>
+                        <td><?php echo($member_list['member_name']) ?></td>
+                        <td><?php echo($member_list['member_address']) ?></td>
+                        <td><?php echo($member_list['member_phone']) ?></td>
+                        <td><?php echo($member_list['member_register_date']) ?></td>
+                        <td><?php echo($member_list['member_type_name']) ?></td> <!-- Display member type name -->
                         <td>
-                            <a href="functions_member/member_edit.php?id=<?= htmlspecialchars($row['member_id']) ?>">แก้ไข</a>
+                            <a href="member_edit.php?id=<?php echo($member_list['member_id']) ?>">แก้ไข</a>
                             |
-                            <a href="functions_member/member_delete.php?id=<?= htmlspecialchars($row['member_id']) ?>"
+                            <a href="?id=<?php echo($member_list['member_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>

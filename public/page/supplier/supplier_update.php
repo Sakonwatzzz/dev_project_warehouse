@@ -1,6 +1,10 @@
 <?php
-require_once __DIR__ . '../../../config/database_server.php';
-require_once __DIR__ .'../../../db/warehouse_db.php';
+require_once __DIR__ . '/../../../config/database_server.php';
+require_once __DIR__ . '/../../db/warehouse_db.php';
+
+$supplier_update = fetchAll($pdo, table: 'supplier');
+
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'];
     $name = $_POST['name'];
@@ -21,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $id = $_GET['id'];
 $stmt = $pdo->prepare("SELECT * FROM supplier WHERE supplier_id = ?");
 $stmt->execute([$id]);
-$supplier = $stmt->fetch();
+$supplier_update  = $stmt->fetch();
 ?>
 
 
@@ -32,7 +36,7 @@ $supplier = $stmt->fetch();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href=".././style/personnel_add.css">
+    <link rel="stylesheet" href="../../style/member_edit.css">
 
     <style>
         .edit-box {
@@ -51,28 +55,28 @@ $supplier = $stmt->fetch();
     <div class="edit-box">
         <h2>แก้ไข ข้อมูลผู้ส่งมอบ</h2>
         <form class="form-container" action="supplier_update.php" method="POST">
-            <input type="hidden" name="id" value="<?= htmlspecialchars($supplier['supplier_id']) ?>">
+            <input type="hidden" name="id" value="<?php echo ($supplier_update['supplier_id']) ?>">
 
             <div class="box">
                 <label for="name">ชื่อผู้ส่งมอบ:</label>
-                <input type="text" name="name" value="<?= htmlspecialchars($supplier['supplier_name']) ?>" required>
+                <input type="text" name="name" value="<?php echo ($supplier_update['supplier_name']) ?>" required>
             </div>
 
 
             <div class="box">
                 <label for="address">ที่อยู่ผู้ส่งมอบ:</label>
-                <input type="text" name="address" value="<?= htmlspecialchars($supplier['supplier_address']) ?>" required>
+                <input type="text" name="address" value="<?php echo ($supplier_update['supplier_address']) ?>" required>
             </div>
 
             <div class="box">
                 <label for="phone">เบอร์โทรศัพท์ผู้ส่งมอบ:</label>
-                <input type="text" name="phone" value="<?= htmlspecialchars($supplier['supplier_phone']) ?>" required>
+                <input type="text" name="phone" value="<?php echo ($supplier_update['supplier_phone']) ?>" required>
             </div>
 
 
             <div class="box">
                 <label for="detail">รายละเอียดผู้ส่งมอบ:</label>
-                <input type="text" name="detail" value="<?= htmlspecialchars($supplier['supplier_detail']) ?>" required>
+                <input type="text" name="detail" value="<?php echo ($supplier_update['supplier_detail']) ?>" required>
             </div>
 
             <div class="box">

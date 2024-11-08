@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '../../../../config/database_server.php';
-require_once __DIR__ . '../../../db/warehouse_db.php';
+require_once __DIR__ . '/../../../config/database_server.php';
+require_once __DIR__ . '/../../db/warehouse_db.php';
 
 // Start output buffering
 ob_start();
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-
+  
     // แก้ไข SQL Query เพื่อ JOIN ตาราง product_type และ product_brand
     $stmt = $pdo->prepare("
        SELECT product.*, 
@@ -19,16 +19,16 @@ if (isset($_GET['id'])) {
             WHERE product.product_id = ?
     ");
     $stmt->execute([$id]);
-    $product = $stmt->fetch(PDO::FETCH_ASSOC);
+    $product_update = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$product) {
-        echo "ไม่พบข้อมูลสินค้า";
+    if (!$product_update) {
+        echo "ไม่พบข้อมูลสินค้า"; 
         exit;
     }
-    // ใช้ header() เพื่อรีไดเรกต์ไปยังหน้ารายละเอียดสินค้า
-    $product_id = $_POST['product_id'];
-    header("Location: product_detail.php?tabel=product&id=" . $product_id);
-    exit();
+    // // ใช้ header() เพื่อรีไดเรกต์ไปยังหน้ารายละเอียดสินค้า
+    // $product_id = $_POST['product_id'];
+    // header("Location: product_update.php?tabel=product&id=" . $product_id);
+    // exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -93,53 +93,52 @@ $brandResults = $conn->query($querybrandTypes);
     <div class="edit-box">
         <h1 class="title">แก้ไขข้อมูลสินค้า</h1>
 
-        <form class="form-container" action="product_update.php" method="POST">
-
-            <input type="hidden" name="id" value="<?= htmlspecialchars($product['product_id']) ?>">
+        <form class="form-container" action="" method="POST">
+            <input type="hidden" name="id"  value="<?php echo ($product_update['product_id']) ?>">
             <div class="box">
                 <label for="barcode">บาร์โค้ดสินค้า:</label>
-                <input type="text" name="barcode" id="barcode" value="<?= htmlspecialchars($product['product_barcode']) ?>">
+                <input type="text" name="barcode" id="barcode" value="<?php echo ($product_update['product_barcode']) ?>">
             </div>
 
             <div class="box">
                 <label for="name">ชื่อสินค้า:</label>
-                <input type="text" name="name" id="name" value="<?= htmlspecialchars($product['product_name']) ?>">
+                <input type="text" name="name" id="name" value="<?php echo ($product_update['product_name']) ?>">
 
             </div>
             <div class="box">
                 <label for="price_1">ราคาที่1:</label>
-                <input type="text" name="price_1" id="price_1" value="<?= htmlspecialchars($product['product_price1']) ?>">
+                <input type="text" name="price_1" id="price_1" value="<?php echo ($product_update['product_price1']) ?>">
             </div>
             <div class="box">
                 <label for="price_2">ราคาที่2:</label>
-                <input type="text" name="price_2" id="price_2" value="<?= htmlspecialchars($product['product_price2']) ?>">
+                <input type="text" name="price_2" id="price_2" value="<?php echo ($product_update['product_price2']) ?>">
 
             </div>
             <div class="box">
                 <label for="price_3">ราคาที่3:</label>
-                <input type="text" name="price_3" id="price_3" value="<?= htmlspecialchars($product['product_price3']) ?>">
+                <input type="text" name="price_3" id="price_3" value="<?php echo ($product_update['product_price3']) ?>">
 
             </div>
             <div class="box">
                 <label for="price_4">ราคาที่4:</label>
-                <input type="text" name="price_4" id="price_4" value="<?= htmlspecialchars($product['product_price4']) ?>">
+                <input type="text" name="price_4" id="price_4" value="<?php echo ($product_update['product_price4']) ?>">
 
             </div>
             <div class="box">
                 <label for="capital">ราคาทุน:</label>
-                <input type="text" name="capital" id="capital" value="<?= htmlspecialchars($product['product_capital']) ?>">
+                <input type="text" name="capital" id="capital" value="<?php echo ($product_update['product_capital']) ?>">
             </div>
 
             <?php if ($typeResults->num_rows > 0) { ?>
                 <div class="box">
                     <label for="typename">ประเภทสินค้า:</label>
                     <select name="typename" id="typename">
-                        <option value="<?= htmlspecialchars($product['product_type_id']) ?>" selected>
-                            <?= htmlspecialchars($product['product_type_name']) ?>
+                        <option value="<?php echo ($product_update['product_type_id']) ?>" selected>
+                            <?php echo ($product_update['product_type_name']) ?>
                         </option>
                         <?php while ($row = $typeResults->fetch_assoc()) { ?>
-                            <option value="<?= htmlspecialchars($row['product_type_id']); ?>">
-                                <?= htmlspecialchars($row['product_type_name']); ?>
+                            <option value="<?php echo ($row['product_type_id']); ?>">
+                                <?php echo ($row['product_type_name']); ?>
                             </option>
                         <?php } ?>
                     </select>
@@ -153,12 +152,12 @@ $brandResults = $conn->query($querybrandTypes);
                 <div class="box">
                     <label for="typebrandname">ประเภทแบรนด์สินค้า:</label>
                     <select name="typebrandname" id="typebrandname">
-                        <option value="<?= htmlspecialchars($product['product_brand_id']) ?>" selected>
-                            <?= htmlspecialchars($product['product_brand_name']) ?>
+                        <option value="<?php echo ($product_update['product_brand_id']) ?>" selected>
+                            <?php echo ($product_update['product_brand_name']) ?>
                         </option>
                         <?php while ($row = $brandResults->fetch_assoc()) { ?>
-                            <option value="<?= htmlspecialchars($row['product_brand_id']); ?>">
-                                <?= htmlspecialchars($row['product_brand_name']); ?>
+                            <option value="<?php echo ($row['product_brand_id']); ?>">
+                                <?php echo ($row['product_brand_name']); ?>
                             </option>
                         <?php } ?>
                     </select>

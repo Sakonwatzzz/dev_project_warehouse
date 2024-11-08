@@ -1,5 +1,5 @@
 <?php
-// ดึงข้อมูลประเ
+// ดึงข้อมูลประเภท
 include_once("./db/warehouse_db.php");
 
 $query = "SELECT member_type_name FROM member_type ";

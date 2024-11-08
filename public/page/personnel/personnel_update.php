@@ -51,11 +51,11 @@ $personnel = $stmt->fetch();
         <h2 class="title">แก้ไขบุคลากร</h2>
 
         <form class="form-container" action="edit.php" method="POST">
-            <input type="hidden" name="id" value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
+            <input type="hidden" name="id" value="<?php echo($personnel['personnel_id']) ?>">
 
             <div class="box">
                 <label for="name">ชื่อบุคลากร:</label>
-                <input type="text" name="name" value="<?= htmlspecialchars($personnel['personnel_name']) ?>">
+                <input type="text" name="name" value="<?php echo($personnel['personnel_name']) ?>">
             </div>
 
 
@@ -63,9 +63,9 @@ $personnel = $stmt->fetch();
                 <div class="box">
                     <label for="typename">ประเภทบุคลากร:</label>
                     <select name="typename" id="typename">
-                        <?php while ($row = $results->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?= htmlspecialchars($row['personnel_type_id']); ?>" <?= ($row['personnel_type_id'] == $personnel['personnel_type_id']) ? 'selected' : ''; ?>>
-                                <?= htmlspecialchars($row['personnel_type_name']); ?>
+                        <?php while ($personnel_update = $results->fetch(PDO::FETCH_ASSOC)) { ?>
+                            <option value="<?php echo($personnel_update['personnel_type_id']); ?>" <?= ($personnel_update['personnel_type_id'] == $personnel['personnel_type_id']) ? 'selected' : ''; ?>>
+                                <?php echo($personnel_update['personnel_type_name']); ?>
                             </option>
                         <?php } ?>
                     </select>
@@ -76,22 +76,22 @@ $personnel = $stmt->fetch();
 
             <div class="box">
                 <label for="address">ที่อยู่บุคลากร:</label>
-                <input type="text" name="address" value="<?= htmlspecialchars($personnel['personnel_address']) ?>">
+                <input type="text" name="address" value="<?php echo($personnel['personnel_address']) ?>">
             </div>
 
             <div class="box">
                 <label for="phone">เบอร์โทรศัพท์บุคลากร:</label>
-                <input type="text" name="phone" value="<?= htmlspecialchars($personnel['personnel_phone']) ?>">
+                <input type="text" name="phone" value="<?php echo($personnel['personnel_phone']) ?>">
             </div>
 
             <div class="box">
                 <label for="username">ชื่อผู้ใช้:</label>
-                <input type="text" name="username" value="<?= htmlspecialchars($personnel['personnel_username']) ?>">
+                <input type="text" name="username" value="<?php echo($personnel['personnel_username']) ?>">
             </div>
 
             <div class="box">
                 <label for="password">รหัสผ่าน:</label>
-                <input type="text" name="password" value="<?= htmlspecialchars($personnel['personnel_password']) ?>">
+                <input type="text" name="password" value="<?php echo($personnel['personnel_password']) ?>">
             </div>
 
 

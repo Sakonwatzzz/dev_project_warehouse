@@ -171,8 +171,8 @@ if (!$brandResults) {
                     <select name="typename" id="typename">
                         <option value="">-- เลือกประเภทสินค้า --</option>
                         <?php while ($row = $typeResults->fetch_assoc()) { ?>
-                            <option value="<?= htmlspecialchars($row['product_type_id']); ?>">
-                                <?= htmlspecialchars($row['product_type_name']); ?>
+                            <option value="<?php echo($row['product_type_id']); ?>">
+                                <?php echo($row['product_type_name']); ?>
                             </option>
                         <?php } ?>
                     </select>
@@ -188,8 +188,8 @@ if (!$brandResults) {
                     <select name="typebrandname" id="typebrandname" required>
                         <option value="">-- ประเภทแบรนด์สินค้า --</option>
                         <?php while ($row = $brandResults->fetch_assoc()) { ?>
-                            <option value="<?= htmlspecialchars($row['product_brand_id']); ?>">
-                                <?= htmlspecialchars($row['product_brand_name']); ?>
+                            <option value="<?php echo($row['product_brand_id']); ?>">
+                                <?php echo($row['product_brand_name']); ?>
                             </option>
                         <?php } ?>
                     </select>

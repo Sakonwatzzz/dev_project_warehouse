@@ -3,6 +3,7 @@ require_once __DIR__ . '../../../../config/database_server.php';
 require_once __DIR__ . '../../../db/warehouse_db.php';
 $resultspersonnel = fetchAll($pdo, 'personnel');
 
+
 $query = "SELECT    
     personnel.personnel_id,
     personnel.personnel_name, 
@@ -18,6 +19,7 @@ INNER JOIN
 
 $resultspersonnel = $conn->query($query);
 
+
 // Query สำหรับประเภท
 $queryTypes = "SELECT
     personnel_type.personnel_type_id, 
@@ -28,6 +30,14 @@ $typeResults = $conn->query($queryTypes); // กำหนดตัวแปร�
 if (!$typeResults) {
     die("Query failed: " . $conn->error);
 }
+
+$id = $_GET['id'];
+$stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
+$stmt->execute([$id]);
+
+// header("Location: http://localhost:8000/home.php?page=personnel_list");    
+// exit;
+
 ?>
 
 <!DOCTYPE html>
@@ -95,21 +105,21 @@ if (!$typeResults) {
                     <th>ที่อยู่</th>
                     <th>เบอร์โทรศัพท์</th>
                     <th>ชื่อผู้ใช้</th>
-                    <th>การจัดการ</th>
+                    <th>การจัดการ</th> 
                 </tr>
             </thead>
             <tbody>
-                <?php while ($row = $resultspersonnel->fetch_assoc()): ?>
-                    <tr onclick="window.location='component/detailtest.php?type=personnel&id=<?= htmlspecialchars($row['personnel_id']) ?>'">
-                        <td><?= htmlspecialchars($row['personnel_id']) ?></td>
-                        <td><?= htmlspecialchars($row['personnel_name']) ?></td>
-                        <td><?= htmlspecialchars($row['personnel_type_name']) ?></td>
-                        <td><?= htmlspecialchars($row['personnel_address']) ?></td>
-                        <td><?= htmlspecialchars($row['personnel_phone']) ?></td>
-                        <td><?= htmlspecialchars($row['personnel_username']) ?></td>
+                <?php while ($personnel_list = $resultspersonnel->fetch_assoc()): ?>
+                    <tr onclick="window.location='personnel_detail.php?type=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
+                        <td><?php echo ($personnel_list['personnel_id']) ?></td>
+                        <td><?php echo ($personnel_list['personnel_name']) ?></td>
+                        <td><?php echo ($personnel_list['personnel_type_name']) ?></td>
+                        <td><?php echo ($personnel_list['personnel_address']) ?></td>
+                        <td><?php echo ($personnel_list['personnel_phone']) ?></td>
+                        <td><?php echo ($personnel_list['personnel_username']) ?></td>
                         <td>
-                            <a href="functions_personnel/edit.php?id=<?= htmlspecialchars($row['personnel_id']) ?>">แก้ไข</a> |
-                            <a href="functions_personnel/delete.php?id=<?= htmlspecialchars($row['personnel_id']) ?>"
+                            <a href="functions_personnel/edit.php?id=<?php echo ($personnel_list['personnel_id']) ?>">แก้ไข</a> |
+                            <a href="functions_personnel/delete.php?id=<?php echo ($personnel_list['personnel_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>

@@ -54,23 +54,23 @@
                         break;
                     case "bar_product":
                         include __DIR__ . "/bar_product.php";
-                        include __DIR__ . "/../../page/product/product_list.php";
+                        include __DIR__ . "/../page/product/product_list.php"; // 
                         break;
                     case "bar_personnel":
                         include __DIR__ . "/bar_personnel.php";
-                        include __DIR__ . "/../../page/personnel/personnel_list.php";
+                        include __DIR__ . "/../page/personnel/personnel_list.php"; // 
                         break;
                     case "bar_member":
                         include __DIR__ . "/bar_member.php";
-                        include __DIR__ . "/../../page/member/member_list.php";
+                        include __DIR__ . "/../page/member/member_list.php"; // 
                         break;
                     case "bar_supplier":
                         include __DIR__ . "/bar_supplier.php";
-                        include __DIR__ . "/../../page/supplier/supplier_list.php";
+                        include __DIR__ . "/../page/supplier/supplier_list.php"; // 
                         break;
                     case "bar_supplier_list":
-                        include __DIR__ . "/bar_supplier.php"; // ทำให้รองรับ bar_supplier_list
-                        include __DIR__ . "/../../page/supplier/supplier_list.php";
+                        include __DIR__ . "/bar_supplier.php";
+                        include __DIR__ . "/../page/supplier/supplier_list.php"; // 
                         break;
                     default:
                         if (in_array($page, ['personnel_list', 'personnel_add', 'personnel_type'])) {
@@ -87,14 +87,16 @@
                         }
                         break;
                 }
-
             } else {
-                echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง" . htmlspecialchars($page) . "</h2>";
+                echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง: " . ($page) . "</h2>";
             }
         } else {
             include __DIR__ . "/bar_index.php";
         }
+
         ?>
+
+
     </div>
 
 </body>

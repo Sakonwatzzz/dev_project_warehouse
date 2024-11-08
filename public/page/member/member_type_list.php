@@ -18,6 +18,14 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 
 $memberTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+$id = $_GET['id'];
+$stmt = $pdo->prepare("DELETE FROM member_type WHERE member_type = ?");
+$stmt->execute([$id]);
+
+// header("Location: /index.php?page=member_list");    
+// exit;
 ?>
 
 <!DOCTYPE html>
@@ -57,13 +65,13 @@ $memberTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($memberTypes as $row): ?>
+            <?php foreach ($memberTypes as $member_type_list): ?>
                 <tr>
-                    <td><?= htmlspecialchars($row['member_type_id']) ?></td>
-                    <td><?= htmlspecialchars($row['member_type_name']) ?></td>
+                    <td><?php echo($member_type_list['member_type_id']) ?></td>
+                    <td><?php echo($member_type_list['member_type_name']) ?></td>
                     <td>
-                        <a href="functions_member/member_type_edit.php?id=<?= htmlspecialchars($row['member_type_id']) ?>">แก้ไข</a> |
-                        <a href="functions_member/member_type_delete.php?id=<?= htmlspecialchars($row['member_type_id']) ?>"
+                        <a href="functions_member/member_type_edit.php?id=<?php echo($member_type_list['member_type_id']) ?>">แก้ไข</a> |
+                        <a href="functions_member/member_type_delete.php?id=<?php echo($member_type_list['member_type_id']) ?>"
                             onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>

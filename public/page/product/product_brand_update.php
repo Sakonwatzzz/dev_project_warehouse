@@ -22,7 +22,7 @@ if (!isset($_GET['id'])) {
 $id = $_GET['id'];
 $stmt = $pdo->prepare("SELECT * FROM product_brand WHERE product_brand_id = ?");
 $stmt->execute([$id]);
-$productbrands = $stmt->fetch();
+$product_brand_update = $stmt->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,11 +40,11 @@ $productbrands = $stmt->fetch();
 
         <form class="form-container" action="product_brand_edit.php" method="POST">
 
-            <input type="hidden" name="id" value="<?= htmlspecialchars($productbrands['product_brand_id']) ?>">
+            <input type="hidden" name="id" value="<?php echo($product_brand_update['product_brand_id']) ?>">
 
             <label for="brandname">ชื่อแบรนด์สินค้า:</label>
             <input type="text" name="brandname" id="brandname"
-                value="<?= htmlspecialchars($productbrands['product_brand_name']) ?>">
+                value="<?php echo($product_brand_update['product_brand_name']) ?>">
 
             <input class="submit-button" type="submit" value="อัพเดท">
         </form>

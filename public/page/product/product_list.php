@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 require_once __DIR__ . '../../../db/warehouse_db.php';
+
 $productResults = fetchAll($pdo, 'product');
 
 $query = "SELECT
@@ -24,6 +25,10 @@ INNER JOIN
     product_type ON product.product_type_id = product_type.product_type_id
 ORDER BY product.product_id ASC";
 
+$id = $_GET['id'];
+$stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
+$stmt->execute([$id]);
+header('Location: /index.php?page=product_list'); 
 
 $productResults = $conn->query($query); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
@@ -48,6 +53,8 @@ $brandResults = $conn->query($querybrandTypes); // กำหนดตัวแ�
 if (!$brandResults) {
     die("Query failed: " . $conn->error);
 }
+
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -108,6 +115,7 @@ if (!$brandResults) {
         <table class="data-table" id="dataTable">
             <thead>
                 <tr>
+                    <!-- <th>รหัสสินค้า</th> -->
                     <th>ชื่อสินค้า</th>
                     <th>ราคาที่ 4</th>
                     <th>เงินทุน</th>
@@ -119,17 +127,17 @@ if (!$brandResults) {
 
             <tbody>
                 <?php foreach ($productResults as $product_list): ?>
-                    <tr
-                        onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?= htmlspecialchars($product_list['product_id']) ?>'">
-                        <td><?= htmlspecialchars($product_list['product_name']) ?></td>
-                        <td><?= htmlspecialchars($product_list['product_price4']) ?></td>
-                        <td><?= htmlspecialchars($product_list['product_capital']) ?></td>
-                        <td><?= htmlspecialchars($product_list['product_type_name']) ?></td>
-                        <td><?= htmlspecialchars($product_list['product_brand_name']) ?></td>
+
+                    <tr onclick="window.location.href='page/product/product_detail.php?table=product&id=<?php echo ($product_list['product_id']) ?>'">
+
+                        <td><?php echo ($product_list['product_name']) ?></td>
+                        <td><?php echo ($product_list['product_price4']) ?></td>
+                        <td><?php echo ($product_list['product_capital']) ?></td>
+                        <td><?php echo ($product_list['product_type_name']) ?></td>
+                        <td><?php echo ($product_list['product_brand_name']) ?></td>
                         <td>
-                            <a
-                                href="page/product/product_update.php?id=<?= htmlspecialchars($product_list['product_id']) ?>">แก้ไข</a>
-                            <a href="page/product/product_delete.php?id=<?= htmlspecialchars($product_list['product_id']) ?>"
+                            <a href="page/product/product_update.php?id=<?php echo ($product_list['product_id']) ?>">แก้ไข</a>
+                            <a href="page/product/product_delete.php?id=<?php echo ($product_list['product_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
@@ -188,7 +196,7 @@ if (!$brandResults) {
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

@@ -40,11 +40,11 @@ $producttypes = $stmt->fetch();
 
         <form class="form-container" action="product_type_update.php" method="POST">
 
-            <input type="hidden" name="id" value="<?= htmlspecialchars($producttypes['product_type_id']) ?>">
+            <input type="hidden" name="id" value="<?php echo($producttypes['product_type_id']) ?>">
 
             <label for="typename">ชื่อประเภทสินค้า:</label>
             <input type="text" name="typename" id="typename"
-                value="<?= htmlspecialchars($producttypes['product_type_name']) ?>">
+                value="<?php echo($producttypes['product_type_name']) ?>">
 
             <input class="submit-button" type="submit" value="อัพเดท">
         </form>

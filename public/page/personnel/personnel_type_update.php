@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $id = $_GET['id'];
 $stmt = $pdo->prepare("SELECT * FROM personnel_type WHERE personnel_type_id = ?");
 $stmt->execute([$id]);
-$personneltype = $stmt->fetch();
+$personnel_type_update = $stmt->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -39,10 +39,10 @@ $personneltype = $stmt->fetch();
     <div class="main-body">
         <h2>แก้ไขประเภทบุคลากร</h2>
         <form class="form-container" action="type_edit.php" method="POST">
-            <input type="hidden" name="id" value="<?= htmlspecialchars($personneltype['personnel_type_id']) ?>">
+            <input type="hidden" name="id" value="<?php echo($personnel_type_update['personnel_type_id']) ?>">
 
             <label for="typename">ชื่อประเภทบุคลากร:</label>
-            <input type="text" name="typename" value="<?= htmlspecialchars($personneltype['personnel_type_name']) ?>">
+            <input type="text" name="typename" value="<?php echo($personnel_type_update['personnel_type_name']) ?>">
 
             <input class="submit-button" type="submit" value="Update">
         </form>

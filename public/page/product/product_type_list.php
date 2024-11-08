@@ -23,6 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$id = $_GET['id'];
+$stmt = $pdo->prepare("DELETE FROM product_type WHERE product_type_id = ?");
+$stmt->execute([$id]);
+
+header('Location: /index.php?page=product_type');  // กลับไปหน้าแสดงผล
+// exit;
+
 // ดึงข้อมูลประเภทสินค้าทั้งหมดมาแสดงผล
 $query = "SELECT product_type_id, product_type_name FROM product_type";
 $stmt = $pdo->prepare($query);
@@ -68,16 +75,16 @@ $productTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($productTypes as $row): ?>
+            <?php foreach ($productTypes as $product_type_list): ?>
                 <tr>
-                    <td><?= htmlspecialchars($row['product_type_id']) ?></td>
+                    <td><?php echo($product_type_list['product_type_id']) ?></td>
 
-                    <td><?= htmlspecialchars($row['product_type_name']) ?></td>
+                    <td><?php echo($product_type_list['product_type_name']) ?></td>
 
                     <td>
                         <a
-                            href="product_type_update.php?id=<?= htmlspecialchars($row['product_type_id']) ?>">แก้ไข</a>
-                        <a href="product_type_delete.php?id=<?= htmlspecialchars($row['product_type_id']) ?>"
+                            href="product_type_update.php?id=<?php echo($product_type_list['product_type_id']) ?>">แก้ไข</a>
+                        <a href="product_type_delete.php?id=<?php echo($product_type_list['product_type_id']) ?>"
                             onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>
