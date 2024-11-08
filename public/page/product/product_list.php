@@ -109,7 +109,7 @@ if (!$brandResults) {
             <thead>
                 <tr>
                     <th>ชื่อสินค้า</th>
-                    <th>ราคา 4</th>
+                    <th>ราคาที่ 4</th>
                     <th>เงินทุน</th>
                     <th>ประเภทสินค้า</th>
                     <th>แบรนด์สินค้า</th>
@@ -118,18 +118,18 @@ if (!$brandResults) {
             </thead>
 
             <tbody>
-                <?php foreach ($productResults as $row): ?>
+                <?php foreach ($productResults as $product_list): ?>
                     <tr
-                        onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?= htmlspecialchars($row['product_id']) ?>'">
-                        <td><?= htmlspecialchars($row['product_name']) ?></td>
-                        <td><?= htmlspecialchars($row['product_price4']) ?></td>
-                        <td><?= htmlspecialchars($row['product_capital']) ?></td>
-                        <td><?= htmlspecialchars($row['product_type_name']) ?></td>
-                        <td><?= htmlspecialchars($row['product_brand_name']) ?></td>
+                        onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?= htmlspecialchars($product_list['product_id']) ?>'">
+                        <td><?= htmlspecialchars($product_list['product_name']) ?></td>
+                        <td><?= htmlspecialchars($product_list['product_price4']) ?></td>
+                        <td><?= htmlspecialchars($product_list['product_capital']) ?></td>
+                        <td><?= htmlspecialchars($product_list['product_type_name']) ?></td>
+                        <td><?= htmlspecialchars($product_list['product_brand_name']) ?></td>
                         <td>
                             <a
-                                href="page/product/product_update.php?id=<?= htmlspecialchars($row['product_id']) ?>">แก้ไข</a>
-                            <a href="page/product/product_delete.php?id=<?= htmlspecialchars($row['product_id']) ?>"
+                                href="page/product/product_update.php?id=<?= htmlspecialchars($product_list['product_id']) ?>">แก้ไข</a>
+                            <a href="page/product/product_delete.php?id=<?= htmlspecialchars($product_list['product_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>

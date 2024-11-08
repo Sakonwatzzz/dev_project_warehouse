@@ -1,7 +1,26 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once __DIR__ . '../../../functions_supplier/supplier_create.php';
-require_once './db/warehouse_db.php';
+require_once __DIR__ . '../../../db/warehouse_db.php';
+
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = $_POST['name'];
+    $address = $_POST['address'];
+    $phone = $_POST['phone'];
+    $detail = $_POST['detail'];
+
+    $stmt = $pdo->prepare('INSERT INTO supplier (supplier_name,supplier_address, supplier_phone, supplier_detail) 
+                           VALUES (?, ?, ?, ?)');
+    $stmt->execute([$name, $address, $phone, $detail]);
+
+    header('Location: /?page=supplier_add&success=1');
+    exit;
+}
+$query = "SELECT supplier_id, supplier_name,supplier_address,supplier_phone, supplier_detail FROM supplier";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
@@ -11,7 +30,7 @@ require_once './db/warehouse_db.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>หน้าบุคลากร</title>
-    <link rel="stylesheet" href="../../style/personnel_add.css">
+    <link rel="stylesheet" href="../../style/personnel_insert.css">
 
     <style>
         .notification {
@@ -93,7 +112,7 @@ require_once './db/warehouse_db.php';
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../config/database_server.php';
+require_once __DIR__ .'../../../db/warehouse_db.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'];
     $name = $_POST['name'];
@@ -49,7 +50,7 @@ $supplier = $stmt->fetch();
 <body>
     <div class="edit-box">
         <h2>แก้ไข ข้อมูลผู้ส่งมอบ</h2>
-        <form class="form-container" action="supplier_edit.php" method="POST">
+        <form class="form-container" action="supplier_update.php" method="POST">
             <input type="hidden" name="id" value="<?= htmlspecialchars($supplier['supplier_id']) ?>">
 
             <div class="box">

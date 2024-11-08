@@ -76,7 +76,7 @@ $brandResults = $conn->query($querybrandTypes)
                     <tr>
                         <th>รหัสสินค้า:</th>
                         <!-- แสดงรหัสสินค้า -->
-                        <input type="hidden" name="id" value="<?php echo $product['product_id']; ?>">
+                        <input type="id" name="id" value="<?php echo $product['product_id']; ?>">
                         </tr>
 
                     <th>บาร์โค้ด:</th>
@@ -100,7 +100,7 @@ $brandResults = $conn->query($querybrandTypes)
                     </tr>
                     <tr>
                     <tr>
-                        <th>ราคาที่1:</th>
+                        <th>ราคาที่ 1:</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="text" name="price_1" value="<?php echo $product['product_price1']; ?>">
@@ -110,7 +110,7 @@ $brandResults = $conn->query($querybrandTypes)
                         </td>
                     </tr>
                     <tr>
-                        <th>ราคาที่2:</th>
+                        <th>ราคาที่ 2:</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="text" name="price_2" value="<?php echo $product['product_price2']; ?>">
@@ -120,7 +120,7 @@ $brandResults = $conn->query($querybrandTypes)
                         </td>
                     </tr>
                     <tr>
-                        <th>ราคาที่3:</th>
+                        <th>ราคาที่ 3:</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="text" name="price_3" value="<?php echo $product['product_price3']; ?>">
@@ -130,7 +130,7 @@ $brandResults = $conn->query($querybrandTypes)
                         </td>
                     </tr>
                     <tr>
-                        <th>ราคาที่4:</th>
+                        <th>ราคาที่ 4:</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="text" name="price_4" value="<?php echo $product['product_price4']; ?>">

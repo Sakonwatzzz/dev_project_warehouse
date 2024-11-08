@@ -18,7 +18,6 @@
                     <li><a href="?page=bar_index"
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_index') ? 'active' : ''; ?>">หน้าแรก</a>
                     </li>
-                    <li><a href="#">เบิกจ่าย</a></li>
                     <li><a href="?page=bar_product"
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_product') ? 'active' : ''; ?>">สินค้า</a>
                     </li>
@@ -29,8 +28,9 @@
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a>
                     </li>
                     <li><a href="?page=bar_supplier"
-                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_supplier') ? 'active' : ''; ?>">ผู้ส่งมอบ</a>
+                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_supplier_list') ? 'active' : ''; ?>">ผู้ส่งมอบ</a>
                     </li>
+
                     <li><a href="#">ขาย</a></li>
                 </ul>
             </div>
@@ -39,6 +39,7 @@
 
     <div class="button-bar">
         <?php
+
         if (isset($_GET['page'])) {
             $page = $_GET['page'];
             $parts = explode("_", $page);
@@ -53,45 +54,48 @@
                         break;
                     case "bar_product":
                         include __DIR__ . "/bar_product.php";
-                        include __DIR__ . "../../page/product/product_list.php";
+                        include __DIR__ . "/../../page/product/product_list.php";
                         break;
                     case "bar_personnel":
                         include __DIR__ . "/bar_personnel.php";
-                        include __DIR__ . "../../page/personnel/personnel_list.php";
+                        include __DIR__ . "/../../page/personnel/personnel_list.php";
                         break;
                     case "bar_member":
                         include __DIR__ . "/bar_member.php";
-                        include __DIR__ . "../../page/member/member_list.php";
+                        include __DIR__ . "/../../page/member/member_list.php";
                         break;
                     case "bar_supplier":
                         include __DIR__ . "/bar_supplier.php";
-                        include __DIR__ . "../../page/supplier/supplier.php";
+                        include __DIR__ . "/../../page/supplier/supplier_list.php";
+                        break;
+                    case "bar_supplier_list":
+                        include __DIR__ . "/bar_supplier.php"; // ทำให้รองรับ bar_supplier_list
+                        include __DIR__ . "/../../page/supplier/supplier_list.php";
                         break;
                     default:
-                        if (in_array($page, ['personnel_list', 'personnel_add','personnel_type'])) {
+                        if (in_array($page, ['personnel_list', 'personnel_add', 'personnel_type'])) {
                             include __DIR__ . "/bar_personnel.php";
                         }
-                        if (in_array($page, ['member_list', 'member_add','member_type','member_edit'])) {
+                        if (in_array($page, ['member_list', 'member_add', 'member_type', 'member_edit'])) {
                             include __DIR__ . "/bar_member.php";
                         }
-                        if (in_array($page, ["product_list", "product_add","product_type","product_brand"])) {
+                        if (in_array($page, ["product_list", "product_insert", "product_type", "product_brand", "product_update"])) {
                             include __DIR__ . "/bar_product.php";
                         }
-                        if (in_array($page, ["supplier_list", "supplier_add"])) {
+                        if (in_array($page, ["supplier_list", "supplier_insert", "supplier_update"])) {
                             include __DIR__ . "/bar_supplier.php";
                         }
                         break;
                 }
+
             } else {
-                echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง</h2>";
+                echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง" . htmlspecialchars($page) . "</h2>";
             }
         } else {
             include __DIR__ . "/bar_index.php";
         }
         ?>
     </div>
-
-
 
 </body>
 

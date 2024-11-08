@@ -77,13 +77,13 @@ require_once __DIR__ . '../../../config/database_server.php';
 <body>
     <div class="conthai">
         <div class="button-bb">
-            <a href="?page=bar_supplier" class="button-link">
+            <a href="?page=supplier_list" class="button-link">
                 <button>
                     <img src="../image/box.png" alt="">
                     <p>รายชื่อผู้ส่งมอบ</p>
                 </button>
             </a>
-            <a href="?page=supplier_add" class="button-link">
+            <a href="?page=supplier_insert" class="button-link">
                 <button>
                     <img src="../image/add-product.png" alt="">
                     <p>เพิ่มรายชื่อผู้ส่งมอบ</p>
