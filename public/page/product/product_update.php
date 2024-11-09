@@ -61,12 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 
-
 $queryTypes = "SELECT product_type_id, product_type_name FROM product_type";
-$typeResults = $conn->query($queryTypes);
+$typeResults = $pdo->query($queryTypes);
 
 $querybrandTypes = "SELECT product_brand_id, product_brand_name FROM product_brand";
-$brandResults = $conn->query($querybrandTypes);
+$brandResults = $pdo->query($querybrandTypes);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -128,14 +127,14 @@ $brandResults = $conn->query($querybrandTypes);
                 <input type="text" name="capital" id="capital" value="<?php echo ($product_update['product_capital']) ?>">
             </div>
 
-            <?php if ($typeResults->num_rows > 0) { ?>
+            <?php if ($typeResults->rowCount() > 0) { ?>
                 <div class="box">
                     <label for="typename">ประเภทสินค้า:</label>
                     <select name="typename" id="typename">
                         <option value="<?php echo ($product_update['product_type_id']) ?>" selected>
                             <?php echo ($product_update['product_type_name']) ?>
                         </option>
-                        <?php while ($row = $typeResults->fetch_assoc()) { ?>
+                        <?php while ($row = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo ($row['product_type_id']); ?>">
                                 <?php echo ($row['product_type_name']); ?>
                             </option>
@@ -147,14 +146,14 @@ $brandResults = $conn->query($querybrandTypes);
             <?php } ?>
 
 
-            <?php if ($brandResults->num_rows > 0) { ?>
+            <?php if ($brandResults->rowCount() > 0) { ?>
                 <div class="box">
                     <label for="typebrandname">ประเภทแบรนด์สินค้า:</label>
                     <select name="typebrandname" id="typebrandname">
                         <option value="<?php echo ($product_update['product_brand_id']) ?>" selected>
                             <?php echo ($product_update['product_brand_name']) ?>
                         </option>
-                        <?php while ($row = $brandResults->fetch_assoc()) { ?>
+                        <?php while ($row = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo ($row['product_brand_id']); ?>">
                                 <?php echo ($row['product_brand_name']); ?>
                             </option>

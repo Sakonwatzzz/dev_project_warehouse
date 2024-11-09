@@ -4,8 +4,7 @@ require_once __DIR__ . '../../../../config/database_server.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $typename = $_POST['typename'];
 
-    $stmt = $pdo->prepare('INSERT INTO member_type (member_type_name) 
-                           VALUES (?)');
+    $stmt = $pdo->prepare('INSERT INTO member_type (member_type_name) VALUES (?)');
     $stmt->execute([$typename]);
 
     header('Location: /index.php?page=member_type');
@@ -17,18 +16,21 @@ $query = "SELECT member_type_id, member_type_name FROM member_type";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 
-try{
+try {
     $member_Types = $pdo->query($query);
-} catch(PDOException $e){
-    echo 'error'. $e->getMessage() ;
+} catch (PDOException $e) {
+    echo 'Error: ' . $e->getMessage();
 }
 
-$id = $_GET['id'];
-$stmt = $pdo->prepare("DELETE FROM member_type WHERE member_type = ?");
-$stmt->execute([$id]);
-// header("Location: /index.php?page=member_list");    
-// exit;
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
+    $stmt = $pdo->prepare("DELETE FROM member_type WHERE member_type_id = ?");
+    $stmt->execute([$id]);
+    header("Location: /index.php?page=member_type");
+    exit;
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

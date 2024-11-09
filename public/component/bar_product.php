@@ -118,7 +118,7 @@ require_once __DIR__ . '../../../config/database_server.php';
                     <p>คลัง</p>
                 </button>
             </a>
-            <a href="#" class="button-link">
+            <!-- <a href="#" class="button-link">
                 <button>
                     <img src="../image/wooden-box.png" alt="">
                     <p>รอบสินค้า</p>
@@ -129,7 +129,7 @@ require_once __DIR__ . '../../../config/database_server.php';
                     <img src="../image/divide.png" alt="">
                     <p>แบ่งสินค้า</p>
                 </button>
-            </a>
+            </a> -->
         </div>
 
     </div>

@@ -131,9 +131,7 @@ try {
 
             <tbody>
                 <?php while ($product_list = $productResults->fetch(PDO::FETCH_ASSOC)): ?>
-
-                    <tr
-                        onclick="window.location.href='page/product/product_detail.php?table=product&id=<?php echo ($product_list['product_id']) ?>'">
+                    <tr onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
 
                         <td><?php echo ($product_list['product_name']) ?></td>
                         <td><?php echo ($product_list['product_price4']) ?></td>
@@ -143,7 +141,7 @@ try {
                         <td>
                             <a
                                 href="page/product/product_update.php?id=<?php echo ($product_list['product_id']) ?>">แก้ไข</a>
-                            <a href="page/product/product_delete.php?id=<?php echo ($product_list['product_id']) ?>"
+                            <a href="?id=<?php echo ($product_list['product_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
