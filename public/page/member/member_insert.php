@@ -1,7 +1,6 @@
 <?php
 ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once './db/warehouse_db.php'; // Include database connection
 $resultmember = fetchAll($pdo, 'member');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = $_POST['name'];
@@ -10,16 +9,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $registerdate = $_POST['registerdate'];
     $typename = $_POST['typename'];
 
-    $stmt = $pdo->prepare('INSERT INTO member (member_name,  member_address, member_phone, member_register_date, member_type_id) 
+    $stmt = $pdo->prepare('INSERT INTO member (member_name, member_address, member_phone, member_register_date, member_type_id) 
                            VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([$name, $address, $phone, $registerdate, $typename]);
 
-    header('Location: /?page=member_add&success=1');  // กลับไปหน้าแสดงผล
+    header('Location: /?page=member_insert&success=1');
     exit;
-    
-
 }
+
 ob_end_flush();
+
 // SQL query to get all members with their types
 $query = "SELECT
     member.member_id, 
@@ -31,26 +30,16 @@ $query = "SELECT
     member_type.member_type_name
 FROM member
 INNER JOIN member_type ON member.member_type_id = member_type.member_type_id";
-
-$result = $conn->query($query);
-
-
-if (!$result) {
-    die("Query failed: " . $conn->error);
-}
+$result = $pdo->query($query);
 
 // SQL query to get member types for the dropdown
 $queryTypes = "SELECT
     member_type.member_type_id, 
     member_type.member_type_name
 FROM member_type";
-$results = $conn->query($queryTypes);
-
-if (!$results) {
-    die("Query failed: " . $conn->error); // Error handling for member types query
-}
-
+$results = $pdo->query($queryTypes);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -130,12 +119,12 @@ if (!$results) {
 
             </div>
 
-            <?php if ($results->num_rows > 0) { ?>
+            <?php if ($results->rowCount() > 0) { ?>
                 <div class="box">
                     <label for="typename">ประเภทสมาชิก:</label>
                     <select name="typename" id="typename" required>
                         <option value="">-- เลือกประเภทสมาชิก --</option>
-                        <?php while ($member_insert = $results->fetch_assoc()) { ?>
+                        <?php while ($member_insert = $results->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo($member_insert['member_type_id']); ?>">
                                 <?php echo($member_insert['member_type_name']); ?>
                             </option>

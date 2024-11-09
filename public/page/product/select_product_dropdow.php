@@ -1,8 +1,17 @@
 <?php
 // ดึงข้อมูลประเภท
-include_once("../../db/warehouse_db.php");
+include_once("../../../config/database_server.php");
 
-$query = "SELECT product_type_name, procuct_brand_name FROM product_type, product_brand ";
-$result = mysqli_query($conn, $query);
-$result->fetch_assoc();
+// Query ที่แก้ไขแล้ว
+$query = "SELECT product_type.product_type_name, product_brand.product_brand_name 
+          FROM product_type 
+          INNER JOIN product_brand ON product_type.product_type_id = product_brand.product_type_id"; 
 
+// เตรียมคำสั่ง SQL
+$stmt = $pdo->query($query);
+
+// แสดงข้อมูลที่ได้จากฐานข้อมูล
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    echo $row["product_type_name"] . " - " . $row["product_brand_name"] . "<br>";
+}
+?>

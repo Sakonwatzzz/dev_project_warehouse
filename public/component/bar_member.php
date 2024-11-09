@@ -78,13 +78,13 @@
                     <p>รายชื่อสมาชิก</p>
                 </button>
             </a>
-            <a href="?page=member_add" class="button-link">
+            <a href="?page=member_insert" class="button-link">
                 <button>
                     <img src="../image/add.png" alt="">
                     <p>เพิ่มสมาชิก</p>
                 </button>
             </a>
-            <a href="?page=member_type" class="button-link">
+            <a href="?page=member_type_list" class="button-link">
                 <button>
                     <img src="../image/customer.png" alt="">
                     <p>ประเภทสมาชิก</p>

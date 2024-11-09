@@ -1,8 +1,5 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once __DIR__ . '../../../db/warehouse_db.php';
-$resultspersonnel = fetchAll($pdo, 'personnel');
-
 
 $query = "SELECT    
     personnel.personnel_id,
@@ -17,19 +14,24 @@ FROM
 INNER JOIN
     personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id";
 
-$resultspersonnel = $conn->query($query);
 
-
-// Query สำหรับประเภท
-$queryTypes = "SELECT
-    personnel_type.personnel_type_id, 
-    personnel_type.personnel_type_name
-FROM personnel_type";
-$typeResults = $conn->query($queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
-
-if (!$typeResults) {
-    die("Query failed: " . $conn->error);
+try {
+    $resultspersonnel = $pdo ->query($query);
+} catch (Exception $e) {
+    echo "error". $e->getMessage();
 }
+
+
+// // Query สำหรับประเภท
+// $queryTypes = "SELECT
+//     personnel_type.personnel_type_id, 
+//     personnel_type.personnel_type_name
+// FROM personnel_type";
+// $typeResults = $conn->query($queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+
+// if (!$typeResults) {
+//     die("Query failed: " . $conn->error);
+// }
 
 $id = $_GET['id'];
 $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
@@ -105,12 +107,13 @@ $stmt->execute([$id]);
                     <th>ที่อยู่</th>
                     <th>เบอร์โทรศัพท์</th>
                     <th>ชื่อผู้ใช้</th>
-                    <th>การจัดการ</th> 
+                    <th>การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
-                <?php while ($personnel_list = $resultspersonnel->fetch_assoc()): ?>
-                    <tr onclick="window.location='personnel_detail.php?type=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
+                <?php while ($personnel_list = $resultspersonnel->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr
+                        onclick="window.location='personnel_detail.php?type=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
                         <td><?php echo ($personnel_list['personnel_id']) ?></td>
                         <td><?php echo ($personnel_list['personnel_name']) ?></td>
                         <td><?php echo ($personnel_list['personnel_type_name']) ?></td>
@@ -118,8 +121,10 @@ $stmt->execute([$id]);
                         <td><?php echo ($personnel_list['personnel_phone']) ?></td>
                         <td><?php echo ($personnel_list['personnel_username']) ?></td>
                         <td>
-                            <a href="functions_personnel/edit.php?id=<?php echo ($personnel_list['personnel_id']) ?>">แก้ไข</a> |
-                            <a href="functions_personnel/delete.php?id=<?php echo ($personnel_list['personnel_id']) ?>"
+                            <a
+                                href="page/personnel/personnel_update.php?id=<?php echo ($personnel_list['personnel_id']) ?>">แก้ไข</a>
+                            |
+                            <a href="?id=<?php echo ($personnel_list['personnel_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
@@ -177,7 +182,7 @@ $stmt->execute([$id]);
     </script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

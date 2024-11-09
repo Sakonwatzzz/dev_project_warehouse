@@ -28,7 +28,7 @@
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a>
                     </li>
                     <li><a href="?page=bar_supplier"
-                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_supplier_list') ? 'active' : ''; ?>">ผู้ส่งมอบ</a>
+                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_supplier') ? 'active' : ''; ?>">ผู้ส่งมอบ</a>
                     </li>
 
                     <li><a href="#">ขาย</a></li>
@@ -62,7 +62,7 @@
                         break;
                     case "bar_member":
                         include __DIR__ . "/bar_member.php";
-                        include __DIR__ . "/../page/member/member_list.php"; // 
+                        include __DIR__ . "/../page/member/member_list.php";
                         break;
                     case "bar_supplier":
                         include __DIR__ . "/bar_supplier.php";
@@ -73,10 +73,10 @@
                         include __DIR__ . "/../page/supplier/supplier_list.php"; // 
                         break;
                     default:
-                        if (in_array($page, ['personnel_list', 'personnel_add', 'personnel_type'])) {
+                        if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type'])) {
                             include __DIR__ . "/bar_personnel.php";
                         }
-                        if (in_array($page, ['member_list', 'member_add', 'member_type', 'member_edit'])) {
+                        if (in_array($page, ['member_list', 'member_insert', 'member_type_list', 'member_update'])) {
                             include __DIR__ . "/bar_member.php";
                         }
                         if (in_array($page, ["product_list", "product_insert", "product_type", "product_brand", "product_update"])) {
@@ -85,10 +85,11 @@
                         if (in_array($page, ["supplier_list", "supplier_insert", "supplier_update"])) {
                             include __DIR__ . "/bar_supplier.php";
                         }
+                        
                         break;
                 }
             } else {
-                echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง: " . ($page) . "</h2>";
+                echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง: " . htmlspecialchars($page) . "</h2>";
             }
         } else {
             include __DIR__ . "/bar_index.php";

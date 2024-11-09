@@ -97,13 +97,13 @@ require_once __DIR__ . '../../../config/database_server.php';
                     <p>เพิ่มสินค้า</p>
                 </button>
             </a>
-            <a href="?page=product_type" class="button-link">
+            <a href="?page=product_type_list" class="button-link">
                 <button>
                     <img src="../image/box.png" alt="">
                     <p>ประเภทสินค้า</p>
                 </button>
             </a>
-            <a href="?page=product_brand" class="button-link">
+            <a href="?page=product_brand_list" class="button-link">
                 <button>
                     <img src="../image/box.png" alt="">
                     <p>แบรนด์</p>

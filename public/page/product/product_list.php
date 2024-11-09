@@ -1,9 +1,5 @@
 <?php
-require_once __DIR__ . '../../../../config/database_server.php';
-require_once __DIR__ . '../../../db/warehouse_db.php';
-
-$productResults = fetchAll($pdo, 'product');
-
+require_once __DIR__ ."../../../../config/database_server.php";
 $query = "SELECT
     product.product_id, 
     product.product_barcode, 
@@ -24,35 +20,43 @@ INNER JOIN
 INNER JOIN
     product_type ON product.product_type_id = product_type.product_type_id
 ORDER BY product.product_id ASC";
-
-$id = $_GET['id'];
+if(isset($_GET['id'])){
+    $id = $_GET['id'];
 $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
 $stmt->execute([$id]);
-header('Location: /index.php?page=product_list'); 
+header('Location: /index.php?page=product_list');
+exit;
+}
 
-$productResults = $conn->query($query); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+
+try {
+    $productResults = $pdo->query($query); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+} catch (PDOException $e) {
+    echo 'error' .$e->getMessage();
+}
+
 
 // Query สำหรับประเภทสินค้า
-$queryTypes = "SELECT
-    product_type.product_type_id, 
-    product_type.product_type_name
-FROM product_type";
-$typeResults = $conn->query(query: $queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+// $queryTypes = "SELECT
+//     product_type.product_type_id, 
+//     product_type.product_type_name
+// FROM product_type";
+// $typeResults = $pdo->query(query: $queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
-if (!$typeResults) {
-    die("Query failed: " . $conn->error);
-}
+// if (!$typeResults) {
+//     die("Query failed: " . $pdo->getMessage());
+// }
 
-// Query สำหรับประเภทแบรนด์สินค้า
-$querybrandTypes = "SELECT
-    product_brand.product_brand_id, 
-    product_brand.product_brand_name
-FROM product_brand";
-$brandResults = $conn->query($querybrandTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
+// // Query สำหรับประเภทแบรนด์สินค้า
+// $querybrandTypes = "SELECT
+//     product_brand.product_brand_id, 
+//     product_brand.product_brand_name
+// FROM product_brand";
+// $brandResults = $pdo->query($querybrandTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 
-if (!$brandResults) {
-    die("Query failed: " . $conn->error);
-}
+// if (!$brandResults) {
+//     die("Query failed: " . $pdo->);
+// }
 
 
 ?>
@@ -126,9 +130,10 @@ if (!$brandResults) {
             </thead>
 
             <tbody>
-                <?php foreach ($productResults as $product_list): ?>
+                <?php while ($product_list = $productResults->fetch(PDO::FETCH_ASSOC)): ?>
 
-                    <tr onclick="window.location.href='page/product/product_detail.php?table=product&id=<?php echo ($product_list['product_id']) ?>'">
+                    <tr
+                        onclick="window.location.href='page/product/product_detail.php?table=product&id=<?php echo ($product_list['product_id']) ?>'">
 
                         <td><?php echo ($product_list['product_name']) ?></td>
                         <td><?php echo ($product_list['product_price4']) ?></td>
@@ -136,12 +141,13 @@ if (!$brandResults) {
                         <td><?php echo ($product_list['product_type_name']) ?></td>
                         <td><?php echo ($product_list['product_brand_name']) ?></td>
                         <td>
-                            <a href="page/product/product_update.php?id=<?php echo ($product_list['product_id']) ?>">แก้ไข</a>
+                            <a
+                                href="page/product/product_update.php?id=<?php echo ($product_list['product_id']) ?>">แก้ไข</a>
                             <a href="page/product/product_delete.php?id=<?php echo ($product_list['product_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
-                <?php endforeach; ?>
+                <?php endwhile; ?>
             </tbody>
 
         </table>
@@ -196,7 +202,7 @@ if (!$brandResults) {
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

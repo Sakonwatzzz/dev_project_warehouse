@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database_server.php';
-// include_once("./db/warehouse_db.php");
+
 ?>
 
 <!DOCTYPE html>

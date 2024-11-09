@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once __DIR__ . '../../../db/warehouse_db.php';
 
+// การตรวจสอบว่าเป็นการ POST request หรือไม่
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $typename = trim($_POST['typename'] ?? '');
+    $typename = trim($_POST['typename'] ?? ''); // กำจัดช่องว่างที่ไม่จำเป็น
 
     // ตรวจสอบว่า typename ไม่ว่าง
     if (!empty($typename)) {
@@ -12,31 +12,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$typename]);
 
             // รีเฟรชหน้าเดิมเมื่อบันทึกเสร็จ
-            header("Location: ");
-            exit;
+            header("Location: /index.php?page=product_type_list"); // เปลี่ยนไปยังหน้าหลังจากบันทึกข้อมูล
+            exit; // หยุดการทำงานหลัง header
         } catch (PDOException $e) {
             // แสดงข้อความผิดพลาดหากมีปัญหาในการเพิ่มข้อมูล
             echo 'Database error: ' . htmlspecialchars($e->getMessage());
         }
     } else {
-        echo 'Error: Type name is required.';
+        echo 'Error: Type name is required.'; // หากไม่กรอกข้อมูล typename
     }
 }
 
-$id = $_GET['id'];
-$stmt = $pdo->prepare("DELETE FROM product_type WHERE product_type_id = ?");
-$stmt->execute([$id]);
+// ตรวจสอบว่า `id` มีค่าใน URL หรือไม่ก่อนที่จะทำการลบ
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
 
-header('Location: /index.php?page=product_type');  // กลับไปหน้าแสดงผล
-// exit;
+    // ตรวจสอบว่า id เป็นตัวเลข (ป้องกัน SQL Injection)
+    if (is_numeric($id)) {
+        try {
+            $stmt = $pdo->prepare("DELETE FROM product_type WHERE product_type_id = ?");
+            $stmt->execute([$id]);
+
+            // กลับไปหน้าแสดงผลหลังจากลบข้อมูล
+            header('Location: /index.php?page=product_type');
+            exit; // หยุดการทำงานหลัง header
+        } catch (PDOException $e) {
+            echo 'Database error: ' . htmlspecialchars($e->getMessage()); // แสดงข้อผิดพลาดหากมีปัญหา
+        }
+    } else {
+        echo 'Invalid ID.'; // หาก `id` ไม่ถูกต้อง
+    }
+}
 
 // ดึงข้อมูลประเภทสินค้าทั้งหมดมาแสดงผล
 $query = "SELECT product_type_id, product_type_name FROM product_type";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
-$productTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-?>
 
+try {
+    // ใช้ fetch() ในลูป while เพื่อดึงข้อมูลทีละแถว
+    $productTypes = $stmt->fetch(PDO::FETCH_ASSOC); // ดึงแถวแรก
+} catch (PDOException $e) {
+    echo 'Error: ' . htmlspecialchars($e->getMessage()); // แสดงข้อผิดพลาดหากไม่สามารถดึงข้อมูลได้
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -60,8 +79,7 @@ $productTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             <div class="box">
                 <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
-                <!-- แก้คำว่า "lass" เป็น "class" -->
+                <button class="submit-button" type="submit">บันทึก</button>
             </div>
         </form>
     </div>
@@ -75,20 +93,17 @@ $productTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($productTypes as $product_type_list): ?>
+            <?php while ($product_type_list = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
                 <tr>
-                    <td><?php echo($product_type_list['product_type_id']) ?></td>
-
-                    <td><?php echo($product_type_list['product_type_name']) ?></td>
-
+                    <td><?php echo ($product_type_list['product_type_id']) ?></td>
+                    <td><?php echo ($product_type_list['product_type_name']) ?></td>
                     <td>
-                        <a
-                            href="product_type_update.php?id=<?php echo($product_type_list['product_type_id']) ?>">แก้ไข</a>
-                        <a href="product_type_delete.php?id=<?php echo($product_type_list['product_type_id']) ?>"
-                            onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                        <a href="product_type_update.php?id=<?php echo ($product_type_list['product_type_id']) ?>">แก้ไข</a>
+                        <a href="?id=<?php echo ($product_type_list['product_type_id']) ?>"
+                           onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>
-            <?php endforeach; ?>
+            <?php endwhile; ?>
         </tbody>
     </table>
 </body>

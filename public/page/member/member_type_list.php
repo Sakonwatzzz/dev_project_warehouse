@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $pdo->prepare('INSERT INTO member_type (member_type_name) 
                            VALUES (?)');
-    $stmt->execute([ $typename]);
+    $stmt->execute([$typename]);
 
     header('Location: /index.php?page=member_type');
     exit;
@@ -17,13 +17,15 @@ $query = "SELECT member_type_id, member_type_name FROM member_type";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 
-$memberTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+try{
+    $member_Types = $pdo->query($query);
+} catch(PDOException $e){
+    echo 'error'. $e->getMessage() ;
+}
 
 $id = $_GET['id'];
 $stmt = $pdo->prepare("DELETE FROM member_type WHERE member_type = ?");
 $stmt->execute([$id]);
-
 // header("Location: /index.php?page=member_list");    
 // exit;
 ?>
@@ -65,17 +67,19 @@ $stmt->execute([$id]);
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($memberTypes as $member_type_list): ?>
+            <?php while ($member_type_list = $member_Types->fetch(PDO::FETCH_ASSOC)): ?>
                 <tr>
-                    <td><?php echo($member_type_list['member_type_id']) ?></td>
-                    <td><?php echo($member_type_list['member_type_name']) ?></td>
+                    <td><?php echo ($member_type_list['member_type_id']) ?></td>
+                    <td><?php echo ($member_type_list['member_type_name']) ?></td>
                     <td>
-                        <a href="functions_member/member_type_edit.php?id=<?php echo($member_type_list['member_type_id']) ?>">แก้ไข</a> |
-                        <a href="functions_member/member_type_delete.php?id=<?php echo($member_type_list['member_type_id']) ?>"
+                        <a
+                            href="page/member/member_type_update.php?id=<?php echo ($member_type_list['member_type_id']) ?>">แก้ไข</a>
+                        |
+                        <a href="?id=<?php echo ($member_type_list['member_type_id']) ?>"
                             onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>
-            <?php endforeach; ?>
+            <?php endwhile; ?>
         </tbody>
     </table>
 </body>

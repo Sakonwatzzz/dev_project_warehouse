@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '../../../config/database_server.php';
+require_once __DIR__ . '../../../../config/database_server.php';
 
 
 $query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";

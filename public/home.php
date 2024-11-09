@@ -14,7 +14,7 @@
 </head>
 
 <body>
-    <?php include 'component/navbar.php'; ?>
+    <?php include 'component/navigationbar.php'; ?>
 
     <div class="content-item">
         <?php

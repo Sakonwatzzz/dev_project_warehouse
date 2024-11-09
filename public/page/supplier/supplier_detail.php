@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once __DIR__ . '../../../db/warehouse_db.php';
 
 if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
     die("ระบุประเภทหรือ ID ไม่ถูกต้อง");

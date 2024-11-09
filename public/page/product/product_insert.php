@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once __DIR__ . '../../../db/warehouse_db.php';
 ob_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

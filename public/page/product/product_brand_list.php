@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-require_once __DIR__ . '../../../db/warehouse_db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $brandname = $_POST['brandname'] ?? '';
@@ -34,8 +33,11 @@ $query = "SELECT product_brand_id,
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 
-$productbrands = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+try{
+    $productbrands = $pdo->query($query);
+}catch(Exception $e){
+    echo 'error' .$e->getMessage();
+}
 ?>
 
 <!DOCTYPE html>
@@ -75,7 +77,7 @@ $productbrands = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($productbrands as $product_brand_list): ?>
+            <?php while ($product_brand_list= $productbrands->fetch(PDO::FETCH_ASSOC)) : ?>
                 <tr>
                     <td><?php echo ($product_brand_list['product_brand_id']) ?></td>
 
@@ -88,7 +90,7 @@ $productbrands = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                     </td>
                 </tr>
-            <?php endforeach; ?>
+            <?php endwhile; ?>
         </tbody>
     </table>
 </body>
