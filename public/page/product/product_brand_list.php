@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     //     echo 'Error: brand name is required.';
     // }
 }
-    //ส่งตัวแปร 2 ตัว
+//ส่งตัวแปร 2 ตัว
 if (isset($_GET['is_del'])) {
     $product_brand_id = $_GET['product_brand_id'];
     $stmt = $pdo->prepare("DELETE FROM product_brand WHERE product_brand_id = ?");
@@ -33,10 +33,10 @@ $query = "SELECT product_brand_id,
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 
-try{
+try {
     $productbrands = $pdo->query($query);
-}catch(Exception $e){
-    echo 'error' .$e->getMessage();
+} catch (Exception $e) {
+    echo 'error' . $e->getMessage();
 }
 ?>
 
@@ -51,48 +51,49 @@ try{
 </head>
 
 <body>
+    <div class="content-container">
+        <div class="form-container">
+            <h2 class="sub-title">เพิ่มประแบรนด์สินค้า</h2>
+            <form class="" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+                <div class="box">
+                    <label for="brandname">ชื่อประแบรนด์สินค้า:</label>
+                    <input type="text" id="brandname" name="brandname" required>
+                </div>
 
-    <div class="add-box">
-        <h2 class="sub-title">เพิ่มประแบรนด์สินค้า</h2>
-        <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
-            <div class="box">
-                <label for="brandname">ชื่อประแบรนด์สินค้า:</label>
-                <input type="text" id="brandname" name="brandname" required>
-            </div>
+                <div class="box">
+                    <label for=""></label>
+                    <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+                    <!-- แก้คำว่า "lass" เป็น "class" -->
+                </div>
+            </form>
+        </div>
 
-            <div class="box">
-                <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
-                <!-- แก้คำว่า "lass" เป็น "class" -->
-            </div>
-        </form>
-    </div>
-
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>รหัสประแบรนต์สินค้า</th>
-                <th>ชื่อประแบรนต์สินค้า</th>
-                <th>การจัดการ</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($product_brand_list= $productbrands->fetch(PDO::FETCH_ASSOC)) : ?>
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td><?php echo ($product_brand_list['product_brand_id']) ?></td>
-
-                    <td><?php echo ($product_brand_list['product_brand_name']) ?></td>
-
-                    <td>
-                        <a
-                            href="product_brand_update.php?id=<?php echo ($product_brand_list['product_brand_id']) ?>">แก้ไข</a>
-                        <a href="?id=<?php echo ($product_brand_list['product_brand_id']) ?>"
-                            onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                    </td>
+                    <th>รหัสประแบรนต์สินค้า</th>
+                    <th>ชื่อประแบรนต์สินค้า</th>
+                    <th>การจัดการ</th>
                 </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php while ($product_brand_list = $productbrands->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr>
+                        <td><?php echo ($product_brand_list['product_brand_id']) ?></td>
+
+                        <td><?php echo ($product_brand_list['product_brand_name']) ?></td>
+
+                        <td>
+                            <a
+                                href="product_brand_update.php?id=<?php echo ($product_brand_list['product_brand_id']) ?>">แก้ไข</a>
+                            <a href="?id=<?php echo ($product_brand_list['product_brand_id']) ?>"
+                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
 </body>
 
 </html>

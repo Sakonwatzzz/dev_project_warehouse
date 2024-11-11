@@ -65,7 +65,7 @@ try {
             <tbody>
                 <?php while ($member_list = $resultmember->fetch(PDO::FETCH_ASSOC)): ?>
                     <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
-                    <tr onclick="window.location.href='member_detail.php?table=member&id=<?php echo($member_list['member_id']) ?>'">
+                    <tr onclick="window.location.href='page/member/member_detail.php?tabel=member&id=<?php echo($member_list['member_id']) ?>'">
                         <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
                         <td><?php echo($member_list['member_id']) ?></td> <!-- แสดงรหัสสมาชิก -->
                         <td><?php echo($member_list['member_name']) ?></td> <!-- แสดงชื่อสมาชิก -->

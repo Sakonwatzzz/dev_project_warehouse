@@ -68,44 +68,47 @@ try {
 </head>
 
 <body>
+    <div class="content-container">
 
-    <div class="add-box">
-        <h2 class="sub-title">เพิ่มประเภทสินค้า</h2>
-        <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
-            <div class="box">
-                <label for="typename">ชื่อประเภทสินค้า:</label>
-                <input type="text" id="typename" name="typename" required>
-            </div>
+        <div class="form-container">
+            <h2 class="sub-title">เพิ่มประเภทสินค้า</h2>
+            <form class="" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+                <div class="box">
+                    <label for="typename">ชื่อประเภทสินค้า:</label>
+                    <input type="text" id="typename" name="typename" required>
+                </div>
 
-            <div class="box">
-                <label for=""></label>
-                <button class="submit-button" type="submit">บันทึก</button>
-            </div>
-        </form>
-    </div>
+                <div class="box">
+                    <label for=""></label>
+                    <button class="submit-button" type="submit">บันทึก</button>
+                </div>
+            </form>
+        </div>
 
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>รหัสประเภทสินค้า</th>
-                <th>ชื่อประเภทสินค้า</th>
-                <th>การจัดการ</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($product_type_list = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td><?php echo ($product_type_list['product_type_id']) ?></td>
-                    <td><?php echo ($product_type_list['product_type_name']) ?></td>
-                    <td>
-                        <a href="product_type_update.php?id=<?php echo ($product_type_list['product_type_id']) ?>">แก้ไข</a>
-                        <a href="?id=<?php echo ($product_type_list['product_type_id']) ?>"
-                           onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                    </td>
+                    <th>รหัสประเภทสินค้า</th>
+                    <th>ชื่อประเภทสินค้า</th>
+                    <th>การจัดการ</th>
                 </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php while ($product_type_list = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr>
+                        <td><?php echo ($product_type_list['product_type_id']) ?></td>
+                        <td><?php echo ($product_type_list['product_type_name']) ?></td>
+                        <td>
+                            <a
+                                href="product_type_update.php?id=<?php echo ($product_type_list['product_type_id']) ?>">แก้ไข</a>
+                            <a href="?id=<?php echo ($product_type_list['product_type_id']) ?>"
+                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
 </body>
 
 </html>

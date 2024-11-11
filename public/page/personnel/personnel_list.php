@@ -16,9 +16,10 @@ INNER JOIN
 
 
 try {
-    $resultspersonnel = $pdo ->query($query);
+    $resultspersonnel = $pdo->query($query);
 } catch (Exception $e) {
-    echo "error". $e->getMessage();
+    echo "error" . $e->getMessage();
+    exit();
 }
 
 
@@ -39,7 +40,13 @@ $stmt->execute([$id]);
 
 // header("Location: http://localhost:8000/home.php?page=personnel_list");    
 // exit;
-
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
+    $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
+    $stmt->execute([$id]);
+    header("Location: http://localhost:8000/home.php?page=personnel_list");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -112,8 +119,9 @@ $stmt->execute([$id]);
             </thead>
             <tbody>
                 <?php while ($personnel_list = $resultspersonnel->fetch(PDO::FETCH_ASSOC)): ?>
+
                     <tr
-                        onclick="window.location='personnel_detail.php?type=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
+                        onclick="window.location.href='page/personnel/personnel_detail.php?tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
                         <td><?php echo ($personnel_list['personnel_id']) ?></td>
                         <td><?php echo ($personnel_list['personnel_name']) ?></td>
                         <td><?php echo ($personnel_list['personnel_type_name']) ?></td>
@@ -122,10 +130,11 @@ $stmt->execute([$id]);
                         <td><?php echo ($personnel_list['personnel_username']) ?></td>
                         <td>
                             <a
-                                href="page/personnel/personnel_update.php?id=<?php echo ($personnel_list['personnel_id']) ?>">แก้ไข</a>
+                                href="page/personnel/personnel_update.php?id=<?php echo $personnel_list['personnel_id']; ?>">แก้ไข</a>
                             |
-                            <a href="?id=<?php echo ($personnel_list['personnel_id']) ?>"
+                            <a href="?id=<?php echo $personnel_list['personnel_id']; ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                        </td>
                         </td>
                     </tr>
                 <?php endwhile; ?>
