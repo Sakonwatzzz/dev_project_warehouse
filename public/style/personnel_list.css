@@ -6,7 +6,7 @@
 
 body {
   font-family: Tahoma, sans-serif;
-  background-color: #e8f5e9; 
+  background-color: #e3f2fd;
   color: #333;
 }
 
@@ -16,7 +16,10 @@ body {
 }
 
 .search {
-  margin-bottom: 20px;
+  width: 350px;
+  height: 35px;
+  margin-top: 20px;
+  /*border: 3px solid red;*/
 }
 
 .search p {
@@ -24,24 +27,25 @@ body {
   margin-bottom: 5px;
 }
 
-.search input[type="search"] {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #4caf50; 
+.search input {
+  width: 350px;
+  height: 35px;
+  border: 1px solid #bbdefb;
   border-radius: 5px;
   outline: none;
   transition: border-color 0.3s;
+  padding-left: 10px;
 }
 
-.search input[type="search"]:focus {
-  border-color: #388e3c; /* สีเขียวเข้มเมื่อ focus */
+.search input:focus {
+  border: 2px solid #81d4fa;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
   background-color: #ffffff;
-  border: 1px solid #4caf50; /* สีเขียวสำหรับกรอบตาราง */
+  border: 1px solid #81d4fa; /* สีเขียวสำหรับกรอบตาราง */
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
 }
 

@@ -1,3 +1,8 @@
+<?php
+ob_start();
+require_once __DIR__ . '../../../config/database_server.php';
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,8 +14,8 @@
         /* พื้นหลังแบบ Windows XP */
         body {
             font-family: Tahoma, sans-serif;
-            background-color: #d4f4d7;
-            /* สีเขียวอ่อน */
+            background-color: #e3f2fd;
+            /* เปลี่ยนเป็นฟ้าอ่อน */
             color: #333;
         }
 
@@ -20,9 +25,9 @@
             display: flex;
             gap: 5px;
             align-items: center;
-            background-color: #c3e6c5;
-            /* พื้นหลังปุ่มโทนเขียว */
-            border: 1px solid #8bb58a;
+            background-color: #bbdefb;
+            /* พื้นหลังปุ่มโทนฟ้า */
+            border: 1px solid #90caf9;
             padding: 10px;
             border-radius: 4px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
@@ -37,9 +42,9 @@
         .button-bb button {
             display: flex;
             align-items: center;
-            background-color: #e2f5e3;
-            /* สีเขียวอ่อนปุ่ม */
-            border: 1px solid #7d9b7d;
+            background-color: #e1f5fe;
+            /* สีฟ้าอ่อนปุ่ม */
+            border: 1px solid #81d4fa;
             padding: 6px 12px;
             cursor: pointer;
             border-radius: 4px;
@@ -47,8 +52,10 @@
         }
 
         .button-bb button:hover {
-            background-color: #c8e6c9;
-            border-color: #6e8e6e;
+            background-color: #b3e5fc;
+            /* เปลี่ยนสีเมื่อ hover */
+            border-color: #39a9db;
+            /* เปลี่ยนสีขอบเมื่อ hover */
         }
 
         /* ขนาดภาพ */
@@ -73,25 +80,19 @@
             <a href="?page=personnel_list" class="button-link">
                 <button>
                     <img src="../image/team.png" alt="">
-                    <p>รายชื่อสมาชิก</p>
+                    <p>รายชื่อบุคลากร</p>
                 </button>
             </a>
-            <a href="?page=personnel_add" class="button-link">
+            <a href="?page=personnel_insert" class="button-link">
                 <button>
                     <img src="../image/add.png" alt="">
-                    <p>เพิ่มสมาชิก</p>
+                    <p>เพิ่มบุคลากร</p>
                 </button>
             </a>
-            <a href="?page=personnel_type" class="button-link">
+            <a href="?page=personnel_type_list" class="button-link">
                 <button>
                     <img src="../image/customer.png" alt="">
-                    <p>ประเภท</p>
-                </button>
-            </a>
-            <a href="?page=personnel_status" class="button-link">
-                <button>
-                    <img src="../image/team-building.png" alt="">
-                    <p>สถานะ</p>
+                    <p>ประเภทบุคลากร</p>
                 </button>
             </a>
         </div>

@@ -1,0 +1,79 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #e3f2fd;
+  color: #333;
+}
+
+h2 {
+  margin: 20px 0 10px 10px;
+  padding: 5px;
+  color: #1b4d80; /* สีเขียวเข้ม */
+}
+
+.add-box {
+  margin-bottom: 15px;
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #e3f2fd; /* สีพื้นหลังของกล่องเพิ่มสมาชิก */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+form {
+  width: 100%;
+  border: 1px solid #81d4fa;
+  padding: 20px;
+  display: block;
+  border-radius: 8px;
+}
+
+.box {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.box label {
+  width: 30%;
+  padding: 10px;
+  color: #555;
+}
+
+.box input,
+.box select {
+  width: 70%;
+  padding: 10px;
+  margin: 5px;
+  border: 1px solid #a5d6a7; /* สีเขียวอ่อน */
+  border-radius: 5px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.box input:focus,
+.box select:focus {
+  border-color: #388e3c; /* สีเขียวเมื่อ focus */
+}
+
+.box button {
+  width: 70%;
+  height: 40px;
+  border: none;
+  color: white;
+  border-radius: 5px;
+  font-size: 16px;
+  background: linear-gradient(to bottom, #4caf50, #388e3c); /* สีเขียว */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.box button:hover {
+  background: linear-gradient(
+    to bottom,
+    #45a049,
+    #2e7d32
+  ); /* สีเข้มขึ้นเมื่อ hover */
+}

@@ -60,7 +60,13 @@
     font-size: 1rem;
   }
   
+  .box button {
+
+    justify-content: center;
+  }
   .submit-button {
+    justify-content: center;
+    width: 100%;
     margin-top: 20px;
     padding: 12px;
     background-color: #aacad9;
