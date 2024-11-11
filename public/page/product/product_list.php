@@ -1,38 +1,73 @@
 <?php
-require_once __DIR__ ."../../../../config/database_server.php";
-$query = "SELECT
-    product.product_id, 
-    product.product_barcode, 
-    product.product_name, 
-    product.product_price1, 
-    product.product_price2, 
-    product.product_price3, 
-    product.product_price4, 
-    product.product_capital, 
-    product.product_type_id, 
-    product.product_brand_id,
-    product_brand.product_brand_name, 
-    product_type.product_type_name
-FROM
-    product
-INNER JOIN
-    product_brand ON product.product_brand_id = product_brand.product_brand_id
-INNER JOIN
-    product_type ON product.product_type_id = product_type.product_type_id
-ORDER BY product.product_id ASC";
-if(isset($_GET['id'])){
+require_once __DIR__ . "../../../../config/database_server.php";
+
+$searchTerm = '';
+if (isset($_GET['search'])) {
+    $searchTerm = $_GET['search'];
+    // Update the query to filter based on the search term
+    $query = "SELECT
+        product.product_id, 
+        product.product_barcode, 
+        product.product_name, 
+        product.product_price1, 
+        product.product_price2, 
+        product.product_price3, 
+        product.product_price4, 
+        product.product_capital, 
+        product.product_type_id, 
+        product.product_brand_id,
+        product_brand.product_brand_name, 
+        product_type.product_type_name
+    FROM
+        product
+    INNER JOIN
+        product_brand ON product.product_brand_id = product_brand.product_brand_id
+    INNER JOIN
+        product_type ON product.product_type_id = product_type.product_type_id
+    WHERE 
+        product.product_name LIKE :searchTerm
+    ORDER BY 
+        product.product_id ASC";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute(['searchTerm' => '%' . $searchTerm . '%']);
+} else {
+    // Default query if no search term is entered
+    $query = "SELECT
+        product.product_id, 
+        product.product_barcode, 
+        product.product_name, 
+        product.product_price1, 
+        product.product_price2, 
+        product.product_price3, 
+        product.product_price4, 
+        product.product_capital, 
+        product.product_type_id, 
+        product.product_brand_id,
+        product_brand.product_brand_name, 
+        product_type.product_type_name
+    FROM
+        product
+    INNER JOIN
+        product_brand ON product.product_brand_id = product_brand.product_brand_id
+    INNER JOIN
+        product_type ON product.product_type_id = product_type.product_type_id
+    ORDER BY 
+        product.product_id ASC";
+    $stmt = $pdo->query($query);
+}
+if (isset($_GET['id'])) {
     $id = $_GET['id'];
-$stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
-$stmt->execute([$id]);
-header('Location: /index.php?page=product_list');
-exit;
+    $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
+    $stmt->execute([$id]);
+    header('Location: /index.php?page=product_list');
+    exit;
 }
 
 
 try {
     $productResults = $pdo->query($query); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
 } catch (PDOException $e) {
-    echo 'error' .$e->getMessage();
+    echo 'error' . $e->getMessage();
 }
 
 
@@ -47,7 +82,7 @@ try {
 //     die("Query failed: " . $pdo->getMessage());
 // }
 
-// // Query สำหรับประเภทแบรนด์สินค้า
+// Query สำหรับประเภทแบรนด์สินค้า
 // $querybrandTypes = "SELECT
 //     product_brand.product_brand_id, 
 //     product_brand.product_brand_name
@@ -106,10 +141,16 @@ try {
 
 <body>
     <div class="personnel-list">
-        <h2 class="title">ข้อมูลสินค้า</h2>
+        <!-- Search Form php
+        <form method="get" action="">
+            <input type="text" name="search" tabindex="1" autofocus value="   ?php echo ($searchTerm);    " placeholder="ค้นหาสินค้า...">
+            <button type="submit">ค้นหา</button>
+        </form> -->
+
         <div class="search">
-            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาสินค้า...">
+            <input type="search" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาบุคลากร...">
         </div>
+
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
@@ -151,7 +192,11 @@ try {
         </table>
 
     </div>
-
+    <!-- <script>
+        window.onload = function() {
+            document.getElementById("searchInput").focus();
+        };
+    </script> -->
     <script>
         function searchTable() {
             const input = document.getElementById("searchInput");
@@ -200,8 +245,10 @@ try {
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
+            const searchInput = document.getElementById("searchInput");
+            searchInput.focus();
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
                 notification.style.display = 'block'; // แสดงการแจ้งเตือน

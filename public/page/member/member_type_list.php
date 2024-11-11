@@ -49,7 +49,7 @@ if (isset($_GET['id'])) {
             <form class="" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
                 <div class="box">
                     <label for="typename">ชื่อประเภทสมาชิก:</label>
-                    <input type="text" id="typename" name="typename" required>
+                    <input type="text" id="typename" name="typename" >
                 </div>
 
                 <div class="box">

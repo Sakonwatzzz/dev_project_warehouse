@@ -83,7 +83,7 @@ if (isset($_GET['id'])) {
         <h2 class="title">ข้อมูลผู้ส่งมอบ</h2>
 
         <div class="search">
-            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาสมาชิก...">
+            <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสมาชิก...">
         </div>
 
         <div id="notification" class="notification">
@@ -166,6 +166,7 @@ if (isset($_GET['id'])) {
 
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
+            const searchInput = d
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
                 notification.style.display = 'block';

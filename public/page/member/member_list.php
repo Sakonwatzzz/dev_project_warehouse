@@ -40,7 +40,7 @@ try {
         
         <div class="search"> 
             <!-- ฟอร์มค้นหาสมาชิก -->
-            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาสมาชิก...">
+            <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสมาชิก...">
         </div>
 
         <!-- ส่วนของการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์ -->
@@ -137,6 +137,8 @@ try {
         // การแสดงผลการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search); // ตรวจสอบ URL
+            const searchInput =document.getElementById("searchInput");
+            searchInput.focus();
             if (urlParams.has('success')) { // ถ้ามีพารามิเตอร์ success ใน URL
                 const notification = document.getElementById('notification');
                 notification.style.display = 'block'; // แสดงการแจ้งเตือน
