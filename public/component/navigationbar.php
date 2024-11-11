@@ -67,35 +67,21 @@
                         include __DIR__ . "/bar_supplier.php";
                         include __DIR__ . "/../page/supplier/supplier_list.php";
                         break;
-                    case "product_type_list":
-                        include __DIR__ . "/bar_product.php";
-                        include __DIR__ . "/../page/product/product_type_list.php";
-                        break;
-                    case "product_brand_list":
-                        include __DIR__ . "/bar_product.php";
-                        include __DIR__ . "/../page/product/product_brand_list.php";
-                        break;
-                    case "member_type_list":
-                        include __DIR__ . "/bar_member.php";
-                        include __DIR__ . "/../page/member/member_type_list.php";
-                        break;
                     default:
-                        echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง: " . htmlspecialchars($page) . "</h2>";
+                        // ตรวจสอบค่า `$page` กับรายการใน array
+                        if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type'])) {
+                            include __DIR__ . "/bar_personnel.php";
+                        }
+                        if (in_array($page, ['member_list', 'member_insert', 'member_update'])) {
+                            include __DIR__ . "/bar_member.php";
+                        }
+                        if (in_array($page, ["product_list", "product_insert", "product_update", "product_type"])) {
+                            include __DIR__ . "/bar_product.php";
+                        }
+                        if (in_array($page, ["supplier_list", "supplier_insert", "supplier_update"])) {
+                            include __DIR__ . "/bar_supplier.php";
+                        }
                         break;
-                }
-
-                // ตรวจสอบค่า `$page` กับรายการใน array
-                if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type'])) {
-                    include __DIR__ . "/bar_personnel.php";
-                }
-                if (in_array($page, ['member_list', 'member_insert', 'member_update'])) {
-                    include __DIR__ . "/bar_member.php";
-                }
-                if (in_array($page, ["product_list", "product_insert", "product_update"])) {
-                    include __DIR__ . "/bar_product.php";
-                }
-                if (in_array($page, ["supplier_list", "supplier_insert", "supplier_update"])) {
-                    include __DIR__ . "/bar_supplier.php";
                 }
             } else {
                 echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง: " . htmlspecialchars($page) . "</h2>";

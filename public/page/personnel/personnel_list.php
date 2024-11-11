@@ -14,7 +14,6 @@ FROM
 INNER JOIN
     personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id";
 
-
 try {
     $resultspersonnel = $pdo->query($query);
 } catch (Exception $e) {
@@ -22,24 +21,7 @@ try {
     exit();
 }
 
-
-// // Query สำหรับประเภท
-// $queryTypes = "SELECT
-//     personnel_type.personnel_type_id, 
-//     personnel_type.personnel_type_name
-// FROM personnel_type";
-// $typeResults = $conn->query($queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
-
-// if (!$typeResults) {
-//     die("Query failed: " . $conn->error);
-// }
-
-$id = $_GET['id'];
-$stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
-$stmt->execute([$id]);
-
-// header("Location: http://localhost:8000/home.php?page=personnel_list");    
-// exit;
+// ตรวจสอบว่ามีการส่งค่า id มาหรือไม่
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
@@ -119,7 +101,6 @@ if (isset($_GET['id'])) {
             </thead>
             <tbody>
                 <?php while ($personnel_list = $resultspersonnel->fetch(PDO::FETCH_ASSOC)): ?>
-
                     <tr
                         onclick="window.location.href='page/personnel/personnel_detail.php?tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
                         <td><?php echo ($personnel_list['personnel_id']) ?></td>
@@ -129,20 +110,15 @@ if (isset($_GET['id'])) {
                         <td><?php echo ($personnel_list['personnel_phone']) ?></td>
                         <td><?php echo ($personnel_list['personnel_username']) ?></td>
                         <td>
-                            <a
-                                href="page/personnel/personnel_update.php?id=<?php echo $personnel_list['personnel_id']; ?>">แก้ไข</a>
+                            <a href="page/personnel/personnel_update.php?id=<?php echo $personnel_list['personnel_id']; ?>">แก้ไข</a>
                             |
-                            <a href="?id=<?php echo $personnel_list['personnel_id']; ?>"
-                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                        </td>
+                            <a href="?id=<?php echo $personnel_list['personnel_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
-
     </div>
-
 
     <script>
         function searchTable() {
@@ -150,9 +126,9 @@ if (isset($_GET['id'])) {
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
-            let foundAny = false; // ตัวแปรเพื่อเก็บสถานะการค้นหา
+            let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) { // เริ่มจาก 1 เพื่อข้าม header
+            for (let i = 1; i < tr.length; i++) {
                 let found = false;
                 const td = tr[i].getElementsByTagName("td");
                 for (let j = 0; j < td.length; j++) {
@@ -164,42 +140,40 @@ if (isset($_GET['id'])) {
                         }
                     }
                 }
-                tr[i].style.display = found ? "" : "none"; // แสดงหรือซ่อนแถว
+                tr[i].style.display = found ? "" : "none";
                 if (found) {
-                    foundAny = true; // ถ้าพบข้อมูลอย่างน้อย 1 แถว
+                    foundAny = true;
                 }
             }
 
-            // แสดงข้อความเมื่อไม่พบข้อมูล
             const noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
                     const message = document.createElement("p");
                     message.id = "noDataMessage";
                     message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red"; // ปรับสีข้อความ
-                    message.style.fontWeight = "bold"; // ปรับความหนาของข้อความ
-                    message.style.marginTop = "10px"; // เพิ่มระยะห่างด้านบน
-                    table.parentNode.insertBefore(message, table); // เพิ่มข้อความก่อนตาราง
+                    message.style.color = "red";
+                    message.style.fontWeight = "bold";
+                    message.style.marginTop = "10px";
+                    table.parentNode.insertBefore(message, table);
                 }
             } else {
                 if (noDataMessage) {
-                    noDataMessage.remove(); // ลบข้อความเมื่อพบข้อมูล
+                    noDataMessage.remove();
                 }
             }
         }
     </script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
-                notification.style.display = 'block'; // แสดงการแจ้งเตือน
+                notification.style.display = 'block';
 
-                // ลบการแจ้งเตือนหลัง 2 วินาที
                 setTimeout(() => {
-                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
+                    notification.style.display = 'none';
                 }, 2000);
             }
         });

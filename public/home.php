@@ -25,7 +25,7 @@
             if (count($parts) === 2) {
                 $module = $parts[0];
                 $action = $parts[1];
-                
+
                 $filePath = __DIR__ . "/page/{$module}/{$module}_{$action}.php";
 
                 if (file_exists($filePath)) {
