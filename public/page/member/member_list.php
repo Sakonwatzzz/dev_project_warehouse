@@ -53,11 +53,11 @@ try {
             <thead>
                 <!-- ส่วนหัวของตาราง -->
                 <tr>
-                    <th>รหัส</th>
+                    <!-- <th>รหัส</th> -->
                     <th>ชื่อ นามสกุล</th>
-                    <th>ที่อยู่สมาชิก</th>
-                    <th>เบอร์โทรศัพท์สมาชิก</th>
-                    <th>วันที่</th>
+                    <!-- <th>ที่อยู่สมาชิก</th> -->
+                    <!-- <th>เบอร์โทรศัพท์สมาชิก</th> -->
+                    <!-- <th>วันที่</th> -->
                     <th>ประเภทสมาชิก</th>
                     <th>การจัดการ</th>
                 </tr>
@@ -67,11 +67,11 @@ try {
                     <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
                     <tr onclick="window.location.href='page/member/member_detail.php?tabel=member&id=<?php echo($member_list['member_id']) ?>'">
                         <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
-                        <td><?php echo($member_list['member_id']) ?></td> <!-- แสดงรหัสสมาชิก -->
+                        <!-- <td><?php echo($member_list['member_id']) ?></td> แสดงรหัสสมาชิก -->
                         <td><?php echo($member_list['member_name']) ?></td> <!-- แสดงชื่อสมาชิก -->
-                        <td><?php echo($member_list['member_address']) ?></td> <!-- แสดงที่อยู่สมาชิก -->
-                        <td><?php echo($member_list['member_phone']) ?></td> <!-- แสดงเบอร์โทรศัพท์สมาชิก -->
-                        <td><?php echo($member_list['member_register_date']) ?></td> <!-- แสดงวันที่ลงทะเบียน -->
+                        <!-- <td><?php echo($member_list['member_address']) ?></td> แสดงที่อยู่สมาชิก -->
+                        <!-- <td><?php echo($member_list['member_phone']) ?></td> แสดงเบอร์โทรศัพท์สมาชิก -->
+                        <!-- <td><?php echo($member_list['member_register_date']) ?></td> แสดงวันที่ลงทะเบียน -->
                         <td><?php echo($member_list['member_type_name']) ?></td> <!-- แสดงประเภทสมาชิก -->
                         <td>
                             <a href="page/member/member_update.php?id=<?php echo($member_list['member_id']) ?>">แก้ไข</a>

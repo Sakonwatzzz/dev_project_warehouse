@@ -17,16 +17,18 @@ $is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false;
 
 switch ($tabel) {
     case 'member':
-        $stmt = $pdo->prepare("SELECT member.*,
-        member_type.member_type_name
-        FROM member 
-        LEFT JOIN member_type on member.member_type_id = member.member_type_id
-        WHERE member.member_id = ?");
+        $stmt = $pdo->prepare("
+    SELECT member.*, 
+    member_type.member_type_name
+    FROM member
+    LEFT JOIN member_type ON member.member_type_id = member_type.member_type_id
+    WHERE member.member_id = ?
+");
+
         break;
     default:
         die("ระบุประเภทไม่ถูกต้อง");
 }
-
 $stmt->execute([$id]);
 $member = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$member) {
@@ -53,7 +55,7 @@ $member_type_results = $pdo->query($queryTypes);
 <body>
     <div class="main-body">
         <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
-        <h1 class="title">รายละเอียด <?php echo $tabel; ?></h1>
+        <h1 class="title">รายละเอียดสมาชิก</h1>
 
         <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการสมาชิก โดยจะส่งไปยังไฟล์ `member_update.php` -->
         <form action="member_update.php" method="POST">
@@ -69,15 +71,15 @@ $member_type_results = $pdo->query($queryTypes);
                         <th>รหัสสมาชิก:</th>
                         <!-- แสดงรหัสสมาชิก -->
                         <td>
-                            <?php if($is_update):?>
-                            <input type="hidden" name="id" value="<?php echo $member['member_id']; ?>">
+                            <?php if ($is_update): ?>
+                                <input type="hidden" name="id" value="<?php echo $member['member_id']; ?>">
                             <?php else: ?>
-                                <?php echo $member['member_id'];?>
-                                <?php endif; ?>
+                                <?php echo $member['member_id']; ?>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <tr>
-                        <th>ชื่อสมาชิก:</th>
+                        <th>ชื่อสกุลสมาชิก:</th>
                         <td>
                             <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
                                 <input type="text" name="name" value="<?php echo $member['member_name']; ?>">
@@ -91,12 +93,10 @@ $member_type_results = $pdo->query($queryTypes);
                         <td>
                             <?php if ($is_update): ?>
                                 <select name="typename">
-                                    <option value="<?php echo ($member['member_type_id']); ?>" selected>
-                                        <?php echo ($member['member_type_name']); ?>
-                                    </option>
                                     <?php while ($typeRow = $member_type_results->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo ($typeRow['member_type_id']); ?>">
-                                            <?php echo ($typeRow['member_type_name']); ?>
+                                        <option value="<?php echo $typeRow['member_type_id']; ?>"
+                                            <?php echo ($typeRow['member_type_id'] == $member['member_type_id']) ? 'selected' : ''; ?>>
+                                            <?php echo $typeRow['member_type_name']; ?>
                                         </option>
                                     <?php endwhile; ?>
                                 </select>
@@ -128,7 +128,7 @@ $member_type_results = $pdo->query($queryTypes);
                     </tr>
 
                     <tr>
-                        <th>วันที่:</th>
+                        <th>วันที่สมัครเป็นสมาชิก:</th>
                         <td>
                             <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
                                 <input type="date" name="registerdate" value="<?php echo $member['member_register_date']; ?>">

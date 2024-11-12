@@ -3,17 +3,19 @@ require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $personnel_name = $_POST['personnel_name'];
-    $typename = $_POST['typename'];
-    $address = $_POST['address'];
-    $phone = $_POST['phone'];
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $personnel_type_name = $_POST['personnel_type_name'];
+    $personnel_address = $_POST['personnel_address'];
+    $personnel_phone = $_POST['personnel_phone'];
+    $personnel_username = $_POST['personnel_username'];
+    $personnel_password = $_POST['personnel_password'];
 
     $stmt = $pdo->prepare('INSERT INTO personnel (personnel_name,  personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password) 
                            VALUES (?, ?, ?, ?, ?, ?)');
-    $stmt->execute([$name, $typename, $address, $phone, $username, $password]);
+    $stmt->execute([$personnel_name, $personnel_type_name, $personnel_address, $personnel_phone, $personnel_username, $personnel_password]);
 
-    header('Location: /?page=personnel_add&success=1');
+
+    $personnel_id = $pdo->lastInsertId();
+    header("Location: personnel/personnel_detail.php?tabel=personnel&id=" . $personnel_id);
     exit;
 }
 
@@ -84,8 +86,8 @@ ob_end_flush();
         <h2 class="sub-title">เพิ่มสมาชิก</h2>
         <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
             <div class="box">
-                <label for="name">ชื่อ นามสกุลบุคลากร:</label>
-                <input type="text" id="name" name="name">
+                <label for="personnel_name">ชื่อ นามสกุลบุคลากร:</label>
+                <input type="text" id="personnel_name" name="personnel_name">
             </div>
 
             <!-- loop -->
@@ -93,8 +95,8 @@ ob_end_flush();
             if (count($personnelTypes) > 0) {
             ?>
                 <div class="box">
-                    <label for="typename">ประเภทบุคลากร:</label>
-                    <select name="typename" id="typename">
+                    <label for="personnel_type_name">ประเภทบุคลากร:</label>
+                    <select name="personnel_type_name" id="personnel_type_name">
                         <?php foreach ($personnelTypes as $personnel_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
                             <option value="<?php echo ($personnel_insert['personnel_type_id']); ?>">
                                 <?php echo ($personnel_insert['personnel_type_name']); ?>
@@ -110,22 +112,22 @@ ob_end_flush();
             ?>
             <!--  -->
             <div class="box">
-                <label for="address">ที่อยู่บุคลากร:</label>
-                <input type="text" id="address" name="address">
+                <label for="personnel_address">ที่อยู่บุคลากร:</label>
+                <input type="text" id="personnel_address" name="personnel_address">
             </div>
             <div class="box">
-                <label for="phone">เบอร์โทรศัพท์:</label>
-                <input type="text" id="phone" name="phone">
-            </div>
-
-            <div class="box">
-                <label for="username">ชื่อผู้ใช้:</label>
-                <input type="text" id="username" name="username">
+                <label for="personnel_phone">เบอร์โทรศัพท์:</label>
+                <input type="text" id="personnel_phone" name="personnel_phone">
             </div>
 
             <div class="box">
-                <label for="password">รหัสผ่าน:</label>
-                <input type="password" id="password" name="password">
+                <label for="personnel_username">ชื่อผู้ใช้:</label>
+                <input type="text" id="personnel_username" name="personnel_username">
+            </div>
+
+            <div class="box">
+                <label for="personnel_password">รหัสผ่าน:</label>
+                <input type="password" id="personnel_password" name="personnel_password">
             </div>
 
             <div class="box">

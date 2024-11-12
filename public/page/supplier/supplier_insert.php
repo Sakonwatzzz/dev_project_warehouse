@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            VALUES (?, ?, ?, ?)');
     $stmt->execute([$name, $address, $phone, $detail]);
 
-    header('Location: /?page=supplier_add&success=1');
+    header('Location: /?page=supplier_list&success=1');
     exit;
 }
 $query = "SELECT supplier_id, supplier_name,supplier_address,supplier_phone, supplier_detail FROM supplier";

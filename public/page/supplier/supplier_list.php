@@ -166,7 +166,8 @@ if (isset($_GET['id'])) {
 
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = d
+            const searchInput = document.getElementById("searchInput");
+            searchInput.focus();
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
                 notification.style.display = 'block';

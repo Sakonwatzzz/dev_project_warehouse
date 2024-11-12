@@ -26,7 +26,7 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
     $stmt->execute([$id]);
-    header("Location: http://localhost:8000/home.php?page=personnel_list");
+    header("Location: index.php?page=personnel_list");
     exit;
 }
 ?>
@@ -90,12 +90,12 @@ if (isset($_GET['id'])) {
         <table class="data-table" id="dataTable">
             <thead>
                 <tr>
-                    <th>รหัส</th>
+                    <!-- <th>รหัส</th> -->
                     <th>ชื่อ นามสกุล</th>
                     <th>ประเภทบุคคลากร</th>
-                    <th>ที่อยู่</th>
-                    <th>เบอร์โทรศัพท์</th>
-                    <th>ชื่อผู้ใช้</th>
+                    <!-- <th>ที่อยู่</th>
+                    <th>เบอร์โทรศัพท์</th> -->
+                    <th>ชื่อผู้ใช้บุคลากร</th>
                     <th>การจัดการ</th>
                 </tr>
             </thead>
@@ -103,16 +103,16 @@ if (isset($_GET['id'])) {
                 <?php while ($personnel_list = $resultspersonnel->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr
                         onclick="window.location.href='page/personnel/personnel_detail.php?tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
-                        <td><?php echo ($personnel_list['personnel_id']) ?></td>
+                        <!-- <td><?php echo ($personnel_list['personnel_id']) ?></td> -->
                         <td><?php echo ($personnel_list['personnel_name']) ?></td>
                         <td><?php echo ($personnel_list['personnel_type_name']) ?></td>
-                        <td><?php echo ($personnel_list['personnel_address']) ?></td>
-                        <td><?php echo ($personnel_list['personnel_phone']) ?></td>
+                        <!-- <td><?php echo ($personnel_list['personnel_address']) ?></td>
+                        <td><?php echo ($personnel_list['personnel_phone']) ?></td> -->
                         <td><?php echo ($personnel_list['personnel_username']) ?></td>
                         <td>
                             <a href="page/personnel/personnel_update.php?id=<?php echo $personnel_list['personnel_id']; ?>">แก้ไข</a>
                             |
-                            <a href="?id=<?php echo $personnel_list['personnel_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                            <a href="page/personnel/personnel_list.php?id=<?php echo $personnel_list['personnel_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
@@ -168,7 +168,7 @@ if (isset($_GET['id'])) {
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const searchInput =document.getElementById("searchInput");
+            const searchInput = document.getElementById("searchInput");
             searchInput.focus();
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

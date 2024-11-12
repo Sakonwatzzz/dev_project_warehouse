@@ -129,7 +129,7 @@ ob_end_flush();
                     <form action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
                         <td></td> <!-- ช่องรหัสประเภทสินค้า ให้แสดงเป็น "อัตโนมัติ" -->
                         <td>
-                            <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทสินค้า" required
+                            <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทสินค้า" 
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
 
                         </td>

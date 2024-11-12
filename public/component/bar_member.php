@@ -84,7 +84,7 @@
                     <p>เพิ่มสมาชิก</p>
                 </button>
             </a>
-            <a href="?page=member_type_list" class="button-link">
+            <a href="?page=member_type" class="button-link">
                 <button>
                     <img src="../image/customer.png" alt="">
                     <p>ประเภทสมาชิก</p>

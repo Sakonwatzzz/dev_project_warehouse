@@ -89,7 +89,7 @@ require_once __DIR__ . '../../../config/database_server.php';
                     <p>เพิ่มบุคลากร</p>
                 </button>
             </a>
-            <a href="?page=personnel_type_list" class="button-link">
+            <a href="?page=personnel_type" class="button-link">
                 <button>
                     <img src="../image/customer.png" alt="">
                     <p>ประเภทบุคลากร</p>

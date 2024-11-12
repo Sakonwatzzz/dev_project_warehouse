@@ -37,7 +37,7 @@ $personnel = $stmt->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href=".././style/personnel_add.css">
+    <link rel="stylesheet" href="../../style/member_edit.css">
     <style>
         .edit-box {
             margin: 3rem 10rem 4rem 8rem;
@@ -50,7 +50,7 @@ $personnel = $stmt->fetch();
     <div class="edit-box">
         <h2 class="title">แก้ไขบุคลากร</h2>
 
-        <form class="form-container" action="edit.php" method="POST">
+        <form class="form-container" action="personnel_update.php" method="POST">
             <input type="hidden" name="id" value="<?php echo($personnel['personnel_id']) ?>">
 
             <div class="box">

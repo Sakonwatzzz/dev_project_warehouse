@@ -97,33 +97,32 @@ $results = $pdo->query($queryTypes);
 
         <form class="form-container" action="" method="POST">
             <div class="box">
-                <label for="name">ชื่อ นามสกุลสมาชิก:</label>
-                <input type="text" name="name" id="name" required>
+                <label for="name">ชื่อสกุลสมาชิก:</label>
+                <input type="text" name="name" id="name">
             </div>
 
             <div class="box">
                 <label for="address">ที่อยู่สมาชิก:</label>
-                <input type="text" name="address" id="address" required>
+                <input type="text" name="address" id="address">
 
             </div>
 
             <div class="box">
                 <label for="phone">เบอร์โทรศัพท์สมาชิก:</label>
-                <input type="text" name="phone" id="phone" required>
+                <input type="text" name="phone" id="phone">
 
             </div>
 
             <div class="box">
-                <label for="registerdate">วันที่:</label>
-                <input type="date" name="registerdate" id="registerdate" value="<?= date('Y-m-d') ?>" required>
+                <label for="registerdate">วันที่สมัครเป็นสมาชิก:</label>
+                <input type="date" name="registerdate" id="registerdate" value="<?= date('Y-m-d') ?>" readonly>
 
             </div>
 
             <?php if ($results->rowCount() > 0) { ?>
                 <div class="box">
                     <label for="typename">ประเภทสมาชิก:</label>
-                    <select name="typename" id="typename" required>
-                        <option value="">-- เลือกประเภทสมาชิก --</option>
+                    <select name="typename" id="typename">
                         <?php while ($member_insert = $results->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo($member_insert['member_type_id']); ?>">
                                 <?php echo($member_insert['member_type_name']); ?>

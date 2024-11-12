@@ -45,7 +45,7 @@ if (!$supplier) {
 <body>
     <div class="main-body">
         <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
-        <h1 class="title">รายละเอียด <?php echo $tabel; ?></h1>
+        <h1 class="title">รายละเอียดผู้ส่งมอบ</h1>
 
         <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการผู้ส่งมอบ โดยจะส่งไปยังไฟล์ `supplier_update.php` -->
         <form action="supplier_update.php" method="POST">
@@ -59,8 +59,14 @@ if (!$supplier) {
 
                     <tr>
                         <th>รหัสผู้ส่งมอบ:</th>
-                        <!-- แสดงรหัสผู้ส่งมอบ -->
-                        <input type="hidden" name="id" value="<?php echo $supplier['supplier_id']; ?>">
+                        <!-- แสดงรหัสสมาชิก -->
+                        <td>
+                            <?php if ($is_update): ?>
+                                <input type="hidden" name="id" value="<?php echo $supplier['supplier_id']; ?>">
+                            <?php else: ?>
+                                <?php echo $supplier['supplier_id']; ?>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                     <tr>
                         <th>ชื่อผู้ส่งมอบ:</th>
@@ -82,7 +88,7 @@ if (!$supplier) {
                             <?php endif; ?>
                         </td>
                     </tr>
-            
+
                     <tr>
                         <th>เบอร์ผู้ส่งมอบ:</th>
                         <td>
@@ -93,7 +99,7 @@ if (!$supplier) {
                             <?php endif; ?>
                         </td>
                     </tr>
-            
+
                     <tr>
                         <th>รายละเอียดผู้ส่งมอบ:</th>
                         <td>
@@ -104,7 +110,7 @@ if (!$supplier) {
                             <?php endif; ?>
                         </td>
                     </tr>
-            
+
                 <?php endif; ?>
             </table>
 

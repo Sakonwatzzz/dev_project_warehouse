@@ -17,11 +17,13 @@ $is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false;
 
 switch ($tabel) {
     case 'personnel':
-        $stmt = $pdo->prepare("SELECT personnel.*,
+        $stmt = $pdo->prepare("
+        SELECT personnel.*,
         personnel_type.personnel_type_name
-        FROM personnel 
-        LEFT JOIN personnel_type on personnel.personnel_type_id = personnel.personnel_type_id
-        WHERE personnel.personnel_id = ?");
+        FROM personnel
+        INNER JOIN personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id
+        WHERE personnel.personnel_id = ?
+        ");
         break;
     default:
         die("ระบุประเภทไม่ถูกต้อง");
@@ -53,7 +55,7 @@ $personnel_type_results = $pdo->query($queryTypes);
 <body>
     <div class="main-body">
         <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
-        <h1 class="title">รายละเอียด <?php echo $tabel; ?></h1>
+        <h1 class="title">รายละเอียดบุคลากร</h1>
 
         <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการบุคลากร โดยจะส่งไปยังไฟล์ `personnel_update.php` -->
         <form action="personnel_update.php" method="POST">
@@ -77,7 +79,7 @@ $personnel_type_results = $pdo->query($queryTypes);
                         </td>
                     </tr>
                     <tr>
-                        <th>ชื่อบุคลากร:</th>
+                        <th>ชื่อสกุลบุคลากร:</th>
                         <td>
                             <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
                                 <input type="text" name="name" value="<?php echo $personnel['personnel_name']; ?>">
@@ -87,7 +89,7 @@ $personnel_type_results = $pdo->query($queryTypes);
                         </td>
                     </tr>
                     <tr>
-                        <th>ประเภทสินค้า:</th>
+                        <th>ประเภทบุคลากร:</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <select name="typename">
@@ -128,7 +130,7 @@ $personnel_type_results = $pdo->query($queryTypes);
                     </tr>
 
                     <tr>
-                        <th>รายละเอียดบุคลากร:</th>
+                        <th>ชื่อผู้ใช้บุคลากร:</th>
                         <td>
                             <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
                                 <input type="text" name="username" value="<?php echo $personnel['personnel_username']; ?>">

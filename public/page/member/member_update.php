@@ -35,7 +35,7 @@ $member = $stmt->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href=".././style/personnel_add.css">
+    <link rel="stylesheet" href="../../style/member_edit.css">
     <style>
         .edit-box {
             margin: 3rem 10rem 4rem 8rem;
@@ -48,27 +48,28 @@ $member = $stmt->fetch();
     <div class="edit-box">
         <h2 class="sub-title">แก้ไขสมาชิก</h2>
 
-        <form class="form-container" action="member_edit.php" method="POST">
-            <input type="hidden" name="id" value="<?php echo($member['member_id']) ?>">
+        <form class="form-container" action="member_update.php" method="POST">
+            <input type="hidden" name="id" value="<?php echo ($member['member_id']) ?>">
 
             <div class="box">
-                <label for="name">ชื่อ นามสกุลสมาชิก:</label>
-                <input type="text" name="name" value="<?php echo($member['member_name']) ?>">
+                <label for="name">ชื่อกุลสมาชิก:</label>
+                <input type="text" name="name" value="<?php echo ($member['member_name']) ?>">
             </div>
 
             <div class="box">
                 <label for="address">ที่อยู่สมาชิก:</label>
-                <input type="text" name="address" value="<?php echo($member['member_address']) ?>">
+                <input type="text" name="address" value="<?php echo ($member['member_address']) ?>">
             </div>
 
             <div class="box">
                 <label for="phone">เบอร์โทรศัพท์สมาชิก:</label>
-                <input type="text" name="phone" value="<?php echo($member['member_phone']) ?>">
+                <input type="text" name="phone" value="<?php echo ($member['member_phone']) ?>">
             </div>
 
             <div class="box">
-                <label for="registerdate">วันที่:</label>
-                <input type="date" name="registerdate" value="<?php echo($member['member_register_date']) ?>">
+                <label for="registerdate">วันที่สมัคเป็นสมาชิก:</label>
+                <input type="date" name="registerdate"
+                    value="<?php echo !empty($member['member_register_date']) ? $member['member_register_date'] : date('Y-m-d'); ?>">
 
             </div>
 
@@ -76,7 +77,6 @@ $member = $stmt->fetch();
                 <div class="box">
                     <label for="typename">ประเภทสมาชิก:</label>
                     <select name="typename" id="typename">
-                        <option value="">-- เลือกประเภทสมาชิก --</option>
                         <?php while ($member_update = $results->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo ($member_update['member_type_id']); ?>"
                                 <?php if ($member_update['member_type_id'] == $member['member_type_id']) echo 'selected'; ?>>

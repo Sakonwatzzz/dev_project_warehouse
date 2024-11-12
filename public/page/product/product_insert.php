@@ -171,7 +171,6 @@ if (!$brandResults) {
                 <div class="box">
                     <label for="typename">ประเภทสินค้า:</label>
                     <select name="typename" id="typename">
-                        <option value="">-- เลือกประเภทสินค้า --</option>
                         <?php while ($row = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo($row['product_type_id']); ?>">
                                 <?php echo($row['product_type_name']); ?>
@@ -187,7 +186,6 @@ if (!$brandResults) {
                 <div class="box">
                     <label for="typebrandname">ประเภทแบรนด์สินค้า:</label>
                     <select name="typebrandname" id="typebrandname" required>
-                        <option value="">-- ประเภทแบรนด์สินค้า --</option>
                         <?php while ($row = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo($row['product_brand_id']); ?>">
                                 <?php echo($row['product_brand_name']); ?>
