@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$typename]);
 
             // รีเฟรชหน้าเดิมเมื่อบันทึกเสร็จ
-            header("Location: /index.php?page=product_type_list"); // เปลี่ยนไปยังหน้าหลังจากบันทึกข้อมูล
+            header("Location: ?page=product_type&success"); // เปลี่ยนไปยังหน้าหลังจากบันทึกข้อมูล
             exit; // หยุดการทำงานหลัง header
         } catch (PDOException $e) {
             // แสดงข้อความผิดพลาดหากมีปัญหาในการเพิ่มข้อมูล
@@ -86,7 +86,7 @@ ob_end_flush();
         }
 
         .notification-header {
-            background-color: #ffdfa0;
+            background-color: cyan;
             color: #000;
             padding: 10px;
             font-weight: bold;
@@ -112,7 +112,7 @@ ob_end_flush();
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขสินค้าสำเร็จ!</div>
+            <div class="notification-body">เพิ่มสำเร็จ!</div>
         </div>
 
         <table class="data-table">
