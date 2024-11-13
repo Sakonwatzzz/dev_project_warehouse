@@ -5,7 +5,6 @@ $query = "SELECT
     personnel.personnel_id,
     personnel.personnel_name, 
     personnel.personnel_address, 
-    personnel.personnel_phone, 
     personnel.personnel_username, 
     personnel.personnel_type_id, 
     personnel_type.personnel_type_name

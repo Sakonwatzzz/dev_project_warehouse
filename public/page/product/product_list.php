@@ -1,146 +1,29 @@
 <?php
-require_once __DIR__ . "../../../../config/database_server.php";
-
-// if (isset($_GET['search'])) {
-//     $searchTerm = $_GET['search'];
-// $query = "SELECT
-//         product.product_id, 
-//         product.product_barcode, 
-//         product.product_name, 
-//         product.product_price1, 
-//         product.product_price2, 
-//         product.product_price3, 
-//         product.product_price4, 
-//         product.product_capital, 
-//         product.product_type_id, 
-//         product.product_brand_id,
-//         product_brand.product_brand_name, 
-//         product_type.product_type_name
-//     FROM
-//         product
-//     INNER JOIN
-//         product_brand ON product.product_brand_id = product_brand.product_brand_id
-//     INNER JOIN
-//         product_type ON product.product_type_id = product_type.product_type_id
-//     WHERE 
-//         product.product_name 
-//         -- LIKE :searchTerm
-//     ORDER BY 
-//         product.product_id ASC";
-// $stmt = $pdo->prepare($query);
-// $stmt->execute(['searchTerm' => '%' . $searchTerm . '%']);
-// $productResults = $stmt;
-// } else {
-//     $query = "SELECT
-//         product.product_id, 
-//         product.product_barcode, 
-//         product.product_name, 
-//         product.product_price1, 
-//         product.product_price2, 
-//         product.product_price3, 
-//         product.product_price4, 
-//         product.product_capital, 
-//         product.product_type_id, 
-//         product.product_brand_id,
-//         product_brand.product_brand_name, 
-//         product_type.product_type_name
-//     FROM
-//         product
-//     INNER JOIN
-//         product_brand ON product.product_brand_id = product_brand.product_brand_id
-//     INNER JOIN
-//         product_type ON product.product_type_id = product_type.product_type_id
-//     ORDER BY 
-//         product.product_id ASC";
-//     $productResults = $pdo->query($query);
+require_once __DIR__ . '../../../../config/database_server.php';
 
 
 
-// -------------------------------------------------------------
-// if (isset($_GET['id'])) {
-//     $id = $_GET['id'];
-//     $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
-//     $stmt->execute([$id]);
-//     header('Location: /index.php?page=product_list');
-//     exit;
-// }
-// -------------------------------------------------------------
-
-
-// try {
-//     $productResults = $pdo->query($query); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
-// } catch (PDOException $e) {
-//     echo 'error' . $e->getMessage();
-// }
-
-
-// // Query สำหรับประเภทสินค้า
-// $queryTypes = "SELECT
-//     product_type.product_type_id, 
-//     product_type.product_type_name
-// FROM product_type";
-// $typeResults = $pdo->query(query: $queryTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
-
-// if (!$typeResults) {
-//     die("Query failed: " . $pdo->getMessage());
-// }
-
-// // Query สำหรับประเภทแบรนด์สินค้า
-// $querybrandTypes = "SELECT
-//     product_brand.product_brand_id, 
-//     product_brand.product_brand_name
-// FROM product_brand";
-// $brandResults = $pdo->query($querybrandTypes); // กำหนดตัวแปรใหม่สำหรับผลลัพธ์ query นี้
-
-// if (!$brandResults) {
-//     die("Query failed: " . $pdo->getMessage());
-// }
-$query = "
-        SELECT
-        product.product_id, 
-        product.product_barcode, 
-        product.product_name, 
-        product.product_price1, 
-        product.product_price2, 
-        product.product_price3, 
-        product.product_price4, 
-        product.product_capital, 
-        product.product_type_id, 
-        product.product_brand_id,
-        product_brand.product_brand_name, 
-        product_type.product_type_name
-    FROM
-        product
-    INNER JOIN
-        product_brand ON product.product_brand_id = product_brand.product_brand_id
-    INNER JOIN
-        product_type ON product.product_type_id = product_type.product_type_id
-    ORDER BY 
-        product.product_id ASC";
-
+$query = "SELECT product_id , product_barcode, product_name ,product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id  FROM product";
+$stmt = $pdo->query($query);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 try {
-    $productResults = $pdo->query($query);
-
-    // ตรวจสอบว่ามีข้อมูลในผลลัพธ์หรือไม่
-    if ($productResults->rowCount() > 0) {
-        echo "Data fetched successfully!";
-    } else {
-        echo "No data found!";
-    }
-} catch (PDOException $e) {
-    die("Error: " . $e->getMessage());
+    $resultsproduct = $pdo->query($query);
+} catch (Exception $e) {
+    echo "error" . $e->getMessage();
+    exit();
 }
 
-// ลบสินค้าหากมี ID ที่จะลบ
+
+// ตรวจสอบว่ามีการส่งค่า id มาหรือไม่
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
     $stmt->execute([$id]);
-    header('Location: /index.php?page=product_list');
+    header("Location: index.php?page=product_list");
     exit;
 }
-
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -148,7 +31,6 @@ if (isset($_GET['id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
-
     <style>
         .notification {
             position: fixed;
@@ -187,66 +69,51 @@ if (isset($_GET['id'])) {
 
 <body>
     <div class="personnel-list">
+        <h2>ข้อมูลบุคลากร</h2>
 
         <div class="search">
-            <input type="search" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาบุคลากร...">
+            <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาบุคลากร...">
         </div>
-
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขสินค้าสำเร็จ!</div>
+            <div class="notification-body">แก้ไขบุคลากรสำเร็จ!</div>
         </div>
 
         <table class="data-table" id="dataTable">
             <thead>
                 <tr>
-                    <!-- <th>รหัสสินค้า</th> -->
                     <th>ชื่อสินค้า</th>
-                    <th>ราคาที่ 4</th>
-                    <th>เงินทุน</th>
-                    <th>ประเภทสินค้า</th>
-                    <th>แบรนด์สินค้า</th>
+                    <th>บาร์โค้ดสินค้า</th>
+                    <th>ราคา4</th>
                     <th>การจัดการ</th>
                 </tr>
             </thead>
-
             <tbody>
-                <?php while ($product_list = $productResults->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
-
-                        <td><?php echo ($product_list['product_name']) ?></td>
-                        <td><?php echo ($product_list['product_price4']) ?></td>
-                        <td><?php echo ($product_list['product_capital']) ?></td>
-                        <td><?php echo ($product_list['product_type_name']) ?></td>
-                        <td><?php echo ($product_list['product_brand_name']) ?></td>
+                <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr onclick="window.location.href='page/product/product_detail.php?table=product&id=<?php echo ($product_list['product_id']) ?>'">
+                        <td><?php echo ($product_list['product_name']); ?></td>
+                        <td><?php echo ($product_list['product_barcode']); ?></td>
+                        <td><?php echo ($product_list['product_price4']); ?></td>
                         <td>
-                            <a
-                                href="page/product/product_update.php?id=<?php echo ($product_list['product_id']) ?>">แก้ไข</a>
-                            <a href="page/product/product_list.php?id=<?php echo ($product_list['product_id']) ?>"
-                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                            <a href="page/product/product_update.php?id=<?php echo $product_list['product_id']; ?>">แก้ไข</a> |
+                            <a href="page/product/product_list.php?id=<?php echo $product_list['product_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
             </tbody>
-
         </table>
-
     </div>
-    <!-- <script>
-        window.onload = function() {
-            document.getElementById("searchInput").focus();
-        };
-    </script> -->
+
     <script>
         function searchTable() {
             const input = document.getElementById("searchInput");
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
-            let foundAny = false; // ตัวแปรเพื่อเก็บสถานะการค้นหา
+            let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) { // เริ่มจาก 1 เพื่อข้าม header
+            for (let i = 1; i < tr.length; i++) {
                 let found = false;
                 const td = tr[i].getElementsByTagName("td");
                 for (let j = 0; j < td.length; j++) {
@@ -258,32 +125,30 @@ if (isset($_GET['id'])) {
                         }
                     }
                 }
-                tr[i].style.display = found ? "" : "none"; // แสดงหรือซ่อนแถว
+                tr[i].style.display = found ? "" : "none";
                 if (found) {
-                    foundAny = true; // ถ้าพบข้อมูลอย่างน้อย 1 แถว
+                    foundAny = true;
                 }
             }
 
-            // แสดงข้อความเมื่อไม่พบข้อมูล
             const noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
                     const message = document.createElement("p");
                     message.id = "noDataMessage";
                     message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red"; // ปรับสีข้อความ
-                    message.style.fontWeight = "bold"; // ปรับความหนาของข้อความ
-                    message.style.marginTop = "10px"; // เพิ่มระยะห่างด้านบน
-                    table.parentNode.insertBefore(message, table); // เพิ่มข้อความก่อนตาราง
+                    message.style.color = "red";
+                    message.style.fontWeight = "bold";
+                    message.style.marginTop = "10px";
+                    table.parentNode.insertBefore(message, table);
                 }
             } else {
                 if (noDataMessage) {
-                    noDataMessage.remove(); // ลบข้อความเมื่อพบข้อมูล
+                    noDataMessage.remove();
                 }
             }
         }
     </script>
-
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -292,11 +157,10 @@ if (isset($_GET['id'])) {
             searchInput.focus();
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
-                notification.style.display = 'block'; // แสดงการแจ้งเตือน
+                notification.style.display = 'block';
 
-                // ลบการแจ้งเตือนหลัง 2 วินาที
                 setTimeout(() => {
-                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
+                    notification.style.display = 'none';
                 }, 2000);
             }
         });

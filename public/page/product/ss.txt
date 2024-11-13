@@ -1,47 +1,75 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $warehousename = trim($_POST['warehousename'] ?? ''); // กำจัดช่องว่างที่ไม่จำเป็น
-    $warehouse_status = trim($_POST['warehouse_status'] ?? ''); // กำหนดตัวแปรสำหรับสถานะ
-
-    if (!empty($warehousename) && !empty($warehouse_status)) {
-        try {
-            $stmt = $pdo->prepare('INSERT INTO warehouse (warehouse_name, warehouse_status) VALUES (?, ?)');
-            $stmt->execute([$warehousename, $warehouse_status]);
-
-            header("Location: ?page=warehouse_list&success"); // เปลี่ยนไปยังหน้าหลังจากบันทึกข้อมูล
-            exit;
-        } catch (PDOException $e) {
-            echo 'Database error: ' . htmlspecialchars($e->getMessage());
-        }
-    } else {
-        echo 'Error: ชื่อหรือสถานะของประเภทสินค้าต้องไม่ว่าง';
-    }
-}
-
-$query = "SELECT warehouse_id, warehouse_name, warehouse_status FROM warehouse";
 try {
-    $warehouseResults = $pdo->query($query);
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}
-
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-
+    $query = "SELECT
+        product.product_id, 
+        product.product_barcode, 
+        product.product_name, 
+        product.product_price1, 
+        product.product_price2, 
+        product.product_price3, 
+        product.product_price4, 
+        product.product_capital, 
+        product.product_type_id, 
+        product.product_brand_id,
+        product_brand.product_brand_name, 
+        product_type.product_type_name
+    FROM
+        product
+    INNER JOIN
+        product_brand ON product.product_brand_id = product_brand.product_brand_id
+    INNER JOIN
+        product_type ON product.product_type_id = product_type.product_type_id";
+        
     try {
-        $stmt = $pdo->prepare("DELETE FROM warehouse WHERE warehouse_id = ?");
-        $stmt->execute([$id]);
-
-        header("Location: /?page=bar_warehouse_list");
-    } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
+        $resultspersonnel = $pdo->query($query);
+    } catch (Exception $e) {
+        echo "error" . $e->getMessage();
+        exit();
     }
+
+    // Handle search
+    if (isset($_GET['search']) && !empty($_GET['search'])) {
+        $searchTerm = $_GET['search'];
+        $query = $query . " WHERE product.product_name LIKE :searchTerm ORDER BY product.product_id ASC";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute(['searchTerm' => '%' . $searchTerm . '%']);
+        $productResults = $stmt;
+    } else {
+        $query = $query . " ORDER BY product.product_id ASC";
+        $productResults = $pdo->query($query);
+    }
+
+    // Handle delete
+    if (isset($_GET['id']) && !empty($_GET['id'])) {
+        $id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+        if ($id !== false) {
+            $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
+            $stmt->execute([$id]);
+            header('Location: /index.php?page=product_list');
+            exit;
+        }
+    }
+
+    // Query for product types
+    $queryTypes = "SELECT product_type_id, product_type_name FROM product_type";
+    $typeResults = $pdo->query($queryTypes);
+    if (!$typeResults) {
+        throw new PDOException("Failed to fetch product types");
+    }
+
+    // Query for product brands
+    $queryBrands = "SELECT product_brand_id, product_brand_name FROM product_brand";
+    $brandResults = $pdo->query($queryBrands);
+    if (!$brandResults) {
+        throw new PDOException("Failed to fetch product brands");
+    }
+} catch (PDOException $e) {
+    // Log error properly in production
+    error_log('Database error: ' . $e->getMessage());
+    $error = 'ขออภัย เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่ภายหลัง';
 }
-    
-
-
 ?>
 
 <!DOCTYPE html>
@@ -50,10 +78,9 @@ if (isset($_GET['id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <title>รายการสินค้า</title>
     <style>
-        /* CSS สำหรับการแจ้งเตือน */
         .notification {
             position: fixed;
             top: 50%;
@@ -72,7 +99,7 @@ if (isset($_GET['id'])) {
         }
 
         .notification-header {
-            background-color: cyan;
+            background-color: #ffdfa0;
             color: #000;
             padding: 10px;
             font-weight: bold;
@@ -86,79 +113,77 @@ if (isset($_GET['id'])) {
             text-align: center;
         }
 
-        .pagination {
-            margin-top: 20px;
+        .error-message {
+            color: red;
             text-align: center;
-        }
-
-        .pagination button {
             padding: 10px;
-            margin: 0 5px;
-            cursor: pointer;
+            margin: 10px 0;
+            background-color: #fee;
+            border: 1px solid #fcc;
+            border-radius: 4px;
         }
     </style>
-    <title>หน้าผู้ส่งมอบ</title>
 </head>
 
 <body>
     <div class="personnel-list">
-        <h2 class="title">ข้อมูลคลัง</h2>
+        <?php if (isset($error)): ?>
+            <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
+
+        <h2>ข้อมูลสินค้า</h2>
 
         <div class="search">
-            <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสมาชิก...">
+            <input
+                type="search"
+                id="searchInput"
+                name="search"
+                onkeyup="searchTable()"
+                tabindex="1"
+                placeholder="ค้นหาสินค้า..."
+                value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
         </div>
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">เพิ่มสำเร็จ!</div>
+            <div class="notification-body">แก้ไขสินค้าสำเร็จ!</div>
         </div>
 
         <table class="data-table" id="dataTable">
             <thead>
                 <tr>
-                    <th>รหัส</th>
-                    <th>ชื่อ</th>
-                    <th>สถานะ</th>
+                    <th>ชื่อสินค้า</th>
+                    <th>ราคาที่ 4</th>
+                    <th>เงินทุน</th>
+                    <th>ประเภทสินค้า</th>
+                    <th>แบรนด์สินค้า</th>
                     <th>การจัดการ</th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
-                <tr>
-                    <form action="" method="POST">
-                        <td></td>
-                        <td>
-                            <input type="text" id="warehousename" name="warehousename" placeholder="ชื่อ" required
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
-                        </td>
-                        <td>
-                            <input type="text" id="warehouse_status" name="warehouse_status" placeholder="สถานะ" required
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
-                        </td>
-                        <td>
-                            <button type="submit" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
-                                เพิ่ม
-                            </button>
-                        </td>
-                    </form>
-                </tr>
+            <tbody>
 
-                <?php while ($warehouse_list = $warehouseResults->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr onclick="window.location.href='page/warehouse/warehouse_detail.php?tabel=warehouse&id=<?php echo ($warehouse_list['warehouse_id']) ?>'">
-                        <td><?php echo ($warehouse_list['warehouse_id']) ?></td>
-                        <td><?php echo ($warehouse_list['warehouse_name']) ?></td>
-                        <td><?php echo ($warehouse_list['warehouse_status']) ?></td>
+                <?php while ($product_list = $productResults->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?php echo ($product_list['product_id']); ?>'">
+                        <td><?php echo ($product_list['product_id']); ?></td>
+                        <td><?php echo ($product_list['product_name']); ?></td>
+                        <td><?php echo ($product_list['product_price4']); ?></td>
+                        <td><?php echo ($product_list['product_capital']); ?></td>
+                        <td><?php echo ($product_list['product_type_id']); ?></td>
+                        <td><?php echo ($product_list['product_brand_id']); ?></td>
                         <td>
-                            <a href="page/warehouse/warehouse_update.php?id=<?php echo ($warehouse_list['warehouse_id']) ?>">แก้ไข</a>
-                            <a href="?id=<?php echo ($warehouse_list['warehouse_id']) ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                            <a href="page/product/product_update.php?id=<?php echo ($product_list['product_id']); ?>">แก้ไข</a>
+                            <a href="javascript:void(0)"
+                                onclick="confirmDelete(<?php echo ($product_list['product_id']); ?>)">
+                                ลบ
+                            </a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
+                <tr>
+                    <td colspan="6" class="no-data">ไม่พบข้อมูลสินค้า</td>
+                </tr>
             </tbody>
         </table>
-
-        <div class="pagination">
-            
-        </div>
     </div>
 
     <script>
@@ -172,6 +197,7 @@ if (isset($_GET['id'])) {
             for (let i = 1; i < tr.length; i++) {
                 let found = false;
                 const td = tr[i].getElementsByTagName("td");
+
                 for (let j = 0; j < td.length; j++) {
                     if (td[j]) {
                         const txtValue = td[j].textContent || td[j].innerText;
@@ -181,10 +207,9 @@ if (isset($_GET['id'])) {
                         }
                     }
                 }
+
                 tr[i].style.display = found ? "" : "none";
-                if (found) {
-                    foundAny = true;
-                }
+                if (found) foundAny = true;
             }
 
             const noDataMessage = document.getElementById("noDataMessage");
@@ -193,20 +218,25 @@ if (isset($_GET['id'])) {
                     const message = document.createElement("p");
                     message.id = "noDataMessage";
                     message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red";
-                    message.style.fontWeight = "bold";
-                    message.style.marginTop = "10px";
-                    table.parentNode.insertBefore(message, table);
+                    message.style.cssText = "color: red; font-weight: bold; margin-top: 10px; text-align: center;";
+                    table.parentNode.insertBefore(message, table.nextSibling);
                 }
-            } else {
-                if (noDataMessage) {
-                    noDataMessage.remove();
-                }
+            } else if (noDataMessage) {
+                noDataMessage.remove();
+            }
+        }
+
+        function confirmDelete(id) {
+            if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
+                window.location.href = `page/product/product_list.php?id=${id}`;
             }
         }
 
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
+            const searchInput = document.getElementById("searchInput");
+            searchInput.focus();
+
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
                 notification.style.display = 'block';
@@ -217,23 +247,6 @@ if (isset($_GET['id'])) {
             }
         });
     </script>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block'; // แสดงการแจ้งเตือน
-
-                // ลบการแจ้งเตือนหลัง 2 วินาที
-                setTimeout(() => {
-                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
-                }, 2000);
-            }
-        });
-    </script>
-
-
 </body>
 
 </html>
