@@ -72,10 +72,10 @@
                         if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type'])) {
                             include __DIR__ . "/bar_personnel.php";
                         }
-                        if (in_array($page, ['member_list', 'member_insert', 'member_update','member_type'])) {
+                        if (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type'])) {
                             include __DIR__ . "/bar_member.php";
                         }
-                        if (in_array($page, ["product_list", "product_insert", "product_update", "product_type", "product_brand", "warehouse_list"])) {
+                        if (in_array($page, ["product_list", "product_insert", "product_update", "product_type", "product_brand", "product_detail", "warehouse_list"])) {
                             include __DIR__ . "/bar_product.php";
                         }
                         if (in_array($page, ["supplier_list", "supplier_insert", "supplier_update"])) {

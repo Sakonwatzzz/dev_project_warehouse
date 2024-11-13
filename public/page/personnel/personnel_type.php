@@ -44,11 +44,11 @@ if (isset($_GET['id'])) {
 
 <body>
     <table class="data-table">
-
         <div class="add-box">
             <h2 class="sub-title">เพิ่มประเภทบุคลากร</h2>
             <tr>
                 <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+                    <td></td>
                     <td>
                         <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทบุคลากร"
                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />

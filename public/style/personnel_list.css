@@ -12,13 +12,13 @@ body {
 
 .personnel-list {
   width: 90%;
-  margin: 30px auto;
+  margin: 50px auto;
 }
 
 .search {
+  margin-left: 22rem;
   width: 350px;
-  height: 35px;
-  margin-top: 20px;
+  height: 40px;
   /*border: 3px solid red;*/
 }
 
@@ -29,7 +29,7 @@ body {
 
 .search input {
   width: 350px;
-  height: 35px;
+  height: 40px;
   border: 1px solid #bbdefb;
   border-radius: 5px;
   outline: none;

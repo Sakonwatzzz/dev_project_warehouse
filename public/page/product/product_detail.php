@@ -75,7 +75,7 @@ $brandResults = $pdo->query($querybrandTypes);
 
         <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการสินค้า -->
         <form action="product_update.php" method="POST">
-            
+
             <!-- กำหนดค่า product_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของสินค้านี้ในฟอร์ม -->
             <input type="hidden" name="product_id" value="<?php echo ($product['product_id']); ?>">
 
@@ -83,15 +83,15 @@ $brandResults = $pdo->query($querybrandTypes);
             <table class="details-table">
                 <?php if ($tabel === 'product'): ?>
                     <!-- แสดงรายละเอียดต่างๆ ของสินค้า เช่น รหัสสินค้า บาร์โค้ด และชื่อสินค้า -->
-                    
+
                     <tr>
                         <th>รหัสสินค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                            <input type="text" name="id" value="<?php echo ($product['product_id']); ?>" >
+                                <input type="text" name="id" value="<?php echo ($product['product_id']); ?>">
                             <?php else: ?>
                                 <?php echo ($product['product_id']); ?>
-                            <?php endif;?> 
+                            <?php endif; ?>
                         </td>
                     </tr>
 
