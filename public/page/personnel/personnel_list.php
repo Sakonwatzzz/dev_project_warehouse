@@ -177,6 +177,7 @@ try {
 
         .pagination a:hover:not(.active) {
             background-color: #ddd;
+       
         }
     </style>
     <title>Document</title>

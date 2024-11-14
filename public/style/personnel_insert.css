@@ -19,6 +19,8 @@ h2 {
   margin-bottom: 15px;
   padding: 20px;
   border-radius: 8px;
+  height: 100vh;
+
   background-color: #e3f2fd; /* สีพื้นหลังของกล่องเพิ่มสมาชิก */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
@@ -29,6 +31,7 @@ h2 {
   grid-template-columns: repeat(1, 1fr);
   align-items: center;
   justify-content: center;
+
 }
 
 form {
@@ -54,7 +57,7 @@ form {
 
 .box input,
 .box select {
-  width: 70%;
+  width: 100%;
   padding: 10px;
   margin: 5px;
   border: 1px solid #5b97b2; /* สีเขียวอ่อน */
@@ -69,7 +72,7 @@ form {
 }
 
 .box button {
-  width: 70%;
+  width: 100%;
   height: 40px;
   border: none;
   color: white;

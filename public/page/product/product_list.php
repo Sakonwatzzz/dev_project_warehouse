@@ -165,7 +165,7 @@ try {
             </div>
 
             <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาบุคลากร...">
+                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสินค้า...">
             </div>
 
         </div>

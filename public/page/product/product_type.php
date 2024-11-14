@@ -56,6 +56,42 @@ try {
 } catch (PDOException $e) {
     echo 'Error: ' . htmlspecialchars($e->getMessage()); // แสดงข้อผิดพลาดหากไม่สามารถดึงข้อมูลได้
 }
+
+
+// จำนวนข้อมูลทั้งหมดในตาราง
+$query = "SELECT COUNT(*) as total_count FROM product_type";
+$stmt = $pdo->query($query);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$count = $row['total_count'];
+
+
+// การแบ่งหน้า
+$records_per_page = 5;
+$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$offset = ($page - 1) * $records_per_page;
+
+// นับจำนวนรายการทั้งหมด
+try {
+    $total_query = "SELECT COUNT(*) FROM product_type";
+    $total_result = $pdo->query($total_query);
+    $total_records = $total_result->fetchColumn();
+    $total_pages = ceil($total_records / $records_per_page);
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
+
+// ดึงข้อมูลตามการแบ่งหน้า
+try {
+    $query = "SELECT product_type_id, product_type_name FROM product_type LIMIT :offset, :records_per_page";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+    $stmt->execute();
+    $resultsproducttype = $stmt;
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
+
 ob_end_flush();
 ?>
 
@@ -68,6 +104,37 @@ ob_end_flush();
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../style/personnel_list.css">
     <style>
+        .title {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+
+        }
+
+        .count {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+
+        }
+
+        .listcount {
+            font-size: 16px;
+            text-align: right;
+            color: #000;
+            padding: 4px 10px 4px 10px;
+            border: 1px solid gray;
+            border-radius: 5px;
+            background-color: #fff;
+            display: inline-block;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 70px;
+        }
+
+        
         .notification {
             position: fixed;
             top: 50%;
@@ -99,23 +166,59 @@ ob_end_flush();
             font-size: 16px;
             text-align: center;
         }
+
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .pagination a {
+            display: inline-block;
+            padding: 8px 16px;
+            text-decoration: none;
+            background-color: #f1f1f1;
+            color: black;
+            border-radius: 5px;
+            margin: 0 4px;
+        }
+
+        .pagination a.active {
+            background-color: #5b97b2;
+            ;
+            color: white;
+        }
+
+        .pagination a:hover:not(.active) {
+            background-color: #ddd;
+            
+        }
     </style>
     <title>Document</title>
 </head>
 
 <body>
     <div class="personnel-list">
-        <h2 class="title">ข้อมูลประเภทสินค้า</h2>
-        <div class="search">
-            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาประเภทสินค้า...">
+        <div class="title">
+            <div class="count">
+                <h2 style="font-weight: bold;">ข้อมูลประเภทสินค้า</h2>
+                <div class="listcount">
+                    <?php echo $count; ?>
+                </div>
+            </div>
+            <div class="search">
+                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาประเภทสินค้า...">
+            </div>
+
         </div>
+
+
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
             <div class="notification-body">เพิ่มสำเร็จ!</div>
         </div>
 
-        <table class="data-table">
+        <table class="data-table" id="dataTable">
             <thead>
                 <tr>
                     <th>รหัสประเภทสินค้า</th>
@@ -126,15 +229,17 @@ ob_end_flush();
 
             <tbody>
                 <tr>
-                    <form action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+                    <form action="" method="POST">
+                        <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
                         <td></td> <!-- ช่องรหัสประเภทสินค้า ให้แสดงเป็น "อัตโนมัติ" -->
                         <td>
-                            <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทสินค้า" 
+                            <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทสินค้า"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
 
                         </td>
                         <td>
-                            <button type="submit" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                            <button type="submit"
+                                class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
                                 เพิ่ม
                             </button>
 
@@ -142,14 +247,13 @@ ob_end_flush();
                     </form>
                 </tr>
 
-                <?php while ($product_type_list = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
+                <?php while ($product_type = $resultsproducttype->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr>
-                        <td><?php echo ($product_type_list['product_type_id']) ?></td>
-                        <td><?php echo ($product_type_list['product_type_name']) ?></td>
+                        <td><?php echo ($product_type['product_type_id']) ?></td>
+                        <td><?php echo ($product_type['product_type_name']) ?></td>
                         <td>
-                            <a
-                                href="product_type_update.php?id=<?php echo ($product_type_list['product_type_id']) ?>">แก้ไข</a>
-                            <a href="?id=<?php echo ($product_type_list['product_type_id']) ?>"
+                            <a href="product_type_update.php?id=<?php echo ($product_type['product_type_id']) ?>">แก้ไข</a>
+                            <a href="?id=<?php echo ($product_type['product_type_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
@@ -157,7 +261,30 @@ ob_end_flush();
             </tbody>
         </table>
 
+
+        <div class="pagination">
+            <?php if ($total_pages > 1): ?>
+                <?php if ($page > 1): ?>
+                    <a href="?page=product_type&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
+                <?php endif; ?>
+
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <?php if ($i == $page): ?>
+                        <a href="#" class="active"><?php echo $i; ?></a>
+                    <?php else: ?>
+                        <a href="?page=product_type&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                    <?php endif; ?>
+                <?php endfor; ?>
+
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=product_type&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+
+
     </div>
+
 
     <script>
         function searchTable() {

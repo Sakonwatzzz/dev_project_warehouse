@@ -36,6 +36,49 @@ try {
 } catch (Exception $e) {
     echo 'error' . $e->getMessage();
 }
+
+// จำนวนข้อมูลทั้งหมดในตาราง
+$query = "SELECT COUNT(*) as total_count FROM product_brand";
+$stmt = $pdo->query($query);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$count = $row['total_count'];
+
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
+    $stmt = $pdo->prepare("DELETE FROM product_brand WHERE product_brand_id = ?");
+    $stmt->execute([$id]);
+    header("Location: index.php?page=product_brand");
+    exit;
+}
+
+
+
+// การแบ่งหน้า
+$records_per_page = 5;
+$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$offset = ($page - 1) * $records_per_page;
+
+// นับจำนวนรายการทั้งหมด
+try {
+    $total_query = "SELECT COUNT(*) FROM product_brand";
+    $total_result = $pdo->query($total_query);
+    $total_records = $total_result->fetchColumn();
+    $total_pages = ceil($total_records / $records_per_page);
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
+
+// ดึงข้อมูลตามการแบ่งหน้า
+try {
+    $query = "SELECT product_brand_id , product_brand_name   FROM product_brand LIMIT :offset, :records_per_page";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+    $stmt->execute();
+    $resultsproductbrand = $stmt;
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
 ?>
 
 <!DOCTYPE html>
@@ -47,6 +90,35 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../style/personnel_list.css">
     <style>
+         .title {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+
+        }
+
+        .count {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+
+        }
+
+        .listcount {
+            font-size: 16px;
+            text-align: right;
+            color: #000;
+            padding: 4px 10px 4px 10px;
+            border: 1px solid gray;
+            border-radius: 5px;
+            background-color: #fff;
+            display: inline-block;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 70px;
+        }
         .notification {
             position: fixed;
             top: 50%;
@@ -78,15 +150,49 @@ try {
             font-size: 16px;
             text-align: center;
         }
+
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .pagination a {
+            display: inline-block;
+            padding: 8px 16px;
+            text-decoration: none;
+            background-color: #f1f1f1;
+            color: black;
+            border-radius: 5px;
+            margin: 0 4px;
+        }
+
+        .pagination a.active {
+            background-color: #5b97b2;
+            ;
+            color: white;
+        }
+
+        .pagination a:hover:not(.active) {
+            background-color: #ddd;
+        }
     </style>
     <title>Document</title>
 </head>
 
 <body>
     <div class="personnel-list">
-        <h2 class="title">ข้อมูลแบรนสินค้า</h2>
-        <div class="search">
-            <input type="search" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาประเภทสินค้า...">
+
+    <div class="title">
+            <div class="count">
+                <h2>ข้อมูลแบรนสินค้า</h2>
+                <div class="listcount">
+                    <?php echo $count; ?>
+                </div>
+            </div>
+
+            <div class="search">
+                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาแบรนด์...">
+            </div>
         </div>
 
         <div id="notification" class="notification">
@@ -120,7 +226,7 @@ try {
                     </form>
                 </tr>
 
-                <?php while ($product_brand_list = $productbrands->fetch(PDO::FETCH_ASSOC)): ?>
+                <?php while ($product_brand_list = $resultsproductbrand->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr>
                         <td><?php echo ($product_brand_list['product_brand_id']) ?></td>
 
@@ -136,6 +242,27 @@ try {
                 <?php endwhile; ?>
             </tbody>
         </table>
+
+         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
+         <div class="pagination">
+            <?php if ($total_pages > 1): ?>
+                <?php if ($page > 1): ?>
+                    <a href="?page=product_brand&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
+                <?php endif; ?>
+
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <?php if ($i == $page): ?>
+                        <a href="#" class="active"><?php echo $i; ?></a>
+                    <?php else: ?>
+                        <a href="?page=product_brand&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                    <?php endif; ?>
+                <?php endfor; ?>
+
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=product_brand&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
 
     </div>
 

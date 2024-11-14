@@ -81,17 +81,15 @@ ob_end_flush();
 
         <h2 class="title">เพิ่มผู้ส่งมอบ</h2>
 
-<<<<<<< HEAD
         <div class="area">
 
 
 
             <form class="form-container" action="" method="POST">
                 <div class="box">
-                    <label for="name">ชื่อผู้ส่งมอบ :</label>
+                    <label for="name" >ชื่อผู้ส่งมอบ :</label>
                     <input type="text" id="name" name="name" required>
                 </div>
-=======
         <form class="form-container" action="" method="POST">
             <div class="box">
                 <label for="name">ชื่อผู้ส่งมอบ:</label>
@@ -112,7 +110,6 @@ ob_end_flush();
                 <label for="detail">รายละเอียด:</label>
                 <input type="text" id="detail" name="detail">
             </div>
->>>>>>> c967bf7f9bce60717918f6f61cd75928154c3d30
 
                 <div class="box">
                     <label for="address">ที่อยู่ผู้ส่งมอบ :</label>
