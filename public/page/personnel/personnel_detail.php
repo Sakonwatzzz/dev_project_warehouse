@@ -73,9 +73,13 @@ $personnel_type_results = $pdo->query($queryTypes);
                         <td>
                             <?php if($is_update):?>
                             <input type="hidden" name="id" value="<?php echo $personnel['personnel_id']; ?>">
+                            <?php if ($is_update): ?>
+                                <input type="hidden" name="id" value="<?php echo $personnel['personnel_id']; ?>">
                             <?php else: ?>
                                 <?php echo $personnel['personnel_id'];?>
                                 <?php endif; ?>
+                                <?php echo $personnel['personnel_id']; ?>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <tr>
@@ -156,6 +160,7 @@ $personnel_type_results = $pdo->query($queryTypes);
             <?php echo $tabel; ?></a>
         <a
             href="personnel_detail.php?tabel=<?php echo 
+        <a href="personnel_detail.php?tabel=<?php echo
             $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>
             &is_update=1">ไปหน้าแก้ไข
             <?php echo $tabel; ?></a>
