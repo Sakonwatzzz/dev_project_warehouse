@@ -79,39 +79,44 @@ ob_end_flush();
             <div class="notification-body">เพิ่มผู้ส่งมอบสำเร็จ!</div>
         </div>
 
-        <h1 class="title">เพิ่มผู้ส่งมอบ</h1>
+        <h2 class="title">เพิ่มผู้ส่งมอบ</h2>
 
-        <form class="form-container" action="" method="POST">
-            <div class="box">
-                <label for="name">ชื่อผู้ส่งมอบ:</label>
-                <input type="text" id="name" name="name" required>
-            </div>
+        <div class="area">
 
-            <div class="box">
-                <label for="address">ที่อยู่ผู้ส่งมอบ:</label>
-                <input type="text" id="address" name="address" required>
-            </div>
 
-            <div class="box">
-                <label for="phone">เบอร์โทรศัพท์:</label>
-                <input type="text" id="phone" name="phone" required>
-            </div>
 
-            <div class="box">
-                <label for="detail">รายละเอียด:</label>
-                <input type="text" id="detail" name="detail" required>
-            </div>
+            <form class="form-container" action="" method="POST">
+                <div class="box">
+                    <label for="name">ชื่อผู้ส่งมอบ :</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
 
-            <div class="box">
-                <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
-            </div>
+                <div class="box">
+                    <label for="address">ที่อยู่ผู้ส่งมอบ :</label>
+                    <input type="text" id="address" name="address" required>
+                </div>
 
-        </form>
+                <div class="box">
+                    <label for="phone">เบอร์โทรศัพท์ :</label>
+                    <input type="text" id="phone" name="phone" required>
+                </div>
+
+                <div class="box">
+                    <label for="detail">รายละเอียด :</label>
+                    <input type="text" id="detail" name="detail" required>
+                </div>
+
+                <div class="box">
+                    <label for=""></label>
+                    <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+                </div>
+
+            </form>
+        </div>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

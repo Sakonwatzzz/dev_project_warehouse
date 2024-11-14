@@ -10,9 +10,16 @@ body {
   color: #333;
 }
 
+.content-container{
+  width: 90%;
+  margin: 50px auto;
+}
+
+
 .personnel-list {
   width: 90%;
   margin: 50px auto;
+;
 }
 
 .search {
@@ -78,10 +85,6 @@ td a:hover {
   text-decoration: underline;
 }
 
-/* Table rows */
-tbody tr:nth-child(even) {
-  background-color: #c8e6c9; /* สีเขียวอ่อนสำหรับแถวสลับ */
-}
 
 tbody tr:hover {
   background-color: #a5d6a7; /* สีเขียวเข้มขึ้นเมื่อวางเมาส์ */

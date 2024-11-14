@@ -33,7 +33,7 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM member_type WHERE member_type_id = ?");
     $stmt->execute([$id]);
-    header("Location: /index.php?page=member_type");
+    header("Location: /index.php?page=member_type.php");
     exit;
 }
 ?>
@@ -45,15 +45,18 @@ if (isset($_GET['id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/product_type.css">
+    <link rel="stylesheet" href="../../style/personnel_list.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+
     <title>Document</title>
 </head>
 
 <div?>
     <div class="content-container">
         <div class="form-container">
-            <h2 class="sub-title">เพิ่มประเภทสมาชิก</h2>
-            <table class="data-table">
+            <h2 class="sub-title" style="  font-weight: bold">เพิ่มประเภทสมาชิก</h2>
+            <table class="data-table" style="background: #fff;">
 
                 <form class="" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
                     <td></td>
