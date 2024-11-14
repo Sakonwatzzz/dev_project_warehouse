@@ -1,86 +1,101 @@
+
+
+
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+$query = "SELECT product_id , product_barcode, product_name ,product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id  FROM product";
+$stmt = $pdo->query($query);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 try {
-    $query = "SELECT
-        product.product_id, 
-        product.product_barcode, 
-        product.product_name, 
-        product.product_price1, 
-        product.product_price2, 
-        product.product_price3, 
-        product.product_price4, 
-        product.product_capital, 
-        product.product_type_id, 
-        product.product_brand_id,
-        product_brand.product_brand_name, 
-        product_type.product_type_name
-    FROM
-        product
-    INNER JOIN
-        product_brand ON product.product_brand_id = product_brand.product_brand_id
-    INNER JOIN
-        product_type ON product.product_type_id = product_type.product_type_id";
-        
-    try {
-        $resultspersonnel = $pdo->query($query);
-    } catch (Exception $e) {
-        echo "error" . $e->getMessage();
-        exit();
-    }
-
-    // Handle search
-    if (isset($_GET['search']) && !empty($_GET['search'])) {
-        $searchTerm = $_GET['search'];
-        $query = $query . " WHERE product.product_name LIKE :searchTerm ORDER BY product.product_id ASC";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute(['searchTerm' => '%' . $searchTerm . '%']);
-        $productResults = $stmt;
-    } else {
-        $query = $query . " ORDER BY product.product_id ASC";
-        $productResults = $pdo->query($query);
-    }
-
-    // Handle delete
-    if (isset($_GET['id']) && !empty($_GET['id'])) {
-        $id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
-        if ($id !== false) {
-            $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
-            $stmt->execute([$id]);
-            header('Location: /index.php?page=product_list');
-            exit;
-        }
-    }
-
-    // Query for product types
-    $queryTypes = "SELECT product_type_id, product_type_name FROM product_type";
-    $typeResults = $pdo->query($queryTypes);
-    if (!$typeResults) {
-        throw new PDOException("Failed to fetch product types");
-    }
-
-    // Query for product brands
-    $queryBrands = "SELECT product_brand_id, product_brand_name FROM product_brand";
-    $brandResults = $pdo->query($queryBrands);
-    if (!$brandResults) {
-        throw new PDOException("Failed to fetch product brands");
-    }
-} catch (PDOException $e) {
-    // Log error properly in production
-    error_log('Database error: ' . $e->getMessage());
-    $error = 'ขออภัย เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่ภายหลัง';
+    $resultsproduct = $pdo->query($query);
+} catch (Exception $e) {
+    echo "error" . $e->getMessage();
+    exit();
 }
+
+// จำนวนข้อมูลทั้งหมดในตาราง
+$query = "SELECT COUNT(*) as total_count FROM product";
+$stmt = $pdo->query($query);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$count = $row['total_count'];
+
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
+    $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
+    $stmt->execute([$id]);
+    header("Location: index.php?page=product_list");
+    exit;
+}
+
+
+// การแบ่งหน้า
+$records_per_page = 5;
+$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$offset = ($page - 1) * $records_per_page;
+
+// นับจำนวนรายการทั้งหมด
+try {
+    $total_query = "SELECT COUNT(*) FROM product";
+    $total_result = $pdo->query($total_query);
+    $total_records = $total_result->fetchColumn();
+    $total_pages = ceil($total_records / $records_per_page);
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
+
+// ดึงข้อมูลตามการแบ่งหน้า
+try {
+    $query = "SELECT product_id , product_barcode, product_name ,product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id FROM product LIMIT :offset, :records_per_page";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+    $stmt->execute();
+    $resultsproduct = $stmt;
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
+
 ?>
 
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
-    <title>รายการสินค้า</title>
     <style>
+        .title {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+
+        }
+
+        .count {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+
+        }
+
+        .listcount {
+            font-size: 16px;
+            text-align: right;
+            color: #000;
+            padding: 4px 10px 4px 10px;
+            border: 1px solid gray;
+            border-radius: 5px;
+            background-color: #fff;
+            display: inline-block;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 70px;
+        }
+
         .notification {
             position: fixed;
             top: 50%;
@@ -113,78 +128,232 @@ try {
             text-align: center;
         }
 
-        .error-message {
-            color: red;
+        .pagination {
+            margin-top: 20px;
             text-align: center;
-            padding: 10px;
-            margin: 10px 0;
-            background-color: #fee;
-            border: 1px solid #fcc;
-            border-radius: 4px;
+        }
+
+        .pagination a {
+            display: inline-block;
+            padding: 8px 16px;
+            text-decoration: none;
+            background-color: #f1f1f1;
+            color: black;
+            border-radius: 5px;
+            margin: 0 4px;
+        }
+
+        .pagination a.active {
+            background-color: #5b97b2;
+            ;
+            color: white;
+        }
+
+        .pagination a:hover:not(.active) {
+            background-color: #ddd;
+        }
+
+        /* ปรับแต่งป็อปอัพ */
+        .popup-form {
+            display: none;
+            /* ซ่อนฟอร์มในตอนแรก */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* เบลอพื้นหลัง */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 50%;
+            max-width: 600px;
+        }
+
+        .close-btn {
+            font-size: 30px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
         }
     </style>
+    <title>Document</title>
 </head>
 
 <body>
     <div class="personnel-list">
-        <?php if (isset($error)): ?>
-            <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
-        <?php endif; ?>
+        <div class="title">
+            <div class="count">
+                <h2>ข้อมูลบุคลากร</h2>
+                <div class="listcount">
+                    <?php echo $count; ?>
+                </div>
+            </div>
 
-        <h2>ข้อมูลสินค้า</h2>
+            <div class="search">
+                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาบุคลากร...">
+            </div>
 
-        <div class="search">
-            <input
-                type="search"
-                id="searchInput"
-                name="search"
-                onkeyup="searchTable()"
-                tabindex="1"
-                placeholder="ค้นหาสินค้า..."
-                value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
         </div>
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขสินค้าสำเร็จ!</div>
+            <div class="notification-body">แก้ไขบุคลากรสำเร็จ!</div>
         </div>
 
         <table class="data-table" id="dataTable">
             <thead>
                 <tr>
                     <th>ชื่อสินค้า</th>
-                    <th>ราคาที่ 4</th>
-                    <th>เงินทุน</th>
-                    <th>ประเภทสินค้า</th>
-                    <th>แบรนด์สินค้า</th>
+                    <th>บาร์โค้ดสินค้า</th>
+                    <th>ราคา4</th>
+                    <th>ราคาทุน</th>
                     <th>การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
-
-                <?php while ($product_list = $productResults->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?php echo ($product_list['product_id']); ?>'">
-                        <td><?php echo ($product_list['product_id']); ?></td>
+                <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr onclick="openPopup('<?php echo $product_list['product_id']; ?>', 
+                               '<?php echo $product_list['product_barcode']; ?>', 
+                               '<?php echo $product_list['product_name']; ?>', 
+                               '<?php echo $product_list['product_price1']; ?>', 
+                               '<?php echo $product_list['product_price2']; ?>', 
+                               '<?php echo $product_list['product_price3']; ?>', 
+                               '<?php echo $product_list['product_price4']; ?>', 
+                               '<?php echo $product_list['product_capital']; ?>', 
+                               '<?php echo $product_list['product_type_id']; ?>')">
                         <td><?php echo ($product_list['product_name']); ?></td>
+                        <td><?php echo ($product_list['product_barcode']); ?></td>
                         <td><?php echo ($product_list['product_price4']); ?></td>
                         <td><?php echo ($product_list['product_capital']); ?></td>
-                        <td><?php echo ($product_list['product_type_id']); ?></td>
-                        <td><?php echo ($product_list['product_brand_id']); ?></td>
+
                         <td>
-                            <a href="page/product/product_update.php?id=<?php echo ($product_list['product_id']); ?>">แก้ไข</a>
-                            <a href="javascript:void(0)"
-                                onclick="confirmDelete(<?php echo ($product_list['product_id']); ?>)">
-                                ลบ
-                            </a>
+                            <button onclick="openPopup('<?php echo $product_list['product_id']; ?>', 
+                           '<?php echo $product_list['product_barcode']; ?>', 
+                           '<?php echo $product_list['product_name']; ?>', 
+                           '<?php echo $product_list['product_price1']; ?>', 
+                           '<?php echo $product_list['product_price2']; ?>', 
+                           '<?php echo $product_list['product_price3']; ?>', 
+                           '<?php echo $product_list['product_price4']; ?>', 
+                           '<?php echo $product_list['product_capital']; ?>', 
+                           '<?php echo $product_list['product_type_id']; ?>')">
+                                แก้ไข
+                            </button>
+                            <a href="page/product/product_list.php?id=<?php echo $product_list['product_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
-                <tr>
-                    <td colspan="6" class="no-data">ไม่พบข้อมูลสินค้า</td>
-                </tr>
             </tbody>
+
         </table>
+
+        <!-- ฟอร์มป็อปอัพซ่อนอยู่ในตอนแรก -->
+        <div id="popupForm" class="popup-form">
+            <div class="popup-content">
+                <span class="close-btn" onclick="closePopup()">&times;</span>
+                <form action="product_update.php" method="POST">
+                    <input type="hidden" name="product_id" id="product_id">
+
+                    <table class="details-table">
+                        <!-- ป้อนข้อมูลที่ต้องการแสดงในป็อปอัพ -->
+                        <tr>
+                            <th>รหัสสินค้า:</th>
+                            <td><input type="text" name="id" id="product_id_value" readonly></td>
+                        </tr>
+                        <tr>
+                            <th>บาร์โค้ด:</th>
+                            <td><input type="text" name="barcode" id="product_barcode" readonly></td>
+                        </tr>
+                        <tr>
+                            <th>ชื่อสินค้า:</th>
+                            <td><input type="text" name="name" id="product_name"></td>
+                        </tr>
+                        <tr>
+                            <th>ราคาที่ 1:</th>
+                            <td><input type="text" name="price1" id="product_price1"></td>
+                        </tr>
+                        <tr>
+                            <th>ราคาที่ 2:</th>
+                            <td><input type="text" name="price2" id="product_price2"></td>
+                        </tr>
+                        <tr>
+                            <th>ราคาที่ 3:</th>
+                            <td><input type="text" name="price3" id="product_price3"></td>
+                        </tr>
+                        <tr>
+                            <th>ราคาที่ 4:</th>
+                            <td><input type="text" name="price4" id="product_price4"></td>
+                        </tr>
+                        <tr>
+                            <th>ราคาทุน:</th>
+                            <td><input type="text" name="capital" id="capital"></td>
+                        </tr>
+                        <tr>
+                            <th>ประเภทสินค้า:</th>
+                            <td><input type="text" name="product_type" id="product_type" readonly></td>
+                        </tr>
+                    </table>
+                    <button type="submit">อัปเดต</button>
+                    <button type="button" class="cancel-btn" onclick="closePopup()">ยกเลิก</button>
+                </form>
+            </div>
+        </div>
+
+        <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
+        <div class="pagination">
+            <?php if ($total_pages > 1): ?>
+                <?php if ($page > 1): ?>
+                    <a href="?page=product_list&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
+                <?php endif; ?>
+
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <?php if ($i == $page): ?>
+                        <a href="#" class="active"><?php echo $i; ?></a>
+                    <?php else: ?>
+                        <a href="?page=product_list&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                    <?php endif; ?>
+                <?php endfor; ?>
+
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=product_list&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
     </div>
+
+    <script>
+        function openPopup(productId, productBarcode, productName, productPrice1, productPrice2, productPrice3, productPrice4, productCapital, productType) {
+            if (productId === undefined || productBarcode === undefined || productName === undefined) {
+                console.error("One or more values are undefined");
+                return;
+            }
+
+            document.getElementById('product_id_value').value = productId;
+            document.getElementById('product_barcode').value = productBarcode;
+            document.getElementById('product_name').value = productName;
+            document.getElementById('product_price1').value = productPrice1;
+            document.getElementById('product_price2').value = productPrice2;
+            document.getElementById('product_price3').value = productPrice3;
+            document.getElementById('product_price4').value = productPrice4;
+            document.getElementById('capital').value = productCapital;
+            document.getElementById('product_type').value = productType;
+
+            // Show the popup
+            document.getElementById('popupForm').style.display = 'block';
+        }
+
+        function closePopup() {
+            // ซ่อนฟอร์มป็อปอัพ
+            document.getElementById('popupForm').style.display = 'none';
+        }
+    </script>
 
     <script>
         function searchTable() {
@@ -197,7 +366,6 @@ try {
             for (let i = 1; i < tr.length; i++) {
                 let found = false;
                 const td = tr[i].getElementsByTagName("td");
-
                 for (let j = 0; j < td.length; j++) {
                     if (td[j]) {
                         const txtValue = td[j].textContent || td[j].innerText;
@@ -207,9 +375,10 @@ try {
                         }
                     }
                 }
-
                 tr[i].style.display = found ? "" : "none";
-                if (found) foundAny = true;
+                if (found) {
+                    foundAny = true;
+                }
             }
 
             const noDataMessage = document.getElementById("noDataMessage");
@@ -218,25 +387,24 @@ try {
                     const message = document.createElement("p");
                     message.id = "noDataMessage";
                     message.textContent = "ไม่พบข้อมูล";
-                    message.style.cssText = "color: red; font-weight: bold; margin-top: 10px; text-align: center;";
-                    table.parentNode.insertBefore(message, table.nextSibling);
+                    message.style.color = "red";
+                    message.style.fontWeight = "bold";
+                    message.style.marginTop = "10px";
+                    table.parentNode.insertBefore(message, table);
                 }
-            } else if (noDataMessage) {
-                noDataMessage.remove();
+            } else {
+                if (noDataMessage) {
+                    noDataMessage.remove();
+                }
             }
         }
+    </script>
 
-        function confirmDelete(id) {
-            if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
-                window.location.href = `page/product/product_list.php?id=${id}`;
-            }
-        }
-
+    <script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
-
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
                 notification.style.display = 'block';

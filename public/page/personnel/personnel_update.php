@@ -31,6 +31,7 @@ $stmt->execute([$id]);
 $personnel = $stmt->fetch();
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -62,7 +63,7 @@ $personnel = $stmt->fetch();
             <?php if ($results->rowCount() > 0) { ?>
                 <div class="box">
                     <label for="typename">ประเภทบุคลากร:</label>
-                    <select name="typename" id="typename">
+                    <select name="typename" >
                         <?php while ($personnel_update = $results->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo($personnel_update['personnel_type_id']); ?>" <?= ($personnel_update['personnel_type_id'] == $personnel['personnel_type_id']) ? 'selected' : ''; ?>>
                                 <?php echo($personnel_update['personnel_type_name']); ?>

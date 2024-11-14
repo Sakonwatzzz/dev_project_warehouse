@@ -155,7 +155,9 @@ $personnel_type_results = $pdo->query($queryTypes);
         <a href="personnel_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>">กลับไปหน้ารายละเอียด
             <?php echo $tabel; ?></a>
         <a
-            href="personnel_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>&is_update=1">ไปหน้าแก้ไข
+            href="personnel_detail.php?tabel=<?php echo 
+            $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>
+            &is_update=1">ไปหน้าแก้ไข
             <?php echo $tabel; ?></a>
     </div>
 </body>

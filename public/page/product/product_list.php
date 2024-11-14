@@ -187,7 +187,7 @@ try {
             </thead>
             <tbody>
                 <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
+                    <tr onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
                         <td><?php echo ($product_list['product_name']); ?></td>
                         <td><?php echo ($product_list['product_barcode']); ?></td>
                         <td><?php echo ($product_list['product_price4']); ?></td>
@@ -201,6 +201,9 @@ try {
                 <?php endwhile; ?>
             </tbody>
         </table>
+
+        
+
 
         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
         <div class="pagination">

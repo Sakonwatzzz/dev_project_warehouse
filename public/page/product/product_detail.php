@@ -15,10 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     exit();
 }
 
+
 // ดึงค่าตัวแปรจาก URL เพื่อระบุประเภทและ ID
 $tabel = $_GET['tabel'];
 $id = $_GET['id'];
 $is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false; // เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
+
 
 // ตรวจสอบประเภทที่กำหนดมาและทำการ query เพื่อดึงข้อมูลสินค้า
 switch ($tabel) {
@@ -35,7 +37,6 @@ switch ($tabel) {
         ");
         break;
     default:
-        // ถ้าไม่ใช่ประเภทที่ระบุไว้ ให้หยุดการทำงาน
         die("ระบุประเภทไม่ถูกต้อง");
 }
 
@@ -71,13 +72,13 @@ $brandResults = $pdo->query($querybrandTypes);
 <body>
     <div class="main-body">
         <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
-        <h1 class="title">รายละเอียด <?php echo ($tabel); ?></h1>
+        <h1 class="title">รายละเอียดสินค้า</h1>
 
         <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการสินค้า -->
         <form action="product_update.php" method="POST">
 
             <!-- กำหนดค่า product_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของสินค้านี้ในฟอร์ม -->
-            <input type="hidden" name="product_id" value="<?php echo ($product['product_id']); ?>">
+            <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
 
             <!-- ตารางแสดงรายละเอียดสินค้า -->
             <table class="details-table">
@@ -220,9 +221,15 @@ $brandResults = $pdo->query($querybrandTypes);
         </form>
 
         <!-- ลิงก์กลับไปยังหน้ารายการและรายละเอียดสินค้า -->
-        <a href="/?page=bar_<?php echo ($tabel); ?>">กลับไปหน้ารายการสินค้า <?php echo ($tabel); ?></a>
-        <a href="product_detail.php?tabel=<?php echo ($tabel); ?>&id=<?php echo ($product['product_id']); ?>">กลับไปหน้ารายละเอียด <?php echo ($tabel); ?></a>
-        <a href="product_detail.php?tabel=<?php echo ($tabel); ?>&id=<?php echo ($product['product_id']); ?>&is_update=1">ไปหน้าแก้ไข <?php echo ($tabel); ?></a>
+        <a href="/?page=bar_product">กลับไปหน้ารายการสินค้า <?php echo ($tabel); ?></a>
+
+        <?php if ($is_update): ?>
+            <a href="/page/product/product_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $product['product_id']; ?>">กลับไปหน้ารายละเอียด </a>
+        <?php endif; ?>
+
+        <a
+            href="product_detail.php?tabel=&id=<?php echo $product['product_id']; ?>&is_update=1">ไปหน้าแก้ไข
+        </a>
     </div>
 </body>
 
