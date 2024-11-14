@@ -71,13 +71,9 @@ $personnel_type_results = $pdo->query($queryTypes);
                         <th>รหัสบุคลากร:</th>
                         <!-- แสดงรหัสบุคลากร -->
                         <td>
-                            <?php if($is_update):?>
-                            <input type="hidden" name="id" value="<?php echo $personnel['personnel_id']; ?>">
                             <?php if ($is_update): ?>
                                 <input type="hidden" name="id" value="<?php echo $personnel['personnel_id']; ?>">
                             <?php else: ?>
-                                <?php echo $personnel['personnel_id'];?>
-                                <?php endif; ?>
                                 <?php echo $personnel['personnel_id']; ?>
                             <?php endif; ?>
                         </td>
@@ -158,8 +154,6 @@ $personnel_type_results = $pdo->query($queryTypes);
         <a href="/?page=bar_<?php echo $tabel; ?>">กลับไปหน้ารายการบุคลากร <?php echo $tabel; ?></a>
         <a href="personnel_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>">กลับไปหน้ารายละเอียด
             <?php echo $tabel; ?></a>
-        <a
-            href="personnel_detail.php?tabel=<?php echo 
         <a href="personnel_detail.php?tabel=<?php echo
             $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>
             &is_update=1">ไปหน้าแก้ไข

@@ -31,8 +31,6 @@ switch ($tabel) {
                    product_type.product_type_name, 
                    product_brand.product_brand_name 
             FROM product 
-            INNER JOIN product_type ON product.product_type_id = product_type.product_type_id 
-            INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id 
            INNER JOIN product_type ON product.product_type_id = product_type.product_type_id 
            INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id 
             WHERE product.product_id = ?
@@ -92,7 +90,6 @@ $brandResults = $pdo->query($querybrandTypes);
                         <th>รหัสสินค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" name="id" value="<?php echo ($product['product_id']); ?>">
                                 <input type="text" name="id" value="<?php echo ($product['product_id']); ?>" readonly>
                             <?php else: ?>
                                 <?php echo ($product['product_id']); ?>
@@ -227,12 +224,6 @@ $brandResults = $pdo->query($querybrandTypes);
         <!-- ลิงก์กลับไปยังหน้ารายการและรายละเอียดสินค้า -->
         <a href="/?page=bar_product">กลับไปหน้ารายการสินค้า <?php echo ($tabel); ?></a>
 
-        <?php if ($is_update): ?>
-            <a href="/page/product/product_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $product['product_id']; ?>">กลับไปหน้ารายละเอียด </a>
-        <?php endif; ?>
-
-        <a
-            href="product_detail.php?tabel=&id=<?php echo $product['product_id']; ?>&is_update=1">ไปหน้าแก้ไข
         <a href="/page/product/product_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $product['product_id']; ?>">กลับไปหน้ารายละเอียด
         </a>
         <a

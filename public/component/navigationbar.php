@@ -31,7 +31,6 @@
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_supplier') ? 'active' : ''; ?>">ผู้ส่งมอบ</a>
                     </li>
 
-                    <li><a href="#">ขาย</a></li>
                     <li><a href="?page=navigationbar_sale"
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'navigationbar_sale') ? 'active' : ''; ?>">ขาย</a>
                     </li>
@@ -76,14 +75,12 @@
                         break;
                     default:
                         // ตรวจสอบค่า `$page` กับรายการใน array
-                        if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type',"personnel_detail"])) {
                         if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type', "personnel_detail"])) {
                             include __DIR__ . "/bar_personnel.php";
                         }
                         if (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type'])) {
                             include __DIR__ . "/bar_member.php";
                         }
-                        if (in_array($page, ["product_list", "product_insert",  "product_type", "product_brand", "product_detail", "product_update", "warehouse_list"])) {
                         if (in_array($page, ["product_list", "product_insert", "product_type", "product_brand", "product_detail", "product_update", "warehouse_list"])) {
                             include __DIR__ . "/bar_product.php";
                         }
