@@ -118,10 +118,16 @@ require_once __DIR__ . '../../../config/database_server.php';
                     <p>คลัง</p>
                 </button>
             </a>
-            <a href="?page=lot_insert" class="button-link">
+            <a href="?page=lot_list" class="button-link">
                 <button>
                     <img src="../image/warehouse.png" alt="">
-                    <p>นำสินค้าเข้า</p>
+                    <p>รายการรับสินค้า</p>
+                </button>
+            </a>
+            <a href="?page=lot_product_list" class="button-link">
+                <button>
+                    <img src="../image/warehouse.png" alt="">
+                    <p>รับรายการสินค้า</p>
                 </button>
             </a>
             <!-- <a href="#" class="button-link">

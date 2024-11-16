@@ -10,16 +10,29 @@ body {
   color: #333;
 }
 
-.content-container{
+.content-container {
   width: 90%;
   margin: 50px auto;
 }
 
-
+.submit-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  width: 10%;
+  height: 40px;
+  border: none;
+  color: white;
+  border-radius: 5px;
+  font-size: 16px;
+  background: #5b97b2; /* สีเขียว */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
 .personnel-list {
   width: 90%;
   margin: 50px auto;
-;
 }
 
 .search {
@@ -84,7 +97,6 @@ td a:hover {
   color: #388e3c; /* สีเข้มขึ้นเมื่อ hover */
   text-decoration: underline;
 }
-
 
 tbody tr:hover {
   background-color: #a5d6a7; /* สีเขียวเข้มขึ้นเมื่อวางเมาส์ */

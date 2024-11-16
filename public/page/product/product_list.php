@@ -158,7 +158,7 @@ try {
     <div class="personnel-list">
         <div class="title">
             <div class="count">
-                <h2>ข้อมูลบุคลากร</h2>
+                <h2>รายการสินค้า</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>

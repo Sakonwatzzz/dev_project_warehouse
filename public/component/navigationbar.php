@@ -43,11 +43,16 @@
         <?php
         if (isset($_GET['page'])) {
             $page = $_GET['page'];
+            // var_dump($page); // ตรวจสอบค่า $page
             $parts = explode("_", $page);
+            // var_dump($parts); // ตรวจสอบการแยก $parts
 
+
+            // ตรวจสอบว่า $parts มีจำนวนส่วนมากกว่า 2
             if (count($parts) >= 2) {
                 $module = $parts[0];
                 $action = $parts[1];
+                $subaction = $parts[2] ?? null; // รองรับ subaction เช่น lot_product_insert
 
                 switch ($page) {
                     case "bar_index":
@@ -73,22 +78,37 @@
                         include __DIR__ . "/navigationbar_sale.php";
                         include __DIR__ . "/../page/sale/sale_list.php";
                         break;
+                    case "lot_product_list":
+                        include __DIR__ . "/bar_product.php";
+                        include __DIR__ . "/../page/lot/lot_product_list.php";
+                        break;
                     default:
-                        // ตรวจสอบค่า `$page` กับรายการใน array
-                        if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type', "personnel_detail"])) {
+                        // ตรวจสอบพารามิเตอร์ที่รองรับใน array
+                        if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type', 'personnel_detail'])) {
                             include __DIR__ . "/bar_personnel.php";
-                        }
-                        if (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type'])) {
+                        } elseif (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type'])) {
                             include __DIR__ . "/bar_member.php";
-                        }
-                        if (in_array($page, ["product_list", "product_insert", "product_type", "product_brand", "product_detail", "product_update", "warehouse_list","lot_insert"])) {
+                        } elseif (in_array($page, [
+                            'product_list',
+                            'product_insert',
+                            'product_type',
+                            'product_brand',
+                            'product_detail',
+                            'product_update',
+                            'warehouse_list',
+                            'lot_insert',
+                            'lot_list',
+                            'lot_update',
+                            'lot_product_insert',
+                            'lot_product_list',
+                        ])) {
                             include __DIR__ . "/bar_product.php";
-                        }
-                        if (in_array($page, ["supplier_list", "supplier_insert", "supplier_update"])) {
+                        } elseif (in_array($page, ['supplier_list', 'supplier_insert', 'supplier_update'])) {
                             include __DIR__ . "/bar_supplier.php";
-                        }
-                        if (in_array($page, ["sale_list"])) {
+                        } elseif (in_array($page, ['sale_list'])) {
                             include __DIR__ . "/navigationbar_sale.php";
+                        } else {
+                            echo "<h2>ไม่พบไฟล์ที่รองรับพารามิเตอร์: " . htmlspecialchars($page) . "</h2>";
                         }
                         break;
                 }
@@ -98,8 +118,8 @@
         } else {
             include __DIR__ . "/bar_index.php";
         }
-
         ?>
+
 
 
     </div>

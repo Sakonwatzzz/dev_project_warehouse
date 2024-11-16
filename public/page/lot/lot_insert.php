@@ -9,26 +9,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $store_id = $_POST['store_id'];
     $supplier_id = $_POST['supplier_id'];
 
-    $stmt = $pdo->prepare('INSERT INTO personnel (lot_detail,  lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
-                           VALUES (?, ?, ?, ?, ?, ?)');
-    $stmt->execute([$lot_detail, $lot_date, $lot_status_id, $personnel_phone, $warehouse_id, $store_id, $supplier_id]);
+    $stmt = $pdo->prepare('INSERT INTO lot (lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
+    VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt->execute([$lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
 
-    $personnel_id = $pdo->lastInsertId();
-    header("Location: personnel/personnel_detail.php?tabel=personnel&id=" . $personnel_id);
+
+    $lot_id = $pdo->lastInsertId();
+    header("Location: lot/lot_detail.php?tabel=lot&id=" . $lot_id);
     exit;
 }
 
+$query = "SELECT
+	lot_status.lot_status_id, 
+	lot_status.lot_status_name, 
+	supplier.supplier_id, 
+	supplier.supplier_name, 
+	warehouse.warehouse_name, 
+	warehouse.warehouse_id, 
+	store.store_id, 
+	store.store_name, 
+	lot.lot_id, 
+	lot.lot_detail, 
+	lot.lot_date, 
+	lot.lot_status_id, 
+	lot.warehouse_id, 
+	lot.store_id
+FROM
+	lot
+	INNER JOIN
+	lot_status
+	ON 
+		lot.lot_id = lot_status.lot_status_id
+	INNER JOIN
+	supplier
+	ON 
+		lot.lot_id = supplier.supplier_id
+	INNER JOIN
+	warehouse
+	ON 
+		lot.lot_id = warehouse.warehouse_id
+	INNER JOIN
+	store
+	ON 
+		lot.lot_id = store.store_id";
+$result_lot = $pdo->query($query);
+
+// ดึงชื่อคลังมาแสดงผล
+$query = "SELECT lot_status_id, lot_status_name FROM lot_status";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$status_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // ดึงชื่อคลังมาแสดงผล
 $query = "SELECT warehouse_id, warehouse_name FROM warehouse";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
-$warehouseTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // ดึงชื่อผู่ส่งมอบมาแสดงผล
 $query = "SELECT supplier_id, supplier_name FROM supplier";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
-$supplierTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$supplier_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$query = "SELECT store_id, store_name FROM store";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 ob_end_flush();
 ?>
@@ -84,103 +130,105 @@ ob_end_flush();
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">นำเข้าสำเร็จ!</div>
+            <div class="notification-body">การรับสินค้าสำเร็จ!</div>
         </div>
 
 
-        <h2 class="sub-title">นำสินค้าเข้า</h2>
+        <h2 class="sub-title">การรับสินค้า</h2>
         <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+
+            <div class="box">
+                <label for="lot_id">รหัสล็อตสินค้า:</label>
+                <p type="id" id="lot_id" name="lot_id" value="<?php echo $lot['lot_id']; ?>" readonly>
+            </div>
             <div class="box">
                 <label for="lot_detail">รายละเอียด:</label>
                 <input type="text" id="lot_detail" name="lot_detail">
             </div>
             <div class="box">
                 <label for="lot_date">วันที่รับเข้า:</label>
-                <input type="date" id="lot_date" name="lot_date">
-            </div>
-            <div class="box">
-                <label for="lot_stutas_id">รหัสสถานะ:</label>
-                <input type="text" id="lot_stutas_id" name="lot_stutas_id">
+                <input type="date" id="lot_date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly>
             </div>
 
             <!-- loop -->
             <?php
-            if (count($warehouseTypes) > 0) {
-                ?>
+            if (count($status_lot) > 0) {
+            ?>
                 <div class="box">
-                    <label for="warehouse_type_name">คลังสินค้า:</label>
-                    <select name="warehouse_type_name" id="warehouse_type_name">
-                        <?php foreach ($warehouseTypes as $warehouse_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
-                            <option value="<?php echo ($warehouse_insert['warehouse_type_id']); ?>">
-                                <?php echo ($warehouse_insert['warehouse_type_name']); ?>
+                    <label for="lot_stutas_name">สถานะ:</label>
+                    <select name="lot_status_id" id="lot_status_id">
+                        <?php foreach ($status_lot as $status_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
+                            <option value="<?php echo ($status_insert['lot_status_id']); ?>">
+                                <?php echo ($status_insert['lot_status_name']); ?>
+                            </option>
+
+                        <?php } ?>
+                    </select><br>
+                </div>
+
+            <?php
+            } else {
+                echo "No lot_stutas_name  available.";
+            }
+            ?>
+            <!-- loop -->
+            <?php
+            if (count($warehouse_lot) > 0) {
+            ?>
+                <div class="box">
+                    <label for="warehouse_name">คลังสินค้า:</label>
+                    <select name="warehouse_id" id="warehouse_id">
+                        <?php foreach ($warehouse_lot as $warehouse_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
+                            <option value="<?php echo ($warehouse_insert['warehouse_id']); ?>">
+                                <?php echo ($warehouse_insert['warehouse_name']); ?>
                             </option>
                         <?php } ?>
                     </select><br>
                 </div>
 
-                <?php
+            <?php
             } else {
-                echo "No warehouse types available.";
+                echo "No warehouse available.";
             }
             ?>
             <?php
-            if (count($storeTypes) > 0) {
-                ?>
+            if (count($store_lot) > 0) {
+            ?>
                 <div class="box">
-                    <label for="warehouse_type_name">ร้าน:</label>
-                    <select name="warehouse_type_name" id="warehouse_type_name">
-                        <?php foreach ($storeTypes as $warehouse_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
-                            <option value="<?php echo ($warehouse_insert['warehouse_type_id']); ?>">
-                                <?php echo ($warehouse_insert['warehouse_type_name']); ?>
+                    <label for="store_name">ร้าน:</label>
+                    <select name="store_id" id="store_id">
+                        <?php foreach ($store_lot as $store_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
+                            <option value="<?php echo ($store_insert['store_id']); ?>">
+                                <?php echo ($store_insert['store_name']); ?>
                             </option>
                         <?php } ?>
                     </select><br>
                 </div>
 
-                <?php
+            <?php
             } else {
-                echo "No warehouse types available.";
+                echo "No store_name available.";
             }
             ?>
             <?php
-            if (count($warehouseTypes) > 0) {
-                ?>
+            if (count($warehouse_lot) > 0) {
+            ?>
                 <div class="box">
-                    <label for="store_type_name">ผู้ส่งมอบ:</label>
-                    <select name="store_type_name" id="store_type_name">
-                        <?php foreach ($storeTypes as $store_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
-                            <option value="<?php echo ($store_insert['store_type_id']); ?>">
-                                <?php echo ($store_insert['store_type_name']); ?>
+                    <label for="supplier_name">ผู้ส่งมอบ:</label>
+                    <select name="supplier_id" id="supplier_id">
+                        <?php foreach ($supplier_lot as $supplier_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
+                            <option value="<?php echo ($supplier_insert['supplier_id']); ?>">
+                                <?php echo ($supplier_insert['supplier_name']); ?>
                             </option>
                         <?php } ?>
                     </select><br>
                 </div>
 
-                <?php
+            <?php
             } else {
                 echo "No warehouse types available.";
             }
             ?>
-            <!--  -->
-            <div class="box">
-                <label for="warehouse_address">ที่อยู่บุคลากร:</label>
-                <input type="text" id="personnel_address" name="personnel_address">
-            </div>
-            <div class="box">
-                <label for="personnel_phone">เบอร์โทรศัพท์:</label>
-                <input type="text" id="personnel_phone" name="personnel_phone">
-            </div>
-
-            <div class="box">
-                <label for="personnel_username">ชื่อผู้ใช้:</label>
-                <input type="text" id="personnel_username" name="personnel_username">
-            </div>
-
-            <div class="box">
-                <label for="personnel_password">รหัสผ่าน:</label>
-                <input type="password" id="personnel_password" name="personnel_password">
-            </div>
-
             <div class="box">
                 <label for=""></label>
                 <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
@@ -191,7 +239,7 @@ ob_end_flush();
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
