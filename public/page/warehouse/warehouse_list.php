@@ -20,8 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-if (isset($_GET['warehouse_id'])) {
-    $id = $_GET['warehouse_id'];
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
     try {
         $stmt = $pdo->prepare("DELETE FROM warehouse WHERE warehouse_id = ?");
         $stmt->execute([$id]);
@@ -42,7 +42,7 @@ $count = $row['total_count'];
 
 // การแบ่งหน้า
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
 $offset = ($page - 1) * $records_per_page;
 
 // นับจำนวนรายการทั้งหมด
@@ -66,6 +66,7 @@ try {
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -77,92 +78,92 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../style/personnel_list.css">
     <style>
-    .title {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
+        .title {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
 
-    }
+        }
 
-    .count {
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
+        .count {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
 
-    }
+        }
 
-    .listcount {
-        font-size: 16px;
-        text-align: right;
-        color: #000;
-        padding: 4px 10px 4px 10px;
-        border: 1px solid gray;
-        border-radius: 5px;
-        background-color: #fff;
-        display: inline-block;
-        margin-top: 10px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        width: 70px;
-    }
+        .listcount {
+            font-size: 16px;
+            text-align: right;
+            color: #000;
+            padding: 4px 10px 4px 10px;
+            border: 1px solid gray;
+            border-radius: 5px;
+            background-color: #fff;
+            display: inline-block;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 70px;
+        }
 
-    .notification {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: #fff;
-        color: #000;
-        border: 2px solid #A0A0A0;
-        border-radius: 5px;
-        font-family: "Tahoma", "Verdana", sans-serif;
-        width: 400px;
-        height: 120px;
-        box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
-        z-index: 1000;
-        display: none;
-    }
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            color: #000;
+            border: 2px solid #A0A0A0;
+            border-radius: 5px;
+            font-family: "Tahoma", "Verdana", sans-serif;
+            width: 400px;
+            height: 120px;
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
 
-    .notification-header {
-        background-color: cyan;
-        color: #000;
-        padding: 10px;
-        font-weight: bold;
-        border-top-left-radius: 5px;
-        border-top-right-radius: 5px;
-    }
+        .notification-header {
+            background-color: cyan;
+            color: #000;
+            padding: 10px;
+            font-weight: bold;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
 
-    .notification-body {
-        padding: 20px;
-        font-size: 16px;
-        text-align: center;
-    }
+        .notification-body {
+            padding: 20px;
+            font-size: 16px;
+            text-align: center;
+        }
 
-    .pagination {
-        margin-top: 20px;
-        text-align: center;
-    }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
 
-    .pagination a {
-        display: inline-block;
-        padding: 8px 16px;
-        text-decoration: none;
-        background-color: #f1f1f1;
-        color: black;
-        border-radius: 5px;
-        margin: 0 4px;
-    }
+        .pagination a {
+            display: inline-block;
+            padding: 8px 16px;
+            text-decoration: none;
+            background-color: #f1f1f1;
+            color: black;
+            border-radius: 5px;
+            margin: 0 4px;
+        }
 
-    .pagination a.active {
-        background-color: #5b97b2;
-        ;
-        color: white;
-    }
+        .pagination a.active {
+            background-color: #5b97b2;
+            ;
+            color: white;
+        }
 
-    .pagination a:hover:not(.active) {
-        background-color: #ddd;
-    }
+        .pagination a:hover:not(.active) {
+            background-color: #ddd;
+        }
     </style>
     <title>ข้อมูลคลังสินค้า</title>
 </head>
@@ -219,19 +220,18 @@ try {
                 </tr>
 
                 <?php while ($warehouse_list = $warehouseResults->fetch(PDO::FETCH_ASSOC)): ?>
-                <tr
-                    onclick="window.location.href='page/warehouse/warehouse_detail.php?tabel=warehouse&id=<?php echo htmlspecialchars($warehouse_list['warehouse_id']) ?>'">
-                    <td><?php echo ($warehouse_list['warehouse_id']) ?></td>
-                    <td><?php echo ($warehouse_list['warehouse_name']) ?></td>
-                    <td><?php echo ($warehouse_list['warehouse_status']) ?></td>
-                    <td>
-                        <a href="page/warehouse/warehouse_update.php?id=<?php echo ($warehouse_list['warehouse_id']) ?>"
-                            class="text-blue-500 hover:text-blue-700">แก้ไข</a>
-                        <a href="?warehouse_id=<?php echo ($warehouse_list['warehouse_id']) ?>"
-                            onclick="return confirm('ยืนยันการลบข้อมูล?')"
-                            class="text-red-500 hover:text-red-700 ml-2">ลบ</a>
-                    </td>
-                </tr>
+                    <tr <?php echo ($warehouse_list['warehouse_id']) ?>>
+                        <td><?php echo ($warehouse_list['warehouse_id']) ?></td>
+                        <td><?php echo ($warehouse_list['warehouse_name']) ?></td>
+                        <td><?php echo ($warehouse_list['warehouse_status']) ?></td>
+                        <td>
+                            <a href="page/warehouse/warehouse_update.php?id=<?php echo ($warehouse_list['warehouse_id']) ?>"
+                                class="text-blue-500 hover:text-blue-700">แก้ไข</a>
+                            <a href="?page=warehouse_list&id=<?php echo ($warehouse_list['warehouse_id']) ?>"
+                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                class="text-red-500 hover:text-red-700 ml-2">ลบ</a>
+                        </td>
+                    </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
@@ -239,79 +239,79 @@ try {
         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
-            <?php if ($page > 1): ?>
-            <a href="?page=warehouse_list&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
-            <?php endif; ?>
+                <?php if ($page > 1): ?>
+                    <a href="?page=warehouse_list&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
+                <?php endif; ?>
 
-            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-            <?php if ($i == $page): ?>
-            <a href="#" class="active"><?php echo $i; ?></a>
-            <?php else: ?>
-            <a href="?page=warehouse_list&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
-            <?php endif; ?>
-            <?php endfor; ?>
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <?php if ($i == $page): ?>
+                        <a href="#" class="active"><?php echo $i; ?></a>
+                    <?php else: ?>
+                        <a href="?page=warehouse_list&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                    <?php endif; ?>
+                <?php endfor; ?>
 
-            <?php if ($page < $total_pages): ?>
-            <a href="?page=warehouse_list&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
-            <?php endif; ?>
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=warehouse_list&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
 
     <script>
-    function searchTable() {
-        const input = document.getElementById("searchInput");
-        const filter = input.value.toLowerCase();
-        const table = document.getElementById("dataTable");
-        const tr = table.getElementsByTagName("tr");
-        let foundAny = false;
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById("dataTable");
+            const tr = table.getElementsByTagName("tr");
+            let foundAny = false;
 
-        for (let i = 1; i < tr.length; i++) {
-            let found = false;
-            const td = tr[i].getElementsByTagName("td");
-            for (let j = 0; j < td.length; j++) {
-                if (td[j]) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        found = true;
-                        break;
+            for (let i = 1; i < tr.length; i++) {
+                let found = false;
+                const td = tr[i].getElementsByTagName("td");
+                for (let j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        const txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            found = true;
+                            break;
+                        }
                     }
                 }
+                tr[i].style.display = found ? "" : "none";
+                if (found) {
+                    foundAny = true;
+                }
             }
-            tr[i].style.display = found ? "" : "none";
-            if (found) {
-                foundAny = true;
+
+            const noDataMessage = document.getElementById("noDataMessage");
+            if (!foundAny) {
+                if (!noDataMessage) {
+                    const message = document.createElement("p");
+                    message.id = "noDataMessage";
+                    message.textContent = "ไม่พบข้อมูล";
+                    message.style.color = "red";
+                    message.style.fontWeight = "bold";
+                    message.style.marginTop = "10px";
+                    table.parentNode.insertBefore(message, table);
+                }
+            } else {
+                if (noDataMessage) {
+                    noDataMessage.remove();
+                }
             }
         }
 
-        const noDataMessage = document.getElementById("noDataMessage");
-        if (!foundAny) {
-            if (!noDataMessage) {
-                const message = document.createElement("p");
-                message.id = "noDataMessage";
-                message.textContent = "ไม่พบข้อมูล";
-                message.style.color = "red";
-                message.style.fontWeight = "bold";
-                message.style.marginTop = "10px";
-                table.parentNode.insertBefore(message, table);
+        document.addEventListener("DOMContentLoaded", function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('success')) {
+                const notification = document.getElementById('notification');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 2000);
             }
-        } else {
-            if (noDataMessage) {
-                noDataMessage.remove();
-            }
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('success')) {
-            const notification = document.getElementById('notification');
-            notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 2000);
-        }
-    });
+        });
     </script>
 </body>
 

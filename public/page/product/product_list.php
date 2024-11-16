@@ -23,7 +23,7 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
     $stmt->execute([$id]);
-    header("Location: index.php?page=product_list");
+    header("Location: /?page=product_list");
     exit;
 }
 
@@ -195,7 +195,7 @@ try {
 
                         <td>
                             <a href="page/product/product_update.php?id=<?php echo $product_list['product_id']; ?>">แก้ไข</a> |
-                            <a href="page/product/product_list.php?id=<?php echo $product_list['product_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                            <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>

@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ");
     $stmt->execute([$warehouse_name, $warehouse_status, $warehouse_id]);
 
-    header("Location: /?page=bar_warehouse&success=1");
+    header("Location: /?page=warehouse_list&success=1");
     exit;
 }
 $id = $_GET['id'];
@@ -51,8 +51,8 @@ $warehouse_update  = $stmt->fetch();
 <body>
     <div class="edit-box">
         <h2>แก้ไข ข้อมูลคลังสินค้า</h2>
-        <form class="form-container" action="warehouse_update.php" method="POST">
-            <input type="hidden" name="id" value="<?php echo ($warehouse_update['warehouse_id']) ?>">
+        <form class="form-container" action="" method="POST">
+            <input type="hidden" name="warehouse_id" value="<?php echo ($warehouse_update['warehouse_id']) ?>">
 
             <div class="box">
                 <label for="warehouse_name">ชื่อคลังสินค้า:</label>
@@ -61,7 +61,7 @@ $warehouse_update  = $stmt->fetch();
 
 
             <div class="box">
-                <label for="warehouse_status">ที่อยู่คลังสินค้า:</label>
+                <label for="warehouse_status">สถานะคลังสินค้า:</label>
                 <input type="text" name="warehouse_status" value="<?php echo ($warehouse_update['warehouse_status']) ?>" required>
             </div>
 

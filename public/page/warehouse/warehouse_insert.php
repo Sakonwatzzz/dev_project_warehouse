@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            VALUES (?, ?)');
     $stmt->execute([$warehouse_name, $warehouse_status]);
 
-    header('Location: /?page=warehouse_add&success=1');
+    header('Location: /?page=warehouse_list&success=1');
     exit;
 }
 $query = "SELECT warehouse_id, warehouse_name,warehouse_status FROM warehouse";

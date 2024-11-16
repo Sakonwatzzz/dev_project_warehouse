@@ -13,11 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([$name, $address, $phone, $registerdate, $typename]);
 
-    header('Location: /?page=member_insert&success=1');
+    header('Location: index.php?page=member_list');
     exit;
 }
 
-ob_end_flush();
 
 // SQL query to get all members with their types
 $query = "SELECT
@@ -38,6 +37,8 @@ $queryTypes = "SELECT
     member_type.member_type_name
 FROM member_type";
 $results = $pdo->query($queryTypes);
+ob_end_flush();
+
 ?>
 
 
@@ -124,11 +125,11 @@ $results = $pdo->query($queryTypes);
                     <label for="typename">ประเภทสมาชิก:</label>
                     <select name="typename" id="typename">
                         <?php while ($member_insert = $results->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo($member_insert['member_type_id']); ?>">
-                                <?php echo($member_insert['member_type_name']); ?>
+                            <option value="<?php echo ($member_insert['member_type_id']); ?>">
+                                <?php echo ($member_insert['member_type_name']); ?>
                             </option>
                         <?php } ?>
-                    </select> 
+                    </select>
                 </div>
 
             <?php } else { ?>
@@ -144,7 +145,7 @@ $results = $pdo->query($queryTypes);
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

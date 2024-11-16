@@ -33,8 +33,7 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
     $stmt->execute([$id]);
-    header("Location: index.php?page=member_list");
-    exit;
+    header("Location: index.php?page=member_list"); 
 }
 
 // การแบ่งหน้า
@@ -72,6 +71,8 @@ LIMIT :offset, :records_per_page";
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
+ob_end_flush();
+
 ?>
 
 <!DOCTYPE html>
@@ -190,7 +191,7 @@ LIMIT :offset, :records_per_page";
                         <td>
                             <a href="page/member/member_update.php?id=<?php echo ($member_list['member_id']) ?>">แก้ไข</a>
                             | <!-- ลิงก์ไปหน้าแก้ไขข้อมูลสมาชิก -->
-                            <a href="?id=<?php echo ($member_list['member_id']) ?>"
+                            <a href="?page=member_list&id=<?php echo ($member_list['member_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                             <!-- ลิงก์ไปหน้าลบข้อมูลสมาชิก และมีการยืนยันการลบ -->
                         </td>

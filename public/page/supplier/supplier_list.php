@@ -217,7 +217,7 @@ if (isset($_GET['id'])) {
                         <td><?php echo ($supplier_list['supplier_detail']) ?></td>
                         <td>
                             <a href="page/supplier/supplier_update.php?id=<?php echo ($supplier_list['supplier_id']) ?>">แก้ไข</a>
-                            <a href="?id=<?php echo ($supplier_list['supplier_id']) ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                            <a href="?page=supplier_list&id=<?php echo ($supplier_list['supplier_id']) ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
