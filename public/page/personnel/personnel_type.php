@@ -174,7 +174,7 @@ try {
 <body>
 
     <div class="personnel-list">
-        <table class="data-table">
+        <table class="data-table" id="dataTable">
 
             <div class="title">
                 <div class="count">
@@ -253,6 +253,67 @@ try {
             <?php endif; ?>
         </div>
     </div>
+
+    <script>
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById("dataTable");
+            const tr = table.getElementsByTagName("tr");
+            let foundAny = false;
+
+            for (let i = 1; i < tr.length; i++) {
+                let found = false;
+                const td = tr[i].getElementsByTagName("td");
+                for (let j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        const txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = found ? "" : "none";
+                if (found) {
+                    foundAny = true;
+                }
+            }
+
+            const noDataMessage = document.getElementById("noDataMessage");
+            if (!foundAny) {
+                if (!noDataMessage) {
+                    const message = document.createElement("p");
+                    message.id = "noDataMessage";
+                    message.textContent = "ไม่พบข้อมูล";
+                    message.style.color = "red";
+                    message.style.fontWeight = "bold";
+                    message.style.marginTop = "10px";
+                    table.parentNode.insertBefore(message, table);
+                }
+            } else {
+                if (noDataMessage) {
+                    noDataMessage.remove();
+                }
+            }
+        }
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchInput = document.getElementById("searchInput");
+            searchInput.focus();
+            if (urlParams.has('success')) {
+                const notification = document.getElementById('notification');
+                notification.style.display = 'block';
+
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 2000);
+            }
+        });
+    </script>
 </body>
 
 </html>

@@ -172,7 +172,7 @@ try {
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขบุคลากรสำเร็จ!</div>
+            <div class="notification-body">แก้ไขสินค้าสำเร็จ!</div>
         </div>
 
         <table class="data-table" id="dataTable">
@@ -187,7 +187,7 @@ try {
             </thead>
             <tbody>
                 <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr onclick="window.location.href='page/product/product_detail.php?tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
+                    <tr onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
                         <td><?php echo ($product_list['product_name']); ?></td>
                         <td><?php echo ($product_list['product_barcode']); ?></td>
                         <td><?php echo ($product_list['product_price4']); ?></td>

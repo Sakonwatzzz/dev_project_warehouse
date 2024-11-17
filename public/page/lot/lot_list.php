@@ -213,7 +213,7 @@ ob_end_flush();
             <tbody>
                 <?php while ($lot_list = $result_lot->fetch(PDO::FETCH_ASSOC)): ?>
                     <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
-                    <tr onclick="window.location.href='page/lot/lot_detail.php?tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
+                    <tr >
                         <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
                         <td><?php echo ($lot_list['lot_id']) ?></td>
                         <td><?php echo ($lot_list['lot_date']) ?></td>

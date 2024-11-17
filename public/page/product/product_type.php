@@ -229,7 +229,7 @@ ob_end_flush();
 
             <tbody>
                 <tr>
-                    <form action="" method="POST">
+                    <form action="../../page/product/product_type_update.php" method="POST">
                         <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
                         <td></td> <!-- ช่องรหัสประเภทสินค้า ให้แสดงเป็น "อัตโนมัติ" -->
                         <td>
@@ -251,7 +251,7 @@ ob_end_flush();
                     <tr>
                         <td><?php echo ($product_type['product_type_id']) ?></td>
                         <td><?php echo ($product_type['product_type_name']) ?></td>
-                        <td>
+                        <td >
                             <a href="product_type_update.php?id=<?php echo ($product_type['product_type_id']) ?>">แก้ไข</a>
                             <a href="?id=<?php echo ($product_type['product_type_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>

@@ -124,7 +124,7 @@ require_once __DIR__ . '../../../config/database_server.php';
                     <p>รายการรับสินค้า</p>
                 </button>
             </a>
-            <a href="?page=lot_product_list" class="button-link">
+            <a href="?page=lot_productlist" class="button-link">
                 <button>
                     <img src="../image/warehouse.png" alt="">
                     <p>รับรายการสินค้า</p>

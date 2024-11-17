@@ -33,7 +33,7 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
     $stmt->execute([$id]);
-    header("Location: index.php?page=member_list"); 
+    header("Location: index.php?page=member_list");
 }
 
 // การแบ่งหน้า
@@ -79,9 +79,8 @@ ob_end_flush();
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8"> <!-- กำหนด charset ของเอกสาร -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- กำหนดให้แสดงผลบนอุปกรณ์มือถือได้ดี -->
-
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
     <link rel="stylesheet" href="../../style/personnel_list.css">
     <style>
         .title {
@@ -112,6 +111,38 @@ ob_end_flush();
             margin-top: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             width: 70px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            color: #000;
+            border: 2px solid #A0A0A0;
+            border-radius: 5px;
+            font-family: "Tahoma", "Verdana", sans-serif;
+            width: 400px;
+            height: 120px;
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .notification-header {
+            background-color: #ffdfa0;
+            color: #000;
+            padding: 10px;
+            font-weight: bold;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+
+        .notification-body {
+            padding: 20px;
+            font-size: 16px;
+            text-align: center;
         }
 
         .pagination {
@@ -146,7 +177,7 @@ ob_end_flush();
     <div class="personnel-list">
         <div class="title">
             <div class="count">
-                <h2 >ข้อมูลสมาชิก</h2>
+                <h2>ข้อมูลสมาชิก</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>
@@ -158,7 +189,7 @@ ob_end_flush();
         </div>
 
 
-        <!-- ส่วนของการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์ -->
+
         <div id="notification" class="notification" style="display:none;">
             <div class="notification-header">การแจ้งเตือน</div>
             <div class="notification-body">แก้ไขสมาชิกสำเร็จ!</div>
@@ -166,22 +197,18 @@ ob_end_flush();
 
         <table class="data-table" id="dataTable">
             <thead>
-                <!-- ส่วนหัวของตาราง -->
+
                 <tr>
-                    <!-- <th>รหัส</th> -->
+
                     <th>ชื่อ นามสกุล</th>
-                    <!-- <th>ที่อยู่สมาชิก</th> -->
-                    <!-- <th>เบอร์โทรศัพท์สมาชิก</th> -->
-                    <!-- <th>วันที่</th> -->
                     <th>ประเภทสมาชิก</th>
                     <th>การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while ($member_list = $resultmember->fetch(PDO::FETCH_ASSOC)): ?>
-                    <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
-                    <tr onclick="window.location.href='page/member/member_detail.php?tabel=member&id=<?php echo ($member_list['member_id']) ?>'">
-                        <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
+                    
+                        <tr onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'">
                         <!-- <td><?php echo ($member_list['member_id']) ?></td> แสดงรหัสสมาชิก -->
                         <td><?php echo ($member_list['member_name']) ?></td> <!-- แสดงชื่อสมาชิก -->
                         <!-- <td><?php echo ($member_list['member_address']) ?></td> แสดงที่อยู่สมาชิก -->
@@ -190,13 +217,13 @@ ob_end_flush();
                         <td><?php echo ($member_list['member_type_name']) ?></td> <!-- แสดงประเภทสมาชิก -->
                         <td>
                             <a href="page/member/member_update.php?id=<?php echo ($member_list['member_id']) ?>">แก้ไข</a>
-                            | <!-- ลิงก์ไปหน้าแก้ไขข้อมูลสมาชิก -->
+                            |
                             <a href="?page=member_list&id=<?php echo ($member_list['member_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                            <!-- ลิงก์ไปหน้าลบข้อมูลสมาชิก และมีการยืนยันการลบ -->
+                            
                         </td>
-                    </tr>
-                <?php endwhile; ?>
+                        </tr>
+                    <?php endwhile; ?>
             </tbody>
         </table>
 

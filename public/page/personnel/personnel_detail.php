@@ -48,28 +48,28 @@ $personnel_type_results = $pdo->query($queryTypes);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../style/detail.css">
     <title>รายละเอียด</title>
-    <link rel="stylesheet" href="../../style/detail.css"> <!-- ลิงก์ไปยังไฟล์ CSS เพื่อจัดการสไตล์ของหน้าเว็บ -->
 </head>
 
 <body>
-    <div class="main-body">
-        <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
-        <h1 class="title">รายละเอียดบุคลากร</h1>
+    <div class="detail-body">
 
-        <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการบุคลากร โดยจะส่งไปยังไฟล์ `personnel_update.php` -->
-        <form action="personnel_update.php" method="POST">
-            <!-- กำหนดค่า personnel_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของบุคลากรนี้ในฟอร์ม -->
+        <h1 class="detail-title">รายละเอียดบุคลากร</h1>
+
+
+        <form class="detail-form" action="../../page/personnel/personnel_update.php" method="POST">
+
             <input type="hidden" name="personnel_id" value="<?php echo $personnel['personnel_id']; ?>">
 
-            <!-- ตารางแสดงรายละเอียดบุคลากร -->
-            <table class="details-table">
+
+            <table class="detail-table">
                 <?php if ($tabel === 'personnel'): ?>
-                    <!-- ตรวจสอบว่าประเภทข้อมูลเป็น 'personnel' เพื่อแสดงรายละเอียดบุคลากรเท่านั้น -->
+
 
                     <tr>
                         <th>รหัสบุคลากร:</th>
-                        <!-- แสดงรหัสบุคลากร -->
+
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="hidden" name="id" value="<?php echo $personnel['personnel_id']; ?>">
@@ -145,19 +145,32 @@ $personnel_type_results = $pdo->query($queryTypes);
 
             <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
             <?php if ($is_update): ?>
-                <button class="submit-button" type="submit">บันทึก </button>
+                <button class="submit-button" type="submit"
+                    style=" border-radius: 6px;
+                        width: 120px;
+                        height: 40px;
+                        padding: 10px;
+                        margin-top:10px;
+                        /*border: 1px solid rgb(29, 188, 55);*/
+                        background-color: #333;
+                        text-decoration: none;
+                        color: #fff; ">บันทึก </button>
 
             <?php endif; ?>
         </form>
 
-        <!-- ลิงก์กลับไปยังหน้ารายการบุคลากร, หน้ารายละเอียด และหน้าสำหรับแก้ไข -->
-        <a href="/?page=bar_<?php echo $tabel; ?>">กลับไปหน้ารายการบุคลากร <?php echo $tabel; ?></a>
-        <a href="personnel_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>">กลับไปหน้ารายละเอียด
-            <?php echo $tabel; ?></a>
-        <a href="personnel_detail.php?tabel=<?php echo
-            $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>
-            &is_update=1">ไปหน้าแก้ไข
-            <?php echo $tabel; ?></a>
+        <div class="detail-action">
+            <a href="/?page=bar_personnel">ย้อนกลับหน้า List_<?php echo $tabel; ?></a>
+
+            <?php if ($is_update): ?>
+                <a href="?page=personnel_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>" style="margin-right: 6px;">ย้อนกลับไปที่ Detail</a>
+            <?php endif; ?>
+
+            <a href="?page=personnel_detail&tabel=personnel&id=<?php echo $personnel['personnel_id']; ?>&is_update=1">
+                ไปหน้าแก้ไข <?php echo $tabel; ?>
+            </a>
+        </div>
+
     </div>
 </body>
 

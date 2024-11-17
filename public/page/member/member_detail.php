@@ -49,21 +49,21 @@ $member_type_results = $pdo->query($queryTypes);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายละเอียด</title>
-    <link rel="stylesheet" href="../../style/detail.css"> <!-- ลิงก์ไปยังไฟล์ CSS เพื่อจัดการสไตล์ของหน้าเว็บ -->
+    <link rel="stylesheet" href="../../style/detail.css">
 </head>
 
 <body>
-    <div class="main-body">
-        <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
-        <h1 class="title">รายละเอียดสมาชิก</h1>
+    <div class="detail-body">
+     
+        <h2 class="detail-title">รายละเอียดสมาชิก</h2>
 
-        <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการสมาชิก โดยจะส่งไปยังไฟล์ `member_update.php` -->
-        <form action="member_update.php" method="POST">
-            <!-- กำหนดค่า member_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของสมาชิกนี้ในฟอร์ม -->
+      
+        <form class="detail-form" action="../../page/member/member_update.php" method="POST">
+            
             <input type="hidden" name="member_id" value="<?php echo $member['member_id']; ?>">
 
             <!-- ตารางแสดงรายละเอียดสมาชิก -->
-            <table class="details-table">
+            <table class="detail-table">
                 <?php if ($tabel === 'member'): ?>
                     <!-- ตรวจสอบว่าประเภทข้อมูลเป็น 'member' เพื่อแสดงรายละเอียดสมาชิกเท่านั้น -->
 
@@ -143,18 +143,32 @@ $member_type_results = $pdo->query($queryTypes);
 
             <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
             <?php if ($is_update): ?>
-                <button class="submit-button" type="submit">บันทึก </button>
+                <button class="submit-button" type="submit"
+                    style=" border-radius: 6px;
+                        width: 120px;
+                        height: 40px;
+                        padding: 10px;
+                        margin-top:10px;
+                        /*border: 1px solid rgb(29, 188, 55);*/
+                        background-color: #333;
+                        text-decoration: none;
+                        color: #fff; ">บันทึก </button>
 
             <?php endif; ?>
         </form>
 
-        <!-- ลิงก์กลับไปยังหน้ารายการสมาชิก, หน้ารายละเอียด และหน้าสำหรับแก้ไข -->
-        <a href="/?page=bar_<?php echo $tabel; ?>">กลับไปหน้ารายการสมาชิก <?php echo $tabel; ?></a>
-        <a href="member_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $member['member_id']; ?>">กลับไปหน้ารายละเอียด
-            <?php echo $tabel; ?></a>
-        <a
-            href="member_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $member['member_id']; ?>&is_update=1">ไปหน้าแก้ไข
-            <?php echo $tabel; ?></a>
+        <div class="detail-action">
+            <a href="/?page=bar_member">ย้อนกลับหน้า List_<?php echo $tabel; ?></a>
+
+            <?php if ($is_update): ?>
+                <a href="?page=member_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $member['member_id']; ?>" style="margin-right: 6px;">ย้อนกลับไปที่ Detail</a>
+            <?php endif; ?>
+
+            <a href="?page=member_detail&tabel=member&id=<?php echo $member['member_id']; ?>&is_update=1">
+                ไปหน้าแก้ไข <?php echo $tabel; ?>
+            </a>
+        </div>
+
     </div>
 </body>
 

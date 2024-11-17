@@ -177,7 +177,7 @@ try {
 
         .pagination a:hover:not(.active) {
             background-color: #ddd;
-       
+
         }
     </style>
     <title>Document</title>
@@ -218,7 +218,7 @@ try {
             <tbody>
                 <?php while ($personnel_list = $resultspersonnel->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr
-                        onclick="window.location.href='page/personnel/personnel_detail.php?tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
+                        onclick="window.location.href='?page=personnel_detail&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
                         <!-- <td><?php echo ($personnel_list['personnel_id']) ?></td> -->
                         <td><?php echo ($personnel_list['personnel_name']) ?></td>
                         <td><?php echo ($personnel_list['personnel_type_name']) ?></td>

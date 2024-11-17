@@ -49,24 +49,16 @@ $product = $stmt->fetch();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="../../style/personnel_insert.css">
+    <link rel="stylesheet" href="../../style/detail.css">
 
-    <style>
-        .edit-box {
-            margin: 3rem 10rem 4rem 8rem;
-        }
 
-        h1 {
-            margin-bottom: 1rem;
-        }
-    </style>
 </head>
 
 <body>
-    <div class="edit-box">
-        <h1 class="title">แก้ไขข้อมูลสินค้า</h1>
+    <div class="detail-body">
+        <h1 class="detail-title">แก้ไขข้อมูลสินค้า</h1>
 
-        <form class="form-container" action="" method="POST">
+        <form class="detail-form" action="" method="POST">
             <input type="hidden" name="id" value="<?php echo ($product['product_id']) ?>">
 
             <div class="box">
@@ -144,5 +136,3 @@ $product = $stmt->fetch();
 
 </html>
 
-http://localhost:8000/product_detail.php?tabel=&id=24&is_update=1
-http://localhost:8000/page/personnel/personnel_detail.php?tabel=personnel&id=41%20%20%20%20%20%20%20%20%20%20%20%20&is_update=1

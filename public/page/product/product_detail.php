@@ -58,6 +58,33 @@ $typeResults = $pdo->query($queryTypes);
 // ดึงข้อมูลแบรนด์สินค้า
 $querybrandTypes = "SELECT product_brand_id, product_brand_name FROM product_brand";
 $brandResults = $pdo->query($querybrandTypes);
+
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = $_POST['product_id'];
+    $barcode = $_POST['barcode'];
+    $name = $_POST['name'];
+    $price1 = $_POST['price_1'];
+    $price2 = $_POST['price_2'];
+    $price3 = $_POST['price_3'];
+    $price4 = $_POST['price_4'];
+    $capital = $_POST['capital'];
+    $type = $_POST['typename'];
+    $brand = $_POST['typebrandname'];
+
+    $stmt = $pdo->prepare("
+        UPDATE product 
+        SET product_barcode = ?, product_name = ?, product_price1 = ?, product_price2 = ?, 
+            product_price3 = ?, product_price4 = ?, product_capital = ?, product_type_id = ?, 
+            product_brand_id = ? 
+        WHERE product_id = ?
+    ");
+    $stmt->execute([$barcode, $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
+
+    // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
+    header("Location: ?page=product_detail&tabel=product&id=25&success=1");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -66,25 +93,23 @@ $brandResults = $pdo->query($querybrandTypes);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../style/detail.css">
     <title>รายละเอียด</title>
-    <link rel="stylesheet" href="../../style/detail.css"> <!-- ลิงก์ไปยังไฟล์ CSS เพื่อจัดการสไตล์ของหน้าเว็บ -->
 </head>
 
 <body>
-    <div class="main-body">
-        <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
-        <h1 class="title">รายละเอียดสินค้า</h1>
+    <div class="detail-body">
+        <h2 class="detail-title">รายละเอียดสินค้า</h2>
+ 
 
-        <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการสินค้า -->
-        <form action="product_update.php" method="POST">
+        <form class="detail-form" action="../../page/product/product_update.php" method="POST">
 
-            <!-- กำหนดค่า product_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของสินค้านี้ในฟอร์ม -->
+
             <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
 
-            <!-- ตารางแสดงรายละเอียดสินค้า -->
-            <table class="details-table">
+
+            <table class="detail-table">
                 <?php if ($tabel === 'product'): ?>
-                    <!-- แสดงรายละเอียดต่างๆ ของสินค้า เช่น รหัสสินค้า บาร์โค้ด และชื่อสินค้า -->
 
                     <tr>
                         <th>รหัสสินค้า:</th>
@@ -217,17 +242,34 @@ $brandResults = $pdo->query($querybrandTypes);
 
             <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
             <?php if ($is_update): ?>
-                <button class="submit-button" type="submit">บันทึก</button>
+                <button class="submit-button" type="submit"
+                    style=" border-radius: 6px;
+                        width: 120px;
+                        height: 40px;
+                        padding: 10px;
+                        margin-top:10px;
+                        /*border: 1px solid rgb(29, 188, 55);*/
+                        background-color: #333;
+                        text-decoration: none;
+                        color: #fff; ">
+                    บันทึก</button>
             <?php endif; ?>
         </form>
 
-        <!-- ลิงก์กลับไปยังหน้ารายการและรายละเอียดสินค้า -->
-        <a href="/?page=bar_product">กลับไปหน้ารายการสินค้า <?php echo ($tabel); ?></a>
+        <div class="detail-action">
+            <a href="/?page=bar_product">ย้อนกลับหน้า List_<?php echo ($tabel); ?></a>
 
-        <a href="/page/product/product_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $product['product_id']; ?>">กลับไปหน้ารายละเอียด
-        </a>
-        <a
-            href="product_detail.php?tabel=product&id=<?php echo $product['product_id']; ?>&is_update=1">ไปหน้าแก้ไข<?php echo $tabel; ?></a>
+            <?php if ($is_update): ?>
+                <a href="?page=product_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $product['product_id']; ?>" style="margin-right: 6px;">ย้อนกลับไปที่ Detail
+                </a>
+            <?php endif; ?>
+
+            <a href="?page=product_detail&tabel=product&id=<?php echo $product['product_id']; ?>&is_update=1">
+                ไปหน้าแก้ไข <?php echo $tabel; ?>
+            </a>
+        </div>
+
+
 
     </div>
 </body>
