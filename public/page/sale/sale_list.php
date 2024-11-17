@@ -11,6 +11,6 @@ require_once __DIR__ ."../../../../config/database_server.php";
     <title>Document</title>
 </head>
 <body>
-    this page
+    <h1>ข้อมูลการขายสินค้า</h1>
 </body>
 </html>

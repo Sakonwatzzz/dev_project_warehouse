@@ -76,7 +76,7 @@
                         break;
                     case "navigationbar_sale":
                         include __DIR__ . "/navigationbar_sale.php";
-                        include __DIR__ . "/../page/sale/sale_list.php";
+                        include __DIR__ . "/../page/sale/sale_bill.php";
                         break;
                     case "lot_product_list":
                         include __DIR__ . "/bar_product.php";
@@ -105,7 +105,7 @@
                             include __DIR__ . "/bar_product.php";
                         } elseif (in_array($page, ['supplier_list', 'supplier_insert', 'supplier_update'])) {
                             include __DIR__ . "/bar_supplier.php";
-                        } elseif (in_array($page, ['sale_list'])) {
+                        } elseif (in_array($page, ['sale_list','sale_bill','sale_status'])) {
                             include __DIR__ . "/navigationbar_sale.php";
                         } else {
                             echo "<h2>ไม่พบไฟล์ที่รองรับพารามิเตอร์: " . htmlspecialchars($page) . "</h2>";

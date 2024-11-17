@@ -77,19 +77,19 @@ require_once __DIR__ . '../../../config/database_server.php';
 <body>
     <div class="conthai">
         <div class="button-bb">
-            <a href="?page=sale" class="button-link">
+            <a href="?page=sale_bill" class="button-link">
                 <button>
                     <img src="../image/box.png" alt="">
                     <p>ข้อมูลบิลการขาย</p>
                 </button>
             </a>
-            <a href="?page=sale" class="button-link">
+            <a href="?page=sale_list" class="button-link">
                 <button>
                     <img src="../image/add-product.png" alt="">
                     <p>ข้อมูลการขายสินค้า</p>
                 </button>
             </a>
-            <a href="?page=sale" class="button-link">
+            <a href="?page=sale_status" class="button-link">
                 <button>
                     <img src="../image/box.png" alt="">
                     <p>ข้อมูลสถานะสินค้า</p>
