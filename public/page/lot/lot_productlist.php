@@ -211,7 +211,7 @@ ob_end_flush();
                             <td><?php echo ($lot_product_list['lot_product_status']) ?></td>
                             <td><?php echo ($lot_product_list['product_id']) ?></td>
                             <td>
-                                <a href="page/lot/lot_product_update.php?id=<?php echo ($lot_product_list['lot_id']) ?>">แก้ไข</a> |
+                            <a href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_id']) ?>">แก้ไข</a>
                                 <a href="?page=lot_product_list&id=<?php echo ($lot_product_list['lot_id']) ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                             </td>
                         </tr>
