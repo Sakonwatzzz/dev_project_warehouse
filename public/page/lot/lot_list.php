@@ -19,12 +19,23 @@ $query = "SELECT
     lot.store_id
 FROM
     lot
-    INNER JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-    INNER JOIN supplier ON lot.supplier_id = supplier.supplier_id
-    INNER JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-    INNER JOIN store ON lot.store_id = store.store_id";
-// สร้างคำสั่ง SQL เพื่อดึงข้อมูลสมาชิกจากตาราง member และประเภทสมาชิกจากตาราง member_type โดยใช้การ JOIN กัน
-
+    LEFT JOIN
+	lot_status
+	ON 
+		lot.lot_id = lot_status.lot_status_id
+	LEFT JOIN
+	supplier
+	ON 
+		lot.lot_id = supplier.supplier_id
+	LEFT JOIN
+	warehouse
+	ON 
+		lot.lot_id = warehouse.warehouse_id
+	LEFT JOIN
+	store
+	ON 
+		lot.lot_id = store.store_id";
+$result_lot_list = $pdo->query($query);
 
 // ดึงชื่อคลังมาแสดงผล
 $query = "SELECT lot_status_id, lot_status_name FROM lot_status";
@@ -47,13 +58,6 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 $store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
-// จำนวนข้อมูลทั้งหมดในตาราง
-$query = "SELECT COUNT(*) as total_count FROM lot";
-$stmt = $pdo->query($query);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$count = $row['total_count'];
-
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM lot WHERE lot_id = ?");
@@ -61,16 +65,27 @@ if (isset($_GET['id'])) {
     header("Location: index.php?page=lot_list");
 }
 
-// การแบ่งหน้า
-$records_per_page = 3;
-$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
-$offset = ($page - 1) * $records_per_page;
-$total_pages = ceil($count / $records_per_page);
+try {
+    // การแบ่งหน้า
+    $records_per_page = 5;
+    $page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
+    $offset = ($page - 1) * $records_per_page;
 
+    // จำนวนข้อมูลทั้งหมดในตาราง
+    $query = "SELECT COUNT(*) as total_count FROM lot";
+    $stmt = $pdo->query($query);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $count = $row['total_count'];
+    $total_pages = ceil($count / $records_per_page);
+} catch (PDOException $e) {
+    echo "Erro" . $e->getMessage();
+
+}
 
 // คำสั่ง SQL ดึงข้อมูลพร้อม LIMIT
 try {
-    $query = "SELECT
+    $query =
+        "SELECT
     lot_status.lot_status_id, 
     lot_status.lot_status_name, 
     supplier.supplier_id, 
@@ -87,10 +102,10 @@ try {
     lot.store_id
 FROM
     lot
-    INNER JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-    INNER JOIN supplier ON lot.supplier_id = supplier.supplier_id
-    INNER JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-    INNER JOIN store ON lot.store_id = store.store_id 
+    LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
+    LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+    LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
+    LEFT JOIN store ON lot.store_id = store.store_id
 LIMIT :offset, :records_per_page";
 
     // ตรวจสอบคำสั่ง SQL ก่อนการ execute
@@ -98,13 +113,12 @@ LIMIT :offset, :records_per_page";
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $result_lot = $stmt;
+    $result_lot_list = $stmt;
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
 
 ob_end_flush();
-
 ?>
 
 <!DOCTYPE html>
@@ -185,7 +199,8 @@ ob_end_flush();
             </div>
 
             <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหารายการรับสินค้า...">
+                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
+                    placeholder="ค้นหารายการรับสินค้า...">
             </div>
         </div>
 
@@ -211,31 +226,38 @@ ob_end_flush();
                 </tr>
             </thead>
             <tbody>
-                <?php while ($lot_list = $result_lot->fetch(PDO::FETCH_ASSOC)): ?>
-                    <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
-                    <tr >
-                        <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
-                        <td><?php echo ($lot_list['lot_id']) ?></td>
-                        <td><?php echo ($lot_list['lot_date']) ?></td>
-                        <td><?php echo ($lot_list['lot_detail']) ?></td>
-                        <td><?php echo ($lot_list['lot_status_id']) ?></td>
-                        <td><?php echo ($lot_list['warehouse_name']) ?></td>
-                        <td><?php echo ($lot_list['store_name']) ?></td>
-                        <td><?php echo ($lot_list['supplier_name']) ?></td>
-                        <td>
-                            <a href="page/lot/lot_update.php?id=<?php echo ($lot_list['lot_id']) ?>">แก้ไข</a>
-                            | <!-- ลิงก์ไปหน้าแก้ไขข้อมูลสมาชิก -->
-                            <a href="?page=lot_list&id=<?php echo ($lot_list['lot_id']) ?>"
-                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                            <!-- ลิงก์ไปหน้าลบข้อมูลสมาชิก และมีการยืนยันการลบ -->
-                        </td>
-                    </tr>
-                <?php endwhile; ?>
+                <?php
+                if ($result_lot_list->rowCount() > 0) {
+                    while ($lot_list = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
+                        <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
+                        <tr>
+                            <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
+                            <td><?php echo ($lot_list['lot_id']) ?></td>
+                            <td><?php echo ($lot_list['lot_detail']) ?></td>
+                            <td><?php echo ($lot_list['lot_date']) ?></td>
+                            <td><?php echo ($lot_list['lot_status_id']) ?></td>
+                            <td><?php echo ($lot_list['warehouse_name']) ?></td>
+                            <td><?php echo ($lot_list['store_name']) ?></td>
+                            <td><?php echo ($lot_list['supplier_name']) ?></td>
+                            <td>
+                                <a href="page/lot/lot_update.php?id=<?php echo ($lot_list['lot_id']) ?>">แก้ไข</a>
+                                | <!-- ลิงก์ไปหน้าแก้ไขข้อมูลสมาชิก -->
+                                <a href="?page=lot_list&id=<?php echo ($lot_list['lot_id']) ?>"
+                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                                <!-- ลิงก์ไปหน้าลบข้อมูลสมาชิก และมีการยืนยันการลบ -->
+                            </td>
+                        </tr>
+
+                    <?php endwhile;
+                } else {
+                    echo "<tr><td colspan='8'>ไม่มีข้อมูล</td></tr>";
+                } ?>
             </tbody>
         </table>
         <div class="box">
             <label for=""></label>
-            <a class="submit-button" href="page/lot/lot_insert.php" value="เพิ่ม">เพิ่มการรับสินค้า</a class="submit-button">
+            <a class="submit-button" href="page/lot/lot_insert.php" value="เพิ่ม">เพิ่มการรับสินค้า</a
+                class="submit-button">
             <!-- แก้คำว่า "lass" เป็น "class" -->
         </div>
         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
@@ -310,7 +332,7 @@ ob_end_flush();
 
     <script>
         // การแสดงผลการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search); // ตรวจสอบ URL
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
