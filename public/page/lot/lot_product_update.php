@@ -72,7 +72,7 @@ $result_product_id = $stmt_product->fetch();
                 <div class="box">
                     <label for="lot_id">รหัสล็อตสินค้า:</label>
                     <select name="lot_id" id="lot_id">
-                        <?php while ($lot_id_update = $result_lot_id->fetch(PDO::FETCH_ASSOC)) { ?> <!-- เปลี่ยนเป็น foreach -->
+                        <?php while ($lot_id_update = $result_lot_id->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo ($lot_id_update['lot_id']); ?>">
                                 <?php echo ($lot_id_update['lot_id']); ?>
                             </option>

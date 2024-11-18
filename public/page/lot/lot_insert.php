@@ -1,6 +1,31 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
+
+try {
+    // ดึงชื่อคลังมาแสดงผล
+    $query = "SELECT lot_status_id, lot_status_name FROM lot_status";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $status_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // ดึงชื่อคลังมาแสดงผล
+    $query = "SELECT warehouse_id, warehouse_name FROM warehouse";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // ดึงชื่อผู่ส่งมอบมาแสดงผล
+    $query = "SELECT supplier_id, supplier_name FROM supplier";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $supplier_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $query = "SELECT store_id, store_name FROM store";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "error" . $e->getMessage();
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lot_detail = $_POST['lot_detail'];
     $lot_date = $_POST['lot_date'];
@@ -13,10 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     VALUES (?, ?, ?, ?, ?, ?)');
     $stmt->execute([$lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
-
-
     $lot_id = $pdo->lastInsertId();
-    header("Location: lot/lot_detail.php?tabel=lot&id=" . $lot_id);
+    header("Location: lot/lot_list.php?tabel=lot&id=" . $lot_id);
     exit;
 }
 
@@ -37,44 +60,11 @@ $query = "SELECT
 	lot.store_id
 FROM
 	lot
-	INNER JOIN
-	lot_status
-	ON 
-		lot.lot_id = lot_status.lot_status_id
-	INNER JOIN
-	supplier
-	ON 
-		lot.lot_id = supplier.supplier_id
-	INNER JOIN
-	warehouse
-	ON 
-		lot.lot_id = warehouse.warehouse_id
-	INNER JOIN
-	store
-	ON 
-		lot.lot_id = store.store_id";
-$result_lot = $pdo->query($query);
+	LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
+    LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+    LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
+    LEFT JOIN store ON lot.store_id = store.store_id";
 
-// ดึงชื่อคลังมาแสดงผล
-$query = "SELECT lot_status_id, lot_status_name FROM lot_status";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$status_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
-// ดึงชื่อคลังมาแสดงผล
-$query = "SELECT warehouse_id, warehouse_name FROM warehouse";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
-// ดึงชื่อผู่ส่งมอบมาแสดงผล
-$query = "SELECT supplier_id, supplier_name FROM supplier";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$supplier_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$query = "SELECT store_id, store_name FROM store";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 ob_end_flush();
 ?>
@@ -153,7 +143,7 @@ ob_end_flush();
             <!-- loop -->
             <?php
             if (count($status_lot) > 0) {
-            ?>
+                ?>
                 <div class="box">
                     <label for="lot_stutas_name">สถานะ:</label>
                     <select name="lot_status_id" id="lot_status_id">
@@ -166,7 +156,7 @@ ob_end_flush();
                     </select><br>
                 </div>
 
-            <?php
+                <?php
             } else {
                 echo "No lot_stutas_name  available.";
             }
@@ -174,7 +164,7 @@ ob_end_flush();
             <!-- loop -->
             <?php
             if (count($warehouse_lot) > 0) {
-            ?>
+                ?>
                 <div class="box">
                     <label for="warehouse_name">คลังสินค้า:</label>
                     <select name="warehouse_id" id="warehouse_id">
@@ -186,14 +176,14 @@ ob_end_flush();
                     </select><br>
                 </div>
 
-            <?php
+                <?php
             } else {
                 echo "No warehouse available.";
             }
             ?>
             <?php
             if (count($store_lot) > 0) {
-            ?>
+                ?>
                 <div class="box">
                     <label for="store_name">ร้าน:</label>
                     <select name="store_id" id="store_id">
@@ -205,14 +195,14 @@ ob_end_flush();
                     </select><br>
                 </div>
 
-            <?php
+                <?php
             } else {
                 echo "No store_name available.";
             }
             ?>
             <?php
             if (count($warehouse_lot) > 0) {
-            ?>
+                ?>
                 <div class="box">
                     <label for="supplier_name">ผู้ส่งมอบ:</label>
                     <select name="supplier_id" id="supplier_id">
@@ -224,7 +214,7 @@ ob_end_flush();
                     </select><br>
                 </div>
 
-            <?php
+                <?php
             } else {
                 echo "No warehouse types available.";
             }
@@ -239,7 +229,7 @@ ob_end_flush();
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

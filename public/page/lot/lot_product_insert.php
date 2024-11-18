@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Get the last inserted ID and redirect
     $lot_product_id = $pdo->lastInsertId();
-    header("Location: lot/lot_product_id.php?tabel=lot&id=" . $lot_product_id);
+    header("Location: lot/lot_productlist.php?tabel=lot&id=" . $lot_product_id);
     exit;
 }
 

@@ -65,7 +65,7 @@ try {
     lot_product.lot_product_id, 
     lot_product.lot_id, 
     lot_product.lot_product_qty, 
-    lot_product.lot_product_remain,  -- แก้ไขที่นี่
+    lot_product.lot_product_remain,  
     lot_product.lot_product_capital, 
     lot_product.lot_product_date, 
     lot_product.lot_product_status,  
@@ -83,7 +83,6 @@ FROM
     lot_product.product_id = product.product_id
 LIMIT :offset, :records_per_page";
 
-    // เตรียมคำสั่ง SQL
     $stmt = $pdo->prepare($query);
     if (!$stmt) {
         echo "Failed to prepare the SQL query.";
