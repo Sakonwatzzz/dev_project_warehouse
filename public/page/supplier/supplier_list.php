@@ -26,7 +26,7 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM supplier WHERE supplier_id = ?");
     $stmt->execute([$id]);
-    header("Location: index.php?page=supplier_list");
+    header("Location: index.php?page=supplier_list&delete_success");
     exit;
 }
 
@@ -38,7 +38,7 @@ $total_pages = ceil($count / $records_per_page);
 
 // นับจำนวนรายการทั้งหมด
 try {
-    $total_query = "SELECT COUNT(*) FROM personnel";
+    $total_query = "SELECT COUNT(*) FROM supplier";
     $total_result = $pdo->query($total_query);
     $total_records = $total_result->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
@@ -62,7 +62,7 @@ try {
 }
 
 // Handle deletion based on ID
-if (isset($_GET['id'])) {
+/*if (isset($_GET['id'])) {
     $id = $_GET['id'];
 
     try {
@@ -74,8 +74,7 @@ if (isset($_GET['id'])) {
         header("Location: /?page=bar_supplier_list");
     } catch (PDOException $e) {
         echo "Error: " . $e->getMessage();
-    }
-}
+    }*/
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -191,9 +190,13 @@ if (isset($_GET['id'])) {
             </div>
         </div>
 
-        <div id="notification" class="notification">
+        <div id="notification-edit" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
             <div class="notification-body">แก้ไขผู้ส่งมอบสำเร็จ!</div>
+        </div>
+        <div id="notification-delete" class="notification">
+            <div class="notification-header">การแจ้งเตือน</div>
+            <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
         <table class="data-table" id="dataTable">
@@ -210,13 +213,13 @@ if (isset($_GET['id'])) {
             <tbody>
                 <?php while ($supplier_list = $supplierResults->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr
-                        onclick="window.location.href='page/supplier/supplier_detail.php?tabel=supplier&id=<?php echo ($supplier_list['supplier_id']) ?>'">
+                        onclick="window.location.href='?page=supplier_detail&tabel=supplier&id=<?php echo ($supplier_list['supplier_id']) ?>'">
                         <td><?php echo ($supplier_list['supplier_name']) ?></td>
                         <td><?php echo ($supplier_list['supplier_address']) ?></td>
                         <td><?php echo ($supplier_list['supplier_phone']) ?></td>
                         <td><?php echo ($supplier_list['supplier_detail']) ?></td>
                         <td>
-                            <a href="page/supplier/supplier_update.php?id=<?php echo ($supplier_list['supplier_id']) ?>">แก้ไข</a>
+                            <a href="?page=supplier_update&id=<?php echo ($supplier_list['supplier_id']) ?>">แก้ไข</a>
                             <a href="?page=supplier_list&id=<?php echo ($supplier_list['supplier_id']) ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
@@ -294,12 +297,17 @@ if (isset($_GET['id'])) {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block';
-
+            if (urlParams.has('edit_success')) {
+                const notificationEdit = document.getElementById('notification-edit');
+                notificationEdit.style.display = 'block';
                 setTimeout(() => {
-                    notification.style.display = 'none';
+                    notificationEdit.style.display = 'none';
+                }, 2000);
+            } else if (urlParams.has('delete_success')) {
+                const notificationDelete = document.getElementById('notification-delete');
+                notificationDelete.style.display = 'block';
+                setTimeout(() => {
+                    notificationDelete.style.display = 'none';
                 }, 2000);
             }
         });

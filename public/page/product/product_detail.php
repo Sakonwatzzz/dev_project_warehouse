@@ -100,11 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="detail-body">
         <h2 class="detail-title">รายละเอียดสินค้า</h2>
- 
-
         <form class="detail-form" action="../../page/product/product_update.php" method="POST">
-
-
             <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
 
 

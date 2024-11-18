@@ -85,46 +85,28 @@ ob_end_flush();
 
 
 
+
             <form class="form-container" action="" method="POST">
                 <div class="box">
-                    <label for="name" >ชื่อผู้ส่งมอบ :</label>
-                    <input type="text" id="name" name="name" required>
-                </div>
-        <form class="form-container" action="" method="POST">
-            <div class="box">
-                <label for="name">ชื่อผู้ส่งมอบ:</label>
-                <input type="text" id="name" name="name">
-            </div>
-
-            <div class="box">
-                <label for="address">ที่อยู่ผู้ส่งมอบ:</label>
-                <input type="text" id="address" name="address">
-            </div>
-
-            <div class="box">
-                <label for="phone">เบอร์โทรศัพท์:</label>
-                <input type="text" id="phone" name="phone">
-            </div>
-
-            <div class="box">
-                <label for="detail">รายละเอียด:</label>
-                <input type="text" id="detail" name="detail">
-            </div>
-
-                <div class="box">
-                    <label for="address">ที่อยู่ผู้ส่งมอบ :</label>
-                    <input type="text" id="address" name="address" required>
+                    <label for="name">ชื่อผู้ส่งมอบ:</label>
+                    <input type="text" id="name" name="name">
                 </div>
 
                 <div class="box">
-                    <label for="phone">เบอร์โทรศัพท์ :</label>
-                    <input type="text" id="phone" name="phone" required>
+                    <label for="address">ที่อยู่ผู้ส่งมอบ:</label>
+                    <input type="text" id="address" name="address">
                 </div>
 
                 <div class="box">
-                    <label for="detail">รายละเอียด :</label>
-                    <input type="text" id="detail" name="detail" required>
+                    <label for="phone">เบอร์โทรศัพท์:</label>
+                    <input type="text" id="phone" name="phone">
                 </div>
+
+                <div class="box">
+                    <label for="detail">รายละเอียด:</label>
+                    <input type="text" id="detail" name="detail">
+                </div>
+
 
                 <div class="box">
                     <label for=""></label>

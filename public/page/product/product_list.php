@@ -13,6 +13,32 @@ try {
     exit();
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = $_POST['product_id'];
+    $barcode = $_POST['barcode'];
+    $name = $_POST['name'];
+    $price1 = $_POST['price_1'];
+    $price2 = $_POST['price_2'];
+    $price3 = $_POST['price_3'];
+    $price4 = $_POST['price_4'];
+    $capital = $_POST['capital'];
+    $type = $_POST['typename'];
+    $brand = $_POST['typebrandname'];
+
+    $stmt = $pdo->prepare("
+        UPDATE product 
+        SET product_barcode = ?, product_name = ?, product_price1 = ?, product_price2 = ?, 
+            product_price3 = ?, product_price4 = ?, product_capital = ?, product_type_id = ?, 
+            product_brand_id = ? 
+        WHERE product_id = ?
+    ");
+    $stmt->execute([$barcode, $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
+
+    // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
+    header("Location: /?page=bar_product&edit_success");
+    exit;
+}
+
 // จำนวนข้อมูลทั้งหมดในตาราง
 $query = "SELECT COUNT(*) as total_count FROM product";
 $stmt = $pdo->query($query);
@@ -23,7 +49,7 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
     $stmt->execute([$id]);
-    header("Location: /?page=product_list");
+    header("Location: /?page=product_list&delete_success");
     exit;
 }
 
@@ -170,9 +196,13 @@ try {
 
         </div>
 
-        <div id="notification" class="notification">
+        <div id="notification-edit" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขสินค้าสำเร็จ!</div>
+            <div class="notification-body">แก้ไขบุคลากรสำเร็จ!</div>
+        </div>
+        <div id="notification-delete" class="notification">
+            <div class="notification-header">การแจ้งเตือน</div>
+            <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
         <table class="data-table" id="dataTable">
@@ -194,7 +224,7 @@ try {
                         <td><?php echo ($product_list['product_capital']); ?></td>
 
                         <td>
-                            <a href="page/product/product_update.php?id=<?php echo $product_list['product_id']; ?>">แก้ไข</a> |
+                            <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>">แก้ไข</a>|
                             <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
@@ -202,7 +232,7 @@ try {
             </tbody>
         </table>
 
-        
+
 
 
         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
@@ -277,12 +307,17 @@ try {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block';
-
+            if (urlParams.has('edit_success')) {
+                const notificationEdit = document.getElementById('notification-edit');
+                notificationEdit.style.display = 'block';
                 setTimeout(() => {
-                    notification.style.display = 'none';
+                    notificationEdit.style.display = 'none';
+                }, 2000);
+            } else if (urlParams.has('delete_success')) {
+                const notificationDelete = document.getElementById('notification-delete');
+                notificationDelete.style.display = 'block';
+                setTimeout(() => {
+                    notificationDelete.style.display = 'none';
                 }, 2000);
             }
         });

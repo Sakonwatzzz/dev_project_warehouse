@@ -35,20 +35,16 @@ $member = $stmt->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/member_edit.css">
-    <style>
-        .edit-box {
-            margin: 3rem 10rem 4rem 8rem;
-        }
-    </style>
+    <link rel="stylesheet" href="../../style/update.css">
+
     <title>Document</title>
 </head>
 
 <body>
-    <div class="edit-box">
-        <h2 class="sub-title">แก้ไขสมาชิก</h2>
+    <div class="update-body">
+        <h2 class="update-title">แก้ไขสมาชิก</h2>
 
-        <form class="form-container" action="member_update.php" method="POST">
+        <form class="update-form" action="../../page/member/member_update.php" method="POST">
             <input type="hidden" name="id" value="<?php echo ($member['member_id']) ?>">
 
             <div class="box">
@@ -89,8 +85,8 @@ $member = $stmt->fetch();
                 <p>ไม่พบข้อมูลประเภทสมาชิก</p>
             <?php } ?>
 
-            <div class="box">
-                <label for=""></label>
+            <div class="box-action">
+                <a href="/?page=bar_supplier">ยกเลิก</a>
                 <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
             </div>
         </form>

@@ -84,9 +84,9 @@
                         break;
                     default:
                         // ตรวจสอบพารามิเตอร์ที่รองรับใน array
-                        if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type', 'personnel_detail'])) {
+                        if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type', 'personnel_detail', 'personnel_update', 'personnel_group'])) {
                             include __DIR__ . "/bar_personnel.php";
-                        } elseif (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type','member_detail'])) {
+                        } elseif (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type', 'member_detail'])) {
                             include __DIR__ . "/bar_member.php";
                         } elseif (in_array($page, [
                             'product_list',
@@ -103,9 +103,9 @@
                             'lot_productlist',
                         ])) {
                             include __DIR__ . "/bar_product.php";
-                        } elseif (in_array($page, ['supplier_list', 'supplier_insert', 'supplier_update'])) {
+                        } elseif (in_array($page, ['supplier_list', 'supplier_insert', 'supplier_update', 'supplier_detail',])) {
                             include __DIR__ . "/bar_supplier.php";
-                        } elseif (in_array($page, ['sale_list','sale_bill','sale_status'])) {
+                        } elseif (in_array($page, ['sale_list', 'sale_bill', 'sale_status'])) {
                             include __DIR__ . "/navigationbar_sale.php";
                         } else {
                             echo "<h2>ไม่พบไฟล์ที่รองรับพารามิเตอร์: " . htmlspecialchars($page) . "</h2>";

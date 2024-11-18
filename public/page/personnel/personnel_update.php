@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $typename, $address,  $phone, $username, $password, $id]);
 
-    header("Location: /home.php?page=personnel_list&success=1");
+    header("Location: /?page=bar_personnel&edit_success");
     exit;
 }
 
@@ -38,35 +38,31 @@ $personnel = $stmt->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/member_edit.css">
-    <style>
-        .edit-box {
-            margin: 3rem 10rem 4rem 8rem;
-        }
-    </style>
+    <link rel="stylesheet" href="../../style/update.css">
+
     <title>Edit Personnel</title>
 </head>
 
 <body>
-    <div class="edit-box">
-        <h2 class="title">แก้ไขบุคลากร</h2>
+    <div class="update-body">
+        <h2 class="update-title">แก้ไขบุคลากร</h2>
 
-        <form class="form-container" action="personnel_update.php" method="POST">
-            <input type="hidden" name="id" value="<?php echo($personnel['personnel_id']) ?>">
+        <form class="update-form" action="../../page/personnel/personnel_update.php" method="POST">
+            <input type="hidden" name="id" value="<?php echo ($personnel['personnel_id']) ?>">
 
             <div class="box">
                 <label for="name">ชื่อบุคลากร:</label>
-                <input type="text" name="name" value="<?php echo($personnel['personnel_name']) ?>">
+                <input type="text" name="name" value="<?php echo ($personnel['personnel_name']) ?>">
             </div>
 
 
             <?php if ($results->rowCount() > 0) { ?>
                 <div class="box">
                     <label for="typename">ประเภทบุคลากร:</label>
-                    <select name="typename" >
+                    <select name="typename">
                         <?php while ($personnel_update = $results->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo($personnel_update['personnel_type_id']); ?>" <?= ($personnel_update['personnel_type_id'] == $personnel['personnel_type_id']) ? 'selected' : ''; ?>>
-                                <?php echo($personnel_update['personnel_type_name']); ?>
+                            <option value="<?php echo ($personnel_update['personnel_type_id']); ?>" <?= ($personnel_update['personnel_type_id'] == $personnel['personnel_type_id']) ? 'selected' : ''; ?>>
+                                <?php echo ($personnel_update['personnel_type_name']); ?>
                             </option>
                         <?php } ?>
                     </select>
@@ -77,27 +73,27 @@ $personnel = $stmt->fetch();
 
             <div class="box">
                 <label for="address">ที่อยู่บุคลากร:</label>
-                <input type="text" name="address" value="<?php echo($personnel['personnel_address']) ?>">
+                <input type="text" name="address" value="<?php echo ($personnel['personnel_address']) ?>">
             </div>
 
             <div class="box">
                 <label for="phone">เบอร์โทรศัพท์บุคลากร:</label>
-                <input type="text" name="phone" value="<?php echo($personnel['personnel_phone']) ?>">
+                <input type="text" name="phone" value="<?php echo ($personnel['personnel_phone']) ?>">
             </div>
 
             <div class="box">
                 <label for="username">ชื่อผู้ใช้:</label>
-                <input type="text" name="username" value="<?php echo($personnel['personnel_username']) ?>">
+                <input type="text" name="username" value="<?php echo ($personnel['personnel_username']) ?>">
             </div>
 
             <div class="box">
                 <label for="password">รหัสผ่าน:</label>
-                <input type="text" name="password" value="<?php echo($personnel['personnel_password']) ?>">
+                <input type="text" name="password" value="<?php echo ($personnel['personnel_password']) ?>">
             </div>
 
 
-            <div class="box">
-                <label for=""></label>
+            <div class="box-action">
+                <a href="/?page=bar_personnel">ยกเลิก</a>
                 <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
             </div>
         </form>

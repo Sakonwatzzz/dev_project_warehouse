@@ -1,0 +1,92 @@
+.update-body {
+  /*border: 2px solid red;*/
+  margin: 2.5rem 10rem 0 10rem;
+  padding: 1rem;
+
+  .update-title {
+    /*border: 1px solid rgb(0, 255, 34);*/
+    padding: 10px;
+    background-color: #3399cc;
+    color: #fff;
+  }
+
+  .update-form {
+    border: 1px solid rgb(161, 161, 161);
+
+    .update-table {
+      /*border: 2px solid rgb(247, 0, 255);*/
+      width: 100%;
+
+      & tr th {
+        border: 1px solid rgb(161, 161, 161);
+        background-color: rgb(136, 208, 239);
+        padding: 10px 0 10px 0;
+        width: 20%;
+      }
+      & tr td {
+        border: 1px solid rgb(161, 161, 161);
+        padding: 10px 0 10px 5px;
+        background-color: #fff;
+
+        & input {
+          width: 100%;
+          border: none;
+          background-color: #fff;
+          outline: none;
+        }
+      }
+    }
+
+    & .box {
+      font-size: 18px;
+      padding: 10px;
+      /*border: 1px solid red;*/
+      display: flex;
+
+      & label {
+        width: 200px;
+        margin-right: 10px;
+      }
+      & input {
+        width: 100%;
+        padding: 10px;
+      }
+    }
+
+    & .box-action {
+      display: flex;
+      margin-left: 57rem;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      gap: 5px;
+      & button {
+        width: 120px;
+        padding: 10px;
+
+        background-color: #000;
+        color: #fff;
+        border-radius: 6px;
+      }
+      & button:hover {
+        background-color: #333;
+      }
+      & a {
+        text-align: center;
+        width: 120px;
+        padding: 10px;
+        background-color: #000;
+        color: #fff;
+        border-radius: 6px;
+        color: #fff;
+        text-decoration: none;
+      }
+      & a:hover {
+        background-color: #333;
+      }
+    }
+    & select {
+        width: 100%;
+        padding: 10px;
+    }
+  }
+}

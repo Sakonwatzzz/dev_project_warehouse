@@ -20,12 +20,33 @@ try {
     exit();
 }
 
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = $_POST['id'];
+    $name = $_POST['name'];
+    $typename = $_POST['typename'];
+    $address = $_POST['address'];
+    $phone = $_POST['phone'];
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $stmt = $pdo->prepare("
+        UPDATE personnel 
+        SET personnel_name = ?,personnel_type_id = ?, personnel_address = ?, personnel_phone = ?, personnel_username = ?, personnel_password = ? 
+        WHERE personnel_id = ?
+    ");
+    $stmt->execute([$name, $typename, $address,  $phone, $username, $password, $id]);
+
+    header("Location: /?page=bar_personnel&edit_success");
+    exit;
+}
+
 // ตรวจสอบว่ามีการส่งค่า id มาหรือไม่
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
     $stmt->execute([$id]);
-    header("Location: index.php?page=personnel_list");
+    header("Location: index.php?page=personnel_list&delete_success");
     exit;
 }
 
@@ -36,13 +57,6 @@ $stmt = $pdo->query($query);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $count = $row['total_count'];
 
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
-    $stmt->execute([$id]);
-    header("Location: index.php?page=personnel_list");
-    exit;
-}
 
 // การแบ่งหน้า
 $records_per_page = 5;
@@ -196,11 +210,16 @@ try {
             <div class="search">
                 <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาบุคลากร...">
             </div>
+
         </div>
 
-        <div id="notification" class="notification">
+        <div id="notification-edit" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
             <div class="notification-body">แก้ไขบุคลากรสำเร็จ!</div>
+        </div>
+        <div id="notification-delete" class="notification">
+            <div class="notification-header">การแจ้งเตือน</div>
+            <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
         <table class="data-table" id="dataTable">
@@ -217,17 +236,19 @@ try {
             </thead>
             <tbody>
                 <?php while ($personnel_list = $resultspersonnel->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr
-                        onclick="window.location.href='?page=personnel_detail&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'">
+                    <tr>
                         <!-- <td><?php echo ($personnel_list['personnel_id']) ?></td> -->
-                        <td><?php echo ($personnel_list['personnel_name']) ?></td>
-                        <td><?php echo ($personnel_list['personnel_type_name']) ?></td>
+                        <td onclick="window.location.href='?page=personnel_detail&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'"><?php echo ($personnel_list['personnel_name']) ?></td>
+                        
+                        <td onclick="window.location.href='?page=personnel_group&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>&type=<?php echo urlencode($personnel_list['personnel_type_name']) ?>'">
+                            <?php echo ($personnel_list['personnel_type_name']) ?>
+                        </td>
+
                         <!-- <td><?php echo ($personnel_list['personnel_address']) ?></td>
                         <td><?php echo ($personnel_list['personnel_phone']) ?></td> -->
                         <td><?php echo ($personnel_list['personnel_username']) ?></td>
                         <td>
-                            <a href="page/personnel/personnel_update.php?id=<?php echo $personnel_list['personnel_id']; ?>">แก้ไข</a>
-                            |
+                            <a href="?page=personnel_update&id=<?php echo ($personnel_list['personnel_id']) ?>">แก้ไข</a>
                             <a href="?page=bar_personnel&id=<?php echo $personnel_list['personnel_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
@@ -307,12 +328,17 @@ try {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block';
-
+            if (urlParams.has('edit_success')) {
+                const notificationEdit = document.getElementById('notification-edit');
+                notificationEdit.style.display = 'block';
                 setTimeout(() => {
-                    notification.style.display = 'none';
+                    notificationEdit.style.display = 'none';
+                }, 2000);
+            } else if (urlParams.has('delete_success')) {
+                const notificationDelete = document.getElementById('notification-delete');
+                notificationDelete.style.display = 'block';
+                setTimeout(() => {
+                    notificationDelete.style.display = 'none';
                 }, 2000);
             }
         });

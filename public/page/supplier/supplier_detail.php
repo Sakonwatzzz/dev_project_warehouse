@@ -38,22 +38,22 @@ if (!$supplier) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../style/detail.css">
     <title>รายละเอียด</title>
-    <link rel="stylesheet" href="../../style/detail.css"> <!-- ลิงก์ไปยังไฟล์ CSS เพื่อจัดการสไตล์ของหน้าเว็บ -->
+
 </head>
 
 <body>
-    <div class="main-body">
-        <!-- แสดงหัวเรื่องของหน้าเว็บโดยนำประเภทข้อมูลที่เรียกจาก URL มาทำเป็นหัวเรื่อง -->
-        <h1 class="title">รายละเอียดผู้ส่งมอบ</h1>
+    <div class="detail-body">
+        <h1 class="detail-title">รายละเอียดผู้ส่งมอบ</h1>
 
-        <!-- ฟอร์มที่ใช้ในการส่งข้อมูลสำหรับอัพเดตรายการผู้ส่งมอบ โดยจะส่งไปยังไฟล์ `supplier_update.php` -->
-        <form action="supplier_update.php" method="POST">
+
+        <form class="detail-form" action="../../page/supplier/supplier_update.php" method="POST">
             <!-- กำหนดค่า supplier_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของผู้ส่งมอบนี้ในฟอร์ม -->
             <input type="hidden" name="supplier_id" value="<?php echo $supplier['supplier_id']; ?>">
 
             <!-- ตารางแสดงรายละเอียดผู้ส่งมอบ -->
-            <table class="details-table">
+            <table class="detail-table">
                 <?php if ($tabel === 'supplier'): ?>
                     <!-- ตรวจสอบว่าประเภทข้อมูลเป็น 'supplier' เพื่อแสดงรายละเอียดผู้ส่งมอบเท่านั้น -->
 
@@ -116,17 +116,32 @@ if (!$supplier) {
 
             <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
             <?php if ($is_update): ?>
-                <button class="submit-button" type="submit">บันทึก </button>
-
+                <button class="submit-button" type="submit"
+                    style=" border-radius: 6px;
+                        width: 120px;
+                        height: 40px;
+                        padding: 10px;
+                        margin-top:10px;
+                        /*border: 1px solid rgb(29, 188, 55);*/
+                        background-color: #333;
+                        text-decoration: none;
+                        color: #fff; ">
+                    บันทึก</button>
             <?php endif; ?>
         </form>
 
-        <!-- ลิงก์กลับไปยังหน้ารายการผู้ส่งมอบ, หน้ารายละเอียด และหน้าสำหรับแก้ไข -->
-        <a href="/?page=bar_<?php echo $tabel; ?>">กลับไปหน้ารายการผู้ส่งมอบ <?php echo $tabel; ?></a>
-        <a href="supplier_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $supplier['supplier_id']; ?>">กลับไปหน้ารายละเอียด
-            <?php echo $tabel; ?></a>
-        <a href="supplier_detail.php?tabel=<?php echo $tabel; ?>&id=<?php echo $supplier['supplier_id']; ?>&is_update=1">ไปหน้าแก้ไข
-            <?php echo $tabel; ?></a>
+        <div class="detail-action">
+            <a href="/?page=bar_supplier">ย้อนกลับหน้า List_<?php echo ($tabel); ?></a>
+
+            <?php if ($is_update): ?>
+                <a href="?page=supplier_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $supplier['supplier_id']; ?>" style="margin-right: 6px;">ย้อนกลับไปที่ Detail
+                </a>
+            <?php endif; ?>
+
+            <a href="?page=supplier_detail&tabel=supplier&id=<?php echo $supplier['supplier_id']; ?>&is_update=1">
+                ไปหน้าแก้ไข <?php echo $tabel; ?>
+            </a>
+        </div>
     </div>
 </body>
 
