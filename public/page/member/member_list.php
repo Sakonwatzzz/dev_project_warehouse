@@ -79,8 +79,8 @@ ob_end_flush();
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8"> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
     <style>
         .title {
@@ -207,8 +207,8 @@ ob_end_flush();
             </thead>
             <tbody>
                 <?php while ($member_list = $resultmember->fetch(PDO::FETCH_ASSOC)): ?>
-                    
-                        <tr onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'">
+
+                    <tr onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'">
                         <!-- <td><?php echo ($member_list['member_id']) ?></td> แสดงรหัสสมาชิก -->
                         <td><?php echo ($member_list['member_name']) ?></td> <!-- แสดงชื่อสมาชิก -->
                         <!-- <td><?php echo ($member_list['member_address']) ?></td> แสดงที่อยู่สมาชิก -->
@@ -216,14 +216,14 @@ ob_end_flush();
                         <!-- <td><?php echo ($member_list['member_register_date']) ?></td> แสดงวันที่ลงทะเบียน -->
                         <td><?php echo ($member_list['member_type_name']) ?></td> <!-- แสดงประเภทสมาชิก -->
                         <td>
-                            <a href="page/member/member_update.php?id=<?php echo ($member_list['member_id']) ?>">แก้ไข</a>
+                            <a href="?page=member_update&id=<?php echo ($member_list['member_id']) ?>">แก้ไข</a>
                             |
                             <a href="?page=member_list&id=<?php echo ($member_list['member_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                            
+
                         </td>
-                        </tr>
-                    <?php endwhile; ?>
+                    </tr>
+                <?php endwhile; ?>
             </tbody>
         </table>
 

@@ -79,7 +79,6 @@ try {
     $total_pages = ceil($count / $records_per_page);
 } catch (PDOException $e) {
     echo "Erro" . $e->getMessage();
-
 }
 
 // คำสั่ง SQL ดึงข้อมูลพร้อม LIMIT
@@ -240,7 +239,7 @@ ob_end_flush();
                             <td><?php echo ($lot_list['store_name']) ?></td>
                             <td><?php echo ($lot_list['supplier_name']) ?></td>
                             <td>
-                                <a href="page/lot/lot_update.php?id=<?php echo ($lot_list['lot_id']) ?>">แก้ไข</a>
+                                <a href="?page=lot_update&id=<?php echo ($lot_list['lot_id']) ?>">แก้ไข</a>
                                 | <!-- ลิงก์ไปหน้าแก้ไขข้อมูลสมาชิก -->
                                 <a href="?page=lot_list&id=<?php echo ($lot_list['lot_id']) ?>"
                                     onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
@@ -248,7 +247,7 @@ ob_end_flush();
                             </td>
                         </tr>
 
-                    <?php endwhile;
+                <?php endwhile;
                 } else {
                     echo "<tr><td colspan='8'>ไม่มีข้อมูล</td></tr>";
                 } ?>
@@ -332,7 +331,7 @@ ob_end_flush();
 
     <script>
         // การแสดงผลการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search); // ตรวจสอบ URL
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
