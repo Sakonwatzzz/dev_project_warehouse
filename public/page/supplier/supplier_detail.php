@@ -11,9 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     exit();
 }
 
-$tabel = $_GET['tabel'];
-$id = $_GET['id'];
-$is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false;
 
 switch ($tabel) {
     case 'supplier':

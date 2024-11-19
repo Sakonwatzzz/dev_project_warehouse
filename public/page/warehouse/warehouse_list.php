@@ -1,49 +1,71 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+// if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
+//     die("ระบุประเภทหรือ ID ไม่ถูกต้อง");
+// }
+// if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+//     $warehouse_id = $_POST['warehouse_id'];
+//     // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
+//     header("Location: warehouse_list.php?tabel=warehouse&id=" . $warehouse_id);
+//     exit();
+// }
+// // ดึงค่าตัวแปรจาก URL เพื่อระบุประเภทและ ID
+// $tabel = $_GET['tabel'];
+// $id = $_GET['id'];
+// $is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false; // เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
+
+// // ตรวจสอบประเภทที่กำหนดมาและทำการ query เพื่อดึงข้อมูลคลังสินค้า
+// switch ($tabel) {
+//     case 'warehouse':
+//         $stmt = $pdo->prepare("SELECT warehouse.* FROM warehouse WHERE warehouse_id = ?");
+//         break;
+//     default:
+//         die("ระบุประเภทไม่ถูกต้อง");
+// }
+// $stmt->execute([$id]);
+// $warehouse = $stmt->fetch(PDO::FETCH_ASSOC);
+// if (!$warehouse) {
+//     echo "ไม่พบข้อมูล";
+//     exit();
+// }
+
 // จัดการการเพิ่มข้อมูล
+// if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+//     $warehouse_name = trim($_POST['warehouse_name'] ?? '');
+//     $warehouse_status = trim($_POST['warehouse_status'] ?? '');
+//     if (!empty($warehouse_name) && !empty($warehouse_status)) {
+//         try {
+//             if ($is_update) {
+//                 $stmt = $pdo->prepare("UPDATE warehouse SET warehouse_name = ?, warehouse_status = ? WHERE warehouse_id = ?");
+//                 $stmt->execute([$warehouse_name, $warehouse_status, $warehouse_id]);
+//                 header("Location: ?page=warehouse_list&success");
+//                 exit();
+//             } else {
+//                 $stmt = $pdo->prepare("INSERT INTO warehouse (warehouse_name, warehouse_status) VALUES (?, ?)");
+//                 $stmt->execute([$warehouse_name, $warehouse_status]);
+//                 header("Location: ?page=warehouse_list&success");
+//                 exit();
+//             }
+//         } catch (PDOException $e) {
+//             echo 'Database error: ' . htmlspecialchars($e->getMessage());
+//         }
+//     } else {
+//         echo 'Error: ชื่อหรือสถานะของประเภทสินค้าต้องไม่ว่าง';
+//     }
+// }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $warehousename = trim($_POST['warehousename'] ?? '');
-    $warehouse_status = trim($_POST['warehouse_status'] ?? '');
-
-    if (!empty($warehousename) && !empty($warehouse_status)) {
-        try {
-            $stmt = $pdo->prepare('INSERT INTO warehouse (warehouse_name, warehouse_status) VALUES (?, ?)');
-            $stmt->execute([$warehousename, $warehouse_status]);
-            header("Location: ?page=warehouse_list&success");
-            exit;
-        } catch (PDOException $e) {
-            echo 'Database error: ' . htmlspecialchars($e->getMessage());
-        }
-    } else {
-        echo 'Error: ชื่อหรือสถานะของประเภทสินค้าต้องไม่ว่าง';
-    }
-}
-
-if (isset($_POST['action']) && $_POST['action'] === 'update') {
-    // Set JSON header
-    header('Content-Type: application/json');
-
-    $warehouse_id = $_POST['warehouse_id'];
     $warehouse_name = $_POST['warehouse_name'];
     $warehouse_status = $_POST['warehouse_status'];
 
-    try {
-        $stmt = $pdo->prepare("UPDATE warehouse SET warehouse_name = ?, warehouse_status = ? WHERE warehouse_id = ?");
-        $result = $stmt->execute([$warehouse_name, $warehouse_status, $warehouse_id]);
 
-        if ($result) {
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to update']);
-        }
-        exit;
-    } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        exit;
-    }
+    $stmt = $pdo->prepare('INSERT INTO warehouse (warehouse_name, warehouse_status) VALUES (?,?)');
+    $stmt->execute([$warehouse_name, $warehouse_status]);
+
+    header('Location: /index.php?page=warehouse_list');
+    exit;
 }
-
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     try {
@@ -65,7 +87,7 @@ $count = $row['total_count'];
 
 
 // การแบ่งหน้า
-$records_per_page = 5;
+$records_per_page = 3;
 $page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
 $offset = ($page - 1) * $records_per_page;
 
@@ -80,17 +102,12 @@ try {
 }
 
 // ดึงข้อมูลตามการแบ่งหน้า
-try {
-    $query = "SELECT warehouse_id, warehouse_name, warehouse_status FROM warehouse LIMIT :offset, :records_per_page";
-    $stmt = $pdo->prepare($query);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-    $stmt->execute();
-    $warehouseResults = $stmt;
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}
-
+$query = "SELECT warehouse_id, warehouse_name, warehouse_status FROM warehouse LIMIT :offset, :records_per_page";
+$stmt = $pdo->prepare($query);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+$stmt->execute();
+$warehouseResults = $stmt;
 
 ?>
 
@@ -214,6 +231,7 @@ try {
         </div>
 
         <table class="data-table" id="dataTable">
+
             <thead>
                 <tr>
                     <th>รหัส</th>
@@ -222,17 +240,22 @@ try {
                     <th>การจัดการ</th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
+            <tbody class="tableBody">
+
                 <tr>
                     <form action="" method="POST">
-                        <td></td>
                         <td>
-                            <input type="text" id="warehousename" name="warehousename" placeholder="ชื่อ" required
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+                            <input type="hidden" name="warehouse_id" value="<?php echo $warehouse['warehouse_id']; ?>">
+
                         </td>
                         <td>
-                            <input type="text" id="warehouse_status" name="warehouse_status" placeholder="สถานะ"
-                                required
+                            <input type="text" id="$warehouse_name" name="warehouse_name"
+                                placeholder="ชื่อ"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" " />
+                       
+                        </td>
+                        <td>
+                            <input type=" text" id="warehouse_status" name="warehouse_status" placeholder="สถานะ"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
                         </td>
                         <td>
@@ -244,18 +267,21 @@ try {
                     </form>
                 </tr>
 
-                <?php while ($warehouse_list = $warehouseResults->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr <?php echo ($warehouse_list['warehouse_id']) ?>>
-                        <td><?php echo ($warehouse_list['warehouse_id']) ?></td>
-                        <td><?php echo ($warehouse_list['warehouse_name']) ?></td>
-                        <td><?php echo ($warehouse_list['warehouse_status']) ?></td>
+                <?php while ($warehouse = $warehouseResults->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr <?php echo ($warehouse['warehouse_id']) ?>>
+                        <td><?php echo ($warehouse['warehouse_id']) ?></td>
+                        <td><?php echo ($warehouse['warehouse_name']) ?></td>
+                        <td><?php echo ($warehouse['warehouse_status']) ?></td>
                         <td>
-                            <a href="?page=warehouse_update&id=<?php echo ($warehouse_list['warehouse_id']) ?>">แก้ไข</a>|
-                            <a href="?page=warehouse_list&id=<?php echo $warehouse_list['warehouse_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                            <a href="?page=warehouse_update&id=<?php echo ($warehouse['warehouse_id']) ?>">แก้ไข</a>
+
+                            <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+
                         </td>
                     </tr>
                 <?php endwhile; ?>
             </tbody>
+
         </table>
 
         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
