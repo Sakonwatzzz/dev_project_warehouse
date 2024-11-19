@@ -1,72 +1,63 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-// if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
-//     die("ระบุประเภทหรือ ID ไม่ถูกต้อง");
-// }
-// if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-//     $warehouse_id = $_POST['warehouse_id'];
-//     // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
-//     header("Location: warehouse_list.php?tabel=warehouse&id=" . $warehouse_id);
-//     exit();
-// }
-// // ดึงค่าตัวแปรจาก URL เพื่อระบุประเภทและ ID
-// $tabel = $_GET['tabel'];
-// $id = $_GET['id'];
-// $is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false; // เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
+// ตัวแปร $id จะรับค่าจากพารามิเตอร์ใน URL ที่มีชื่อว่า id ถ้าพารามิเตอร์นี้มีอยู่ใน URL
+// การใช้ isset() ทำให้ตรวจสอบได้ว่า $_GET['id'] มีการส่งค่าเข้ามาหรือไม่ /ถ้ามีค่า $_GET['id'], ก็จะใช้ค่าในนั้น; ถ้าไม่มี, ก็จะกำหนดให้เป็น null
+$id = isset($_GET['id']) ? $_GET['id'] : null;
+$is_update = !is_null($id);
 
-// // ตรวจสอบประเภทที่กำหนดมาและทำการ query เพื่อดึงข้อมูลคลังสินค้า
-// switch ($tabel) {
-//     case 'warehouse':
-//         $stmt = $pdo->prepare("SELECT warehouse.* FROM warehouse WHERE warehouse_id = ?");
-//         break;
-//     default:
-//         die("ระบุประเภทไม่ถูกต้อง");
-// }
-// $stmt->execute([$id]);
-// $warehouse = $stmt->fetch(PDO::FETCH_ASSOC);
-// if (!$warehouse) {
-//     echo "ไม่พบข้อมูล";
-//     exit();
-// }
-
-// จัดการการเพิ่มข้อมูล
-// if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-//     $warehouse_name = trim($_POST['warehouse_name'] ?? '');
-//     $warehouse_status = trim($_POST['warehouse_status'] ?? '');
-//     if (!empty($warehouse_name) && !empty($warehouse_status)) {
-//         try {
-//             if ($is_update) {
-//                 $stmt = $pdo->prepare("UPDATE warehouse SET warehouse_name = ?, warehouse_status = ? WHERE warehouse_id = ?");
-//                 $stmt->execute([$warehouse_name, $warehouse_status, $warehouse_id]);
-//                 header("Location: ?page=warehouse_list&success");
-//                 exit();
-//             } else {
-//                 $stmt = $pdo->prepare("INSERT INTO warehouse (warehouse_name, warehouse_status) VALUES (?, ?)");
-//                 $stmt->execute([$warehouse_name, $warehouse_status]);
-//                 header("Location: ?page=warehouse_list&success");
-//                 exit();
-//             }
-//         } catch (PDOException $e) {
-//             echo 'Database error: ' . htmlspecialchars($e->getMessage());
-//         }
-//     } else {
-//         echo 'Error: ชื่อหรือสถานะของประเภทสินค้าต้องไม่ว่าง';
-//     }
-// }
+//ถ้าตรวจพบว่า $is_update เป็น true (หมายความว่าเรากำลังอัปเดตข้อมูล), 
+//โค้ดจะทำการดึงข้อมูลจากฐานข้อมูลของ warehouse โดยใช้ id ที่ได้รับจากพารามิเตอร์ URL เพื่อค้นหาข้อมูลที่ต้องการอัปเดต.
+if ($is_update) {
+    // ดึงข้อมูลของ ID ที่ต้องการแก้ไข
+    $query = "SELECT * FROM warehouse WHERE warehouse_id = ?";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$id]);
+    $warehouse = $stmt->fetch();
+} else {
+    $warehouse = ['warehouse_name' => '', 'warehouse_status' => '']; // ค่าเปล่าสำหรับการเพิ่มข้อมูลใหม่
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $warehouse_id = $_POST['warehouse_id'];
     $warehouse_name = $_POST['warehouse_name'];
     $warehouse_status = $_POST['warehouse_status'];
 
+    /* ตัวแปร $is_update จะถูกกำหนดไว้ในโค้ดก่อนหน้านี้ว่าเป็น true ถ้ามีการส่งค่า id (หมายความว่าเราต้องการอัปเดตข้อมูลที่มีอยู่ในฐานข้อมูล)
+     และจะเป็น false ถ้าไม่มีการส่ง id (หมายความว่าเราต้องการเพิ่มข้อมูลใหม่) */
 
-    $stmt = $pdo->prepare('INSERT INTO warehouse (warehouse_name, warehouse_status) VALUES (?,?)');
-    $stmt->execute([$warehouse_name, $warehouse_status]);
+    if ($is_update) {
+        /* ถ้า $is_update เป็น true (หมายถึงการอัปเดตข้อมูล), จะทำการเตรียมคำสั่ง SQL UPDATE 
+        เพื่ออัปเดตข้อมูลในตาราง warehouse ตาม warehouse_id ที่กำหนด */
+        $stmt = $pdo->prepare("
+    UPDATE warehouse
+    SET warehouse_name = ?, warehouse_status = ?
+    WHERE warehouse_id = ?
+    ");
+        $stmt->execute([$warehouse_name, $warehouse_status, $warehouse_id]);
+    } else {
 
-    header('Location: /index.php?page=warehouse_list');
+        $stmt = $pdo->prepare('INSERT INTO warehouse (warehouse_name, warehouse_status) VALUES (?,?)');
+        $stmt->execute([$warehouse_name, $warehouse_status]);
+    }
+    // Redirect กลับไปที่หน้า warehouse_list
+    header('Location: ?page=warehouse_list');
     exit;
 }
-if (isset($_GET['id'])) {
+/* ------------------------------------------------------------ 
+การใช้ if ($is_update) สองครั้งมีจุดประสงค์ที่แตกต่างกัน
+ครั้งแรกเพื่อเช็คว่าเรากำลังดึงข้อมูลเพื่ออัปเดต (หรือแสดงฟอร์มเปล่าสำหรับเพิ่มข้อมูลใหม่)
+ครั้งที่สองเพื่อเช็คว่าเรากำลังดำเนินการอัปเดตหรือเพิ่มข้อมูลหลังจากที่ฟอร์มถูกส่ง
+ในทั้งสองกรณี, $is_update ถูกใช้เพื่อทำให้โค้ดสามารถแยกการทำงานระหว่างการ อัปเดต และ เพิ่ม ข้อมูลได้อย่างถูกต้อง. 
+*/
+
+
+
+// ตรวจสอบว่ากำลังลบหรือแก้ไข
+$is_del = isset($_GET['is_del']) ? (bool) $_GET['is_del'] : false;
+
+// ถ้าเป็นการลบ
+if ($is_del && isset($_GET['id'])) {
     $id = $_GET['id'];
     try {
         $stmt = $pdo->prepare("DELETE FROM warehouse WHERE warehouse_id = ?");
@@ -77,7 +68,6 @@ if (isset($_GET['id'])) {
         echo "Error: " . $e->getMessage();
     }
 }
-
 
 // จำนวนข้อมูลทั้งหมดในตาราง
 $query = "SELECT COUNT(*) as total_count FROM warehouse";
@@ -243,45 +233,79 @@ $warehouseResults = $stmt;
             <tbody class="tableBody">
 
                 <tr>
-                    <form action="" method="POST">
-                        <td>
-                            <input type="hidden" name="warehouse_id" value="<?php echo $warehouse['warehouse_id']; ?>">
+                    <!-- ฟอร์มเพิ่มข้อมูลจะไม่แสดงผลเมื่ออยู่ในโหมดการแก้ไข ($is_update == true). -->
+                    <?php if (!$is_update): ?>
 
-                        </td>
-                        <td>
-                            <input type="text" id="$warehouse_name" name="warehouse_name"
-                                placeholder="ชื่อ"
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" " />
-                       
-                        </td>
-                        <td>
-                            <input type=" text" id="warehouse_status" name="warehouse_status" placeholder="สถานะ"
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
-                        </td>
-                        <td>
-                            <button type="submit"
-                                class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
-                                เพิ่ม
-                            </button>
-                        </td>
-                    </form>
+                        <form action="" method="POST">
+                            <td>
+                                <input type="hidden" id="warehouse_id" name="warehouse_id">
+                            </td>
+                            <td>
+                                <input type="text" id="warehouse_name" name="warehouse_name"
+                                    placeholder="ชื่อ"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+
+                            </td>
+                            <td>
+                                <input type=" text" id="warehouse_status" name="warehouse_status" placeholder="สถานะ"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+                            </td>
+                            <td>
+                                <button type="submit"
+                                    class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                                    เพิ่ม
+                                </button>
+                            </td>
+
+                        </form>
+                    <?php endif; ?>
                 </tr>
+                <form action="" method="POST">
+                    <?php while ($warehouse = $warehouseResults->fetch(PDO::FETCH_ASSOC)): ?>
+                        <tr>
+                            <td><?php echo ($warehouse['warehouse_id']) ?></td>
+                            <td>
 
-                <?php while ($warehouse = $warehouseResults->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr <?php echo ($warehouse['warehouse_id']) ?>>
-                        <td><?php echo ($warehouse['warehouse_id']) ?></td>
-                        <td><?php echo ($warehouse['warehouse_name']) ?></td>
-                        <td><?php echo ($warehouse['warehouse_status']) ?></td>
-                        <td>
-                            <a href="?page=warehouse_update&id=<?php echo ($warehouse['warehouse_id']) ?>">แก้ไข</a>
+                                <!-- $warehouse['warehouse_id'] == $id: เช็คว่า warehouse_id ของสินค้าหรือคลังสินค้านั้นๆ (ที่ได้จากฐานข้อมูล) 
+                             ตรงกับค่า $id หรือไม่ ซึ่ง $id ก็คือตัวแปรที่ส่งผ่านจาก URL เพื่อระบุว่าเรากำลังแก้ไขข้อมูลของคลังสินค้าหมายเลขนี้ 
+                             (หรือบางครั้งเป็นการตั้งค่าตัวแปรที่ส่งมาจากโค้ดภายใน) -->
 
-                            <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                                <?php if ($is_update && $warehouse['warehouse_id'] == $id): ?>
+                                    <!-- แสดงฟอร์มสำหรับแก้ไข -->
+                                    <input type="hidden" name="warehouse_id" value="<?php echo ($warehouse['warehouse_id']); ?>">
+                                    <input type="text" name="warehouse_name" value="<?php echo ($warehouse['warehouse_name']); ?>"
+                                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400 input-update" />
+                                <?php else: ?>
+                                    <!-- แสดงข้อมูลปกติ -->
+                                    <?php echo ($warehouse['warehouse_name']); ?>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php if ($is_update && $warehouse['warehouse_id'] == $id): ?>
+                                    <input type="text" name="warehouse_status" value="<?php echo ($warehouse['warehouse_status']); ?>"
+                                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400 input-update">
+                                <?php else: ?>
+                                    <?php echo ($warehouse['warehouse_status']); ?>
+                                <?php endif; ?>
+                            </td>
+                            <td>
 
-                        </td>
-                    </tr>
-                <?php endwhile; ?>
+                                <a href="?page=warehouse_list&tabel=warehouse&id=<?php echo $warehouse['warehouse_id']; ?>&is_update=1">แก้ไข</a>
+
+                                <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>&is_del=1"
+                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                                <?php if ($is_update): ?>
+                                    <button class="submit-button" type="submit" style=" border-radius: 6px;
+                        width: 100px;
+                        height: 30px;">
+                                        บันทึก</button>
+                                <?php endif; ?>
+
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                </form>
+
             </tbody>
-
         </table>
 
         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
