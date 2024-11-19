@@ -102,6 +102,8 @@
                             'lot_product_insert',
                             'lot_productlist',
                             'lot_productupdate',
+                            'lot_detail',
+                            'lot_product_detail',
                         ])) {
                             include __DIR__ . "/bar_product.php";
                         } elseif (in_array($page, ['supplier_list', 'supplier_insert', 'supplier_update', 'supplier_detail',])) {

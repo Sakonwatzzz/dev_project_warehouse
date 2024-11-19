@@ -225,7 +225,7 @@ ob_end_flush();
         </table>
         <div class="box">
             <label for=""></label>
-            <a class="submit-button"  href="page/lot/lot_product_insert.php" value="เพิ่ม">เพิ่มรับรายการสินค้า</a class="submit-button">
+            <a class="submit-button"  href="?page=lot_product_insert" value="เพิ่ม">เพิ่มรับรายการสินค้า</a class="submit-button">
             <!-- แก้คำว่า "lass" เป็น "class" -->
         </div>
         <!-- การแบ่งหน้า -->

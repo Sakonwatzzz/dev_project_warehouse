@@ -214,13 +214,13 @@ ob_end_flush();
             <thead>
                 <!-- ส่วนหัวของตาราง -->
                 <tr>
-                    <th>รหัสล็อตสินค้า</th>
-                    <th>รายละเอียด</th>
-                    <th>วันที่รับสินค้า</th>
-                    <th>รหัสถานะ</th>
-                    <th>รหัสคลังสินค้า</th>
-                    <th>รหัสร้าน</th>
-                    <th>รหัสผู้ส่งมอบ</th>
+                    <!-- <th>รหัสล็อตสินค้า</th> -->
+                    <!-- <th>รายละเอียด</th> -->
+                    <!-- <th>วันที่รับสินค้า</th> -->
+                    <th>สถานะล็อต</th>
+                    <th>คลังสินค้า</th>
+                    <th>ร้านค้า</th>
+                    <th>ผู้ส่งมอบ</th>
                     <th>การจัดการ</th>
                 </tr>
             </thead>
@@ -231,10 +231,10 @@ ob_end_flush();
                         <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
                         <tr>
                             <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
-                            <td><?php echo ($lot_list['lot_id']) ?></td>
-                            <td><?php echo ($lot_list['lot_detail']) ?></td>
-                            <td><?php echo ($lot_list['lot_date']) ?></td>
-                            <td><?php echo ($lot_list['lot_status_id']) ?></td>
+                            <!-- <td><?php echo ($lot_list['lot_id']) ?></td> -->
+                            <!-- <td><?php echo ($lot_list['lot_detail']) ?></td> -->
+                            <!-- <td><?php echo ($lot_list['lot_date']) ?></td> -->
+                            <td onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'"><?php echo ($lot_list['lot_status_name']) ?></td>
                             <td><?php echo ($lot_list['warehouse_name']) ?></td>
                             <td><?php echo ($lot_list['store_name']) ?></td>
                             <td><?php echo ($lot_list['supplier_name']) ?></td>
@@ -255,7 +255,7 @@ ob_end_flush();
         </table>
         <div class="box">
             <label for=""></label>
-            <a class="submit-button" href="page/lot/lot_insert.php" value="เพิ่ม">เพิ่มการรับสินค้า</a
+            <a class="submit-button" href="/?page=lot_insert" value="เพิ่ม">เพิ่มการรับสินค้า</a
                 class="submit-button">
             <!-- แก้คำว่า "lass" เป็น "class" -->
         </div>

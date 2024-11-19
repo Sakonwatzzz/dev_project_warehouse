@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
     $lot_id = $pdo->lastInsertId();
-    header("Location: lot/lot_list.php?tabel=lot&id=" . $lot_id);
+    header("Location: lot/lot_detail.php?tabel=lot&id=" . $lot_id);
     exit;
 }
 
