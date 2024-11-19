@@ -30,8 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$barcode, $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
 
-    // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
-    header("Location: /?page=bar_product&dit_success");
+    header("Location: /?page=product_detail&tabel=product&id=$id");
     exit;
 }
 

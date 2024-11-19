@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $typename, $address,  $phone, $username, $password, $id]);
 
-    header("Location: /?page=bar_personnel&edit_success");
+    header("Location: /?page=personnel_detail&tabel=personnel&id=$id");
     exit;
 }
 

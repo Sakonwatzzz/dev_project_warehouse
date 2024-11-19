@@ -2,39 +2,41 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $brandname = $_POST['brandname'] ?? '';
-
-    try {
-        $stmt = $pdo->prepare('INSERT INTO product_brand (product_brand_name) VALUES (?)');
-        $stmt->execute([$brandname]);
-
-        header('Location: /index.php?page=product_brand');
-        exit;
-    } catch (PDOException $e) {
-        echo 'Database error: ' . $e->getMessage();
+    if (isset($_POST['brandname'])) {
+        $brandname = $_POST['brandname'] ?? '';
+        try {
+            $stmt = $pdo->prepare('INSERT INTO product_brand (product_brand_name) VALUES (?)');
+            $stmt->execute([$brandname]);
+            header('Location: /index.php?page=product_brand');
+            exit;
+        } catch (PDOException $e) {
+            echo 'Database error: ' . $e->getMessage();
+        }
+    } elseif (isset($_POST['update_brandname'])) {
+        $id = $_POST['id'];
+        $newBrandName = $_POST['update_brandname'];
+        try {
+            $stmt = $pdo->prepare("UPDATE product_brand SET product_brand_name = ? WHERE product_brand_id = ?");
+            $stmt->execute([$newBrandName, $id]);
+            header('Location: /index.php?page=product_brand');
+            exit;
+        } catch (PDOException $e) {
+            echo 'Database error: ' . $e->getMessage();
+        }
     }
 }
 
-
-//ส่งตัวแปร 2 ตัว
-if (isset($_GET['is_del'])) {
-    $product_brand_id = $_GET['product_brand_id'];
-    $stmt = $pdo->prepare("DELETE FROM product_brand WHERE product_brand_id = ?");
-    $stmt->execute([$product_brand_id]);
-    header('Location: /index.php?page=product_brand');
-    // กลับไปหน้าแสดงผล
-}
-
-$query = "SELECT product_brand_id, 
-                product_brand_name 
-            FROM product_brand";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-
-try {
-    $productbrands = $pdo->query($query);
-} catch (Exception $e) {
-    echo 'error' . $e->getMessage();
+// เงื่อนไขการลบข้อมูล (เช็คเฉพาะเมื่อมี 'id' ใน $_GET)
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
+    try {
+        $stmt = $pdo->prepare("DELETE FROM product_brand WHERE product_brand_id = ?");
+        $stmt->execute([$id]);
+        header("Location: ?page=product_brand");
+        exit;
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage();
+    }
 }
 
 // จำนวนข้อมูลทั้งหมดในตาราง
@@ -43,24 +45,14 @@ $stmt = $pdo->query($query);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $count = $row['total_count'];
 
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM product_brand WHERE product_brand_id = ?");
-    $stmt->execute([$id]);
-    header("Location: index.php?page=product_brand");
-    exit;
-}
-
-
-
 // การแบ่งหน้า
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
 $offset = ($page - 1) * $records_per_page;
 
 // นับจำนวนรายการทั้งหมด
 try {
-    $total_query = "SELECT COUNT(*) FROM product_brand";
+    $total_query = "SELECT COUNT(*) FROM product_brand"; // เปลี่ยนจาก warehouse เป็น product_brand
     $total_result = $pdo->query($total_query);
     $total_records = $total_result->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
@@ -70,15 +62,17 @@ try {
 
 // ดึงข้อมูลตามการแบ่งหน้า
 try {
-    $query = "SELECT product_brand_id , product_brand_name   FROM product_brand LIMIT :offset, :records_per_page";
+    $query = "SELECT product_brand_id, product_brand_name FROM product_brand LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $resultsproductbrand = $stmt;
+    $productbrands = $stmt;
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
+
+
 ?>
 
 <!DOCTYPE html>
@@ -87,10 +81,10 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-         .title {
+        .title {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             align-items: center;
@@ -119,6 +113,8 @@ try {
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             width: 70px;
         }
+
+
         .notification {
             position: fixed;
             top: 50%;
@@ -137,7 +133,7 @@ try {
         }
 
         .notification-header {
-            background-color: #ffdfa0;
+            background-color: cyan;
             color: #000;
             padding: 10px;
             font-weight: bold;
@@ -174,96 +170,85 @@ try {
 
         .pagination a:hover:not(.active) {
             background-color: #ddd;
+
         }
     </style>
     <title>Document</title>
 </head>
 
 <body>
-    <div class="personnel-list">
-
-    <div class="title">
-            <div class="count">
-                <h2>ข้อมูลแบรนสินค้า</h2>
-                <div class="listcount">
-                    <?php echo $count; ?>
-                </div>
-            </div>
-
-            <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาแบรนด์...">
+    <div class="personnel-list" ">
+        <div class=" title">
+        <div class="count">
+            <h2 style="font-weight: bold;">ข้อมูลประเภทสินค้า</h2>
+            <div class="listcount">
+                <?php echo $count; ?>
             </div>
         </div>
-
-        <div id="notification" class="notification">
-            <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขแบรนสำเร็จ!</div>
+        <div class="search">
+            <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาประเภทสินค้า...">
         </div>
 
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>รหัสประแบรนต์สินค้า</th>
-                    <th>ชื่อประแบรนต์สินค้า</th>
-                    <th>การจัดการ</th>
+    </div>
+
+
+    <table class="data-table" id="dataTable">
+        <tr>
+            <form action="" method="POST">
+                <td></td>
+                <td>
+                    <input type="text" id="brandname" name="brandname" placeholder="ชื่อแบรนด์" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+                </td>
+                <td>
+                    <button type="submit"
+                        class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                        เพิ่ม
+                    </button>
+                </td>
+            </form>
+        </tr>
+        <thead>
+            <tr>
+                <th>รหัสแบรนด์สินค้า</th>
+                <th>ชื่อแบรนด์สินค้า</th>
+                <th>การจัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <?php foreach ($productbrands as $brand): ?>
+                <tr data-id="<?php echo $brand['product_brand_id']; ?>">
+                    <td><?php echo $brand['product_brand_id']; ?></td>
+                    <td class="brand-name"><?php echo htmlspecialchars($brand['product_brand_name']); ?></td>
+                    <td>
+                        <button onclick="enableEdit(this)" class="text-blue-500 hover:text-blue-700">แก้ไข</button>
+                        <a href="?page=product_brand&id=<?php echo $brand['product_brand_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="text-red-500 hover:text-red-700">ลบ</a>
+                    </td>
                 </tr>
-            </thead>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
 
-            <tbody>
-                <tr>
-                    <form action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
-                        <td></td> <!-- ช่องรหัสแบรนสินค้า ให้แสดงเป็น "อัตโนมัติ" -->
-                        <td>
-                            <input type="text" id="brandname" name="brandname" placeholder="ชื่อประแบรนต์สินค้า" required
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
-                        </td>
-                        <td>
-                            <button type="submit" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
-                                เพิ่ม
-                            </button>
-
-                        </td>
-                    </form>
-                </tr>
-
-                <?php while ($product_brand_list = $resultsproductbrand->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr>
-                        <td><?php echo ($product_brand_list['product_brand_id']) ?></td>
-
-                        <td><?php echo ($product_brand_list['product_brand_name']) ?></td>
-
-                        <td>
-                            <a
-                                href="product_brand_update.php?id=<?php echo ($product_brand_list['product_brand_id']) ?>">แก้ไข</a>
-                            <a href="?id=<?php echo ($product_brand_list['product_brand_id']) ?>"
-                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                        </td>
-                    </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
-
-         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
-         <div class="pagination">
-            <?php if ($total_pages > 1): ?>
-                <?php if ($page > 1): ?>
-                    <a href="?page=product_brand&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
-                <?php endif; ?>
-
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <?php if ($i == $page): ?>
-                        <a href="#" class="active"><?php echo $i; ?></a>
-                    <?php else: ?>
-                        <a href="?page=product_brand&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
-                    <?php endif; ?>
-                <?php endfor; ?>
-
-                <?php if ($page < $total_pages): ?>
-                    <a href="?page=product_brand&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
-                <?php endif; ?>
+    <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
+    <div class="pagination">
+        <?php if ($total_pages > 1): ?>
+            <?php if ($page > 1): ?>
+                <a href="?page=product_brand&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
             <?php endif; ?>
-        </div>
 
+            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                <?php if ($i == $page): ?>
+                    <a href="#" class="active"><?php echo $i; ?></a>
+                <?php else: ?>
+                    <a href="?page=product_brand&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                <?php endif; ?>
+            <?php endfor; ?>
+
+            <?php if ($page < $total_pages): ?>
+                <a href="?page=product_brand&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
     </div>
 
     <script>
@@ -272,9 +257,9 @@ try {
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
-            let foundAny = false; // ตัวแปรเพื่อเก็บสถานะการค้นหา
+            let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) { // เริ่มจาก 1 เพื่อข้าม header
+            for (let i = 1; i < tr.length; i++) {
                 let found = false;
                 const td = tr[i].getElementsByTagName("td");
                 for (let j = 0; j < td.length; j++) {
@@ -286,48 +271,63 @@ try {
                         }
                     }
                 }
-                tr[i].style.display = found ? "" : "none"; // แสดงหรือซ่อนแถว
+                tr[i].style.display = found ? "" : "none";
                 if (found) {
-                    foundAny = true; // ถ้าพบข้อมูลอย่างน้อย 1 แถว
+                    foundAny = true;
                 }
             }
 
-            // แสดงข้อความเมื่อไม่พบข้อมูล
             const noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
                     const message = document.createElement("p");
                     message.id = "noDataMessage";
                     message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red"; // ปรับสีข้อความ
-                    message.style.fontWeight = "bold"; // ปรับความหนาของข้อความ
-                    message.style.marginTop = "10px"; // เพิ่มระยะห่างด้านบน
-                    table.parentNode.insertBefore(message, table); // เพิ่มข้อความก่อนตาราง
+                    message.style.color = "red";
+                    message.style.fontWeight = "bold";
+                    message.style.marginTop = "10px";
+                    table.parentNode.insertBefore(message, table);
                 }
             } else {
                 if (noDataMessage) {
-                    noDataMessage.remove(); // ลบข้อความเมื่อพบข้อมูล
+                    noDataMessage.remove();
                 }
             }
         }
-    </script>
 
+        function enableEdit(button) {
+            const row = button.closest('tr');
+            const brandNameCell = row.querySelector('.brand-name');
+            const brandId = row.getAttribute('data-id');
+            const originalBrandName = brandNameCell.innerText;
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block'; // แสดงการแจ้งเตือน
-
-                // ลบการแจ้งเตือนหลัง 2 วินาที
-                setTimeout(() => {
-                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
-                }, 2000);
+            if (button.innerText === 'แก้ไข') {
+                // เปลี่ยนเป็นโหมดแก้ไข
+                brandNameCell.innerHTML = `<input type="text" class="edit-input" style="border: 1px solid #333;" value="${originalBrandName}" />`;
+                button.innerText = 'บันทึก';
+            } else {
+                // บันทึกการเปลี่ยนแปลง
+                const newBrandName = brandNameCell.querySelector('.edit-input').value;
+                if (newBrandName !== originalBrandName) {
+                    fetch('', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `id=${brandId}&update_brandname=${encodeURIComponent(newBrandName)}`
+                    }).then(() => {
+                        brandNameCell.innerHTML = newBrandName;
+                        button.innerText = 'แก้ไข';
+                    }).catch(error => {
+                        console.error('Error:', error);
+                        alert('ไม่สามารถบันทึกการเปลี่ยนแปลงได้');
+                    });
+                } else {
+                    brandNameCell.innerHTML = originalBrandName;
+                    button.innerText = 'แก้ไข';
+                }
             }
-        });
+        }
     </script>
 </body>
 

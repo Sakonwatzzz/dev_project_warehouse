@@ -2,26 +2,14 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
-// การตรวจสอบว่าเป็นการ POST request หรือไม่
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $typename = trim($_POST['typename'] ?? ''); // กำจัดช่องว่างที่ไม่จำเป็น
+    $typename = $_POST['typename'];
+    $stmt = $pdo->prepare('INSERT INTO product_type (product_type_name)
+    VALUES (?)');
+    $stmt->execute([$typename]);
 
-    // ตรวจสอบว่า typename ไม่ว่าง
-    if (!empty($typename)) {
-        try {
-            $stmt = $pdo->prepare('INSERT INTO product_type (product_type_name) VALUES (?)');
-            $stmt->execute([$typename]);
-
-            // รีเฟรชหน้าเดิมเมื่อบันทึกเสร็จ
-            header("Location: ?page=product_type&success"); // เปลี่ยนไปยังหน้าหลังจากบันทึกข้อมูล
-            exit; // หยุดการทำงานหลัง header
-        } catch (PDOException $e) {
-            // แสดงข้อความผิดพลาดหากมีปัญหาในการเพิ่มข้อมูล
-            echo 'Database error: ' . htmlspecialchars($e->getMessage());
-        }
-    } else {
-        echo 'Error: Type name is required.'; // หากไม่กรอกข้อมูล typename
-    }
+    header('Location: /index.php?page=product_type');
+    exit;
 }
 
 // ตรวจสอบว่า `id` มีค่าใน URL หรือไม่ก่อนที่จะทำการลบ
@@ -134,7 +122,7 @@ ob_end_flush();
             width: 70px;
         }
 
-        
+
         .notification {
             position: fixed;
             top: 50%;
@@ -190,7 +178,7 @@ ob_end_flush();
 
         .pagination a:hover:not(.active) {
             background-color: #ddd;
-            
+
         }
     </style>
     <title>Document</title>
@@ -198,6 +186,7 @@ ob_end_flush();
 
 <body>
     <div class="personnel-list">
+
         <div class="title">
             <div class="count">
                 <h2 style="font-weight: bold;">ข้อมูลประเภทสินค้า</h2>
@@ -212,12 +201,10 @@ ob_end_flush();
         </div>
 
 
-
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
             <div class="notification-body">เพิ่มสำเร็จ!</div>
         </div>
-
         <table class="data-table" id="dataTable">
             <thead>
                 <tr>
@@ -226,10 +213,9 @@ ob_end_flush();
                     <th>การจัดการ</th>
                 </tr>
             </thead>
-
-            <tbody>
+            <tbody id="tableBody">
                 <tr>
-                    <form action="../../page/product/product_type_update.php" method="POST">
+                    <form  action="" method="POST">
                         <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
                         <td></td> <!-- ช่องรหัสประเภทสินค้า ให้แสดงเป็น "อัตโนมัติ" -->
                         <td>
@@ -251,7 +237,7 @@ ob_end_flush();
                     <tr>
                         <td><?php echo ($product_type['product_type_id']) ?></td>
                         <td><?php echo ($product_type['product_type_name']) ?></td>
-                        <td >
+                        <td>
                             <a href="product_type_update.php?id=<?php echo ($product_type['product_type_id']) ?>">แก้ไข</a>
                             <a href="?id=<?php echo ($product_type['product_type_id']) ?>"
                                 onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
@@ -260,6 +246,7 @@ ob_end_flush();
                 <?php endwhile; ?>
             </tbody>
         </table>
+
 
 
         <div class="pagination">
@@ -330,6 +317,8 @@ ob_end_flush();
                 }
             }
         }
+
+
     </script>
 
 

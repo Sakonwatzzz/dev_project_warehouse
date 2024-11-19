@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $product_id = $pdo->lastInsertId();
         
         // รีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
-        header("Location: product/product_detail.php?tabel=product&id=" . $product_id);
+        header("Location: index.php?page=product_detail&tabel=product&id=$product_id");
         exit();
     } catch (PDOException $e) {
         die('Error: ' . $e->getMessage());

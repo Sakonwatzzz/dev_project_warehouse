@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     $personnel_id = $pdo->lastInsertId();
-    header("Location: /?page=personnel_insert&success");
+    header("Location: index.php?page=personnel_detail&tabel=personnel&id=$personnel_id");
     exit;
 }
 

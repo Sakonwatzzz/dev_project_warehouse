@@ -11,7 +11,7 @@ if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $product_id = $_POST['product_id'];
     // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
-    header("Location: product_detail.php?tabel=product&id=" . $product_id);
+    header("Location: product_detail.php?tabel=product&id=" . $member_id);
     exit();
 }
 
@@ -27,13 +27,13 @@ switch ($tabel) {
     case 'product':
         // เตรียม query เพื่อดึงข้อมูลสินค้าพร้อมข้อมูลประเภทและแบรนด์
         $stmt = $pdo->prepare("
-            SELECT product.*, 
-                   product_type.product_type_name, 
-                   product_brand.product_brand_name 
-            FROM product 
-           INNER JOIN product_type ON product.product_type_id = product_type.product_type_id 
-           INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id 
-            WHERE product.product_id = ?
+        SELECT product.*, 
+        product_type.product_type_name, 
+        product_brand.product_brand_name 
+        FROM product 
+        LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id 
+        LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id 
+        WHERE product.product_id = ?
         ");
         break;
     default:
@@ -41,11 +41,9 @@ switch ($tabel) {
 }
 
 
-// ดำเนินการ query ด้วย product_id ที่ระบุ
-$stmt->execute([$id]);
-$product = $stmt->fetch(PDO::FETCH_ASSOC); // เก็บผลลัพธ์เป็นแถวข้อมูลในรูปแบบ array
 
-// ตรวจสอบว่าพบข้อมูลสินค้าหรือไม่ ถ้าไม่พบให้หยุดการทำงาน
+$stmt->execute([$id]);
+$product = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$product) {
     echo "ไม่พบข้อมูล";
     exit();
@@ -111,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th>รหัสสินค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="text" name="id" value="<?php echo ($product['product_id']); ?>" readonly>
+                                <input type="hidden" name="id" value="<?php echo ($product['product_id']); ?>" readonly>
                             <?php else: ?>
                                 <?php echo ($product['product_id']); ?>
                             <?php endif; ?>

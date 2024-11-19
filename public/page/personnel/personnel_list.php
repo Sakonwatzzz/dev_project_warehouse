@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $typename, $address,  $phone, $username, $password, $id]);
 
-    header("Location: /?page=bar_personnel&edit_success");
+    header("Location: /?page=personnel_detail&tabel=personnel&id=$id");
     exit;
 }
 
@@ -239,7 +239,7 @@ try {
                     <tr>
                         <!-- <td><?php echo ($personnel_list['personnel_id']) ?></td> -->
                         <td onclick="window.location.href='?page=personnel_detail&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'"><?php echo ($personnel_list['personnel_name']) ?></td>
-                        
+
                         <td onclick="window.location.href='?page=personnel_group&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>&type=<?php echo urlencode($personnel_list['personnel_type_name']) ?>'">
                             <?php echo ($personnel_list['personnel_type_name']) ?>
                         </td>

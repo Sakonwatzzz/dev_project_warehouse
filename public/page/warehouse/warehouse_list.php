@@ -20,6 +20,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+if (isset($_POST['action']) && $_POST['action'] === 'update') {
+    // Set JSON header
+    header('Content-Type: application/json');
+
+    $warehouse_id = $_POST['warehouse_id'];
+    $warehouse_name = $_POST['warehouse_name'];
+    $warehouse_status = $_POST['warehouse_status'];
+
+    try {
+        $stmt = $pdo->prepare("UPDATE warehouse SET warehouse_name = ?, warehouse_status = ? WHERE warehouse_id = ?");
+        $result = $stmt->execute([$warehouse_name, $warehouse_status, $warehouse_id]);
+
+        if ($result) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update']);
+        }
+        exit;
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        exit;
+    }
+}
+
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     try {
@@ -66,6 +90,7 @@ try {
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
+
 
 ?>
 
@@ -225,11 +250,8 @@ try {
                         <td><?php echo ($warehouse_list['warehouse_name']) ?></td>
                         <td><?php echo ($warehouse_list['warehouse_status']) ?></td>
                         <td>
-                            <a href="page/warehouse/warehouse_update.php?id=<?php echo ($warehouse_list['warehouse_id']) ?>"
-                                class="text-blue-500 hover:text-blue-700">แก้ไข</a>
-                            <a href="?page=warehouse_list&id=<?php echo ($warehouse_list['warehouse_id']) ?>"
-                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
-                                class="text-red-500 hover:text-red-700 ml-2">ลบ</a>
+                            <a href="?page=warehouse_update&id=<?php echo ($warehouse_list['warehouse_id']) ?>">แก้ไข</a>|
+                            <a href="?page=warehouse_list&id=<?php echo $warehouse_list['warehouse_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
@@ -302,7 +324,21 @@ try {
             }
         }
 
-        document.addEventListener("DOMContentLoaded", function () {
+
+
+        // ฟังก์ชันแสดงการแจ้งเตือน
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationBody = notification.querySelector('.notification-body');
+            notificationBody.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        }
+
+
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

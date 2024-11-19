@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$barcode, $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
 
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
-    header("Location: /?page=bar_product&edit_success");
+    header("Location: /?page=product_detail&tabel=product&id=$id");
     exit;
 }
 
@@ -218,6 +218,7 @@ try {
             <tbody>
                 <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
+
                         <td><?php echo ($product_list['product_name']); ?></td>
                         <td><?php echo ($product_list['product_barcode']); ?></td>
                         <td><?php echo ($product_list['product_price4']); ?></td>
