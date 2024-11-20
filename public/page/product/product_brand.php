@@ -219,7 +219,7 @@ try {
             <?php foreach ($productbrands as $brand): ?>
                 <tr data-id="<?php echo $brand['product_brand_id']; ?>">
                     <td><?php echo $brand['product_brand_id']; ?></td>
-                    <td class="brand-name"><?php echo htmlspecialchars($brand['product_brand_name']); ?></td>
+                    <td class="brand-name"><?php echo ($brand['product_brand_name']); ?></td>
                     <td>
                         <button onclick="enableEdit(this)" class="text-blue-500 hover:text-blue-700">แก้ไข</button>
                         <a href="?page=product_brand&id=<?php echo $brand['product_brand_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="text-red-500 hover:text-red-700">ลบ</a>
