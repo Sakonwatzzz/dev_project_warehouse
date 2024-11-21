@@ -173,7 +173,7 @@ try {
 
         }
     </style>
-    <title>Document</title>
+    <title>Personnel Type</title>
 </head>
 
 <body>

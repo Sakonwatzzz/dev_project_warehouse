@@ -9,11 +9,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $registerdate = $_POST['registerdate'];
     $typename = $_POST['typename'];
 
-    $stmt = $pdo->prepare('INSERT INTO member (member_name, member_address, member_phone, member_register_date, member_type_id) 
-                           VALUES (?, ?, ?, ?, ?)');
+    $stmt = $pdo->prepare('INSERT INTO member (member_name, member_address, member_phone, member_register_date, member_type_id) VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([$name, $address, $phone, $registerdate, $typename]);
 
-    header('Location: index.php?page=member_list');
+    $member_id = $pdo->lastInsertId();
+    header("Location: index.php?page=member_detail&tabel=member&id= $member_id");
     exit;
 }
 
@@ -49,7 +49,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="../../style/personnel_insert.css">
+    <link rel="stylesheet" href="../../style/insert.css">
 
     <style>
         .notification {

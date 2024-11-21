@@ -29,7 +29,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>หน้าบุคลากร</title>
-    <link rel="stylesheet" href="../../style/personnel_insert.css">
+    <link rel="stylesheet" href="../../style/insert.css">
 
     <style>
         .notification {
@@ -82,9 +82,6 @@ ob_end_flush();
         <h2 class="title">เพิ่มผู้ส่งมอบ</h2>
 
         <div class="area">
-
-
-
 
             <form class="form-container" action="" method="POST">
                 <div class="box">

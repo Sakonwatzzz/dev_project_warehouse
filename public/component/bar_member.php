@@ -1,6 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+<?php
+ob_start();
+require_once __DIR__ . '../../../config/database_server.php';
+?>
 
+<!DOCTYPE htm
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

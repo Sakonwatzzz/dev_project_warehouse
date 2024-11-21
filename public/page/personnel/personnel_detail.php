@@ -139,6 +139,16 @@ $personnel_type_results = $pdo->query($queryTypes);
                             <?php endif; ?>
                         </td>
                     </tr>
+                    <tr>
+                        <th>รหัสผ่าน:</th>
+                        <td>
+                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
+                                <input type="text" name="password" value="<?php echo $personnel['personnel_password']; ?>">
+                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
+                                <?php echo $personnel['personnel_password']; ?>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
 
                 <?php endif; ?>
             </table>

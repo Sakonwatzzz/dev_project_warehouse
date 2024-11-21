@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$name, $address, $phone, $registerdate, $typename, $id]);
 
-    header('Location: /?page=member_list&success=1');
+    header("Location: /?page=member_detail&tabel=member&id=$id");
     exit;
 }
 
@@ -61,13 +61,12 @@ $member = $stmt->fetch();
                 <label for="phone">เบอร์โทรศัพท์สมาชิก:</label>
                 <input type="text" name="phone" value="<?php echo ($member['member_phone']) ?>">
             </div>
-
+            
             <div class="box">
-                <label for="registerdate">วันที่สมัคเป็นสมาชิก:</label>
-                <input type="date" name="registerdate"
-                    value="<?php echo !empty($member['member_register_date']) ? $member['member_register_date'] : date('Y-m-d'); ?>">
-
+                <label for="registerdate">วันที่สมัครเป็นสมาชิก:</label>
+                <input type="date" name="registerdate" value="<?php echo date('Y-m-d'); ?>" readonly>
             </div>
+
 
             <?php if ($results->rowCount() > 0) { ?>
                 <div class="box">

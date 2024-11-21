@@ -54,12 +54,12 @@ $member_type_results = $pdo->query($queryTypes);
 
 <body>
     <div class="detail-body">
-     
+
         <h2 class="detail-title">รายละเอียดสมาชิก</h2>
 
-      
+
         <form class="detail-form" action="../../page/member/member_update.php" method="POST">
-            
+
             <input type="hidden" name="member_id" value="<?php echo $member['member_id']; ?>">
 
             <!-- ตารางแสดงรายละเอียดสมาชิก -->
@@ -131,7 +131,7 @@ $member_type_results = $pdo->query($queryTypes);
                         <th>วันที่สมัครเป็นสมาชิก:</th>
                         <td>
                             <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="date" name="registerdate" value="<?php echo $member['member_register_date']; ?>">
+                                <input type="date" name="registerdate" value="<?php echo date('Y-m-d'); ?>" readonly>
                             <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
                                 <?php echo $member['member_register_date']; ?>
                             <?php endif; ?>

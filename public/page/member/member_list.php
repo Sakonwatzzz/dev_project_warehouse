@@ -1,55 +1,66 @@
 <?php
-require_once __DIR__ . '../../../../config/database_server.php'; // โหลดไฟล์การตั้งค่าการเชื่อมต่อฐานข้อมูล
-ob_start(); // เริ่มต้นการเก็บบัฟเฟอร์ output (ใช้สำหรับจัดการการแสดงผล)
+ob_start();
+require_once __DIR__ . '../../../../config/database_server.php';
 
-$query = "SELECT
-    member.member_id, 
+$query = "SELECT    
+    member.member_id,
     member.member_name, 
     member.member_address, 
-    member.member_phone, 
-    member.member_register_date,
-    member_type.member_type_id,
+    member.member_register_date, 
+    member.member_type_id, 
     member_type.member_type_name
-FROM member
-INNER JOIN member_type ON member.member_type_id = member_type.member_type_id";
-// สร้างคำสั่ง SQL เพื่อดึงข้อมูลสมาชิกจากตาราง member และประเภทสมาชิกจากตาราง member_type โดยใช้การ JOIN กัน
+FROM
+    member
+INNER JOIN
+    member_type ON member.member_type_id = member_type.member_type_id";
 
 try {
-    // ลองรันคำสั่ง SQL และดึงข้อมูลมาเก็บในตัวแปร $resultmember
-    $resultmember = $pdo->query($query);
-} catch (PDOException $e) {
-    // ถ้ามีข้อผิดพลาดในการรัน SQL จะแสดงข้อความผิดพลาด
-    echo "Error: " . $e->getMessage();
+    $resultsmember = $pdo->query($query);
+} catch (Exception $e) {
+    echo "error" . $e->getMessage();
+    exit();
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = $_POST['id'];
+    $name = $_POST['name'];
+    $typename = $_POST['typename'];
+    $address = $_POST['address'];
+    $phone = $_POST['phone'];
+    $register_date = $_POST['register_date'];
 
-// จำนวนข้อมูลทั้งหมดในตาราง
+    $stmt = $pdo->prepare("
+        UPDATE member 
+        SET member_name = ?, member_type_id = ?, member_address = ?, member_phone = ?, member_register_date = ? 
+        WHERE member_id = ?
+    ");
+    $stmt->execute([$name, $typename, $address, $phone, $register_date, $id]);
+
+    header("Location: /?page=member_detail&tabel=member&id=$id");
+    exit;
+}
+
+// ตรวจสอบว่ามีการส่งค่า id มาหรือไม่
+if (isset($_GET['id'])) {
+    $id = $_GET['id'];
+    $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
+    $stmt->execute([$id]);
+    header("Location: index.php?page=member_list&delete_success");
+    exit;
+}
+
+// Total member count
 $query = "SELECT COUNT(*) as total_count FROM member";
 $stmt = $pdo->query($query);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $count = $row['total_count'];
 
-// เงื่อนไขการลบข้อมูล (เช็คเฉพาะเมื่อมี 'id' ใน $_GET)
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    try {
-        $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
-        $stmt->execute([$id]);
-        header("Location: /?page=bar_member");
-        exit;
-    } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
-    }
-}
-
-ob_end_flush();
-
-// การแบ่งหน้า
+// Pagination
 $records_per_page = 5;
 $page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
 $offset = ($page - 1) * $records_per_page;
 
-// นับจำนวนรายการทั้งหมด
+// Count total records
 try {
     $total_query = "SELECT COUNT(*) FROM member";
     $total_result = $pdo->query($total_query);
@@ -58,29 +69,29 @@ try {
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
+
 try {
-    $query = "SELECT
-    member.member_id, 
-    member.member_name, 
-    member.member_address, 
-    member.member_phone, 
-    member.member_register_date,
-    member_type.member_type_id,
-    member_type.member_type_name
-FROM member
-INNER JOIN member_type ON member.member_type_id = member_type.member_type_id
-LIMIT :offset, :records_per_page";
+    $query = "SELECT 
+                member.member_id, 
+                member.member_name, 
+                member.member_address, 
+                member.member_phone, 
+                member.member_register_date, 
+                member.member_type_id, 
+                member_type.member_type_name 
+              FROM member
+              INNER JOIN member_type ON member.member_type_id = member_type.member_type_id
+              LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $resultmember = $stmt;
+    $resultsmember = $stmt;
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
-
-
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
@@ -90,6 +101,7 @@ LIMIT :offset, :records_per_page";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <title>Member List</title>
     <style>
         .title {
             display: grid;
@@ -176,9 +188,9 @@ LIMIT :offset, :records_per_page";
 
         .pagination a:hover:not(.active) {
             background-color: #ddd;
+
         }
     </style>
-    <title>Document</title>
 </head>
 
 <body>
@@ -190,52 +202,46 @@ LIMIT :offset, :records_per_page";
                     <?php echo $count; ?>
                 </div>
             </div>
-
             <div class="search">
                 <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสมาชิก...">
             </div>
         </div>
 
-
-
-        <div id="notification" class="notification" style="display:none;">
+        <div id="notification-edit" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขสมาชิกสำเร็จ!</div>
+            <div class="notification-body">แก้ไขบุคลากรสำเร็จ!</div>
+        </div>
+        <div id="notification-delete" class="notification">
+            <div class="notification-header">การแจ้งเตือน</div>
+            <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
         <table class="data-table" id="dataTable">
             <thead>
-
                 <tr>
-
                     <th>ชื่อ นามสกุล</th>
                     <th>ประเภทสมาชิก</th>
+                    <th>วันที่สมัคร</th>
                     <th>การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
-                <?php while ($member_list = $resultmember->fetch(PDO::FETCH_ASSOC)): ?>
-
-                    <tr onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'">
-                        <!-- <td><?php echo ($member_list['member_id']) ?></td> แสดงรหัสสมาชิก -->
-                        <td><?php echo ($member_list['member_name']) ?></td> <!-- แสดงชื่อสมาชิก -->
-                        <!-- <td><?php echo ($member_list['member_address']) ?></td> แสดงที่อยู่สมาชิก -->
-                        <!-- <td><?php echo ($member_list['member_phone']) ?></td> แสดงเบอร์โทรศัพท์สมาชิก -->
-                        <!-- <td><?php echo ($member_list['member_register_date']) ?></td> แสดงวันที่ลงทะเบียน -->
-                        <td><?php echo ($member_list['member_type_name']) ?></td> <!-- แสดงประเภทสมาชิก -->
+                <?php while ($member_list = $resultsmember->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr>
+                        <td onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'"><?php echo ($member_list['member_name']) ?></td>
+                        <td onclick="window.location.href='?page=member_group&tabel=member&id=<?php echo ($member_list['member_id']) ?>&type=<?php echo urlencode($member_list['member_type_name']) ?>'">
+                            <?php echo ($member_list['member_type_name']) ?>
+                        </td>
+                        <td><?php echo ($member_list['member_register_date']) ?></td>
                         <td>
                             <a href="?page=member_update&id=<?php echo ($member_list['member_id']) ?>">แก้ไข</a>
-                            |
-                            <a href="?page=member_list&id=<?php echo ($member_list['member_id']) ?>"
-                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-
+                            <a href="?page=bar_member&id=<?php echo $member_list['member_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
 
-        <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
@@ -258,65 +264,66 @@ LIMIT :offset, :records_per_page";
     </div>
 
     <script>
-        // ฟังก์ชันสำหรับค้นหาข้อมูลในตาราง
         function searchTable() {
-            const input = document.getElementById("searchInput"); // หาตัว input ที่ใช้สำหรับค้นหา
-            const filter = input.value.toLowerCase(); // เปลี่ยนค่าที่ผู้ใช้พิมพ์ให้เป็นตัวพิมพ์เล็ก
-            const table = document.getElementById("dataTable"); // หาตารางข้อมูล
-            const tr = table.getElementsByTagName("tr"); // หาทุกแถวในตาราง
-            let foundAny = false; // ตัวแปรเพื่อตรวจสอบว่าพบข้อมูลหรือไม่
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById("dataTable");
+            const tr = table.getElementsByTagName("tr");
+            let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) { // เริ่มวนลูปจากแถวที่ 1 เพื่อข้าม header
+            for (let i = 1; i < tr.length; i++) {
                 let found = false;
-                const td = tr[i].getElementsByTagName("td"); // หาตัวแถว (td) ในแต่ละแถว
+                const td = tr[i].getElementsByTagName("td");
                 for (let j = 0; j < td.length; j++) {
                     if (td[j]) {
-                        const txtValue = td[j].textContent || td[j].innerText; // อ่านข้อความใน td
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) { // ถ้าคำค้นหาตรงกับข้อความใน td
+                        const txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
                             found = true;
                             break;
                         }
                     }
                 }
-                tr[i].style.display = found ? "" : "none"; // ถ้าพบคำค้นหาจะทำให้แถวนั้นแสดง
+                tr[i].style.display = found ? "" : "none";
                 if (found) {
-                    foundAny = true; // ถ้าพบข้อมูลจะเปลี่ยนสถานะ
+                    foundAny = true;
                 }
             }
 
-            // แสดงข้อความเมื่อไม่พบข้อมูล
             const noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
                     const message = document.createElement("p");
                     message.id = "noDataMessage";
                     message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red"; // ปรับสีข้อความ
-                    message.style.fontWeight = "bold"; // ปรับความหนาของข้อความ
-                    message.style.marginTop = "10px"; // เพิ่มระยะห่างด้านบน
-                    table.parentNode.insertBefore(message, table); // เพิ่มข้อความก่อนตาราง
+                    message.style.color = "red";
+                    message.style.fontWeight = "bold";
+                    message.style.marginTop = "10px";
+                    table.parentNode.insertBefore(message, table);
                 }
             } else {
                 if (noDataMessage) {
-                    noDataMessage.remove(); // ลบข้อความเมื่อพบข้อมูล
+                    noDataMessage.remove();
                 }
             }
         }
     </script>
 
     <script>
-        // การแสดงผลการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์
         document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search); // ตรวจสอบ URL
+            const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
-            if (urlParams.has('success')) { // ถ้ามีพารามิเตอร์ success ใน URL
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block'; // แสดงการแจ้งเตือน
-
-                // ซ่อนการแจ้งเตือนหลัง 2 วินาที
+            if (urlParams.has('edit_success')) {
+                const notificationEdit = document.getElementById('notification-edit');
+                notificationEdit.style.display = 'block';
                 setTimeout(() => {
-                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
+                    notificationEdit.style.display = 'none';
+                }, 2000);
+            } else if (urlParams.has('delete_success')) {
+                const notificationDelete = document.getElementById('notification-delete');
+                notificationDelete.style.display = 'block';
+                setTimeout(() => {
+                    notificationDelete.style.display = 'none';
                 }, 2000);
             }
         });
@@ -324,7 +331,3 @@ LIMIT :offset, :records_per_page";
 </body>
 
 </html>
-<?php
-// Ensure any remaining buffered output is sent
-ob_end_flush();
-?>

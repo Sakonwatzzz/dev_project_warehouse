@@ -61,20 +61,6 @@ try {
     exit();
 }
 
-// Handle deletion based on ID
-/*if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-
-    try {
-        // Delete the supplier record
-        $stmt = $pdo->prepare("DELETE FROM supplier WHERE supplier_id = ?");
-        $stmt->execute([$id]);
-
-        // Redirect after deletion
-        header("Location: /?page=bar_supplier_list");
-    } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
-    }*/
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -212,8 +198,7 @@ try {
             </thead>
             <tbody>
                 <?php while ($supplier_list = $supplierResults->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr
-                        onclick="window.location.href='?page=supplier_detail&tabel=supplier&id=<?php echo ($supplier_list['supplier_id']) ?>'">
+                    <tr>
                         <td><?php echo ($supplier_list['supplier_name']) ?></td>
                         <td><?php echo ($supplier_list['supplier_address']) ?></td>
                         <td><?php echo ($supplier_list['supplier_phone']) ?></td>
