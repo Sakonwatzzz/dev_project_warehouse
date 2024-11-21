@@ -1,27 +1,42 @@
-<?php require_once __DIR__ . '../../../../config/database_server.php';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $typename = $_POST['typename'];
-    $stmt = $pdo->prepare('INSERT INTO personnel_type (personnel_type_name)
-    VALUES (?)');
-    $stmt->execute([$typename]);
+<?php
+require_once __DIR__ . '../../../../config/database_server.php';
 
-    header('Location: /index.php?page=personnel_type');
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['personnel_type'])) {
+        $personnel_type = $_POST['personnel_type'] ?? '';
+        try {
+            $stmt = $pdo->prepare('INSERT INTO personnel_type (personnel_type_name) VALUES (?)');
+            $stmt->execute([$personnel_type]);
+            header('Location: /index.php?page=personnel_type');
+            exit;
+        } catch (PDOException $e) {
+            echo 'Database error: ' . $e->getMessage();
+        }
+    } elseif (isset($_POST['update_personnel_type'])) {
+        $id = $_POST['id'];
+        $newpersonnel_type = $_POST['update_personnel_type'];
+        try {
+            $stmt = $pdo->prepare("UPDATE personnel_type SET personnel_type_name = ? WHERE personnel_type_id = ?");
+            $stmt->execute([$newpersonnel_type, $id]);
+            header('Location: /index.php?page=personnel_type');
+            exit;
+        } catch (PDOException $e) {
+            echo 'Database error: ' . $e->getMessage();
+        }
+    }
 }
 
-// Fetch personnel types for dropdown
-$query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-
-$personnelTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// เงื่อนไขการลบข้อมูล (เช็คเฉพาะเมื่อมี 'id' ใน $_GET)
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM personnel_type WHERE personnel_type_id = ?");
-    $stmt->execute([$id]);
-
-    header("Location: /index.php?page=personnel_type");
-    exit;
+    try {
+        $stmt = $pdo->prepare("DELETE FROM personnel_type WHERE personnel_type_id = ?");
+        $stmt->execute([$id]);
+        header("Location: ?page=personnel_type");
+        exit;
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage();
+    }
 }
 
 // จำนวนข้อมูลทั้งหมดในตาราง
@@ -30,22 +45,14 @@ $stmt = $pdo->query($query);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $count = $row['total_count'];
 
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM personnel_type WHERE personnel_type_id = ?");
-    $stmt->execute([$id]);
-    header("Location: index.php?page=personnel_type_list");
-    exit;
-}
-
 // การแบ่งหน้า
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
 $offset = ($page - 1) * $records_per_page;
 
 // นับจำนวนรายการทั้งหมด
 try {
-    $total_query = "SELECT COUNT(*) FROM personnel_type";
+    $total_query = "SELECT COUNT(*) FROM personnel_type"; // เปลี่ยนจาก warehouse เป็น personnel_type
     $total_result = $pdo->query($total_query);
     $total_records = $total_result->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
@@ -53,16 +60,14 @@ try {
     echo "Error: " . $e->getMessage();
 }
 
+// ดึงข้อมูลตามการแบ่งหน้า
 try {
-    $query = "SELECT * 
-              FROM personnel_type
-              LIMIT :offset, :records_per_page";
-
+    $query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $personnelTypes = $stmt;
+    $personnel_types = $stmt;
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
@@ -76,10 +81,8 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
-
-
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .title {
             display: grid;
@@ -111,6 +114,7 @@ try {
             width: 70px;
         }
 
+
         .notification {
             position: fixed;
             top: 50%;
@@ -129,7 +133,7 @@ try {
         }
 
         .notification-header {
-            background-color: #ffdfa0;
+            background-color: cyan;
             color: #000;
             padding: 10px;
             font-weight: bold;
@@ -166,92 +170,85 @@ try {
 
         .pagination a:hover:not(.active) {
             background-color: #ddd;
+
         }
     </style>
     <title>Document</title>
 </head>
 
 <body>
-
-    <div class="personnel-list">
-        <table class="data-table" id="dataTable">
-
-            <div class="title">
-                <div class="count">
-                    <h2 style=" font-weight: bold;">ประเภทบุคลากร</h2>
-                    <div class="listcount">
-                        <?php echo $count; ?>
-                    </div>
-                </div>
-                <div class="search">
-                    <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
-                        placeholder="ค้นหา...">
-                </div>
+    <div class="personnel-list" ">
+        <div class=" title">
+        <div class="count">
+            <h2 style="font-weight: bold;">ประเภทบุคลากร</h2>
+            <div class="listcount">
+                <?php echo $count; ?>
             </div>
-            <tr>
-                <form class="form-container" action="" method="POST">
-                    <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
-                    <td></td>
-                    <td>
-                        <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทบุคลากร"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
-
-                    </td>
-                    <td>
-                        <button type="submit"
-                            class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
-                            เพิ่ม
-                        </button>
-
-                    </td>
-                </form>
-            </tr>
-
-
-            <thead>
-                <tr>
-                    <th>รหัสประเภทบุคลากร</th>
-                    <th>ชื่อประเภทบุคลากร</th>
-                    <th>การจัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($personnelTypes as $personnel_type_list): ?>
-                    <tr>
-                        <td><?php echo ($personnel_type_list['personnel_type_id']) ?></td>
-                        <td><?php echo ($personnel_type_list['personnel_type_name']) ?></td>
-                        <td>
-                            <a
-                                href="page/personnel/personnel_type_update.php?id=<?php echo ($personnel_type_list['personnel_type_id']) ?>">แก้ไข</a>
-                            |
-                            <a href="?id=<?php echo ($personnel_type_list['personnel_type_id']) ?>"
-                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
-        <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
-        <div class="pagination">
-            <?php if ($total_pages > 1): ?>
-                <?php if ($page > 1): ?>
-                    <a href="?page=personnel_type&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
-                <?php endif; ?>
-
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <?php if ($i == $page): ?>
-                        <a href="#" class="active"><?php echo $i; ?></a>
-                    <?php else: ?>
-                        <a href="?page=personnel_type&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
-                    <?php endif; ?>
-                <?php endfor; ?>
-
-                <?php if ($page < $total_pages): ?>
-                    <a href="?page=personnel_type&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
-                <?php endif; ?>
-            <?php endif; ?>
         </div>
+        <div class="search">
+            <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหา...">
+        </div>
+
+    </div>
+
+
+    <table class="data-table" id="dataTable">
+        <tr>
+            <form action="" method="POST">
+                <td></td>
+                <td>
+                    <input type="text" id="personnel_type" name="personnel_type" placeholder="ชื่อบุคลากร" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+                </td>
+                <td>
+                    <button type="submit"
+                        class="save-button px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                        เพิ่ม
+                    </button>
+                </td>
+            </form>
+        </tr>
+        <thead>
+            <tr>
+                <th>รหัส</th>
+                <th>ชื่อประเภท</th>
+                <th>การจัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <?php foreach ($personnel_types as $personneltype): ?>
+                <tr data-id="<?php echo $personneltype['personnel_type_id']; ?>">
+                    <td><?php echo $personneltype['personnel_type_id']; ?></td>
+                    <td class="type-name"><?php echo ($personneltype['personnel_type_name']); ?></td>
+                    <td>
+                        <button onclick="enableEdit(this)" class="edit-button text-blue-500 hover:text-blue-700">แก้ไข</button>
+                        <a href="?page=personnel_type&id=<?php echo $personneltype['personnel_type_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button  text-red-500 hover:text-red-700">ลบ</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+
+    <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
+    <div class="pagination">
+        <?php if ($total_pages > 1): ?>
+            <?php if ($page > 1): ?>
+                <a href="?page=personnel_type&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
+            <?php endif; ?>
+
+            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                <?php if ($i == $page): ?>
+                    <a href="#" class="active"><?php echo $i; ?></a>
+                <?php else: ?>
+                    <a href="?page=personnel_type&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                <?php endif; ?>
+            <?php endfor; ?>
+
+            <?php if ($page < $total_pages): ?>
+                <a href="?page=personnel_type&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
     </div>
 
     <script>
@@ -297,21 +294,67 @@ try {
                 }
             }
         }
+
+        function enableEdit(button) {
+            const row = button.closest('tr');
+            const typeNameCell = row.querySelector('.type-name');
+            const typeId = row.getAttribute('data-id');
+            const originaltypeName = typeNameCell.innerText;
+
+            if (button.innerText === 'แก้ไข') {
+                // เปลี่ยนเป็นโหมดแก้ไข
+                typeNameCell.innerHTML = `<input type="text" class="edit-input" style="border: 1px solid #333;" value="${originaltypeName}" />`;
+
+                button.innerText = 'บันทึก';
+                const deleteButton = row.querySelector('.delete-button');
+                const editButton = row.querySelector('.edit-button');
+                deleteButton.style.display = 'none';
+                editButton.style.display = 'none';
+
+                const saveButton = document.createElement('button');
+                saveButton.innerText = 'บันทึก';
+                saveButton.classList.add('save-button', 'text-green-500', 'hover:text-green-700');
+                saveButton.onclick = function() {
+                    // Save changes
+                    const newtypeName = typeNameCell.querySelector('.edit-input').value;
+
+                    // Update the warehouse in the database
+                    fetch('', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `id=${typeId}&update_personnel_type=${encodeURIComponent(newtypeName)}`
+                    }).then(() => {
+                        // Update the table with new values after saving
+                        typeNameCell.innerHTML = newtypeName;
+                        // Reset to edit mode
+                        button.innerText = 'แก้ไข';
+                        deleteButton.style.display = 'inline-block';
+                        editButton.style.display = 'inline-block';
+                        saveButton.remove(); // Remove the save button
+                    }).catch(error => {
+                        console.error('Error:', error);
+                        alert('ไม่สามารถบันทึกการเปลี่ยนแปลงได้');
+                    });
+                };
+                row.querySelector('td:last-child').appendChild(saveButton);
+            }
+
+        }
     </script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block';
-
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                }, 2000);
-            }
+        // เมื่อคลิกปุ่มแก้ไข ให้ซ่อนปุ่มแก้ไขและลบ และแสดงปุ่มบันทึก
+        document.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // หยุดการกระทำของลิงก์
+                event.preventDefault();
+                // ซ่อนปุ่มแก้ไขและลบ
+                this.parentElement.querySelector('.edit-delete-buttons').style.display = 'none';
+                // แสดงปุ่มบันทึก
+                this.parentElement.querySelector('.save-button').style.display = 'block';
+            });
         });
     </script>
 </body>

@@ -180,7 +180,7 @@ try {
     <div class="personnel-list" ">
         <div class=" title">
         <div class="count">
-            <h2 style="font-weight: bold;">ข้อมูลประเภทสินค้า</h2>
+            <h2 style="font-weight: bold;">ข้อมูลแบรนด์สินค้า</h2>
             <div class="listcount">
                 <?php echo $count; ?>
             </div>
@@ -202,7 +202,7 @@ try {
                 </td>
                 <td>
                     <button type="submit"
-                        class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                        class="save-button px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
                         เพิ่ม
                     </button>
                 </td>
@@ -221,8 +221,8 @@ try {
                     <td><?php echo $brand['product_brand_id']; ?></td>
                     <td class="brand-name"><?php echo ($brand['product_brand_name']); ?></td>
                     <td>
-                        <button onclick="enableEdit(this)" class="text-blue-500 hover:text-blue-700">แก้ไข</button>
-                        <a href="?page=product_brand&id=<?php echo $brand['product_brand_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="text-red-500 hover:text-red-700">ลบ</a>
+                        <button onclick="enableEdit(this)" class="edit-button text-blue-500 hover:text-blue-700">แก้ไข</button>
+                        <a href="?page=product_brand&id=<?php echo $brand['product_brand_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button  text-red-500 hover:text-red-700">ลบ</a>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -304,30 +304,58 @@ try {
             if (button.innerText === 'แก้ไข') {
                 // เปลี่ยนเป็นโหมดแก้ไข
                 brandNameCell.innerHTML = `<input type="text" class="edit-input" style="border: 1px solid #333;" value="${originalBrandName}" />`;
+
                 button.innerText = 'บันทึก';
-            } else {
-                // บันทึกการเปลี่ยนแปลง
-                const newBrandName = brandNameCell.querySelector('.edit-input').value;
-                if (newBrandName !== originalBrandName) {
+                const deleteButton = row.querySelector('.delete-button');
+                const editButton = row.querySelector('.edit-button');
+                deleteButton.style.display = 'none';
+                editButton.style.display = 'none';
+
+                const saveButton = document.createElement('button');
+                saveButton.innerText = 'บันทึก';
+                saveButton.classList.add('save-button', 'text-green-500', 'hover:text-green-700');
+                saveButton.onclick = function() {
+                    // Save changes
+                    const newbrandName = brandNameCell.querySelector('.edit-input').value;
+
+                    // Update the warehouse in the database
                     fetch('', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded'
                         },
-                        body: `id=${brandId}&update_brandname=${encodeURIComponent(newBrandName)}`
+                        body: `id=${brandId}&update_brandname=${encodeURIComponent(newbrandName)}`
                     }).then(() => {
-                        brandNameCell.innerHTML = newBrandName;
+                        // Update the table with new values after saving
+                        brandNameCell.innerHTML = newbrandName;
+                        // Reset to edit mode
                         button.innerText = 'แก้ไข';
+                        deleteButton.style.display = 'inline-block';
+                        editButton.style.display = 'inline-block';
+                        saveButton.remove(); // Remove the save button
                     }).catch(error => {
                         console.error('Error:', error);
                         alert('ไม่สามารถบันทึกการเปลี่ยนแปลงได้');
                     });
-                } else {
-                    brandNameCell.innerHTML = originalBrandName;
-                    button.innerText = 'แก้ไข';
-                }
+                };
+                row.querySelector('td:last-child').appendChild(saveButton);
             }
+
         }
+    </script>
+
+    <script>
+        // เมื่อคลิกปุ่มแก้ไข ให้ซ่อนปุ่มแก้ไขและลบ และแสดงปุ่มบันทึก
+        document.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // หยุดการกระทำของลิงก์
+                event.preventDefault();
+                // ซ่อนปุ่มแก้ไขและลบ
+                this.parentElement.querySelector('.edit-delete-buttons').style.display = 'none';
+                // แสดงปุ่มบันทึก
+                this.parentElement.querySelector('.save-button').style.display = 'block';
+            });
+        });
     </script>
 </body>
 

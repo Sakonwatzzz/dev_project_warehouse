@@ -29,12 +29,20 @@ $stmt = $pdo->query($query);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $count = $row['total_count'];
 
+// เงื่อนไขการลบข้อมูล (เช็คเฉพาะเมื่อมี 'id' ใน $_GET)
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
-    $stmt->execute([$id]);
-    header("Location: index.php?page=member_list");
+    try {
+        $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
+        $stmt->execute([$id]);
+        header("Location: /?page=bar_member");
+        exit;
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage();
+    }
 }
+
+ob_end_flush();
 
 // การแบ่งหน้า
 $records_per_page = 5;
@@ -71,7 +79,7 @@ LIMIT :offset, :records_per_page";
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
-ob_end_flush();
+
 
 ?>
 
@@ -316,3 +324,7 @@ ob_end_flush();
 </body>
 
 </html>
+<?php
+// Ensure any remaining buffered output is sent
+ob_end_flush();
+?>

@@ -86,7 +86,7 @@ $member = $stmt->fetch();
             <?php } ?>
 
             <div class="box-action">
-                <a href="/?page=bar_supplier">ยกเลิก</a>
+                <a href="/?page=bar_member">ยกเลิก</a>
                 <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
             </div>
         </form>
