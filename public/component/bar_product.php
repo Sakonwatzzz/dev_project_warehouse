@@ -41,7 +41,8 @@ require_once __DIR__ . '../../../config/database_server.php';
         .button-bb button {
             display: flex;
             align-items: center;
-            background-color: #e1f5fe; /* สีฟ้าอ่อนปุ่ม */
+            background-color: #e1f5fe;
+            /* สีฟ้าอ่อนปุ่ม */
             border: 1px solid #4fc3f7;
             padding: 6px 12px;
             cursor: pointer;
@@ -118,7 +119,7 @@ require_once __DIR__ . '../../../config/database_server.php';
                     <p>คลัง</p>
                 </button>
             </a>
-            <a href="?page=lot_insert_combined" class="button-link">
+            <a href="?page=lot_insertcombined" class="button-link">
                 <button>
                     <img src="../image/warehouse.png" alt="">
                     <p>เพิ่มลอตและสินค้า</p>
@@ -130,7 +131,7 @@ require_once __DIR__ . '../../../config/database_server.php';
                     <p>รายการรับสินค้า</p>
                 </button>
             </a>
-            <a href="?page=lot_product_list" class="button-link">
+            <a href="?page=lot_productlist" class="button-link">
                 <button>
                     <img src="../image/warehouse.png" alt="">
                     <p>รับรายการสินค้า</p>

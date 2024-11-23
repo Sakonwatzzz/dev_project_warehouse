@@ -25,7 +25,7 @@ if (isset($_GET['id'])) {
     $stmt = $pdo->prepare("DELETE FROM lot_product WHERE lot_product_id = ?");
     $stmt->execute([$id]);
     // หลังจากลบแล้วให้ redirect ไปหน้าหลัก และ exit เพื่อหยุดการทำงาน
-    header("Location: index.php?page=lot_product_list");
+    header("Location: index.php?page=lot_productlist");
     exit();
 }
 
@@ -148,7 +148,7 @@ ob_end_flush();
                     <?php while ($lot_product_list = $result_lotproduct_list->fetch(PDO::FETCH_ASSOC)): ?>
                         <tr>
                             <td
-                                onclick="window.location.href='?page=lot_product_detail&tabel=lot_product&id=<?php echo ($lot_product_list['lot_product_id']) ?>'">
+                                onclick="window.location.href='?page=lot_productdetail&tabel=lot_product&id=<?php echo ($lot_product_list['lot_product_id']) ?>'">
                                 <?php echo ($lot_product_list['lot_product_id']); ?>
                             </td>
                             <td><?php echo ($lot_product_list['lot_id']); ?></td>
@@ -160,8 +160,8 @@ ob_end_flush();
                             <td><?php echo ($lot_product_list['product_name']); ?></td>
                             <td>
                                 <a
-                                    href="?page=lot_product_update&id=<?php echo ($lot_product_list['lot_product_id']); ?>">แก้ไข</a>
-                                <a href="?page=lot_product_list&id=<?php echo ($lot_product_list['lot_product_id']); ?>"
+                                    href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>">แก้ไข</a>
+                                <a href="?page=lot_productlist&id=<?php echo ($lot_product_list['lot_product_id']); ?>"
                                     onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
                             </td>
                         </tr>

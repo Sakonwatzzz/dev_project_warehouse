@@ -34,8 +34,6 @@
                     <li><a href="?page=navigationbar_sale"
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'navigationbar_sale') ? 'active' : ''; ?>">ขาย</a>
                     </li>
-
-
                 </ul>
             </div>
         </div>
@@ -43,96 +41,194 @@
 
     <div class="button-bar">
         <?php
-        if (isset($_GET['page'])) {
-            $page = $_GET['page'];
-            // var_dump($page); // ตรวจสอบค่า $page
-            $parts = explode("_", $page);
-            // var_dump($parts); // ตรวจสอบการแยก $parts
-        
+        // Get page parameter and set defaults
+        $page = $_GET['page'] ?? 'bar_index';
+        $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'navigationbar_sale'];
 
-            // ตรวจสอบว่า $parts มีจำนวนส่วนมากกว่า 2
-            if (count($parts) >= 2) {
-                $module = $parts[0];
-                $action = $parts[1];
-                $subaction = $parts[2] ?? null; // รองรับ subaction เช่น lot_product_insert
-        
-                switch ($page) {
-                    case "bar_index":
-                        include __DIR__ . "/bar_index.php";
-                        break;
-                    case "bar_product":
-                        include __DIR__ . "/bar_product.php";
-                        include __DIR__ . "/../page/product/product_list.php";
-                        break;
-                    case "bar_personnel":
-                        include __DIR__ . "/bar_personnel.php";
-                        include __DIR__ . "/../page/personnel/personnel_list.php";
-                        break;
-                    case "bar_member":
-                        include __DIR__ . "/bar_member.php";
-                        include __DIR__ . "/../page/member/member_list.php";
-                        break;
-                    case "bar_supplier":
-                        include __DIR__ . "/bar_supplier.php";
-                        include __DIR__ . "/../page/supplier/supplier_list.php";
-                        break;
-                    case "navigationbar_sale":
-                        include __DIR__ . "/navigationbar_sale.php";
-                        include __DIR__ . "/../page/sale/sale_bill.php";
-                        break;
-                    // case "lot_insert_combined":
-                    //     include __DIR__ . "/bar_product";
-                    //     include __DIR__ . "/../page/lot/lot_insert.php";
-                    //     include __DIR__ . "/../page/lot/lot_product_insert.php";
-                    //     break;
-                    default:
-                        // ตรวจสอบพารามิเตอร์ที่รองรับใน array
-                        if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type', 'personnel_detail', 'personnel_update', 'personnel_group'])) {
-                            include __DIR__ . "/bar_personnel.php";
-                        } elseif (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type', 'member_detail', 'member_group'])) {
-                            include __DIR__ . "/bar_member.php";
-                        } elseif (
-                            in_array($page, [
-                                'product_list',
-                                'product_insert',
-                                'product_type',
-                                'product_brand',
-                                'product_brandupdate',
-                                'product_detail',
-                                'product_update',
-                                'warehouse_list',
-                                'warehouse_update',
-                                'lot_insert',
-                                'lot_list',
-                                'lot_update',
-                                'lot_product_insert',
-                                'lot_product_list',
-                                'lot_productupdate',
-                                'lot_detail',
-                                'lot_product_detail',
-                                'lot_insert_combined',
-                            ])
-                        ) {
-                            include __DIR__ . "/bar_product.php";
-                        } elseif (in_array($page, ['supplier_list', 'supplier_insert', 'supplier_update', 'supplier_detail',])) {
-                            include __DIR__ . "/bar_supplier.php";
-                        } elseif (in_array($page, ['sale_list', 'sale_bill', 'sale_status'])) {
-                            include __DIR__ . "/navigationbar_sale.php";
-                        } else {
-                            echo "<h2>ไม่พบไฟล์ที่รองรับพารามิเตอร์: " . htmlspecialchars($page) . "</h2>";
-                        }
-                        break;
+        $product_pages = [
+            'product_list',
+            'product_insert',
+            'product_type',
+            'product_brand',
+            'product_brandupdate',
+            'product_detail',
+            'product_update',
+            'product_type_update'
+        ];
+        $warehouse_page = [
+            'warehouse_list',
+            'warehouse_insert',
+            'warehouse_update'
+        ];
+        $lot_pages = [
+            'lot_insertcombined',
+            'lot_list',
+            'lot_insert',
+            'lot_productlist',
+            'lot_product_insert',
+            'lot_productupdate',
+            'lot_update',
+            'lot_detail',
+            'lot_productdetail'
+
+        ];
+        $member_pages = [
+            'member_list',
+            'member_insert',
+            'member_type',
+            'member_detail',
+            'member_group',
+            'member_update',
+            'member_type_update',
+            'select_member_dropdown'
+        ];
+        $personnel_pages = [
+            'personnel_detail',
+            'personnel_group',
+            'personnel_insert',
+            'personnel_list',
+            'personnel_type',
+            'personnel_update',
+            'personnel_type_update',
+            'select_personnel_dropdown'
+        ];
+        $supplier_pages = [
+            'supplier_list',
+            'supplier_update',
+            'supplier_insert',
+            'supplier_detail',
+        ];
+
+        if ($page) {
+
+            $parts = explode('_', $page);
+            $prefix = $parts[0] ?? null;  // 'bar' หรือ 'member'
+            $module = $parts[1] ?? null;  // 'product', 'supplier', 'list', 'insert', etc.
+
+            // ขั้นแรก ให้รวมไฟล์แถบนำทางหากเป็นหน้าที่ได้รับอนุญาต
+            if (in_array($page, $allowed_pages)) {
+                $basefile = __DIR__ . "/$page.php";
+                if (file_exists($basefile)) {
+                    include $basefile;
                 }
-            } else {
-                echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง: " . htmlspecialchars($page) . "</h2>";
+            }
+
+            // ตรวจสอบและโหลดหน้าต่างๆ
+            $basePath = __DIR__ . "/../page";
+
+            if ($prefix === 'bar') {
+                // แมปชื่อโมดูลกับชื่อโฟลเดอร์ที่ถูกต้อง
+                $folderMapping = [
+                    'product' => 'product',
+                    'supplier' => 'supplier',
+                    'personnel' => 'personnel',
+                    'member' => 'member',
+                    'lot' => 'lot'
+                ];
+
+                if (isset($folderMapping[$module])) {
+                    $folderName = $folderMapping[$module];
+
+                    if ($module === 'product') {
+                        // Special handling for product pages
+                        $action = $parts[2] ?? 'list';
+                        $subaction = $parts[3] ?? null;
+
+                        $filepath = "$basePath/$folderName/";
+                        if ($subaction) {
+                            $filepath .= "{$folderName}_{$action}_{$subaction}.php";
+                        } else {
+                            $filepath .= "{$folderName}_{$action}.php";
+                        }
+                    } else {
+                        // For all other modules
+                        $filepath = "$basePath/$folderName/{$folderName}_list.php";
+                    }
+                }
+            } elseif ($prefix === 'member' && in_array($page, $member_pages)) {
+                // โหลด bar_member.php ก่อน
+                $barfile = __DIR__ . "/bar_member.php";
+                if (file_exists($barfile)) {
+                    include $barfile;
+                }
+                $action = $parts[1] ?? 'list';
+                $filepath = "$basePath/member/member_{$action}.php";
+
+                if (isset($_GET['id'])) {
+                    $_REQUEST['id'] = $_GET['id'];
+                }
+            } elseif ($prefix === 'product' && in_array($page, $product_pages)) {
+                // โหลด bar_product.php ก่อน
+                $barfile = __DIR__ . "/bar_product.php";
+                if (file_exists($barfile)) {
+                    include $barfile;
+                }
+                $action = $parts[1] ?? 'list';
+                $filepath = "$basePath/product/product_{$action}.php";
+
+                if (isset($_GET['id'])) {
+                    $_REQUEST['id'] = $_GET['id'];
+                }
+            } elseif ($prefix === 'warehouse' && in_array($page, $warehouse_page)) {
+                // โหลด bar_product.php ก่อน
+                $barfile = __DIR__ . "/bar_product.php";
+                if (file_exists($barfile)) {
+                    include $barfile;
+                }
+                $action = $parts[1] ?? 'list';
+                $filepath = "$basePath/warehouse/warehouse_{$action}.php";
+
+                if (isset($_GET['id'])) {
+                    $_REQUEST['id'] = $_GET['id'];
+                }
+            } elseif ($prefix === 'lot' && in_array($page, $lot_pages)) {
+                // โหลด bar_product.php ก่อน
+                $barfile = __DIR__ . "/bar_product.php";
+                if (file_exists($barfile)) {
+                    include $barfile;
+                }
+                $action = $parts[1] ?? 'list';
+                $filepath = "$basePath/lot/lot_{$action}.php";
+
+                if (isset($_GET['id'])) {
+                    $_REQUEST['id'] = $_GET['id'];
+                }
+            } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
+                // โหลด bar_personnel.php ก่อน
+                $barfile = __DIR__ . "/bar_personnel.php";
+                if (file_exists($barfile)) {
+                    include $barfile;
+                }
+                $action = $parts[1] ?? 'list';
+                $filepath = "$basePath/personnel/personnel_{$action}.php";
+
+                if (isset($_GET['id'])) {
+                    $_REQUEST['id'] = $_GET['id'];
+                }
+            } elseif ($prefix === 'supplier' && in_array($page, $supplier_pages)) {
+                // โหลด bar_supplier.php ก่อน
+                $barfile = __DIR__ . "/bar_supplier.php";
+                if (file_exists($barfile)) {
+                    include $barfile;
+                }
+                $action = $parts[1] ?? 'list';
+                $filepath = "$basePath/supplier/supplier_{$action}.php";
+
+                if (isset($_GET['id'])) {
+                    $_REQUEST['id'] = $_GET['id'];
+                }
+            }
+
+            // Include the file if it exists
+            if (isset($filepath) && file_exists($filepath)) {
+                include $filepath;
+            } else if (isset($filepath)) {
+                echo "<h2>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</h2>";
             }
         } else {
-            include __DIR__ . "/bar_index.php";
+            echo "<h2>ไม่พบเพจที่คุณต้องการ</h2>";
         }
         ?>
-
-
-
     </div>
 
 </body>

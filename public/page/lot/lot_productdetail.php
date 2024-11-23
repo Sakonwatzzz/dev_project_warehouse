@@ -231,15 +231,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
         <div class="detail-action">
-            <a href="/?page=lot_product_list">ย้อนกลับหน้ารายการ<?php echo ($tabel); ?></a>
+            <a href="/?page=lot_productlist">ย้อนกลับหน้ารายการ<?php echo ($tabel); ?></a>
 
             <?php if ($is_update): ?>
-                <a href="?page=lot_product_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $lot['lot_product_id']; ?>"
+                <a href="?page=lot_productdetail&tabel=<?php echo $tabel; ?>&id=<?php echo $lot['lot_product_id']; ?>"
                     style="margin-right: 6px;">ย้อนกลับไปที่ Detail
                 </a>
             <?php endif; ?>
 
-            <a href="?page=lot_product_detail&tabel=lot_product&id=<?php echo $lot['lot_product_id']; ?>&is_update=1">
+            <a href="?page=lot_productdetail&tabel=lot_product&id=<?php echo $lot['lot_product_id']; ?>&is_update=1">
                 ไปหน้าแก้ไข <?php echo $tabel; ?>
             </a>
         </div>
