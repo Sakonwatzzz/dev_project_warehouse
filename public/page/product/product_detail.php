@@ -11,7 +11,7 @@ if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $product_id = $_POST['product_id'];
     // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
-    header("Location: product_detail.php?tabel=product&id=" . $member_id);
+    header("Location: product_detail.php?tabel=product&id=" . $product_id);
     exit();
 }
 
