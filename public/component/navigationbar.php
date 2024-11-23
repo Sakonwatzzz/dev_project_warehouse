@@ -34,6 +34,8 @@
                     <li><a href="?page=navigationbar_sale"
                             class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'navigationbar_sale') ? 'active' : ''; ?>">ขาย</a>
                     </li>
+
+
                 </ul>
             </div>
         </div>
@@ -46,14 +48,14 @@
             // var_dump($page); // ตรวจสอบค่า $page
             $parts = explode("_", $page);
             // var_dump($parts); // ตรวจสอบการแยก $parts
-
+        
 
             // ตรวจสอบว่า $parts มีจำนวนส่วนมากกว่า 2
             if (count($parts) >= 2) {
                 $module = $parts[0];
                 $action = $parts[1];
                 $subaction = $parts[2] ?? null; // รองรับ subaction เช่น lot_product_insert
-
+        
                 switch ($page) {
                     case "bar_index":
                         include __DIR__ . "/bar_index.php";
@@ -78,35 +80,39 @@
                         include __DIR__ . "/navigationbar_sale.php";
                         include __DIR__ . "/../page/sale/sale_bill.php";
                         break;
-                    case "lot_product_list":
-                        include __DIR__ . "/bar_product.php";
-                        include __DIR__ . "/../page/lot/lot_product_list.php";
-                        break;
+                    // case "lot_insert_combined":
+                    //     include __DIR__ . "/bar_product";
+                    //     include __DIR__ . "/../page/lot/lot_insert.php";
+                    //     include __DIR__ . "/../page/lot/lot_product_insert.php";
+                    //     break;
                     default:
                         // ตรวจสอบพารามิเตอร์ที่รองรับใน array
                         if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type', 'personnel_detail', 'personnel_update', 'personnel_group'])) {
                             include __DIR__ . "/bar_personnel.php";
-                        } elseif (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type', 'member_detail','member_group'])) {
+                        } elseif (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type', 'member_detail', 'member_group'])) {
                             include __DIR__ . "/bar_member.php";
-                        } elseif (in_array($page, [
-                            'product_list',
-                            'product_insert',
-                            'product_type',
-                            'product_brand',
-                            'product_brandupdate',
-                            'product_detail',
-                            'product_update',
-                            'warehouse_list',
-                            'warehouse_update',
-                            'lot_insert',
-                            'lot_list',
-                            'lot_update',
-                            'lot_product_insert',
-                            'lot_productlist',
-                            'lot_productupdate',
-                            'lot_detail',
-                            'lot_product_detail',
-                        ])) {
+                        } elseif (
+                            in_array($page, [
+                                'product_list',
+                                'product_insert',
+                                'product_type',
+                                'product_brand',
+                                'product_brandupdate',
+                                'product_detail',
+                                'product_update',
+                                'warehouse_list',
+                                'warehouse_update',
+                                'lot_insert',
+                                'lot_list',
+                                'lot_update',
+                                'lot_product_insert',
+                                'lot_product_list',
+                                'lot_productupdate',
+                                'lot_detail',
+                                'lot_product_detail',
+                                'lot_insert_combined',
+                            ])
+                        ) {
                             include __DIR__ . "/bar_product.php";
                         } elseif (in_array($page, ['supplier_list', 'supplier_insert', 'supplier_update', 'supplier_detail',])) {
                             include __DIR__ . "/bar_supplier.php";

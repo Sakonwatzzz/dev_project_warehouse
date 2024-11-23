@@ -2,40 +2,40 @@
 require_once __DIR__ . '../../../../config/database_server.php'; // โหลดไฟล์การตั้งค่าการเชื่อมต่อฐานข้อมูล
 ob_start(); // เริ่มต้นการเก็บบัฟเฟอร์ output (ใช้สำหรับจัดการการแสดงผล)
 
-$query = "SELECT
-    lot_status.lot_status_id, 
-    lot_status.lot_status_name, 
-    supplier.supplier_id, 
-    supplier.supplier_name, 
-    warehouse.warehouse_name, 
-    warehouse.warehouse_id,
-    store.store_id, 
-    store.store_name, 
-    lot.lot_id, 
-    lot.lot_detail, 
-    lot.lot_date, 
-    lot.lot_status_id, 
-    lot.warehouse_id, 
-    lot.store_id
-FROM
-    lot
-    LEFT JOIN
-	lot_status
-	ON 
-		lot.lot_id = lot_status.lot_status_id
-	LEFT JOIN
-	supplier
-	ON 
-		lot.lot_id = supplier.supplier_id
-	LEFT JOIN
-	warehouse
-	ON 
-		lot.lot_id = warehouse.warehouse_id
-	LEFT JOIN
-	store
-	ON 
-		lot.lot_id = store.store_id";
-$result_lot_list = $pdo->query($query);
+// $query = "SELECT
+//     lot_status.lot_status_id, 
+//     lot_status.lot_status_name, 
+//     supplier.supplier_id, 
+//     supplier.supplier_name, 
+//     warehouse.warehouse_name, 
+//     warehouse.warehouse_id,
+//     store.store_id, 
+//     store.store_name, 
+//     lot.lot_id, 
+//     lot.lot_detail, 
+//     lot.lot_date, 
+//     lot.lot_status_id, 
+//     lot.warehouse_id, 
+//     lot.store_id
+// FROM
+//     lot
+//     LEFT JOIN
+// 	lot_status
+// 	ON 
+// 		lot.lot_id = lot_status.lot_status_id
+// 	LEFT JOIN
+// 	supplier
+// 	ON 
+// 		lot.lot_id = supplier.supplier_id
+// 	LEFT JOIN
+// 	warehouse
+// 	ON 
+// 		lot.lot_id = warehouse.warehouse_id
+// 	LEFT JOIN
+// 	store
+// 	ON 
+// 		lot.lot_id = store.store_id";
+// $result_lot_list = $pdo->query($query);
 
 // ดึงชื่อคลังมาแสดงผล
 $query = "SELECT lot_status_id, lot_status_name FROM lot_status";

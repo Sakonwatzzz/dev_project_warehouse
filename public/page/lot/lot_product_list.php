@@ -13,10 +13,10 @@ lot_product.lot_product_status,
 lot_product.product_id, 
 product.product_name
 FROM
-lot_product
-INNER JOIN lot ON lot_product.lot_id = lot.lot_id
-INNER JOIN product ON lot_product.product_id = product.product_id";
-$result_lotproduct_list = $pdo->query($query);
+    lot_product
+    INNER JOIN lot ON lot_product.lot_id = lot.lot_id
+    INNER JOIN product ON lot_product.product_id = product.product_id";
+    $result_lotproduct_list = $pdo->query($query);
 
 
 // การลบข้อมูล
@@ -34,40 +34,39 @@ try {
     $records_per_page = 5;
     $page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
     $offset = ($page - 1) * $records_per_page;
-    $total_pages = ceil($count / $records_per_page);
-    // ดึงข้อมูลจำนวนทั้งหมด
+
+    // จำนวนข้อมูลทั้งหมดในตาราง
     $query = "SELECT COUNT(*) as total_count FROM lot_product";
     $stmt = $pdo->query($query);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $count = $row['total_count'];
-
+    $total_pages = ceil($count / $records_per_page);
 } catch (PDOException $e) {
-    echo "erro" . $e->getMessage();
+    echo "Erro" . $e->getMessage();
 }
 
 try {
     $query = "SELECT
-    lot_product.lot_product_id, 
-    lot_product.lot_id, 
-    lot_product.lot_product_qty, 
-    lot_product.lot_product_remain,  
-    lot_product.lot_product_capital, 
-    lot_product.lot_product_date, 
-    lot_product.lot_product_status,  
-    lot_product.product_id, 
-    product.product_name
+lot_product.lot_product_id, 
+lot_product.lot_id, 
+lot_product.lot_product_qty, 
+lot_product.lot_product_remain,  
+lot_product.lot_product_capital, 
+lot_product.lot_product_date, 
+lot_product.lot_product_status,  
+lot_product.product_id, 
+product.product_name 
 FROM
     lot_product
-    INNER JOIN lot ON lot_product.lot_id = lot.lot_id
-    INNER JOIN product ON lot_product.product_id = product.product_id
+    LEFT JOIN lot ON lot_product.lot_id = lot.lot_id
+    LEFT JOIN product ON lot_product.product_id = product.product_id
 LIMIT :offset, :records_per_page";
 
     $smtm = $pdo->prepare($query);
     $smtm->bindValue(':offset', $offset, PDO::PARAM_INT);
     $smtm->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-    $result_lotproduct_list->execute();
-
-
+    $smtm->execute();
+    $result_lotproduct_list = $smtm;
 } catch (PDOException $e) {
     echo "" . $e->getMessage();
 }
@@ -80,6 +79,39 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
+
+    <style>
+        .title {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+
+        }
+
+        .count {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+
+        }
+
+        .listcount {
+            font-size: 16px;
+            text-align: right;
+            color: #000;
+            padding: 4px 10px 4px 10px;
+            border: 1px solid gray;
+            border-radius: 5px;
+            background-color: #fff;
+            display: inline-block;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 70px;
+        }
+    </style>
+
     <title>รายการรับสินค้า</title>
 </head>
 
