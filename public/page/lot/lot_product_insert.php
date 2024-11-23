@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
@@ -46,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Get the last inserted ID and redirect
     $lot_product_id = $pdo->lastInsertId();
-    header("Location: lot/lot_productlist.php?tabel=lot&id=" . $lot_product_id);
+    header("Location: lot/lot_product_detail.php?tabel=lot_product&id=$lot_product_id");
     exit;
 }
 
@@ -67,7 +66,7 @@ FROM
     INNER JOIN
     product
     ON 
-    lot_product.product_id = product.product_id"; 
+    lot_product.product_id = product.product_id";
 
 ob_end_flush();
 ?>
@@ -133,12 +132,13 @@ ob_end_flush();
 
             <div class="box">
                 <label for="lot_product_id">รหัสรายการรับสินค้า:</label>
-                <p type="id" id="lot_product_id" name="lot_product_id" value="<?php echo $lot['lot_product_id']; ?>" readonly>
+                <p type="id" id="lot_product_id" name="lot_product_id" value="<?php echo $lot['lot_product_id']; ?>"
+                    readonly>
             </div>
             <!-- loop -->
             <?php
             if (count(value: $lot_id) > 0) {
-            ?>
+                ?>
                 <div class="box">
                     <label for="lot_id">รหัสล็อตสินค้า:</label>
                     <select name="lot_id" id="lot_id">
@@ -151,7 +151,7 @@ ob_end_flush();
                     </select><br>
                 </div>
 
-            <?php
+                <?php
             } else {
                 echo "No lot_id available.";
             }
@@ -179,7 +179,7 @@ ob_end_flush();
             <!-- loop -->
             <?php
             if (count($product_id) > 0) {
-            ?>
+                ?>
                 <div class="box">
                     <label for="product_id">รหัสสินค้า:</label>
                     <select name="product_id" id="product_id">
@@ -191,7 +191,7 @@ ob_end_flush();
                     </select><br>
                 </div>
 
-            <?php
+                <?php
             } else {
                 echo "No product_id available.";
             }
@@ -206,7 +206,7 @@ ob_end_flush();
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

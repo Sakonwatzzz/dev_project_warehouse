@@ -10,7 +10,7 @@ if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $lot_id = $_POST['lot_id'];
     // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
-    header("Location: lot_detail.php?tabel=lot&id=" . $lot_id);
+    header("Location: lot_detail.php?tabel=lot&id=" .$lot_id);
     exit();
 }
 
@@ -63,26 +63,21 @@ if (!$lot) {
     exit();
 }
 // ดึงชื่อคลังมาแสดงผล
-$query = "SELECT lot_status_id, lot_status_name FROM lot_status";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$status_lot = $stmt; // ใช้ fetch() ทีละแถว
+$querylot = "SELECT lot_status_id, lot_status_name FROM lot_status";
+$status_lot = $pdo->query($querylot);
 
 // ดึงชื่อคลังมาแสดงผล
-$query = "SELECT warehouse_id, warehouse_name FROM warehouse";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$warehouse_lot = $stmt;
-// ดึงชื่อผู่ส่งมอบมาแสดงผล
-$query = "SELECT supplier_id, supplier_name FROM supplier";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$supplier_lot = $stmt;
+$querywarehoue = "SELECT warehouse_id, warehouse_name FROM warehouse";
+$warehouse_lot = $pdo->query($querywarehoue);
 
-$query = "SELECT store_id, store_name FROM store";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$store_lot = $stmt;
+// ดึงชื่อผู่ส่งมอบมาแสดงผล
+$querysupplier = "SELECT supplier_id, supplier_name FROM supplier";
+$supplier_lot = $pdo->query($querysupplier);
+
+
+$querystore = "SELECT store_id, store_name FROM store";
+$store_lot = $pdo->query($querystore);
+
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -105,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id, $lot_id]);
 
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
-    header("Location: lot_detail.php?tabel=lot&id=" . $lot_id);
+    header("Location: ?page=lot_detail&tabel=lot&id=25&success=1");
     exit;
 }
 ?>
@@ -123,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="detail-body">
         <h2 class="detail-title">รายละเอียดล็อต</h2>
-        <form class="detail-form" action="../../page/lot/lot_update.php" method="POST">
+        <form class="detail-form" action="../../page/lot/lot_detail.php" method="POST">
             <input type="hidden" name="lot_id" value="<?php echo $lot['lot_id']; ?>">
             <table class="detail-table">
                 <?php if ($tabel === 'lot'): ?>
@@ -163,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th>สถานะล็อต:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <select name="lot_status_id">
+                                <select name="lot_status_name">
                                     <option value="<?php echo ($lot['lot_status_id']); ?>" selected>
                                         <?php echo ($lot['lot_status_name']); ?>
                                     </option>
@@ -173,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </option>
                                     <?php endwhile; ?>
                                 <?php else: ?>
-                                    <?php echo ($lot['lot_status_id']); ?>
+                                    <?php echo ($lot['lot_status_name']); ?>
                                 <?php endif; ?>
                             </select>
                         </td>
@@ -182,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th>คลังสินค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <select name="warehouse_id">
+                                <select name="warehouse_name">
                                     <option value="<?php echo ($lot['warehouse_id']); ?>" selected>
                                         <?php echo ($lot['warehouse_name']); ?>
                                     </option>
@@ -192,36 +187,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </option>
                                     <?php endwhile; ?>
                                 <?php else: ?>
-                                    <?php echo ($lot['warehouse_id']); ?>
+                                    <?php echo ($lot['warehouse_name']); ?>
                                 <?php endif; ?>
                             </select>
                         </td>
                     </tr>
                     <tr>
-                        <th>สถานะล็อต:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <select name="lot_status_id">
-                                    <option value="<?php echo ($lot['lot_status_id']); ?>" selected>
-                                        <?php echo ($lot['lot_status_name']); ?>
-                                    </option>
-                                    <?php while ($lot_status_result = $status_lot->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo ($lot_status_result['lot_status_id']); ?>">
-                                            <?php echo ($lot_status_result['lot_status_name']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
-                                    <?php echo ($lot['lot_status_id']); ?>
-                                <?php endif; ?>
-                            </select>
-                        </td>
-                    </tr>
                    
                     <tr>
                         <th>ร้านค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <select name="store_id">
+                                <select name="store_name">
                                     <option value="<?php echo ($lot['store_id']); ?>" selected>
                                         <?php echo ($lot['store_name']); ?>
                                     </option>
@@ -232,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <?php endwhile; ?>
                                 </select>
                             <?php else: ?>
-                                <?php echo ($lot['warehouse_id']); ?>
+                                <?php echo ($lot['store_name']); ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -240,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th>ผู้ส่งมอบ:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <select name="supplier_id">
+                                <select name="supplier_name">
                                     <option value="<?php echo ($lot['supplier_id']); ?>" selected>
                                         <?php echo ($lot['supplier_name']); ?>
                                     </option>
@@ -251,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <?php endwhile; ?>
                                 </select>
                             <?php else: ?>
-                                <?php echo ($lot['warehouse_id']); ?>
+                                <?php echo ($lot['supplier_name']); ?>
                             <?php endif; ?>
                         </td>
                     </tr>

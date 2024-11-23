@@ -22,23 +22,31 @@
             $page = $_GET['page'];
             $parts = explode("_", $page);
 
-            if (count($parts) === 2) {
+            if (count($parts) >= 2) {
+                // จัดการ module, action, และ subaction (ถ้ามี)
                 $module = $parts[0];
                 $action = $parts[1];
+                $subaction = $parts[2] ?? null; // กรณีมี subaction
+        
+                // กำหนดเส้นทางไฟล์ตามกรณี
+                if ($subaction) {
+                    $filePath = __DIR__ . "/page/{$module}/{$module}_{$action}_{$subaction}.php";
+                } else {
+                    $filePath = __DIR__ . "/page/{$module}/{$module}_{$action}.php";
+                }
 
-                $filePath = __DIR__ . "/page/{$module}/{$module}_{$action}.php";
-
+                // ตรวจสอบไฟล์
                 if (file_exists($filePath)) {
                     include $filePath;
                 } else {
-                    $filePath = __DIR__ . "/page/{$module}/{$module}_{$action}.php";
+                    echo "<h2>ไม่พบไฟล์ที่คุณต้องการ</h2>";
                 }
             } else {
                 echo "<h2>รูปแบบของพารามิเตอร์ไม่ถูกต้อง</h2>";
             }
         } else {
             echo "<h2>ยินดีต้อนรับ</h2>";
-            //include __DIR__ . "/component/dashboard.php";
+            // include __DIR__ . "/component/dashboard.php";
         }
         ?>
     </div>

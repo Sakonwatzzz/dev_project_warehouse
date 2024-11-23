@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
-    header("Location: /home.php?page=lot_list&success=1");
+    header("Location: /?page=lot_detail&tabel=lot&id=$lot_id");
     exit;
 }
 
@@ -75,7 +75,7 @@ $store_lot = $stmt;
     <div class="edit-box">
         <h1 class="title">แก้ไขข้อมูลการรับรายการสินค้า</h1>
 
-        <form class="form-container" action="" method="POST">
+        <form class="form-container" action="../../page/lot/lot_update.php" method="POST">
             <input type="hidden" name="id" value="<?php echo ($lot['lot_id']) ?>">
             <div class="box">
                 <label for="lot_detail">รายละเอียดล็อต:</label>

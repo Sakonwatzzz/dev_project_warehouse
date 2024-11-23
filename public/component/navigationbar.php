@@ -86,7 +86,7 @@
                         // ตรวจสอบพารามิเตอร์ที่รองรับใน array
                         if (in_array($page, ['personnel_list', 'personnel_insert', 'personnel_type', 'personnel_detail', 'personnel_update', 'personnel_group'])) {
                             include __DIR__ . "/bar_personnel.php";
-                        } elseif (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type', 'member_detail'])) {
+                        } elseif (in_array($page, ['member_list', 'member_insert', 'member_update', 'member_type', 'member_detail','member_group'])) {
                             include __DIR__ . "/bar_member.php";
                         } elseif (in_array($page, [
                             'product_list',
