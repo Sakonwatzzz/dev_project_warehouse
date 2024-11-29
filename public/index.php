@@ -12,7 +12,7 @@ require_once __DIR__ . '/../config/database_server.php';
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="style/index.css">
+    <link href="../../output.css" rel="stylesheet">
     <title>Document</title>
     <style>
         .main-body {
@@ -21,8 +21,7 @@ require_once __DIR__ . '/../config/database_server.php';
     </style>
 </head>
 
-<body>
-
+<body class="bg-[#F0F0F0]">
 
     <div class="main-body">
         <?php include 'home.php'; ?>

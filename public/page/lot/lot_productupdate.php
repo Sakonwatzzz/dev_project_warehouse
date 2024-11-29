@@ -47,8 +47,7 @@ $result_product_id = $stmt_product->fetch();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="../../style/personnel_insert.css">
-
+    <link href="../../output.css" rel="stylesheet">
     <style>
         .edit-box {
             margin: 3rem 10rem 4rem 8rem;
@@ -61,17 +60,17 @@ $result_product_id = $stmt_product->fetch();
 </head>
 
 <body>
-    <div class="edit-box">
-        <h1 class="title">แก้ไขข้อมูลการรับรายการสินค้า</h1>
+    <div class="font-[Tahoma] mx-[20rem] mt-11 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+        <h1 class="bg-[#0046AA] text-white text-2xl font-bold p-5">แก้ไขข้อมูลการรับรายการสินค้า</h1>
 
-        <form class="form-container" action="" method="POST">
+        <form class="p-5  space-y-2" action="" method="POST">
             <input type="hidden" name="id" value="<?php echo ($lot_product['lot_product_id']) ?>">
             <?php
             if ($result_lot_id->rowCount() > 0) {
             ?>
-                <div class="box">
-                    <label for="lot_id">รหัสล็อตสินค้า:</label>
-                    <select name="lot_id" id="lot_id">
+                <div class="flex items-center">
+                    <label class="w-[110px] text-base mr-4" for="lot_id">รหัสล็อตสินค้า:</label>
+                    <select name="lot_id" id="lot_id" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                         <?php while ($lot_id_update = $result_lot_id->fetch(PDO::FETCH_ASSOC)) { ?>
                             <option value="<?php echo ($lot_id_update['lot_id']); ?>">
                                 <?php echo ($lot_id_update['lot_id']); ?>
@@ -86,34 +85,34 @@ $result_product_id = $stmt_product->fetch();
                 echo "No lot_id available.";
             }
             ?>
-            <div class="box">
-                <label for="lot_product_qty">จำนวนสินค้าเข้า:</label>
-                <input type="text" name="lot_product_qty" value="<?php echo ($lot_product['lot_product_qty']) ?>">
+            <div class="flex items-center">
+                <label class="w-[110px] text-base mr-4" for="lot_product_qty">จำนวนสินค้าเข้า:</label>
+                <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="lot_product_qty" value="<?php echo ($lot_product['lot_product_qty']) ?>">
 
             </div>
-            <div class="box">
-                <label for="lot_product_remain">จำนวนสินค้าคงเหลือ:</label>
-                <input type="text" name="lot_product_remain" value="<?php echo ($lot_product['lot_product_remain']) ?>">
+            <div class="flex items-center">
+                <label class="w-[110px] text-base mr-4" for="lot_product_remain">จำนวนสินค้าคงเหลือ:</label>
+                <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="lot_product_remain" value="<?php echo ($lot_product['lot_product_remain']) ?>">
             </div>
-            <div class="box">
-                <label for="lot_product_capital">ราคาต้นทุน:</label>
-                <input type="text" name="lot_product_capital" value="<?php echo ($lot_product['lot_product_capital']) ?>">
+            <div class="flex items-center">
+                <label class="w-[110px] text-base mr-4" for="lot_product_capital">ราคาต้นทุน:</label>
+                <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="lot_product_capital" value="<?php echo ($lot_product['lot_product_capital']) ?>">
 
             </div>
-            <div class="box">
-                <label for="lot_product_date">วันที่รับสินค้า</label>
-                <input type="date" id="lot_product_date" name="lot_product_date" value="<?= date('Y-m-d') ?>" readonly>
+            <div class="flex items-center">
+                <label class="w-[110px] text-base mr-4" for="lot_product_date">วันที่รับสินค้า</label>
+                <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="date" id="lot_product_date" name="lot_product_date" value="<?= date('Y-m-d') ?>" readonly>
             </div>
-            <div class="box">
-                <label for="lot_product_status">สถานะสินค้า:</label>
-                <input type="text" name="lot_product_status" value="<?php echo ($lot_product['lot_product_status']) ?>">
+            <div class="flex items-center">
+                <label class="w-[110px] text-base mr-4" for="lot_product_status">สถานะสินค้า:</label>
+                <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="lot_product_status" value="<?php echo ($lot_product['lot_product_status']) ?>">
             </div>
             <?php
             if ($result_product_id) {
             ?>
-                <div class="box">
-                    <label for="product_id">รหัสสินค้า:</label>
-                    <select name="product_id" id="product_id">
+                <div class="flex items-center">
+                    <label class="w-[110px] text-base mr-4" for="product_id">รหัสสินค้า:</label>
+                    <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="product_id" id="product_id">
                         <option value="<?php echo ($result_product_id['product_id']); ?>" selected>
                             <?php echo ($result_product_id['product_name']); ?>
                         </option>
@@ -126,9 +125,42 @@ $result_product_id = $stmt_product->fetch();
             }
             ?>
 
-            <div class="box">
-                <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+
+            <div class="flex justify-end mt-5 gap-2">
+                <a href="/?page=lot_productlist" class="
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner 
+                    ">ยกเลิก</a>
+                <button class="
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner
+                    " type="submit" value="เพิ่ม">บันทึก</button>
             </div>
         </form>
     </div>

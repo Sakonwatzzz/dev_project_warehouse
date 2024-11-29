@@ -10,7 +10,7 @@ if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $lot_id = $_POST['lot_id'];
     // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
-    header("Location: lot_detail.php?tabel=lot&id=" .$lot_id);
+    header("Location: lot_detail.php?tabel=lot&id=" . $lot_id);
     exit();
 }
 
@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id, $lot_id]);
 
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
-    header("Location: ?page=lot_detail&tabel=lot&id=25&success=1");
+    header("Location: /?page=lot_detail&tabel=lot&id=$lot_id");
     exit;
 }
 ?>
@@ -112,21 +112,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/detail.css">
+    <link href="../../output.css" rel="stylesheet">
     <title>รายละเอียด</title>
 </head>
 
 <body>
-    <div class="detail-body">
+    <div class="detail-body  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
         <h2 class="detail-title">รายละเอียดล็อต</h2>
-        <form class="detail-form" action="../../page/lot/lot_detail.php" method="POST">
+        <form class="detail-form" action="../../page/lot/lot_update.php" method="POST">
             <input type="hidden" name="lot_id" value="<?php echo $lot['lot_id']; ?>">
             <table class="detail-table">
                 <?php if ($tabel === 'lot'): ?>
                     <tr>
-                        <th>รหัสล็อต:</th>
+                        <th class="">รหัสล็อต:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="id" name="lot_id" value="<?php echo ($lot['lot_id']); ?>" readonly>
+                                <input type="id" name="lot_id" value="<?php echo ($lot['lot_id']); ?> "  readonly >
                             <?php else: ?>
                                 <?php echo ($lot['lot_id']); ?>
                             <?php endif; ?>
@@ -135,9 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <tr>
                         <th>รายละเอียดล็อต:</th>
-                        <td>
+                        <td class="shadow-lg">
                             <?php if ($is_update): ?>
-                                <input type="text" name="lot_detail" value="<?php echo ($lot['lot_detail']); ?>">
+                                <input type="text" name="lot_detail" value="<?php echo ($lot['lot_detail']); ?>" >
                             <?php else: ?>
                                 <?php echo ($lot['lot_detail']); ?>
                             <?php endif; ?>
@@ -158,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th>สถานะล็อต:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <select name="lot_status_name">
+                                <select name="lot_status_id">
                                     <option value="<?php echo ($lot['lot_status_id']); ?>" selected>
                                         <?php echo ($lot['lot_status_name']); ?>
                                     </option>
@@ -170,14 +171,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php else: ?>
                                     <?php echo ($lot['lot_status_name']); ?>
                                 <?php endif; ?>
-                            </select>
+                                </select>
                         </td>
                     </tr>
                     <tr>
                         <th>คลังสินค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <select name="warehouse_name">
+                                <select name="warehouse_id">
                                     <option value="<?php echo ($lot['warehouse_id']); ?>" selected>
                                         <?php echo ($lot['warehouse_name']); ?>
                                     </option>
@@ -189,16 +190,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php else: ?>
                                     <?php echo ($lot['warehouse_name']); ?>
                                 <?php endif; ?>
-                            </select>
+                                </select>
                         </td>
                     </tr>
                     <tr>
-                   
+
                     <tr>
                         <th>ร้านค้า:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <select name="store_name">
+                                <select name="store_id">
                                     <option value="<?php echo ($lot['store_id']); ?>" selected>
                                         <?php echo ($lot['store_name']); ?>
                                     </option>
@@ -217,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th>ผู้ส่งมอบ:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <select name="supplier_name">
+                                <select name="supplier_id">
                                     <option value="<?php echo ($lot['supplier_id']); ?>" selected>
                                         <?php echo ($lot['supplier_name']); ?>
                                     </option>
@@ -236,30 +237,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </table>
 
             <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
-            <?php if ($is_update): ?>
-                <button class="submit-button" type="submit" style=" border-radius: 6px;
-                        width: 120px;
-                        height: 40px;
-                        padding: 10px;
-                        margin-top:10px;
-                        /*border: 1px solid rgb(29, 188, 55);*/
-                        background-color: #333;
-                        text-decoration: none;
-                        color: #fff; ">
-                    บันทึก</button>
-            <?php endif; ?>
+            <div class="flex justify-end gap-4 mt-3"><?php if ($is_update): ?>
+                    <button class="
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner 
+                    ">
+                        บันทึก</button>
+                <?php endif; ?>
+            </div>
+
         </form>
 
-        <div class="detail-action">
-            <a href="/?page=lot_list">ย้อนกลับหน้ารายการ<?php echo ($tabel); ?></a>
+        <div class="flex justify-end gap-4 mb-5 mx-3">
+            <a href="/?page=lot_list" class="
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner 
+                    ">ย้อนกลับหน้ารายการ<?php echo ($tabel); ?></a>
 
             <?php if ($is_update): ?>
                 <a href="?page=lot_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $lot['lot_id']; ?>"
-                    style="margin-right: 6px;">ย้อนกลับไปที่ Detail
+                    class="
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner 
+                    ">ย้อนกลับไปที่ Detail
                 </a>
             <?php endif; ?>
 
-            <a href="?page=lot_detail&tabel=lot&id=<?php echo $lot['lot_id']; ?>&is_update=1">
+            <a href="?page=lot_detail&tabel=lot&id=<?php echo $lot['lot_id']; ?>&is_update=1" class="
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner
+                    ">
                 ไปหน้าแก้ไข <?php echo $tabel; ?>
             </a>
         </div>

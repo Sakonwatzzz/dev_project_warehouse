@@ -82,7 +82,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="../../output.css" rel="stylesheet">
     <style>
         .title {
             display: grid;
@@ -156,31 +156,30 @@ try {
             display: inline-block;
             padding: 8px 16px;
             text-decoration: none;
-            background-color: #f1f1f1;
+            background-color: #aec5e366;
             color: black;
             border-radius: 5px;
             margin: 0 4px;
         }
 
         .pagination a.active {
-            background-color: #5b97b2;
+            background-color: #333;
             ;
             color: white;
         }
 
         .pagination a:hover:not(.active) {
             background-color: #ddd;
-
         }
     </style>
     <title>Document</title>
 </head>
 
 <body>
-    <div class="personnel-list" ">
+    <div class="font-[Tahoma] mx-[2rem] mt-11" ">
         <div class=" title">
         <div class="count">
-            <h2 style="font-weight: bold;">ข้อมูลแบรนด์สินค้า</h2>
+            <h2 class="text-2xl font-bold">ข้อมูลแบรนด์สินค้า</h2>
             <div class="listcount">
                 <?php echo $count; ?>
             </div>
@@ -192,17 +191,17 @@ try {
     </div>
 
 
-    <table class="data-table" id="dataTable">
+    <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
         <tr>
             <form action="" method="POST">
-                <td></td>
-                <td>
+                <td class=" bg-white "></td>
+                <td class=" bg-white ">
                     <input type="text" id="brandname" name="brandname" placeholder="ชื่อแบรนด์" required
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
                 </td>
-                <td>
+                <td class=" bg-white ">
                     <button type="submit"
-                        class="save-button px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                        class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
                         เพิ่ม
                     </button>
                 </td>
@@ -210,14 +209,14 @@ try {
         </tr>
         <thead>
             <tr>
-                <th>รหัสแบรนด์สินค้า</th>
-                <th>ชื่อแบรนด์สินค้า</th>
-                <th>การจัดการ</th>
+                <th class="text-[18px] text-white bg-[#0046aa] ">รหัสแบรนด์สินค้า</th>
+                <th class="text-[18px] text-white bg-[#0046aa] ">ชื่อแบรนด์สินค้า</th class="text-[18px] text-white bg-[#0046aa] ">
+                <th class="text-[18px] text-white bg-[#0046aa] ">การจัดการ</th>
             </tr>
         </thead>
         <tbody id="tableBody">
             <?php foreach ($productbrands as $brand): ?>
-                <tr data-id="<?php echo $brand['product_brand_id']; ?>">
+                <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?php echo $brand['product_brand_id']; ?>">
                     <td><?php echo $brand['product_brand_id']; ?></td>
                     <td class="brand-name"><?php echo ($brand['product_brand_name']); ?></td>
                     <td>
@@ -257,36 +256,47 @@ try {
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
+            const thead = table.querySelector("thead");
             let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) {
-                let found = false;
+            // Always keep the header visible
+            thead.style.display = "";
+
+            // Always keep the input row visible 
+            tr[0].style.display = "";
+
+            // Search through data rows (start from index 2 to skip header and input row)
+            for (let i = 2; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
+                let rowMatchesSearch = false;
+
+                // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        const txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                            found = true;
-                            break;
-                        }
+                    const txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowMatchesSearch = true;
+                        break;
                     }
                 }
-                tr[i].style.display = found ? "" : "none";
-                if (found) {
+
+                tr[i].style.display = rowMatchesSearch ? "" : "none";
+                if (rowMatchesSearch) {
                     foundAny = true;
                 }
             }
 
-            const noDataMessage = document.getElementById("noDataMessage");
+            // Handle "No data" message
+            let noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
-                    const message = document.createElement("p");
-                    message.id = "noDataMessage";
-                    message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red";
-                    message.style.fontWeight = "bold";
-                    message.style.marginTop = "10px";
-                    table.parentNode.insertBefore(message, table);
+                    noDataMessage = document.createElement("p");
+                    noDataMessage.id = "noDataMessage";
+                    noDataMessage.textContent = "ไม่พบข้อมูล";
+                    noDataMessage.style.color = "red";
+                    noDataMessage.style.fontWeight = "bold";
+                    noDataMessage.style.textAlign = "center";
+                    noDataMessage.style.marginTop = "10px";
+                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
                 }
             } else {
                 if (noDataMessage) {
@@ -294,6 +304,7 @@ try {
                 }
             }
         }
+
 
         function enableEdit(button) {
             const row = button.closest('tr');

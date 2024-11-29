@@ -10,15 +10,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $store_id = $_POST['store_id'];
     $supplier_id = $_POST['supplier_id'];
 
-
     $stmt = $pdo->prepare("
-        UPDATE lot 
-        SET lot_id = ?, lot_detail = ?, lot_date = ?, lot_status_id = ?, 
-            warehouse_id = ?, store_id = ?, supplier_id 
-        WHERE lot_id = ?
+    UPDATE lot 
+    SET lot_detail = ?, lot_date = ?, lot_status_id = ?, 
+        warehouse_id = ?, store_id = ?, supplier_id = ?
+    WHERE lot_id = ?
     ");
-    $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
-
+    $stmt->execute([
+        $lot_detail,
+        $lot_date,
+        $lot_status_id,
+        $warehouse_id,
+        $store_id,
+        $supplier_id,
+        $lot_id
+    ]);
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
     header("Location: /?page=lot_detail&tabel=lot&id=$lot_id");
     exit;
@@ -51,123 +57,148 @@ $stmt->execute();
 $store_lot = $stmt;
 
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="../../style/personnel_insert.css">
+    <link href="../../output.css" rel="stylesheet">
+    <title>แก้ไขข้อมูลการรับรายการสินค้า</title>
 
-    <style>
-        .edit-box {
-            margin: 3rem 10rem 4rem 8rem;
-        }
-
-        h1 {
-            margin-bottom: 1rem;
-        }
-    </style>
 </head>
 
-<body>
-    <div class="edit-box">
-        <h1 class="title">แก้ไขข้อมูลการรับรายการสินค้า</h1>
+<body class="bg-[#E6F2FF] font-[Tahoma]">
+    <div class="mx-[20rem] mt-11 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+        <div class="bg-[#0046AA] text-white text-2xl font-bold p-5">
+            แก้ไขข้อมูลการรับรายการสินค้า
+        </div>
 
-        <form class="form-container" action="../../page/lot/lot_update.php" method="POST">
-            <input type="hidden" name="id" value="<?php echo ($lot['lot_id']) ?>">
-            <div class="box">
-                <label for="lot_detail">รายละเอียดล็อต:</label>
-                <input type="text" name="lot_detail" value="<?php echo ($lot['lot_detail']) ?>">
+        <form class="p-5  space-y-2" action="" method="POST">
+            <input type="hidden" name="lot_id" value="<?php echo ($lot['lot_id']) ?>">
 
+            <div class="flex items-center ">
+                <label class="w-[110px] text-base mr-4">รายละเอียดล็อต</label>
+                <input
+                    type="text"
+                    name="lot_detail"
+                    class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                    value="<?php echo ($lot['lot_detail']) ?>">
             </div>
-            <div class="box">
-                <label for="lot_date">วันที่รับสินค้า</label>
-                <input type="date" id="lot_date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly>
+
+            <div class="flex items-center">
+                <label class="w-[110px] text-base mr-4">วันที่รับสินค้า</label>
+                <input
+                    type="date"
+                    name="lot_date"
+                    class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                    value="<?= date('Y-m-d') ?>"
+                    readonly>
             </div>
-            <?php
-            if ($status_lot->rowCount() > 0) {
-                ?>
-                <div class="box">
-                    <label for="lot_status_id">สถานะล็อต:</label>
-                    <select name="lot_status_id" id="lot_status_id">
-                        <?php while ($status_lot_update = $status_lot->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo ($status_lot_update['lot_status_id']); ?>" selected>
-                                <?php echo ($status_lot_update['lot_status_name']); ?>
-                            </option>
-                        <?php } ?>
-                    </select><br>
-                </div>
-                <?php
-            } else {
-                echo "No result_lot_status available.";
-            }
-            ?>
-            <?php
-            if ($warehouse_lot->rowCount() > 0) {
-                ?>
-                <div class="box">
-                    <label for="warehouse_id">คลังสินค้า:</label>
-                    <select name="warehouse_id" id="warehouse_id">
-                        <?php while ($warehouse_lot_update = $warehouse_lot->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo ($warehouse_lot_update['warehouse_id']); ?>" selected>
-                                <?php echo ($warehouse_lot_update['warehouse_name']); ?>
-                            </option>
-                        <?php } ?>
-                    </select><br>
-                </div>
-                <?php
-            } else {
-                echo "No warehouse_lot available.";
-            }
-            ?>
-            <?php
-            if ($store_lot->rowCount() > 0) {
-                ?>
-                <div class="box">
-                    <label for="store_id">ร้านค้า:</label>
-                    <select name="store_id" id="store_id">
-                        <?php while ($store_lot_update = $store_lot->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo ($store_lot_update['store_id']); ?>" selected>
-                                <?php echo ($store_lot_update['store_name']); ?>
-                            </option>
-                        <?php } ?>
 
-                    </select><br>
-                </div>
-                <?php
-            } else {
-                echo "No store_lot available.";
-            }
-            ?>
-            <?php
-            if ($supplier_lot->rowCount() > 0) {
-                ?>
-                <div class="box">
-                    <label for="supplier_id">ผู้ส่งมอบ:</label>
-                    <select name="supplier_id" id="supplier_id">
-                        <?php while ($supplier_lot_update = $supplier_lot->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo ($supplier_lot_update['supplier_id']); ?>" selected>
-                                <?php echo ($supplier_lot_update['supplier_name']); ?>
+            <?php if ($status_lot->rowCount() > 0): ?>
+                <div class="flex items-center">
+                    <label class="w-[110px] text-base mr-4">สถานะล็อต</label>
+                    <select
+                        name="lot_status_id"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
+                        <?php while ($status_lot_update = $status_lot->fetch(PDO::FETCH_ASSOC)): ?>
+                            <option value="<?php echo $status_lot_update['lot_status_id']; ?>">
+                                <?php echo $status_lot_update['lot_status_name']; ?>
                             </option>
-                        </select><br>
-                    <?php } ?>
+                        <?php endwhile; ?>
+                    </select>
                 </div>
-                <?php
-            } else {
-                echo "No supplier_lot available.";
-            }
-            ?>
+            <?php endif; ?>
 
-            <div class="box">
-                <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+            <?php if ($warehouse_lot->rowCount() > 0): ?>
+                <div class="flex items-center">
+                    <label class="w-[110px] text-base mr-4">คลังสินค้า</label>
+                    <select
+                        name="warehouse_id"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
+                        <?php while ($warehouse_lot_update = $warehouse_lot->fetch(PDO::FETCH_ASSOC)): ?>
+                            <option value="<?php echo $warehouse_lot_update['warehouse_id']; ?>">
+                                <?php echo $warehouse_lot_update['warehouse_name']; ?>
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($store_lot->rowCount() > 0): ?>
+                <div class="flex items-center">
+                    <label class="w-[110px] text-base mr-4">ร้านค้า</label>
+                    <select
+                        name="store_id"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
+                        <?php while ($store_lot_update = $store_lot->fetch(PDO::FETCH_ASSOC)): ?>
+                            <option value="<?php echo $store_lot_update['store_id']; ?>">
+                                <?php echo $store_lot_update['store_name']; ?>
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($supplier_lot->rowCount() > 0): ?>
+                <div class="flex items-center">
+                    <label class="w-[110px] text-base mr-4">ผู้ส่งมอบ</label>
+                    <select
+                        name="supplier_id"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
+                        <?php foreach ($supplier_lot as $supplier_lot_update): ?>
+                            <option value="<?php echo $supplier_lot_update['supplier_id']; ?>">
+                                <?php echo htmlspecialchars($supplier_lot_update['supplier_name'], ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <div class="flex justify-end mt-5 gap-2">
+                <a href="/?page=lot_list" class="
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner 
+                    ">ยกเลิก</a>
+                <button
+                    type="submit"
+                    class="
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner
+                    ">
+                    บันทึก
+                </button>
             </div>
         </form>
     </div>
-
-
 </body>
 
 </html>

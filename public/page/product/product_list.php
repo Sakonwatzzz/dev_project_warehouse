@@ -89,6 +89,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <link href="../../output.css" rel="stylesheet">
     <style>
         .title {
             display: grid;
@@ -161,14 +162,14 @@ try {
             display: inline-block;
             padding: 8px 16px;
             text-decoration: none;
-            background-color: #f1f1f1;
+            background-color: #aec5e366;
             color: black;
             border-radius: 5px;
             margin: 0 4px;
         }
 
         .pagination a.active {
-            background-color: #5b97b2;
+            background-color: #333;
             ;
             color: white;
         }
@@ -181,10 +182,10 @@ try {
 </head>
 
 <body>
-    <div class="personnel-list">
+    <div class="font-[Tahoma] mx-[2rem] mt-11">
         <div class="title">
             <div class="count">
-                <h2>รายการสินค้า</h2>
+                <h2 class="text-2xl font-bold">รายการสินค้า</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>
@@ -205,19 +206,19 @@ try {
             <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
-        <table class="data-table" id="dataTable">
+        <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <th>ชื่อสินค้า</th>
-                    <th>บาร์โค้ดสินค้า</th>
-                    <th>ราคา4</th>
-                    <th>ราคาทุน</th>
-                    <th>การจัดการ</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">ชื่อสินค้า</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">บาร์โค้ดสินค้า</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">ราคา4</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">ราคาทุน</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr >
+                    <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
 
                         <td onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'"><?php echo ($product_list['product_name']); ?></td>
                         <td><?php echo ($product_list['product_barcode']); ?></td>

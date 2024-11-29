@@ -31,7 +31,6 @@ h2 {
   grid-template-columns: repeat(1, 1fr);
   align-items: center;
   justify-content: center;
-
 }
 
 form {
@@ -51,8 +50,6 @@ form {
   width: 30%;
   text-align: left;
   color: #555;
-  padding: 8px 15px 0 0;
-  width: 120px;
 }
 
 .box input,

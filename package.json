@@ -1,0 +1,20 @@
+{
+  "name": "dev_project_warehouse",
+  "version": "1.0.0",
+  "description": "php -S localhost:8000 -t public\r runserver",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15"
+  },
+  "dependencies": {
+    "dev_project_warehouse": "file:"
+  }
+}

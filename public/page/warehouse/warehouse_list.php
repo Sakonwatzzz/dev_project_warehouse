@@ -82,6 +82,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <link href="../../output.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .title {
@@ -121,14 +122,15 @@ try {
             display: inline-block;
             padding: 8px 16px;
             text-decoration: none;
-            background-color: #f1f1f1;
+            background-color: #aec5e366;
             color: black;
             border-radius: 5px;
             margin: 0 4px;
         }
 
         .pagination a.active {
-            background-color: #5b97b2;
+            background-color: #333;
+            ;
             color: white;
         }
 
@@ -140,10 +142,10 @@ try {
 </head>
 
 <body>
-    <div class="personnel-list">
+    <div class="font-[Tahoma] mx-[2rem] mt-11">
         <div class="title">
             <div class="count">
-                <h2 style="font-weight: bold;">ข้อมูลคลังสินค้า</h2>
+                <h2 class="text-2xl font-bold">ข้อมูลคลังสินค้า</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>
@@ -153,19 +155,19 @@ try {
             </div>
         </div>
 
-        <table class="data-table" id="dataTable">
+        <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
             <tr>
                 <form action="" method="POST">
-                    <td></td>
-                    <td>
+                    <td class=" bg-white "></td>
+                    <td class=" bg-white ">
                         <input type="text" id="warehousename" name="warehousename" placeholder="ชื่อคลังสินค้า" required
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
                     </td>
-                    <td>
+                    <td class=" bg-white ">
                         <input type="text" id="warehousestatus" name="warehousestatus" placeholder="สถานะ" required
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
                     </td>
-                    <td>
+                    <td class=" bg-white ">
                         <button type="submit"
                             class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
                             เพิ่ม
@@ -173,22 +175,22 @@ try {
                     </td>
                 </form>
             </tr>
-            <thead>
+            <thead class="">
                 <tr>
-                    <th>รหัสคลังสินค้า</th>
-                    <th>ชื่อคลังสินค้า</th>
-                    <th>สถานะ</th>
-                    <th>การจัดการ</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">รหัสคลังสินค้า</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">ชื่อคลังสินค้า</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">สถานะ</th>
+                    <th class="text-[18px] text-white bg-[#0046aa] ">การจัดการ</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <?php foreach ($warehouses as $warehouse): ?>
-                    <tr data-id="<?php echo $warehouse['warehouse_id']; ?>">
+                    <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id=" <?php echo $warehouse['warehouse_id']; ?>">
                         <td><?php echo $warehouse['warehouse_id']; ?></td>
                         <td class="warehouse-name"><?php echo $warehouse['warehouse_name']; ?></td>
                         <td class="warehouse-status"><?php echo $warehouse['warehouse_status']; ?></td>
                         <td>
-                            <button onclick="enableEdit(this)" class="edit-button text-blue-500 hover:text-blue-700">แก้ไข</button>
+                            <button onclick="enableEdit(this)" class="edit-button text-blue-500 hover:text-blue-700">แก้ไข</button> |
                             <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button text-red-500 hover:text-red-700">ลบ</a>
                         </td>
                     </tr>
@@ -224,36 +226,47 @@ try {
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
+            const thead = table.querySelector("thead");
             let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) {
-                let found = false;
+            // Always keep the header visible
+            thead.style.display = "";
+
+            // Always keep the input row visible 
+            tr[0].style.display = "";
+
+            // Search through data rows (start from index 2 to skip header and input row)
+            for (let i = 2; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
+                let rowMatchesSearch = false;
+
+                // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        const txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                            found = true;
-                            break;
-                        }
+                    const txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowMatchesSearch = true;
+                        break;
                     }
                 }
-                tr[i].style.display = found ? "" : "none";
-                if (found) {
+
+                tr[i].style.display = rowMatchesSearch ? "" : "none";
+                if (rowMatchesSearch) {
                     foundAny = true;
                 }
             }
 
-            const noDataMessage = document.getElementById("noDataMessage");
+            // Handle "No data" message
+            let noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
-                    const message = document.createElement("p");
-                    message.id = "noDataMessage";
-                    message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red";
-                    message.style.fontWeight = "bold";
-                    message.style.marginTop = "10px";
-                    table.parentNode.insertBefore(message, table);
+                    noDataMessage = document.createElement("p");
+                    noDataMessage.id = "noDataMessage";
+                    noDataMessage.textContent = "ไม่พบข้อมูล";
+                    noDataMessage.style.color = "red";
+                    noDataMessage.style.fontWeight = "bold";
+                    noDataMessage.style.textAlign = "center";
+                    noDataMessage.style.marginTop = "10px";
+                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
                 }
             } else {
                 if (noDataMessage) {
@@ -261,6 +274,7 @@ try {
                 }
             }
         }
+
 
         function enableEdit(button) {
             const row = button.closest('tr');

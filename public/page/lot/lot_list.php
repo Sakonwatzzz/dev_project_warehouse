@@ -128,6 +128,7 @@ ob_end_flush();
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- กำหนดให้แสดงผลบนอุปกรณ์มือถือได้ดี -->
 
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <link href="../../output.css" rel="stylesheet">
     <style>
         .title {
             display: grid;
@@ -188,10 +189,10 @@ ob_end_flush();
 </head>
 
 <body>
-    <div class="personnel-list">
+    <div class="font-[Tahoma] mx-[2rem] mt-11 ">
         <div class="title">
             <div class="count">
-                <h2>ข้อมูลการรับสินค้า</h2>
+                <h2 class="text-2xl font-bold">ข้อมูลการรับสินค้า</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>
@@ -210,26 +211,23 @@ ob_end_flush();
             <div class="notification-body">แก้ไขสมาชิกสำเร็จ!</div>
         </div>
 
-        <table class="data-table" id="dataTable">
+        <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
             <thead>
                 <!-- ส่วนหัวของตาราง -->
-                <tr>
-                    <!-- <th>รหัสล็อตสินค้า</th> -->
-                    <!-- <th>รายละเอียด</th> -->
-                    <!-- <th>วันที่รับสินค้า</th> -->
-                    <th>สถานะล็อต</th>
-                    <th>คลังสินค้า</th>
-                    <th>ร้านค้า</th>
-                    <th>ผู้ส่งมอบ</th>
-                    <th>การจัดการ</th>
+                <tr class="">
+                    <th class="text-[18px] text-white bg-[#0046aa] ">สถานะล็อต</th>
+                    <th class="text-[18px] text-white bg-[#0046aa]">คลังสินค้า</th>
+                    <th class="text-[18px] text-white bg-[#0046aa]">ร้านค้า</th>
+                    <th class="text-[18px] text-white bg-[#0046aa]">ผู้ส่งมอบ</th>
+                    <th class="text-[18px] text-white bg-[#0046aa]">การจัดการ</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="">
                 <?php
                 if ($result_lot_list->rowCount() > 0) {
                     while ($lot_list = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
                         <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
-                        <tr>
+                        <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
                             <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
                             <!-- <td><?php echo ($lot_list['lot_id']) ?></td> -->
                             <!-- <td><?php echo ($lot_list['lot_detail']) ?></td> -->
@@ -239,10 +237,10 @@ ob_end_flush();
                             <td><?php echo ($lot_list['store_name']) ?></td>
                             <td><?php echo ($lot_list['supplier_name']) ?></td>
                             <td>
-                                <a href="?page=lot_update&id=<?php echo ($lot_list['lot_id']) ?>">แก้ไข</a>
+                                <a href="?page=lot_update&id=<?php echo ($lot_list['lot_id']) ?>" class=" text-green-600 ">แก้ไข</a>
                                 | <!-- ลิงก์ไปหน้าแก้ไขข้อมูลสมาชิก -->
                                 <a href="?page=lot_list&id=<?php echo ($lot_list['lot_id']) ?>"
-                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" text-red-600 ">ลบ</a>
                                 <!-- ลิงก์ไปหน้าลบข้อมูลสมาชิก และมีการยืนยันการลบ -->
                             </td>
                         </tr>
@@ -253,9 +251,25 @@ ob_end_flush();
                 } ?>
             </tbody>
         </table>
-        <div class="box">
-            <label for=""></label>
-            <a class="submit-button" href="/?page=lot_insert" value="เพิ่ม">เพิ่มการรับสินค้า</a
+        <div class="box ">
+
+            <a class="  
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4
+                        py-3
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner 
+                    " href="/?page=lot_insert" value="เพิ่ม">เพิ่มการรับสินค้า</a
                 class="submit-button">
             <!-- แก้คำว่า "lass" เป็น "class" -->
         </div>
@@ -285,45 +299,55 @@ ob_end_flush();
     <script>
         // ฟังก์ชันสำหรับค้นหาข้อมูลในตาราง
         function searchTable() {
-            const input = document.getElementById("searchInput"); // หาตัว input ที่ใช้สำหรับค้นหา
-            const filter = input.value.toLowerCase(); // เปลี่ยนค่าที่ผู้ใช้พิมพ์ให้เป็นตัวพิมพ์เล็ก
-            const table = document.getElementById("dataTable"); // หาตารางข้อมูล
-            const tr = table.getElementsByTagName("tr"); // หาทุกแถวในตาราง
-            let foundAny = false; // ตัวแปรเพื่อตรวจสอบว่าพบข้อมูลหรือไม่
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById("dataTable");
+            const tr = table.getElementsByTagName("tr");
+            const thead = table.querySelector("thead");
+            let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) { // เริ่มวนลูปจากแถวที่ 1 เพื่อข้าม header
-                let found = false;
-                const td = tr[i].getElementsByTagName("td"); // หาตัวแถว (td) ในแต่ละแถว
+            // Always keep the header visible
+            thead.style.display = "";
+
+            // Always keep the input row visible 
+            tr[0].style.display = "";
+
+            // Search through data rows (start from index 2 to skip header and input row)
+            for (let i = 1; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName("td");
+                let rowMatchesSearch = false;
+
+                // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        const txtValue = td[j].textContent || td[j].innerText; // อ่านข้อความใน td
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) { // ถ้าคำค้นหาตรงกับข้อความใน td
-                            found = true;
-                            break;
-                        }
+                    const txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowMatchesSearch = true;
+                        break;
                     }
                 }
-                tr[i].style.display = found ? "" : "none"; // ถ้าพบคำค้นหาจะทำให้แถวนั้นแสดง
-                if (found) {
-                    foundAny = true; // ถ้าพบข้อมูลจะเปลี่ยนสถานะ
+
+                tr[i].style.display = rowMatchesSearch ? "" : "none";
+                if (rowMatchesSearch) {
+                    foundAny = true;
                 }
             }
 
-            // แสดงข้อความเมื่อไม่พบข้อมูล
-            const noDataMessage = document.getElementById("noDataMessage");
+            // Handle "No data" message
+            let noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
-                    const message = document.createElement("p");
-                    message.id = "noDataMessage";
-                    message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red"; // ปรับสีข้อความ
-                    message.style.fontWeight = "bold"; // ปรับความหนาของข้อความ
-                    message.style.marginTop = "10px"; // เพิ่มระยะห่างด้านบน
-                    table.parentNode.insertBefore(message, table); // เพิ่มข้อความก่อนตาราง
+                    noDataMessage = document.createElement("p");
+                    noDataMessage.id = "noDataMessage";
+                    noDataMessage.textContent = "ไม่พบข้อมูล";
+                    noDataMessage.style.color = "red";
+                    noDataMessage.style.fontWeight = "bold";
+                    noDataMessage.style.textAlign = "center";
+                    noDataMessage.style.marginTop = "10px";
+                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
                 }
             } else {
                 if (noDataMessage) {
-                    noDataMessage.remove(); // ลบข้อความเมื่อพบข้อมูล
+                    noDataMessage.remove();
                 }
             }
         }

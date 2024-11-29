@@ -136,7 +136,7 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/lot_insert.css">
+    <link href="../../output.css" rel="stylesheet">
     <title>Document</title>
 
     <style>
@@ -176,40 +176,40 @@ ob_end_flush();
 
 <body>
 
-    <div class="add-box">
+    <div class=" font-[Tahoma] mx-[2rem] mt-1 ">
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
             <div class="notification-body">การรับสินค้าสำเร็จ!</div>
         </div>
-        <div class="product-receiving">
-            <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+        <div class=" ">
+            <form class="p-5  space-y-2" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
 
-                <div class="sone1">
-                    <div class="form1">
-                        <h2 class="sub-title">การรับสินค้า</h2>
-                        <div class="box">
-                            <label for="lot_id">รหัสล็อตสินค้า:</label>
+                <div class="grid grid-cols-2 gap-4  ">
+                    <div class="bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+                        <h2 class="bg-[#0046AA] text-white text-2xl font-bold p-5">การรับสินค้า</h2>
 
-                            <div class="playidlot">
+                        <div class="flex items-center px-4 pt-5">
+                            <label class="w-[150px] text-base mr-4" for="lot_product_qty" for="lot_id">รหัสล็อตสินค้า:</label>
+                            <div class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                                 <p type="id" id="lot_id" name="lot_id" value="<?php echo $lot['lot_id']; ?>" readonly>
                             </div>
                         </div>
-                        <div class="box">
-                            <label for="lot_detail">รายละเอียด:</label>
-                            <input type="text" id="lot_detail" name="lot_detail">
+                        <div class="flex items-center px-4 pt-2">
+                            <label class="w-[150px] text-base mr-4" for="lot_product_qty" for="lot_detail">รายละเอียด:</label>
+                            <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="lot_detail" name="lot_detail">
                         </div>
-                        <div class="box">
-                            <label for="lot_date">วันที่รับเข้า:</label>
-                            <input type="date" id="lot_date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly>
+                        <div class="flex items-center px-4 pt-2">
+                            <label class="w-[150px] text-base mr-4" for="lot_date">วันที่รับเข้า:</label>
+                            <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="date" id="lot_date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly>
                         </div>
 
                         <!-- loop -->
                         <?php
                         if (count($status_lot) > 0) {
                         ?>
-                            <div class="box">
-                                <label for="lot_stutas_name">สถานะ:</label>
-                                <select name="lot_status_id" id="lot_status_id">
+                            <div class="flex items-center px-4 pt-2">
+                                <label class="w-[150px] text-base mr-4" for="lot_stutas_name">สถานะ:</label>
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="lot_status_id" id="lot_status_id">
                                     <?php foreach ($status_lot as $status_insert) { ?>
                                         <option value="<?php echo ($status_insert['lot_status_id']); ?>">
                                             <?php echo ($status_insert['lot_status_name']); ?>
@@ -228,9 +228,9 @@ ob_end_flush();
                         <?php
                         if (count($warehouse_lot) > 0) {
                         ?>
-                            <div class="box">
-                                <label for="warehouse_name">คลังสินค้า:</label>
-                                <select name="warehouse_id" id="warehouse_id">
+                            <div class="flex items-center px-4 pt-2">
+                                <label class="w-[150px] text-base mr-4" for="warehouse_name">คลังสินค้า:</label>
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="warehouse_id" id="warehouse_id">
                                     <?php foreach ($warehouse_lot as $warehouse_insert) { ?>
                                         <option value="<?php echo ($warehouse_insert['warehouse_id']); ?>">
                                             <?php echo ($warehouse_insert['warehouse_name']); ?>
@@ -247,9 +247,9 @@ ob_end_flush();
                         <?php
                         if (count($store_lot) > 0) {
                         ?>
-                            <div class="box">
-                                <label for="store_name">ร้าน:</label>
-                                <select name="store_id" id="store_id">
+                            <div class="flex items-center px-4 pt-2">
+                                <label class="w-[150px] text-base mr-4" for="store_name">ร้าน:</label>
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="store_id" id="store_id">
                                     <?php foreach ($store_lot as $store_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
                                         <option value="<?php echo ($store_insert['store_id']); ?>">
                                             <?php echo ($store_insert['store_name']); ?>
@@ -266,9 +266,9 @@ ob_end_flush();
                         <?php
                         if (count($warehouse_lot) > 0) {
                         ?>
-                            <div class="box">
-                                <label for="supplier_name">ผู้ส่งมอบ:</label>
-                                <select name="supplier_id" id="supplier_id">
+                            <div class="flex items-center px-4 pt-2">
+                                <label class="w-[150px] text-base mr-4" for="supplier_name">ผู้ส่งมอบ:</label>
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="supplier_id" id="supplier_id">
                                     <?php foreach ($supplier_lot as $supplier_insert) { ?>
                                         <option value="<?php echo ($supplier_insert['supplier_id']); ?>">
                                             <?php echo ($supplier_insert['supplier_name']); ?>
@@ -285,12 +285,12 @@ ob_end_flush();
 
                     </div>
 
-                    <div class="form2">
-                        <h2 class="sub-title">การรับรายการสินค้า</h2>
+                    <div c class="bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+                        <h2 class="bg-[#0046AA] text-white text-2xl font-bold p-5 ">การรับรายการสินค้า</h2>
 
-                        <div class="box">
-                            <label for="lot_product_id">รหัสรายการรับสินค้า:</label>
-                            <div class="playidlot">
+                        <div class="flex items-center px-4 pt-5">
+                            <label class="w-[150px] text-base mr-4" for="lot_product_id">รหัสรายการรับสินค้า:</label>
+                            <div class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                                 <p type="id" id="lot_product_id" name="lot_product_id" value="<?php echo $lot['lot_product_id']; ?>"
                                     readonly>
                             </div>
@@ -300,9 +300,9 @@ ob_end_flush();
                         <?php
                         if (count(value: $lot_id) > 0) {
                         ?>
-                            <div class="box">
-                                <label for="lot_id">รหัสล็อตสินค้า:</label>
-                                <select name="lot_id" id="lot_id">
+                            <div class="flex items-center px-4 pt-2">
+                                <label class="w-[150px] text-base mr-4" for="lot_id">รหัสล็อตสินค้า:</label>
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="lot_id" id="lot_id">
                                     <?php foreach ($lot_id as $lot_id_insert) { ?>
                                         <option value="<?php echo ($lot_id_insert['lot_id']); ?>">
                                             <?php echo ($lot_id_insert['lot_id']); ?>
@@ -317,34 +317,34 @@ ob_end_flush();
                             echo "No lot_id available.";
                         }
                         ?>
-                        <div class="box">
-                            <label for="lot_product_qty">จำนวนสินค้าเข้า:</label>
-                            <input type="text" id="lot_product_qty" name="lot_product_qty">
+                        <div class="flex items-center px-4 pt-2">
+                            <label class="w-[150px] text-base mr-4" for="lot_product_qty">จำนวนสินค้าเข้า:</label>
+                            <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="lot_product_qty" name="lot_product_qty">
                         </div>
-                        <div class="box">
-                            <label for="lot_product_remain">จำนวนสินค้าคงเหลือ:</label>
-                            <input type="text" id="lot_product_remain" name="lot_product_remain">
+                        <div class="flex items-center px-4 pt-2">
+                            <label class="w-[150px] text-base mr-4" for="lot_product_remain">จำนวนสินค้าคงเหลือ:</label>
+                            <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="lot_product_remain" name="lot_product_remain">
                         </div>
-                        <div class="box">
-                            <label for="lot_product_capital">ราคาต้นทุน:</label>
-                            <input type="text" id="lot_product_capital" name="lot_product_capital">
+                        <div class="flex items-center px-4 pt-2">
+                            <label class="w-[150px] text-base mr-4" for="lot_product_capital">ราคาต้นทุน:</label>
+                            <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="lot_product_capital" name="lot_product_capital">
                         </div>
-                        <div class="box">
-                            <label for="lot_product_date">วันที่รับสินค้า:</label>
-                            <input type="date" id="lot_product_date" name="lot_product_date" value="<?= date('Y-m-d') ?>"
+                        <div class="flex items-center px-4 pt-2">
+                            <label class="w-[150px] text-base mr-4" for="lot_product_date">วันที่รับสินค้า:</label>
+                            <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="date" id="lot_product_date" name="lot_product_date" value="<?= date('Y-m-d') ?>"
                                 readonly>
                         </div>
-                        <div class="box">
-                            <label for="lot_product_status">สถานะสินค้า:</label>
-                            <input type="id" id="lot_product_status" name="lot_product_status">
+                        <div class="flex items-center px-4 pt-2">
+                            <label class="w-[150px] text-base mr-4" for="lot_product_status">สถานะสินค้า:</label>
+                            <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="id" id="lot_product_status" name="lot_product_status">
                         </div>
                         <!-- loop -->
                         <?php
                         if (count($product_id) > 0) {
                         ?>
-                            <div class="box">
-                                <label for="product_id">รหัสสินค้า:</label>
-                                <select name="product_id" id="product_id">
+                            <div class="flex items-center px-4 pt-2 pb-5">
+                                <label class="w-[150px] text-base mr-4" for="product_id">รหัสสินค้า:</label>
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="product_id" id="product_id">
                                     <?php foreach ($product_id as $lot_product_insert) { ?>
                                         <option value="<?php echo ($lot_product_insert['product_id']); ?>">
                                             <?php echo ($lot_product_insert['product_id']); ?>
@@ -361,8 +361,30 @@ ob_end_flush();
                     </div>
                 </div>
 
-                <div class="btnsave">
-                    <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+                <div class="flex justify-end mt-5">
+                    <button
+                        type="submit"
+                        class="
+                        w-[120px]
+                        h-[40px]
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner
+                    ">
+                        บันทึก
+                    </button>
                 </div>
             </form>
         </div>

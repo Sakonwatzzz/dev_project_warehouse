@@ -1,27 +1,28 @@
 .detail-body {
   /*border: 2px solid red;*/
   margin: 2.5rem 10rem 0 10rem;
-  padding: 1rem;
 
-  .detail-title {
+  & .detail-title {
     /*border: 1px solid rgb(0, 255, 34);*/
     padding: 10px;
-    background-color: #3399cc;
+    margin-bottom: 1rem;
+    background-color: #0046aa;
     color: #fff;
   }
 
   .detail-form {
-   /* border: 1px solid rgb(161, 161, 161);*/
-
+    /* border: 1px solid rgb(161, 161, 161);*/
+    background-color: #f0f0f0;
+    padding: 0 10px  10px;
     .detail-table {
       /*border: 2px solid rgb(247, 0, 255);*/
       width: 100%;
+      
 
       & tr th {
-        border: 1px solid rgb(161, 161, 161);
-        background-color: rgb(136, 208, 239);
-        padding: 10px 0 10px 0;
-        width: 20%;
+        padding: 10px 0 10px 30px;
+        text-align: left;
+        width: 200px;
       }
       & tr td {
         border: 1px solid rgb(161, 161, 161);
@@ -33,6 +34,9 @@
           border: none;
           background-color: #fff;
           outline: none;
+        }
+        & select{
+          width: 100%;
         }
       }
     }

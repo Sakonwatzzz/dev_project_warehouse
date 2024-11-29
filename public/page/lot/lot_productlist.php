@@ -16,7 +16,7 @@ FROM
     lot_product
     INNER JOIN lot ON lot_product.lot_id = lot.lot_id
     INNER JOIN product ON lot_product.product_id = product.product_id";
-    $result_lotproduct_list = $pdo->query($query);
+$result_lotproduct_list = $pdo->query($query);
 
 
 // การลบข้อมูล
@@ -79,7 +79,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
-
+    <link href="../../output.css" rel="stylesheet">
     <style>
         .title {
             display: grid;
@@ -116,10 +116,10 @@ ob_end_flush();
 </head>
 
 <body>
-    <div class="personnel-list">
+    <div class="font-[Tahoma] mx-[2rem] mt-11 rounded-md">
         <div class="title">
             <div class="count">
-                <h2>ข้อมูลการรับสินค้า</h2>
+                <h2 class="text-2xl font-bold">ข้อมูลการรับสินค้า</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>
@@ -129,24 +129,24 @@ ob_end_flush();
             </div>
         </div>
 
-        <table class="data-table" id="dataTable">
+        <table class="mt-4 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
             <thead>
                 <tr>
-                    <th>รหัสรายรับสินค้า</th>
-                    <th>รหัสล็อตสินค้า</th>
-                    <th>จำนวนสินค้าเข้า</th>
-                    <th>จำนวนสินค้าคงเหลือ</th>
-                    <th>ราคาต้นทุน</th>
-                    <th>วันที่รับสินค้า</th>
-                    <th>สถานะสินค้า</th>
-                    <th>ชื่อสินค้า</th>
-                    <th>การจัดการ</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">รหัสรายรับสินค้า</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">รหัสล็อตสินค้า</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">จำนวนสินค้าเข้า</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">จำนวนสินค้าคงเหลือ</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">ราคาต้นทุน</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">วันที่รับสินค้า</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">สถานะสินค้า</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">ชื่อสินค้า</th>
+                    <th class="bg-[#0046aa] text-white text-[18px]">การจัดการ</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="tableBody">
                 <?php if ($result_lotproduct_list->rowCount() > 0): ?>
                     <?php while ($lot_product_list = $result_lotproduct_list->fetch(PDO::FETCH_ASSOC)): ?>
-                        <tr>
+                        <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer " data-id="<?php echo $lot_product_list['lot_id']; ?>">
                             <td
                                 onclick="window.location.href='?page=lot_productdetail&tabel=lot_product&id=<?php echo ($lot_product_list['lot_product_id']) ?>'">
                                 <?php echo ($lot_product_list['lot_product_id']); ?>
@@ -160,9 +160,9 @@ ob_end_flush();
                             <td><?php echo ($lot_product_list['product_name']); ?></td>
                             <td>
                                 <a
-                                    href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>">แก้ไข</a>
+                                    href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>" class=" text-green-600 ">แก้ไข</a> |
                                 <a href="?page=lot_productlist&id=<?php echo ($lot_product_list['lot_product_id']); ?>"
-                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" text-red-600 ">ลบ</a>
                             </td>
                         </tr>
                     <?php endwhile; ?>
@@ -191,6 +191,51 @@ ob_end_flush();
             <?php endif; ?>
         </div>
     </div>
+
+    <script>
+        function searchTable() {
+            const input = document.getElementById("searchInput").value.toLowerCase(); // รับค่าการค้นหา
+            const table = document.getElementById("dataTable"); // ระบุตารางที่ต้องการค้นหา
+            const rows = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr"); // ทุกแถวใน tbody
+            let foundAny = false; // ตัวบ่งชี้ว่าพบผลการค้นหาหรือไม่
+
+            for (const row of rows) {
+                const cells = row.getElementsByTagName("td"); // แต่ละเซลล์ในแถว
+                let match = false;
+
+                for (const cell of cells) {
+                    // ตรวจสอบว่าค่าในเซลล์ตรงกับข้อความค้นหาหรือไม่
+                    if (cell.textContent.toLowerCase().includes(input)) {
+                        match = true;
+                        break; // หากพบแล้วออกจากลูป
+                    }
+                }
+
+                // แสดงหรือซ่อนแถวตามผลลัพธ์การค้นหา
+                row.style.display = match ? "" : "none";
+
+                if (match) {
+                    foundAny = true; // ถ้ามีแถวตรงกับการค้นหา
+                }
+            }
+
+            // จัดการข้อความ "ไม่พบข้อมูล"
+            let noDataMessage = document.getElementById("noDataMessage");
+            if (!foundAny) {
+                if (!noDataMessage) {
+                    // สร้างข้อความใหม่หากยังไม่มี
+                    noDataMessage = document.createElement("p");
+                    noDataMessage.id = "noDataMessage";
+                    noDataMessage.textContent = "ไม่พบข้อมูล";
+                    noDataMessage.className = "text-red-600 font-bold text-center mt-4";
+                    table.parentNode.appendChild(noDataMessage);
+                }
+            } else if (noDataMessage) {
+                // ลบข้อความ "ไม่พบข้อมูล" หากมีผลการค้นหา
+                noDataMessage.remove();
+            }
+        }
+    </script>
 </body>
 
 </html>

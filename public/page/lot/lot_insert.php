@@ -76,7 +76,7 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/insert.css">
+    <link href="../../output.css" rel="stylesheet">
     <title>Document</title>
 
     <style>
@@ -116,7 +116,7 @@ ob_end_flush();
 
 <body>
 
-    <div class="add-box">
+    <div class="add-box mt-[2.5rem] mx-[10rem]  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
 
         <div id="notification" class="notification">
             <div class="notification-header">การแจ้งเตือน</div>
@@ -124,29 +124,29 @@ ob_end_flush();
         </div>
 
 
-        <h2 class="sub-title">การรับสินค้า</h2>
-        <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+        <h2 class="sub-title p-[10px] pl-[3rem] mb-[1rem] bg-[#0046aa] text-white text-2xl">การรับสินค้า</h2>
+        <form class="form-container p-5" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
 
-            <div class="box">
-                <label for="lot_id">รหัสล็อตสินค้า:</label>
-                <p type="id" id="lot_id" name="lot_id" value="<?php echo $lot['lot_id']; ?>" readonly>
+            <div class="box flex  items-center py-[5px] pl-[30px]  ">
+                <label class="w-[200px]  text-[16px] font-bold "   for="lot_id">รหัสล็อตสินค้า:</label>
+                <p class="flex text-center items-center h-11 w-[100%] border border-[#878787]" type="text" id="lot_detail" type="id" id="lot_id" name="lot_id"  value="<?php echo $lot['lot_id']; ?>" readonly>
+            
             </div>
-            <div class="box">
-                <label for="lot_detail">รายละเอียด:</label>
-                <input type="text" id="lot_detail" name="lot_detail">
+            <div class="box  flex  py-[5px] pl-[30px] ">
+                <label class="flex text-center items-center h-11 w-[200px]  text-[16px] font-bold" for="lot_detail" >รายละเอียด:</label>
+                <input class="flex text-center items-center w-[100%] border border-[#878787]" type="text" id="lot_detail" name="lot_detail">
             </div>
-            <div class="box">
-                <label for="lot_date">วันที่รับเข้า:</label>
-                <input type="date" id="lot_date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly>
+            <div class="box  flex py-[5px] pl-[30px] ">
+                <label class="flex text-center items-center w-[200px]  text-[16px] h-11 font-bold" for="lot_date">วันที่รับเข้า:</label>
+                <input class="flex  items-center w-[100%]  border border-[#878787]" type="date" id="lot_date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly>
             </div>
-
             <!-- loop -->
             <?php
             if (count($status_lot) > 0) {
                 ?>
-                <div class="box">
-                    <label for="lot_stutas_name">สถานะ:</label>
-                    <select name="lot_status_id" id="lot_status_id">
+                <div class="box flex py-[5px] pl-[30px] ">
+                    <label class="flex text-center items-center w-[200px]  text-[16px] font-bold" for="lot_stutas_name" class=" ">สถานะ:</label>
+                    <select class="flex items-center h-11 w-[100%]  border border-[#878787]" name="lot_status_id" id="lot_status_id">
                         <?php foreach ($status_lot as $status_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
                             <option value="<?php echo ($status_insert['lot_status_id']); ?>">
                                 <?php echo ($status_insert['lot_status_name']); ?>
@@ -165,9 +165,9 @@ ob_end_flush();
             <?php
             if (count($warehouse_lot) > 0) {
                 ?>
-                <div class="box">
-                    <label for="warehouse_name">คลังสินค้า:</label>
-                    <select name="warehouse_id" id="warehouse_id">
+                <div class="box flex  py-[5px] pl-[30px] ">
+                    <label class="flex text-center items-center w-[200px]  text-[16px] font-bold" for="warehouse_name">คลังสินค้า:</label>
+                    <select class="flex h-11 items-center w-[100%]  border border-[#878787]" name="warehouse_id" id="warehouse_id">
                         <?php foreach ($warehouse_lot as $warehouse_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
                             <option value="<?php echo ($warehouse_insert['warehouse_id']); ?>">
                                 <?php echo ($warehouse_insert['warehouse_name']); ?>
@@ -184,9 +184,9 @@ ob_end_flush();
             <?php
             if (count($store_lot) > 0) {
                 ?>
-                <div class="box">
-                    <label for="store_name">ร้าน:</label>
-                    <select name="store_id" id="store_id">
+                <div class="box  flex py-[5px] pl-[30px] ">
+                    <label class="flex text-center items-center w-[200px]  text-[16px] font-bold" for="store_name">ร้าน:</label>
+                    <select class="flex h-11 items-center w-[100%]  border border-[#878787]" name="store_id" id="store_id">
                         <?php foreach ($store_lot as $store_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
                             <option value="<?php echo ($store_insert['store_id']); ?>">
                                 <?php echo ($store_insert['store_name']); ?>
@@ -203,9 +203,9 @@ ob_end_flush();
             <?php
             if (count($warehouse_lot) > 0) {
                 ?>
-                <div class="box">
-                    <label for="supplier_name">ผู้ส่งมอบ:</label>
-                    <select name="supplier_id" id="supplier_id">
+                <div class="box flex py-[5px] pl-[30px] ">
+                    <label class="flex text-center items-center w-[200px]  text-[16px] font-bold" for="supplier_name">ผู้ส่งมอบ:</label>
+                    <select class="flex h-11 items-center w-[100%]  border border-[#878787]" name="supplier_id" id="supplier_id">
                         <?php foreach ($supplier_lot as $supplier_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
                             <option value="<?php echo ($supplier_insert['supplier_id']); ?>">
                                 <?php echo ($supplier_insert['supplier_name']); ?>
@@ -219,9 +219,27 @@ ob_end_flush();
                 echo "No warehouse types available.";
             }
             ?>
-            <div class="box">
+            <div class="flex justify-end gap-4 mt-2 mb-5 mx-3">
                 <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+                <button class="
+                        w-[120px]
+                        h-11
+                        bg-[#e1e1e1] 
+                        text-black 
+                        border-2 
+                        border-[#A0A0A0] 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#F1F1F1]
+                        active:border-[#A0A0A0]
+                        active:border-b-white
+                        active:border-r-white
+                        active:shadow-inner 
+                    " type="submit" value="เพิ่ม">บันทึก</button>
                 <!-- แก้คำว่า "lass" เป็น "class" -->
             </div>
         </form>
