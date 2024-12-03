@@ -24,42 +24,69 @@ body {
   justify-content: right;
   font-size: 14px;
   padding: 8px 10px;
-  color: #ffffff;
-  background: #0046aa; /* สีฟ้าเข้ม */
+  color: #003f7e;
+  background: #d3e4f9; /* สีฟ้าเข้ม */
 }
 
 /* Navbar styling */
 .navbar {
   display: flex;
-  padding: 10px;
-  background: #0046aa; /* ไล่สีฟ้าอ่อน */
+  background: #bfdbff; /* ไล่สีฟ้าอ่อน */
   border: 1px solid #8abbd8;
 }
 
 .navbar ul {
+  margin-top: 3px;
   display: flex;
   list-style-type: none;
 }
 
 .navbar ul li {
-  margin: 0 8px;
-  padding: 2px 8px;
+  width: 100px;
+  height: 30px;
+  padding: 0; /* เอา padding ออกจาก li */
+  margin: 0; /* กำหนด margin เป็น 0 */
   font-size: 12px;
+  display: flex;
+
+  text-align: center;
+  align-items: center;
+  justify-content: center; /* ทำให้เนื้อหาอยู่ตรงกลาง */
 }
 
 .navbar ul li a {
+  margin: 0 2px 0 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #eaf4fd;
   text-decoration: none;
-  color: #fff;
-  font-size: 14px;
-  padding: 4px 8px;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  color: #333;
+  font-size: 16px;
+  border-top-right-radius: 6px;
+  border-top-left-radius: 6px;
 }
 
-.navbar ul li a:hover,
-.navbar ul li .active {
-  background-color: #e0f7ff; /* สีฟ้าอ่อน */
-  border: 1px solid #3399cc;
-  color: #25597c;
+.button-bb button.active,
+.button-bb button:hover {
+  background: rgb(255, 250, 209);
+  background: linear-gradient(
+    0deg,
+    rgba(255, 250, 209, 1) 0%,
+    rgba(253, 187, 45, 1) 43%
+  );
+  border: 1px solid #ffc107;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+}
 
+.navbar ul li a.active {
+  background-color: #189dff;
+  border: 1px solid #1885d4;
+  color: #fff;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure button active state persists */
+.button-bb a.button-link:has(button.active) {
+  pointer-events: initial;
 }

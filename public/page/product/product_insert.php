@@ -84,8 +84,9 @@ if (!$brandResults) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
     <link href="../../output.css" rel="stylesheet">
+    <title>product_insert</title>
+
     <style>
         .notification {
             position: fixed;
@@ -123,13 +124,13 @@ if (!$brandResults) {
 
 <body>
     <div class="bg-[#F0F0F0] font-[Tahoma]">
-        <div class="mx-[20rem] mt-11 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+        <div class="mx-[20rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
             <div id="notification" class="notification">
                 <div class="notification-header">การแจ้งเตือน</div>
                 <div class="notification-body">เพิ่มสินค้าสำเร็จ!</div>
             </div>
 
-            <h2 class="bg-[#0046AA] text-white text-2xl font-bold p-5">เพิ่มสินค้า</h2>
+            <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">เพิ่มสินค้า</h2>
 
             <!-- Form for adding products -->
             <form class="p-5  space-y-2" action="" method="POST">
@@ -198,44 +199,39 @@ if (!$brandResults) {
                 <?php } ?>
 
                 <div class="flex justify-end mt-5 gap-2">
-                <a href="/?page=product_list" class="
-                        bg-[#e1e1e1] 
-                        text-black 
-                        border-2 
-                        border-[#A0A0A0] 
-                        border-t-white 
-                        border-l-white 
-                        px-4 
-                        py-1 
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#F1F1F1]
-                        active:border-[#A0A0A0]
-                        active:border-b-white
-                        active:border-r-white
-                        active:shadow-inner 
+                    <a href="/?page=product_list" class="
+                        bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                     border-t-white 
+                     border-l-white 
+                     px-4 
+                     py-1 
+                     rounded 
+                                    shadow-md 
+                    hover:bg-[#FFEBEE] 
+                    active:border-[#EF9A9A] 
+                    active:border-b-white 
+                    active:border-r-white 
+                    active:shadow-inner
                     ">ยกเลิก</a>
-                <button
-                    type="submit"
-                    class="
-                        bg-[#e1e1e1] 
-                        text-black 
-                        border-2 
-                        border-[#A0A0A0] 
-                        border-t-white 
-                        border-l-white 
-                        px-4 
-                        py-1 
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#F1F1F1]
-                        active:border-[#A0A0A0]
-                        active:border-b-white
-                        active:border-r-white
-                        active:shadow-inner
-                    ">
-                    บันทึก
-                </button>
+
+                    <button
+                        type="submit"
+                        class="
+                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#E8F5E9] 
+                            active:border-[#A5D6A7] 
+                            active:border-b-white 
+                            active:border-r-white 
+                                active:shadow-inner
+                            ">
+                        บันทึก
+                    </button>
                 </div>
 
             </form>

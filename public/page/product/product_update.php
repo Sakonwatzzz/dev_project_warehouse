@@ -50,6 +50,7 @@ $product_update = $stmt->fetch();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/update.css">
+    <link href="../../output.css" rel="stylesheet">
     <style>
         .title {
             display: grid;
@@ -139,87 +140,117 @@ $product_update = $stmt->fetch();
 
         }
     </style>
-    <title>Document</title>
+    <title>product_update</title>
 </head>
 
 <body>
-    <div class="update-body">
-        <h2 class="update-title">แก้ไขข้อมูลสินค้า</h2>
+    <div class="bg-[#F0F0F0] font-[Tahoma]">
+        <div class="mx-[20rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+            <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">แก้ไขข้อมูลสินค้า</h2>
 
-        <form class="update-form" action="../../page/product/product_update.php" method="POST">
-            <input type="hidden" name="product_id" value="<?php echo ($product_update['product_id']) ?>">
+            <form class="p-5  space-y-2" action="../../page/product/product_update.php" method="POST">
+                <input type="hidden" name="product_id" value="<?php echo ($product_update['product_id']) ?>">
 
 
-            <div class="box">
-                <label for="barcode">บาร์โค้ดสินค้า:</label>
-                <input type="text" name="barcode" value="<?php echo ($product_update['product_barcode']) ?>">
-            </div>
-
-            <div class="box">
-                <label for="name">ชื่อสินค้า:</label>
-                <input type="text" name="name" value="<?php echo ($product_update['product_name']) ?>">
-
-            </div>
-            <div class="box">
-                <label for="price_1">ราคาที่1:</label>
-                <input type="text" name="price_1" value="<?php echo ($product_update['product_price1']) ?>">
-            </div>
-            <div class="box">
-                <label for="price_2">ราคาที่2:</label>
-                <input type="text" name="price_2" value="<?php echo ($product_update['product_price2']) ?>">
-
-            </div>
-            <div class="box">
-                <label for="price_3">ราคาที่3:</label>
-                <input type="text" name="price_3" value="<?php echo ($product_update['product_price3']) ?>">
-
-            </div>
-            <div class="box">
-                <label for="price_4">ราคาที่4:</label>
-                <input type="text" name="price_4" value="<?php echo ($product_update['product_price4']) ?>">
-
-            </div>
-            <div class="box">
-                <label for="capital">ราคาทุน:</label>
-                <input type="text" name="capital" value="<?php echo ($product_update['product_capital']) ?>">
-            </div>
-
-            <?php if ($typeResults->rowCount() > 0) { ?>
-                <div class="box">
-                    <label for="typename">ประเภทสินค้า:</label>
-                    <select name="typename">
-                        <?php while ($product_update = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo ($product_update['product_type_id']); ?>" <?= ($product_update['product_type_id'] == $product_update['product_type_id']) ? 'selected' : ''; ?>>
-                                <?php echo ($product_update['product_type_name']); ?>
-                            </option>
-                        <?php } ?>
-                    </select>
+                <div class="flex items-center">
+                    <label for="barcode" class="w-[150px] text-base mr-4">บาร์โค้ดสินค้า:</label>
+                    <input type="text" name="barcode" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_barcode']) ?>">
                 </div>
-            <?php } else { ?>
-                <p>ไม่พบข้อมูลประเภทสินค้า</p>
-            <?php } ?>
 
+                <div class="flex items-center">
+                    <label for="name" class="w-[150px] text-base mr-4">ชื่อสินค้า:</label>
+                    <input type="text" name="name"  class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_name']) ?>">
 
-            <?php if ($brandResults->rowCount() > 0) { ?>
-                <div class="box">
-                    <label for="typebrandname">ประเภทแบรนด์สินค้า:</label>
-                    <select name="typebrandname">
-                        <?php while ($product_update = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo ($product_update['product_brand_id']); ?>" <?= ($product_update['product_brand_id'] == $product_update['product_brand_id']) ? 'selected' : ''; ?>>
-                                <?php echo ($product_update['product_brand_name']); ?>
-                            </option>
-                        <?php } ?>
-                    </select>
                 </div>
-            <?php } ?>
+                <div class="flex items-center">
+                    <label for="price_1" class="w-[150px] text-base mr-4">ราคาที่1:</label>
+                    <input type="text" name="price_1" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_price1']) ?>">
+                </div>
+                <div class="flex items-center">
+                    <label for="price_2" class="w-[150px] text-base mr-4">ราคาที่2:</label>
+                    <input type="text" name="price_2" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_price2']) ?>">
 
-            <div class="box-action">
-                <a href="/?page=bar_product">ยกเลิก</a>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
-            </div>
-        </form>
+                </div>
+                <div class="flex items-center">
+                    <label for="price_3" class="w-[150px] text-base mr-4">ราคาที่3:</label>
+                    <input type="text" name="price_3" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_price3']) ?>">
+
+                </div>
+                <div class="flex items-center">
+                    <label for="price_4" class="w-[150px] text-base mr-4">ราคาที่4:</label>
+                    <input type="text" name="price_4" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_price4']) ?>">
+
+                </div>
+                <div class="flex items-center">
+                    <label for="capital" class="w-[150px] text-base mr-4">ราคาทุน:</label>
+                    <input type="text" name="capital" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_capital']) ?>">
+                </div>
+
+                <?php if ($typeResults->rowCount() > 0) { ?>
+                    <div class="flex items-center">
+                        <label for="typename" class="w-[150px] text-base mr-4">ประเภทสินค้า:</label>
+                        <select name="typename" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
+                            <?php while ($product_update = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
+                                <option value="<?php echo ($product_update['product_type_id']); ?>" <?= ($product_update['product_type_id'] == $product_update['product_type_id']) ? 'selected' : ''; ?>>
+                                    <?php echo ($product_update['product_type_name']); ?>
+                                </option>
+                            <?php } ?>
+                        </select>
+                    </div>
+                <?php } else { ?>
+                    <p>ไม่พบข้อมูลประเภทสินค้า</p>
+                <?php } ?>
+
+
+                <?php if ($brandResults->rowCount() > 0) { ?>
+                    <div class="flex items-center">
+                        <label for="typebrandname" class="w-[150px] text-base mr-4">ประเภทแบรนด์สินค้า:</label>
+                        <select name="typebrandname" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
+                            <?php while ($product_update = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
+                                <option value="<?php echo ($product_update['product_brand_id']); ?>" <?= ($product_update['product_brand_id'] == $product_update['product_brand_id']) ? 'selected' : ''; ?>>
+                                    <?php echo ($product_update['product_brand_name']); ?>
+                                </option>
+                            <?php } ?>
+                        </select>
+                    </div>
+                <?php } ?>
+
+                <div class="flex gap-1 justify-end">
+                    <button class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4
+                            py-1
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">
+                        <a href="/?page=bar_product">ยกเลิก</a>
+                    </button>
+
+                    <button class="
+                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
+                            border-t-white 
+                            border-l-white 
+            
+                            px-4
+                            py-1
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#E8F5E9] 
+                            active:border-[#A5D6A7] 
+                            active:border-b-white 
+                            active:border-r-white 
+                                active:shadow-inner
+                            " type="submit" value="เพิ่ม">บันทึก</button>
+                </div>
+            </form>
+        </div>
     </div>
-
+   
 
 </body>
 

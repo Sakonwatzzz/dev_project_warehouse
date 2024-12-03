@@ -209,25 +209,56 @@ try {
         <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">ชื่อสินค้า</th>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">บาร์โค้ดสินค้า</th>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">ราคา4</th>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">ราคาทุน</th>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">การจัดการ</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">บาร์โค้ดสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคาทุน</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคา4</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
 
-                        <td onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'"><?php echo ($product_list['product_name']); ?></td>
+
                         <td><?php echo ($product_list['product_barcode']); ?></td>
-                        <td><?php echo ($product_list['product_price4']); ?></td>
+                        <td onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'"><?php echo ($product_list['product_name']); ?></td>
                         <td><?php echo ($product_list['product_capital']); ?></td>
+                        <td><?php echo ($product_list['product_price4']); ?></td>
 
                         <td>
-                            <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>">แก้ไข</a>|
-                            <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                            <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>" class="
+                            bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                            text-white 
+                            text-lg 
+                            border border-yellow-700 
+                            border-t-white 
+                            border-l-white 
+                            px-2 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#FFF9C4] 
+                            active:border-[#FFF176] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner
+                            ">
+                                แก้ไข
+                            </a>
+
+                            <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>

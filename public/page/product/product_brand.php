@@ -176,7 +176,7 @@ try {
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[2rem] mt-11" ">
+    <div class="font-[Tahoma] mx-[15rem] mt-11" ">
         <div class=" title">
         <div class="count">
             <h2 class="text-2xl font-bold">ข้อมูลแบรนด์สินค้า</h2>
@@ -194,7 +194,6 @@ try {
     <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
         <tr>
             <form action="" method="POST">
-                <td class=" bg-white "></td>
                 <td class=" bg-white ">
                     <input type="text" id="brandname" name="brandname" placeholder="ชื่อแบรนด์" required
                         class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
@@ -209,19 +208,46 @@ try {
         </tr>
         <thead>
             <tr>
-                <th class="text-[18px] text-white bg-[#0046aa] ">รหัสแบรนด์สินค้า</th>
-                <th class="text-[18px] text-white bg-[#0046aa] ">ชื่อแบรนด์สินค้า</th class="text-[18px] text-white bg-[#0046aa] ">
-                <th class="text-[18px] text-white bg-[#0046aa] ">การจัดการ</th>
+                <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อแบรนด์สินค้า</th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">
+                <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
             </tr>
         </thead>
         <tbody id="tableBody">
             <?php foreach ($productbrands as $brand): ?>
                 <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?php echo $brand['product_brand_id']; ?>">
-                    <td><?php echo $brand['product_brand_id']; ?></td>
                     <td class="brand-name"><?php echo ($brand['product_brand_name']); ?></td>
                     <td>
-                        <button onclick="enableEdit(this)" class="edit-button text-blue-500 hover:text-blue-700">แก้ไข</button>
-                        <a href="?page=product_brand&id=<?php echo $brand['product_brand_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button  text-red-500 hover:text-red-700">ลบ</a>
+                        <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                            text-white 
+                            text-lg 
+                            border border-yellow-700 
+                            border-t-white 
+                            border-l-white 
+                            px-2 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#FFF9C4] 
+                            active:border-[#FFF176] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">แก้ไข</button>
+
+                        <button class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">
+                            <a href="?page=product_brand&id=<?php echo $brand['product_brand_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button ">ลบ</a>
+                        </button>
+
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -324,7 +350,27 @@ try {
 
                 const saveButton = document.createElement('button');
                 saveButton.innerText = 'บันทึก';
-                saveButton.classList.add('save-button', 'text-green-500', 'hover:text-green-700');
+                saveButton.classList.add('save-button',
+                    'bg-gradient-to-b',
+                    'from-green-300',
+                    'via-green-500',
+                    'to-green-700',
+                    'text-white',
+                    'text-lg',
+                    'border',
+                    'border-green-700',
+                    'border-t-white',
+                    'border-l-white',
+                    'px-2',
+                    'py-1',
+                    'rounded',
+                    'shadow-md',
+                    'hover:bg-[#E8F5E9]',
+                    'active:border-[#A5D6A7]',
+                    'active:border-b-white',
+                    'active:border-r-white',
+                    'active:shadow-inner'
+                );
                 saveButton.onclick = function() {
                     // Save changes
                     const newbrandName = brandNameCell.querySelector('.edit-input').value;

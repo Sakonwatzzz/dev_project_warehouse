@@ -27,7 +27,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             display: flex;
             gap: 5px;
             align-items: center;
-            background-color: #0046AA;
+            background-color: #c8d8ed;
             border: 1px solid #81d4fa;
             padding: 10px;
             border-radius: 4px;

@@ -1,3 +1,29 @@
+<?php
+// Add to top of file to get current page and its parts
+$current_page = $_GET['page'] ?? '';
+$page_parts = explode('_', $current_page);
+$main_section = $page_parts[0] ?? '';
+$sub_section = $page_parts[1] ?? '';
+
+// Function to check if we're in a specific section
+function isInSection($current_page, $section_pages)
+{
+    return in_array($current_page, $section_pages);
+}
+
+// Define section pages
+$product_section_pages = [
+    'product_list',
+    'product_insert',
+    'product_type',
+    'product_brand',
+    'warehouse_list',
+    'lot_insertcombined',
+    'lot_list',
+    'lot_productlist'
+];
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,6 +32,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="../style/navbar.css">
+
     <title>Admin System</title>
 </head>
 
@@ -16,24 +43,17 @@
             <div class="link">
                 <ul>
                     <li><a href="?page=bar_index"
-                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_index') ? 'active' : ''; ?>">หน้าแรก</a>
-                    </li>
+                            class="<?php echo $current_page == 'bar_index' ? 'active' : ''; ?>">หน้าแรก</a></li>
                     <li><a href="?page=bar_product"
-                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_product') ? 'active' : ''; ?>">สินค้า</a>
-                    </li>
+                            class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a></li>
                     <li><a href="?page=bar_personnel"
-                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a>
-                    </li>
+                            class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
                     <li><a href="?page=bar_member"
-                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a>
-                    </li>
+                            class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
                     <li><a href="?page=bar_supplier"
-                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'bar_supplier') ? 'active' : ''; ?>">ผู้ส่งมอบ</a>
-                    </li>
-
+                            class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">ผู้ส่งมอบ</a></li>
                     <li><a href="?page=navigationbar_sale"
-                            class="<?php echo (isset($_GET['page']) && $_GET['page'] == 'navigationbar_sale') ? 'active' : ''; ?>">ขาย</a>
-                    </li>
+                            class="<?php echo $current_page == 'navigationbar_sale' ? 'active' : ''; ?>">ขาย</a></li>
                 </ul>
             </div>
         </div>
