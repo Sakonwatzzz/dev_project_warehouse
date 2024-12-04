@@ -178,11 +178,11 @@ try {
             background-color: #ddd;
         }
     </style>
-    <title>Document</title>
+    <title>Product list</title>
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[2rem] mt-11">
+    <div class="font-[Tahoma] mx-[23rem] mt-11">
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">รายการสินค้า</h2>
@@ -206,14 +206,14 @@ try {
             <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
-        <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
+        <table class=" data-table mt-5 mb-8 w-[100%]  border shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">บาร์โค้ดสินค้า</th>
+                    <th class="w-[170px]  bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">บาร์โค้ดสินค้า</th>
                     <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อสินค้า</th>
-                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคาทุน</th>
-                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคา4</th>
-                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
+                    <th class="w-[160px] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคาทุน</th>
+                    <th class="w-[160px] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคา4</th>
+                    <th class="w-[200px] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
@@ -221,10 +221,10 @@ try {
                     <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
 
 
-                        <td><?php echo ($product_list['product_barcode']); ?></td>
-                        <td onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'"><?php echo ($product_list['product_name']); ?></td>
-                        <td><?php echo ($product_list['product_capital']); ?></td>
-                        <td><?php echo ($product_list['product_price4']); ?></td>
+                        <td class="text-start"><?php echo ($product_list['product_barcode']); ?></td>
+                        <td class="text-start" onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'" ><?php echo ($product_list['product_name']); ?></td>
+                        <td class="text-start"><?php echo ($product_list['product_capital']); ?></td>
+                        <td class="text-start"><?php echo ($product_list['product_price4']); ?></td>
 
                         <td>
                             <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>" class="
@@ -296,36 +296,47 @@ try {
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
+            const thead = table.querySelector("thead");
             let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) {
-                let found = false;
+            // Always keep the header visible
+            thead.style.display = "";
+
+            // Always keep the input row visible 
+            tr[0].style.display = "";
+
+            // Search through data rows (start from index 2 to skip header and input row)
+            for (let i = 2; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
+                let rowMatchesSearch = false;
+
+                // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        const txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                            found = true;
-                            break;
-                        }
+                    const txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowMatchesSearch = true;
+                        break;
                     }
                 }
-                tr[i].style.display = found ? "" : "none";
-                if (found) {
+
+                tr[i].style.display = rowMatchesSearch ? "" : "none";
+                if (rowMatchesSearch) {
                     foundAny = true;
                 }
             }
 
-            const noDataMessage = document.getElementById("noDataMessage");
+            // Handle "No data" message
+            let noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
-                    const message = document.createElement("p");
-                    message.id = "noDataMessage";
-                    message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red";
-                    message.style.fontWeight = "bold";
-                    message.style.marginTop = "10px";
-                    table.parentNode.insertBefore(message, table);
+                    noDataMessage = document.createElement("p");
+                    noDataMessage.id = "noDataMessage";
+                    noDataMessage.textContent = "ไม่พบข้อมูล";
+                    noDataMessage.style.color = "red";
+                    noDataMessage.style.fontWeight = "bold";
+                    noDataMessage.style.textAlign = "center";
+                    noDataMessage.style.marginTop = "10px";
+                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
                 }
             } else {
                 if (noDataMessage) {

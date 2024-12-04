@@ -142,7 +142,7 @@ try {
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[2rem] mt-11">
+    <div class="font-[Tahoma] mx-[15rem] mt-11">
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">ข้อมูลคลังสินค้า</h2>
@@ -158,7 +158,6 @@ try {
         <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
             <tr>
                 <form action="" method="POST">
-                    <td class=" bg-white "></td>
                     <td class=" bg-white ">
                         <input type="text" id="warehousename" name="warehousename" placeholder="ชื่อคลังสินค้า" required
                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
@@ -177,21 +176,50 @@ try {
             </tr>
             <thead class="">
                 <tr>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">รหัสคลังสินค้า</th>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">ชื่อคลังสินค้า</th>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">สถานะ</th>
-                    <th class="text-[18px] text-white bg-[#0046aa] ">การจัดการ</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อคลังสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">สถานะ</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <?php foreach ($warehouses as $warehouse): ?>
                     <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id=" <?php echo $warehouse['warehouse_id']; ?>">
-                        <td><?php echo $warehouse['warehouse_id']; ?></td>
                         <td class="warehouse-name"><?php echo $warehouse['warehouse_name']; ?></td>
                         <td class="warehouse-status"><?php echo $warehouse['warehouse_status']; ?></td>
                         <td>
-                            <button onclick="enableEdit(this)" class="edit-button text-blue-500 hover:text-blue-700">แก้ไข</button> |
-                            <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button text-red-500 hover:text-red-700">ลบ</a>
+                            <button onclick="enableEdit(this)" class="edit-button 
+                            bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                            text-white 
+                            text-lg 
+                            border border-yellow-700 
+                            border-t-white 
+                            border-l-white 
+                            px-2 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#FFF9C4] 
+                            active:border-[#FFF176] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner
+                            ">แก้ไข</button>
+
+                            <button class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">
+                                <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button ">ลบ</a>
+                            </button>
+
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -299,7 +327,25 @@ try {
                 // Create and display a save button
                 const saveButton = document.createElement('button');
                 saveButton.innerText = 'บันทึก';
-                saveButton.classList.add('save-button', 'text-green-500', 'hover:text-green-700');
+                saveButton.classList.add('save-button', 'bg-gradient-to-b',
+                    'from-green-300',
+                    'via-green-500',
+                    'to-green-700',
+                    'text-white',
+                    'text-lg',
+                    'border',
+                    'border-green-700',
+                    'border-t-white',
+                    'border-l-white',
+                    'px-2',
+                    'py-1',
+                    'rounded',
+                    'shadow-md',
+                    'hover:bg-[#E8F5E9]',
+                    'active:border-[#A5D6A7]',
+                    'active:border-b-white',
+                    'active:border-r-white',
+                    'active:shadow-inner');
                 saveButton.onclick = function() {
                     // Save changes
                     const newWarehouseName = warehouseNameCell.querySelector('.edit-input').value;
@@ -342,6 +388,27 @@ try {
                 // แสดงปุ่มบันทึก
                 this.parentElement.querySelector('.save-button').style.display = 'block';
             });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchInput = document.getElementById("searchInput");
+            searchInput.focus();
+            if (urlParams.has('edit_success')) {
+                const notificationEdit = document.getElementById('notification-edit');
+                notificationEdit.style.display = 'block';
+                setTimeout(() => {
+                    notificationEdit.style.display = 'none';
+                }, 2000);
+            } else if (urlParams.has('delete_success')) {
+                const notificationDelete = document.getElementById('notification-delete');
+                notificationDelete.style.display = 'block';
+                setTimeout(() => {
+                    notificationDelete.style.display = 'none';
+                }, 2000);
+            }
         });
     </script>
 </body>

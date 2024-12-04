@@ -116,7 +116,7 @@ ob_end_flush();
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[2rem] mt-11 rounded-md">
+    <div class="font-[Tahoma] mx-[10rem] mt-11 rounded-md">
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">ข้อมูลการรับสินค้า</h2>
@@ -132,15 +132,15 @@ ob_end_flush();
         <table class="mt-4 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
             <thead>
                 <tr>
-                    <th class="bg-[#0046aa] text-white text-[18px]">รหัสรายรับสินค้า</th>
-                    <th class="bg-[#0046aa] text-white text-[18px]">รหัสล็อตสินค้า</th>
-                    <th class="bg-[#0046aa] text-white text-[18px]">จำนวนสินค้าเข้า</th>
-                    <th class="bg-[#0046aa] text-white text-[18px]">จำนวนสินค้าคงเหลือ</th>
-                    <th class="bg-[#0046aa] text-white text-[18px]">ราคาต้นทุน</th>
-                    <th class="bg-[#0046aa] text-white text-[18px]">วันที่รับสินค้า</th>
-                    <th class="bg-[#0046aa] text-white text-[18px]">สถานะสินค้า</th>
-                    <th class="bg-[#0046aa] text-white text-[18px]">ชื่อสินค้า</th>
-                    <th class="bg-[#0046aa] text-white text-[18px]">การจัดการ</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">รหัสรายรับสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">รหัสล็อตสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">จำนวนสินค้าเข้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">จำนวนสินค้าคงเหลือ</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคาต้นทุน</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">วันที่รับสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">สถานะสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -160,9 +160,34 @@ ob_end_flush();
                             <td><?php echo ($lot_product_list['product_name']); ?></td>
                             <td>
                                 <a
-                                    href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>" class=" text-green-600 ">แก้ไข</a> |
+                                    href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                            text-white 
+                            text-lg 
+                            border border-yellow-700 
+                            border-t-white 
+                            border-l-white 
+                            px-2 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#FFF9C4] 
+                            active:border-[#FFF176] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner ">แก้ไข</a>
                                 <a href="?page=lot_productlist&id=<?php echo ($lot_product_list['lot_product_id']); ?>"
-                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" text-red-600 ">ลบ</a>
+                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">ลบ</a>
                             </td>
                         </tr>
                     <?php endwhile; ?>
@@ -235,6 +260,24 @@ ob_end_flush();
                 noDataMessage.remove();
             }
         }
+    </script>
+
+    <script>
+        // การแสดงผลการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search); // ตรวจสอบ URL
+            const searchInput = document.getElementById("searchInput");
+            searchInput.focus();
+            if (urlParams.has('success')) { // ถ้ามีพารามิเตอร์ success ใน URL
+                const notification = document.getElementById('notification');
+                notification.style.display = 'block'; // แสดงการแจ้งเตือน
+
+                // ซ่อนการแจ้งเตือนหลัง 2 วินาที
+                setTimeout(() => {
+                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
+                }, 2000);
+            }
+        });
     </script>
 </body>
 

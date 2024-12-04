@@ -177,78 +177,106 @@ try {
 </head>
 
 <body>
-    <div class="personnel-list" ">
-        <div class=" title">
-        <div class="count">
-            <h2 style="font-weight: bold;">ประเภทบุคลากร</h2>
-            <div class="listcount">
-                <?php echo $count; ?>
+    <div class="font-[Tahoma] mx-[35rem] mt-11">
+        <div class=" flex ">
+            <div class="flex justify-center items-center">
+                <h2 class="w-[190px] text-2xl font-bold">ประเภทบุคลากร</h2>
+                <div class="listcount">
+                    <?php echo $count; ?>
+                </div>
+            </div>
+            <div class="w-full flex justify-end ">
+                <input type="text" id="searchInput" class="pl-2 w-[250px] h-[40px] outline-none border border-gray-300  rounded-lg text-base text-gray-500 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-gray-500 sm:text-sm/6 " onkeyup="searchTable()" tabindex="1" placeholder="ค้นหา...">
             </div>
         </div>
-        <div class="search">
-            <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหา...">
-        </div>
-
-    </div>
 
 
-    <table class="data-table" id="dataTable">
-        <tr>
-            <form action="" method="POST">
-                <td></td>
-                <td>
-                    <input type="text" id="personnel_type" name="personnel_type" placeholder="ชื่อบุคลากร" required
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
-                </td>
-                <td>
-                    <button type="submit"
-                        class="save-button px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
-                        เพิ่ม
-                    </button>
-                </td>
-            </form>
-        </tr>
-        <thead>
+        <table class=" mt-5 mb-8 w-[100%]   shadow-lg" id="dataTable">
             <tr>
-                <th>รหัส</th>
-                <th>ชื่อประเภท</th>
-                <th>การจัดการ</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            <?php foreach ($personnel_types as $personneltype): ?>
-                <tr data-id="<?php echo $personneltype['personnel_type_id']; ?>">
-                    <td><?php echo $personneltype['personnel_type_id']; ?></td>
-                    <td class="type-name"><?php echo ($personneltype['personnel_type_name']); ?></td>
-                    <td>
-                        <button onclick="enableEdit(this)" class="edit-button text-blue-500 hover:text-blue-700">แก้ไข</button>
-                        <a href="?page=personnel_type&id=<?php echo $personneltype['personnel_type_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button  text-red-500 hover:text-red-700">ลบ</a>
+                <form action="" method="POST">
+
+                    <td class="bg-white">
+                        <input type="text" id="personnel_type" name="personnel_type" placeholder="ชื่อบุคลากร" required
+                            class=" w-[92%] p-1 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
                     </td>
+                    <td class="bg-white">
+                        <button type="submit"
+                            class=" px-11 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                            เพิ่ม
+                        </button>
+                    </td>
+                </form>
+            </tr>
+            <thead>
+                <tr>
+
+                    <th class="w-[300px] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">ชื่อประเภท</th>
+                    <th class="w-[120px] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">การจัดการ</th>
                 </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody id="tableBody">
+                <?php foreach ($personnel_types as $personneltype): ?>
+                    <tr data-id="<?php echo $personneltype['personnel_type_id']; ?>">
 
-    <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
-    <div class="pagination">
-        <?php if ($total_pages > 1): ?>
-            <?php if ($page > 1): ?>
-                <a href="?page=personnel_type&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
-            <?php endif; ?>
+                        <td class="type-name bg-white pl-8 text-start"><?php echo ($personneltype['personnel_type_name']); ?></td>
+                        <td class="bg-white">
+                            <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                            text-white 
+                            text-lg 
+                            border border-yellow-700 
+                            border-t-white 
+                            border-l-white 
+                            px-2 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#FFF9C4] 
+                            active:border-[#FFF176] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner
+                            ">แก้ไข</button>
+                            <button class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">
+                                <a href="?page=personnel_type&id=<?php echo $personneltype['personnel_type_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button">ลบ</a>
+                            </button>
 
-            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                <?php if ($i == $page): ?>
-                    <a href="#" class="active"><?php echo $i; ?></a>
-                <?php else: ?>
-                    <a href="?page=personnel_type&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
+        <div class="pagination">
+            <?php if ($total_pages > 1): ?>
+                <?php if ($page > 1): ?>
+                    <a href="?page=personnel_type&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
                 <?php endif; ?>
-            <?php endfor; ?>
 
-            <?php if ($page < $total_pages): ?>
-                <a href="?page=personnel_type&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <?php if ($i == $page): ?>
+                        <a href="#" class="active"><?php echo $i; ?></a>
+                    <?php else: ?>
+                        <a href="?page=personnel_type&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                    <?php endif; ?>
+                <?php endfor; ?>
+
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=personnel_type&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                <?php endif; ?>
             <?php endif; ?>
-        <?php endif; ?>
-    </div>
+        </div>
     </div>
 
     <script>
@@ -257,36 +285,47 @@ try {
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
+            const thead = table.querySelector("thead");
             let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) {
-                let found = false;
+            // Always keep the header visible
+            thead.style.display = "";
+
+            // Always keep the input row visible 
+            tr[0].style.display = "";
+
+            // Search through data rows (start from index 2 to skip header and input row)
+            for (let i = 2; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
+                let rowMatchesSearch = false;
+
+                // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        const txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                            found = true;
-                            break;
-                        }
+                    const txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowMatchesSearch = true;
+                        break;
                     }
                 }
-                tr[i].style.display = found ? "" : "none";
-                if (found) {
+
+                tr[i].style.display = rowMatchesSearch ? "" : "none";
+                if (rowMatchesSearch) {
                     foundAny = true;
                 }
             }
 
-            const noDataMessage = document.getElementById("noDataMessage");
+            // Handle "No data" message
+            let noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
-                    const message = document.createElement("p");
-                    message.id = "noDataMessage";
-                    message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red";
-                    message.style.fontWeight = "bold";
-                    message.style.marginTop = "10px";
-                    table.parentNode.insertBefore(message, table);
+                    noDataMessage = document.createElement("p");
+                    noDataMessage.id = "noDataMessage";
+                    noDataMessage.textContent = "ไม่พบข้อมูล";
+                    noDataMessage.style.color = "red";
+                    noDataMessage.style.fontWeight = "bold";
+                    noDataMessage.style.textAlign = "center";
+                    noDataMessage.style.marginTop = "10px";
+                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
                 }
             } else {
                 if (noDataMessage) {
@@ -313,7 +352,27 @@ try {
 
                 const saveButton = document.createElement('button');
                 saveButton.innerText = 'บันทึก';
-                saveButton.classList.add('save-button', 'text-green-500', 'hover:text-green-700');
+                saveButton.classList.add('save-button',
+                    'bg-gradient-to-b',
+                    'from-green-300',
+                    'via-green-500',
+                    'to-green-700',
+                    'text-white',
+                    'text-lg',
+                    'border',
+                    'border-green-700',
+                    'border-t-white',
+                    'border-l-white',
+                    'px-2',
+                    'py-1',
+                    'rounded',
+                    'shadow-md',
+                    'hover:bg-[#E8F5E9]',
+                    'active:border-[#A5D6A7]',
+                    'active:border-b-white',
+                    'active:border-r-white',
+                    'active:shadow-inner'
+                );
                 saveButton.onclick = function() {
                     // Save changes
                     const newtypeName = typeNameCell.querySelector('.edit-input').value;
@@ -355,6 +414,27 @@ try {
                 // แสดงปุ่มบันทึก
                 this.parentElement.querySelector('.save-button').style.display = 'block';
             });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchInput = document.getElementById("searchInput");
+            searchInput.focus();
+            if (urlParams.has('edit_success')) {
+                const notificationEdit = document.getElementById('notification-edit');
+                notificationEdit.style.display = 'block';
+                setTimeout(() => {
+                    notificationEdit.style.display = 'none';
+                }, 2000);
+            } else if (urlParams.has('delete_success')) {
+                const notificationDelete = document.getElementById('notification-delete');
+                notificationDelete.style.display = 'block';
+                setTimeout(() => {
+                    notificationDelete.style.display = 'none';
+                }, 2000);
+            }
         });
     </script>
 </body>

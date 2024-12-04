@@ -123,7 +123,7 @@ if (!$brandResults) {
 </head>
 
 <body>
-    <div class="bg-[#F0F0F0] font-[Tahoma]">
+    <div class="bg-[#F0F0F0] font-[Tahoma] ">
         <div class="mx-[20rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
             <div id="notification" class="notification">
                 <div class="notification-header">การแจ้งเตือน</div>

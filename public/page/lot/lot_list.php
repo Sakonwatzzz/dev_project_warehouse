@@ -189,7 +189,7 @@ ob_end_flush();
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[2rem] mt-11 ">
+    <div class="font-[Tahoma] mx-[20rem] mt-11 ">
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">ข้อมูลการรับสินค้า</h2>
@@ -215,11 +215,11 @@ ob_end_flush();
             <thead>
                 <!-- ส่วนหัวของตาราง -->
                 <tr class="">
-                    <th class="text-[18px] text-white bg-[#0046aa] ">สถานะล็อต</th>
-                    <th class="text-[18px] text-white bg-[#0046aa]">คลังสินค้า</th>
-                    <th class="text-[18px] text-white bg-[#0046aa]">ร้านค้า</th>
-                    <th class="text-[18px] text-white bg-[#0046aa]">ผู้ส่งมอบ</th>
-                    <th class="text-[18px] text-white bg-[#0046aa]">การจัดการ</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">สถานะล็อต</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">คลังสินค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ร้านค้า</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ผู้ส่งมอบ</th>
+                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody class="">
@@ -232,15 +232,42 @@ ob_end_flush();
                             <!-- <td><?php echo ($lot_list['lot_id']) ?></td> -->
                             <!-- <td><?php echo ($lot_list['lot_detail']) ?></td> -->
                             <!-- <td><?php echo ($lot_list['lot_date']) ?></td> -->
-                            <td onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'"><?php echo ($lot_list['lot_status_name']) ?></td>
-                            <td><?php echo ($lot_list['warehouse_name']) ?></td>
-                            <td><?php echo ($lot_list['store_name']) ?></td>
-                            <td><?php echo ($lot_list['supplier_name']) ?></td>
+                            <td class="text-start pl-4" onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'"><?php echo ($lot_list['lot_status_name']) ?></td>
+                            <td class="text-start pl-4"><?php echo ($lot_list['warehouse_name']) ?></td>
+                            <td class="text-start pl-4"><?php echo ($lot_list['store_name']) ?></td>
+                            <td class="text-start pl-4"><?php echo ($lot_list['supplier_name']) ?></td>
                             <td>
-                                <a href="?page=lot_update&id=<?php echo ($lot_list['lot_id']) ?>" class=" text-green-600 ">แก้ไข</a>
-                                | <!-- ลิงก์ไปหน้าแก้ไขข้อมูลสมาชิก -->
+                                <a href="?page=lot_update&id=<?php echo ($lot_list['lot_id']) ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                            text-white 
+                            text-lg 
+                            border border-yellow-700 
+                            border-t-white 
+                            border-l-white 
+                            px-2 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#FFF9C4] 
+                            active:border-[#FFF176] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner ">
+                                    แก้ไข</a>
+
+
                                 <a href="?page=lot_list&id=<?php echo ($lot_list['lot_id']) ?>"
-                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" text-red-600 ">ลบ</a>
+                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">ลบ</a>
                                 <!-- ลิงก์ไปหน้าลบข้อมูลสมาชิก และมีการยืนยันการลบ -->
                             </td>
                         </tr>
@@ -253,23 +280,19 @@ ob_end_flush();
         </table>
         <div class="box ">
 
-            <a class="  
-                        bg-[#e1e1e1] 
-                        text-black 
-                        border-2 
-                        border-[#A0A0A0] 
-                        border-t-white 
-                        border-l-white 
-                        px-4
-                        py-3
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#F1F1F1]
-                        active:border-[#A0A0A0]
-                        active:border-b-white
-                        active:border-r-white
-                        active:shadow-inner 
-                    " href="/?page=lot_insert" value="เพิ่ม">เพิ่มการรับสินค้า</a
+            <a class=" bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg border border-blue-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-4
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#E3F2FD] 
+                            active:border-[#90CAF9] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner"
+                href="/?page=lot_insert" value="เพิ่ม">เพิ่มการรับสินค้า</a
                 class="submit-button">
             <!-- แก้คำว่า "lass" เป็น "class" -->
         </div>

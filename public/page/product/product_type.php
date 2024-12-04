@@ -175,7 +175,7 @@ try {
             <tbody id="tableBody">
                 <?php foreach ($producttypes as $type): ?>
                     <tr class="bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?php echo $type['product_type_id']; ?>">
-                        <td class="type-name"><?php echo ($type['product_type_name']); ?></td>
+                        <td class="type-name text-start pl-4"><?php echo ($type['product_type_name']); ?></td>
                         <td>
                             <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 
@@ -378,6 +378,27 @@ try {
                 // แสดงปุ่มบันทึก
                 this.parentElement.querySelector('.save-button').style.display = 'block';
             });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchInput = document.getElementById("searchInput");
+            searchInput.focus();
+            if (urlParams.has('edit_success')) {
+                const notificationEdit = document.getElementById('notification-edit');
+                notificationEdit.style.display = 'block';
+                setTimeout(() => {
+                    notificationEdit.style.display = 'none';
+                }, 2000);
+            } else if (urlParams.has('delete_success')) {
+                const notificationDelete = document.getElementById('notification-delete');
+                notificationDelete.style.display = 'block';
+                setTimeout(() => {
+                    notificationDelete.style.display = 'none';
+                }, 2000);
+            }
         });
     </script>
 </body>

@@ -101,6 +101,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <link href="../../output.css" rel="stylesheet">
     <title>Member List</title>
     <style>
         .title {
@@ -194,10 +195,10 @@ ob_end_flush();
 </head>
 
 <body>
-    <div class="personnel-list">
+    <div class="font-[Tahoma] mx-[23rem] mt-11">
         <div class="title">
             <div class="count">
-                <h2>ข้อมูลสมาชิก</h2>
+                <h2 class="text-2xl font-bold">ข้อมูลสมาชิก</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>
@@ -216,26 +217,55 @@ ob_end_flush();
             <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
-        <table class="data-table" id="dataTable">
+        <table class="data-table mt-5 mb-8 w-[100%]  border shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <th>ชื่อ นามสกุล</th>
-                    <th>ประเภทสมาชิก</th>
-                    <th>วันที่สมัคร</th>
-                    <th>การจัดการ</th>
+                    <th class="w-[100px]  bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">รหัสสมาชิก</th>
+                    <th class="w-[170px]  bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อ นามสกุล</th>
+                    <th class="w-[170px]  bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ประเภทสมาชิก</th>
+                    <th class="w-[170px]  bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">วันที่สมัคร</th>
+                    <th class="w-[170px]  bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while ($member_list = $resultsmember->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr>
-                        <td onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'"><?php echo ($member_list['member_name']) ?></td>
-                        <td onclick="window.location.href='?page=member_group&tabel=member&id=<?php echo ($member_list['member_id']) ?>&type=<?php echo urlencode($member_list['member_type_name']) ?>'">
+                        <td class="pl-4 text-start "><?php echo ($member_list['member_id']) ?></td>
+                        <td class="pl-4 text-start" onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'"><?php echo ($member_list['member_name']) ?></td>
+                        <td class="pl-4 text-start" onclick="window.location.href='?page=member_group&tabel=member&id=<?php echo ($member_list['member_id']) ?>&type=<?php echo urlencode($member_list['member_type_name']) ?>'">
                             <?php echo ($member_list['member_type_name']) ?>
                         </td>
-                        <td><?php echo ($member_list['member_register_date']) ?></td>
+                        <td class="pl-4 text-start"><?php echo ($member_list['member_register_date']) ?></td>
                         <td>
-                            <a href="?page=member_update&id=<?php echo ($member_list['member_id']) ?>">แก้ไข</a>
-                            <a href="?page=bar_member&id=<?php echo $member_list['member_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')">ลบ</a>
+                            <a href="?page=member_update&id=<?php echo ($member_list['member_id']) ?>" class="
+                            bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                            text-white 
+                            text-lg 
+                            border border-yellow-700 
+                            border-t-white 
+                            border-l-white 
+                            px-2 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#FFF9C4] 
+                            active:border-[#FFF176] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner
+                            ">แก้ไข</a>
+                            <a href="?page=bar_member&id=<?php echo $member_list['member_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">ลบ</a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
@@ -269,36 +299,47 @@ ob_end_flush();
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
+            const thead = table.querySelector("thead");
             let foundAny = false;
 
-            for (let i = 1; i < tr.length; i++) {
-                let found = false;
+            // Always keep the header visible
+            thead.style.display = "";
+
+            // Always keep the input row visible 
+            tr[0].style.display = "";
+
+            // Search through data rows (start from index 2 to skip header and input row)
+            for (let i = 2; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
+                let rowMatchesSearch = false;
+
+                // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        const txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                            found = true;
-                            break;
-                        }
+                    const txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowMatchesSearch = true;
+                        break;
                     }
                 }
-                tr[i].style.display = found ? "" : "none";
-                if (found) {
+
+                tr[i].style.display = rowMatchesSearch ? "" : "none";
+                if (rowMatchesSearch) {
                     foundAny = true;
                 }
             }
 
-            const noDataMessage = document.getElementById("noDataMessage");
+            // Handle "No data" message
+            let noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
-                    const message = document.createElement("p");
-                    message.id = "noDataMessage";
-                    message.textContent = "ไม่พบข้อมูล";
-                    message.style.color = "red";
-                    message.style.fontWeight = "bold";
-                    message.style.marginTop = "10px";
-                    table.parentNode.insertBefore(message, table);
+                    noDataMessage = document.createElement("p");
+                    noDataMessage.id = "noDataMessage";
+                    noDataMessage.textContent = "ไม่พบข้อมูล";
+                    noDataMessage.style.color = "red";
+                    noDataMessage.style.fontWeight = "bold";
+                    noDataMessage.style.textAlign = "center";
+                    noDataMessage.style.marginTop = "10px";
+                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
                 }
             } else {
                 if (noDataMessage) {

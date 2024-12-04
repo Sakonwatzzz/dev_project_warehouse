@@ -117,8 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="detail-body  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
-        <h2 class="detail-title">รายละเอียดล็อต</h2>
+    <div class="detail-body mx-[25rem]  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
+        <!-- เปลี่ยนสีหัวข้อเมื่ออยู่ในโหมดแก้ไข -->
+        <h2 class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 <?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
+            <?php echo $is_update ? 'กำลังแก้ไขล็อตสินค้า' : 'รายละเอียดล็อตสินค้า'; ?>
+        </h2>
         <form class="detail-form" action="../../page/lot/lot_update.php" method="POST">
             <input type="hidden" name="lot_id" value="<?php echo $lot['lot_id']; ?>">
             <table class="detail-table">
@@ -127,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th class="">รหัสล็อต:</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="id" name="lot_id" value="<?php echo ($lot['lot_id']); ?> "  readonly >
+                                <input type="id" name="lot_id" value="<?php echo ($lot['lot_id']); ?> " readonly>
                             <?php else: ?>
                                 <?php echo ($lot['lot_id']); ?>
                             <?php endif; ?>
@@ -138,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th>รายละเอียดล็อต:</th>
                         <td class="shadow-lg">
                             <?php if ($is_update): ?>
-                                <input type="text" name="lot_detail" value="<?php echo ($lot['lot_detail']); ?>" >
+                                <input type="text" name="lot_detail" id="lot-name" value="<?php echo ($lot['lot_detail']); ?>">
                             <?php else: ?>
                                 <?php echo ($lot['lot_detail']); ?>
                             <?php endif; ?>
@@ -236,96 +239,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
             </table>
 
-            <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
-            <div class="flex justify-end gap-4 mt-3"><?php if ($is_update): ?>
-                    <button class="
-                        bg-[#e1e1e1] 
-                        text-black 
-                        border-2 
-                        border-[#A0A0A0] 
-                        border-t-white 
-                        border-l-white 
-                        px-4 
-                        py-1 
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#F1F1F1]
-                        active:border-[#A0A0A0]
-                        active:border-b-white
-                        active:border-r-white
-                        active:shadow-inner 
-                    ">
-                        บันทึก</button>
+            <!-- ปุ่มต่างๆ -->
+            <div class="detail-action flex gap-2  justify-end<?php echo $is_update ? '' : ''; ?> mx-3 mb-4">
+                <?php if ($is_update): ?>
+                    <div class="flex gap-2 mt-4 justify-end">
+                        <a href="/?page=lot_detail&tabel=lot&id=<?php echo $lot['lot_id']; ?>"
+                            class="w-full p-2 px-5 text-center bg-red-500 text-white border rounded-lg shadow-lg hover:bg-red-600">
+                            ยกเลิก
+                        </a>
+                        <button type="submit"
+                            class="w-full p-2 px-5 bg-green-500 text-white border rounded-lg shadow-lg hover:bg-green-600">
+                            บันทึก
+                        </button>
+                    </div>
+                <?php else: ?>
+                    <a href="/?page=lot_list"
+                        class="mt-4 p-2 px-6 bg-gray-700 text-white border rounded-lg shadow-lg mr-2 hover:bg-gray-800">
+                        ย้อนกลับ
+                    </a>
+                    <a href="?page=lot_detail&tabel=lot&id=<?php echo $lot['lot_id']; ?>&is_update=1"
+                        class="mt-4 p-2 px-6 bg-blue-700 text-white border rounded-lg shadow-lg hover:bg-blue-800">
+                        ต้องการแก้ไข
+                    </a>
                 <?php endif; ?>
             </div>
-
         </form>
-
-        <div class="flex justify-end gap-4 mb-5 mx-3">
-            <a href="/?page=lot_list" class="
-                        bg-[#e1e1e1] 
-                        text-black 
-                        border-2 
-                        border-[#A0A0A0] 
-                        border-t-white 
-                        border-l-white 
-                        px-4 
-                        py-1 
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#F1F1F1]
-                        active:border-[#A0A0A0]
-                        active:border-b-white
-                        active:border-r-white
-                        active:shadow-inner 
-                    ">ย้อนกลับหน้ารายการ<?php echo ($tabel); ?></a>
-
-            <?php if ($is_update): ?>
-                <a href="?page=lot_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $lot['lot_id']; ?>"
-                    class="
-                        bg-[#e1e1e1] 
-                        text-black 
-                        border-2 
-                        border-[#A0A0A0] 
-                        border-t-white 
-                        border-l-white 
-                        px-4 
-                        py-1 
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#F1F1F1]
-                        active:border-[#A0A0A0]
-                        active:border-b-white
-                        active:border-r-white
-                        active:shadow-inner 
-                    ">ย้อนกลับไปที่ Detail
-                </a>
-            <?php endif; ?>
-
-            <a href="?page=lot_detail&tabel=lot&id=<?php echo $lot['lot_id']; ?>&is_update=1" class="
-                        bg-[#e1e1e1] 
-                        text-black 
-                        border-2 
-                        border-[#A0A0A0] 
-                        border-t-white 
-                        border-l-white 
-                        px-4 
-                        py-1 
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#F1F1F1]
-                        active:border-[#A0A0A0]
-                        active:border-b-white
-                        active:border-r-white
-                        active:shadow-inner
-                    ">
-                ไปหน้าแก้ไข <?php echo $tabel; ?>
-            </a>
-        </div>
-
-
-
     </div>
+    <?php if ($is_update): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('lot-name').focus();
+            });
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>

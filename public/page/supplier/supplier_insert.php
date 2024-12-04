@@ -28,9 +28,9 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>หน้าบุคลากร</title>
     <link rel="stylesheet" href="../../style/insert.css">
-
+    <link href="../../output.css" rel="stylesheet">
+    <title>หน้าบุคลากร</title>
     <style>
         .notification {
             position: fixed;
@@ -72,47 +72,77 @@ ob_end_flush();
 </head>
 
 <body>
-    <div class="add-box">
+    <div class="bg-[#F0F0F0] font-[Tahoma]">
+        <div class="mx-[20rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+            <div id="notification" class="notification">
+                <div class="notification-header">การแจ้งเตือน</div>
+                <div class="notification-body">เพิ่มผู้ส่งมอบสำเร็จ!</div>
+            </div>
 
-        <div id="notification" class="notification">
-            <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">เพิ่มผู้ส่งมอบสำเร็จ!</div>
-        </div>
+            <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">เพิ่มผู้ส่งมอบ</h2>
 
-        <h2 class="title">เพิ่มผู้ส่งมอบ</h2>
 
-        <div class="area">
-
-            <form class="form-container" action="" method="POST">
-                <div class="box">
-                    <label for="name">ชื่อผู้ส่งมอบ:</label>
-                    <input type="text" id="name" name="name">
+            <form class="p-5  space-y-2" action="" method="POST">
+                <div class="flex items-center">
+                    <label for="name" class="w-[150px] text-base mr-4">ชื่อผู้ส่งมอบ:</label>
+                    <input type="text" id="name" name="name" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                 </div>
 
-                <div class="box">
-                    <label for="address">ที่อยู่ผู้ส่งมอบ:</label>
-                    <input type="text" id="address" name="address">
+                <div class="flex items-center">
+                    <label for="address" class="w-[150px] text-base mr-4">ที่อยู่ผู้ส่งมอบ:</label>
+                    <input type="text" id="address" name="address" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                 </div>
 
-                <div class="box">
-                    <label for="phone">เบอร์โทรศัพท์:</label>
-                    <input type="text" id="phone" name="phone">
+                <div class="flex items-center">
+                    <label for="phone" class="w-[150px] text-base mr-4">เบอร์โทรศัพท์:</label>
+                    <input type="text" id="phone" name="phone" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                 </div>
 
-                <div class="box">
-                    <label for="detail">รายละเอียด:</label>
-                    <input type="text" id="detail" name="detail">
+                <div class="flex items-center">
+                    <label for="detail" class="w-[150px] text-base mr-4">รายละเอียด:</label>
+                    <input type="text" id="detail" name="detail" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                 </div>
 
+                <div class="flex justify-end mt-5 gap-2">
+                    <a href="/?page=supplier_list" class="
+                        bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                     border-t-white 
+                     border-l-white 
+                     px-4 
+                     py-1 
+                     rounded 
+                                    shadow-md 
+                    hover:bg-[#FFEBEE] 
+                    active:border-[#EF9A9A] 
+                    active:border-b-white 
+                    active:border-r-white 
+                    active:shadow-inner
+                    ">ยกเลิก</a>
 
-                <div class="box">
-                    <label for=""></label>
-                    <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
+                    <button
+                        type="submit"
+                        class="
+                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#E8F5E9] 
+                            active:border-[#A5D6A7] 
+                            active:border-b-white 
+                            active:border-r-white 
+                                active:shadow-inner
+                            ">
+                        บันทึก
+                    </button>
                 </div>
-
             </form>
+
         </div>
     </div>
+    
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {

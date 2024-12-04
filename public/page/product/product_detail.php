@@ -84,10 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="detail-body">
+    <div class="detail-body  xl:mx-[20rem]">
         <div class="bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
             <!-- เปลี่ยนสีหัวข้อเมื่ออยู่ในโหมดแก้ไข -->
-            <h2 class="detail-title <?php echo $is_update ? 'bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700' : 'bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700'; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
+            <h2 class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700<?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
                 <?php echo $is_update ? 'กำลังแก้ไขสินค้า' : 'รายละเอียดสินค้า'; ?>
             </h2>
 
@@ -177,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <!-- Dropdown for product type and brand -->
                         <tr>
-                            <th>ประเภทสินค้า:</th>
+                            <th onclick="window.location.href='?page=product_type&tabel=product_type&id=1'">ประเภทสินค้า:</th>
                             <td>
                                 <?php if ($is_update): ?>
                                     <select name="typename" class="w-full border rounded px-2 py-1">
@@ -197,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </tr>
 
                         <tr>
-                            <th>แบรนด์สินค้า:</th>
+                            <th onclick="window.location.href='?page=product_brand&tabel=product_brand&id=1'">แบรนด์สินค้า:</th>
                             <td>
                                 <?php if ($is_update): ?>
                                     <select name="typebrandname" class="w-full border rounded px-2 py-1">
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </table>
 
                 <!-- ปุ่มต่างๆ -->
-                <div class="detail-action <?php echo $is_update ? 'flex gap-2  justify-end' : 'flex gap-2  justify-end'; ?> mx-3 mb-4">
+                <div class="detail-action flex gap-2  justify-end<?php echo $is_update ? '' : ''; ?> mx-3 mb-4">
                     <?php if ($is_update): ?>
                         <div class="flex gap-2 mt-4 justify-end">
                             <a href="/?page=product_detail&tabel=product&id=<?php echo $product['product_id']; ?>"

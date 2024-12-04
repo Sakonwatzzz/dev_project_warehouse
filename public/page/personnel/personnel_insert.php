@@ -36,6 +36,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/insert.css">
+    <link href="../../output.css" rel="stylesheet">
     <title>Document</title>
 
     <style>
@@ -75,66 +76,99 @@ ob_end_flush();
 
 <body>
 
-    <div class="add-box">
-
-        <div id="notification" class="notification">
-            <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">เพิ่มบุคลากรสำเร็จ!</div>
-        </div>
-
-
-        <h2 class="sub-title">เพิ่มสมาชิก</h2>
-        <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
-            <div class="box">
-                <label for="personnel_name">ชื่อ นามสกุลบุคลากร:</label>
-                <input type="text" id="personnel_name" name="personnel_name">
+    <div class="bg-[#F0F0F0] font-[Tahoma]">
+        <div class="mx-[20rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+            <div id="notification" class="notification">
+                <div class="notification-header">การแจ้งเตือน</div>
+                <div class="notification-body">เพิ่มบุคลากรสำเร็จ!</div>
             </div>
 
-            <!-- loop -->
-            <?php
-            if (count($personnelTypes) > 0) {
-            ?>
-                <div class="box">
-                    <label for="personnel_type_name">ประเภทบุคลากร:</label>
-                    <select name="personnel_type_name" id="personnel_type_name">
-                        <?php foreach ($personnelTypes as $personnel_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
-                            <option value="<?php echo ($personnel_insert['personnel_type_id']); ?>">
-                                <?php echo ($personnel_insert['personnel_type_name']); ?>
-                            </option>
-                        <?php } ?>
-                    </select><br>
+
+            <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">เพิ่มสมาชิก</h2>
+
+            <form class="p-5  space-y-2" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+                <div class="flex items-center ">
+                    <label for="personnel_name" class="w-[150px] text-base mr-4">ชื่อ นามสกุลบุคลากร:</label>
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_name" name="personnel_name">
                 </div>
 
-            <?php
-            } else {
-                echo "No personnel types available.";
-            }
-            ?>
-            <!--  -->
-            <div class="box">
-                <label for="personnel_address">ที่อยู่บุคลากร:</label>
-                <input type="text" id="personnel_address" name="personnel_address">
-            </div>
-            <div class="box">
-                <label for="personnel_phone">เบอร์โทรศัพท์:</label>
-                <input type="text" id="personnel_phone" name="personnel_phone">
-            </div>
+                <!-- loop -->
+                <?php
+                if (count($personnelTypes) > 0) {
+                ?>
+                    <div class="flex items-center ">
+                        <label for="personnel_type_name" class="w-[150px] text-base mr-4">ประเภทบุคลากร:</label>
+                        <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="personnel_type_name" id="personnel_type_name">
+                            <?php foreach ($personnelTypes as $personnel_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
+                                <option value="<?php echo ($personnel_insert['personnel_type_id']); ?>">
+                                    <?php echo ($personnel_insert['personnel_type_name']); ?>
+                                </option>
+                            <?php } ?>
+                        </select><br>
+                    </div>
 
-            <div class="box">
-                <label for="personnel_username">ชื่อผู้ใช้:</label>
-                <input type="text" id="personnel_username" name="personnel_username">
-            </div>
+                <?php
+                } else {
+                    echo "No personnel types available.";
+                }
+                ?>
+                <!--  -->
+                <div class="flex items-center ">
+                    <label for="personnel_address" class="w-[150px] text-base mr-4">ที่อยู่บุคลากร:</label>
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_address" name="personnel_address">
+                </div>
+                <div class="flex items-center ">
+                    <label for="personnel_phone" class="w-[150px] text-base mr-4">เบอร์โทรศัพท์:</label>
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_phone" name="personnel_phone">
+                </div>
 
-            <div class="box">
-                <label for="personnel_password">รหัสผ่าน:</label>
-                <input type="password" id="personnel_password" name="personnel_password">
-            </div>
+                <div class="flex items-center ">
+                    <label for="personnel_username" class="w-[150px] text-base mr-4">ชื่อผู้ใช้:</label>
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_username" name="personnel_username">
+                </div>
 
-            <div class="box">
-                <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button> <!-- แก้คำว่า "lass" เป็น "class" -->
-            </div>
-        </form>
+                <div class="flex items-center ">
+                    <label for="personnel_password" class="w-[150px] text-base mr-4">รหัสผ่าน:</label>
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="password" id="personnel_password" name="personnel_password">
+                </div>
+
+                <div class="flex justify-end mt-5 gap-2">
+                    <a href="/?page=personnel_list" class="
+                        bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                     border-t-white 
+                     border-l-white 
+                     px-4 
+                     py-1 
+                     rounded 
+                                    shadow-md 
+                    hover:bg-[#FFEBEE] 
+                    active:border-[#EF9A9A] 
+                    active:border-b-white 
+                    active:border-r-white 
+                    active:shadow-inner
+                    ">ยกเลิก</a>
+
+                    <button
+                        type="submit"
+                        class="
+                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#E8F5E9] 
+                            active:border-[#A5D6A7] 
+                            active:border-b-white 
+                            active:border-r-white 
+                                active:shadow-inner
+                            ">
+                        บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
 

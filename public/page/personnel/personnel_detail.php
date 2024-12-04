@@ -49,139 +49,153 @@ $personnel_type_results = $pdo->query($queryTypes);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/detail.css">
+    <link href="../../output.css" rel="stylesheet">
     <title>รายละเอียด</title>
 </head>
 
 <body>
-    <div class="detail-body">
+    <div class="detail-body xl:mx-[20rem]">
 
-        <h1 class="detail-title">รายละเอียดบุคลากร</h1>
-
-
-        <form class="detail-form" action="../../page/personnel/personnel_update.php" method="POST">
-
-            <input type="hidden" name="personnel_id" value="<?php echo $personnel['personnel_id']; ?>">
-
-
-            <table class="detail-table">
-                <?php if ($tabel === 'personnel'): ?>
+        <div class="bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+            <!-- เปลี่ยนสีหัวข้อเมื่ออยู่ในโหมดแก้ไข -->
+            <h2 class="text-lg detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700<?php echo $is_update ? '' : ''; ?> text-white px-3 py-2 border border-blue-700 shadow">
+                <?php echo $is_update ? 'กำลังแก้ไขบุคลากร' : 'รายละเอียดบุคลากร'; ?>
+            </h2>
 
 
-                    <tr>
-                        <th>รหัสบุคลากร:</th>
 
-                        <td>
-                            <?php if ($is_update): ?>
-                                <input type="hidden" name="id" value="<?php echo $personnel['personnel_id']; ?>">
-                            <?php else: ?>
-                                <?php echo $personnel['personnel_id']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>ชื่อสกุลบุคลากร:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="name" value="<?php echo $personnel['personnel_name']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $personnel['personnel_name']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>ประเภทบุคลากร:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <select name="typename">
-                                    <option value="<?php echo ($personnel['personnel_type_id']); ?>" selected>
-                                        <?php echo ($personnel['personnel_type_name']); ?>
-                                    </option>
-                                    <?php while ($typeRow = $personnel_type_results->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo ($typeRow['personnel_type_id']); ?>">
-                                            <?php echo ($typeRow['personnel_type_name']); ?>
+            <form class="detail-form" action="../../page/personnel/personnel_update.php" method="POST">
+
+                <input type="hidden" name="personnel_id" value="<?php echo $personnel['personnel_id']; ?>">
+
+
+                <table class="detail-table">
+                    <?php if ($tabel === 'personnel'): ?>
+
+
+                        <tr>
+                            <th>รหัสบุคลากร:</th>
+
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <input type="hidden" name="id" value="<?php echo $personnel['personnel_id']; ?>">
+                                <?php else: ?>
+                                    <?php echo $personnel['personnel_id']; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>ชื่อสกุลบุคลากร:</th>
+                            <td>
+                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
+                                    <input type="text" name="name" value="<?php echo $personnel['personnel_name']; ?>">
+                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
+                                    <?php echo $personnel['personnel_name']; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>ประเภทบุคลากร:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <select name="typename">
+                                        <option value="<?php echo ($personnel['personnel_type_id']); ?>" selected>
+                                            <?php echo ($personnel['personnel_type_name']); ?>
                                         </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            <?php else: ?>
-                                <?php echo ($personnel['personnel_type_name']); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>ที่อยู่บุคลากร:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="address" value="<?php echo $personnel['personnel_address']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $personnel['personnel_address']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+                                        <?php while ($typeRow = $personnel_type_results->fetch(PDO::FETCH_ASSOC)): ?>
+                                            <option value="<?php echo ($typeRow['personnel_type_id']); ?>">
+                                                <?php echo ($typeRow['personnel_type_name']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <?php echo ($personnel['personnel_type_name']); ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>ที่อยู่บุคลากร:</th>
+                            <td>
+                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
+                                    <input type="text" name="address" value="<?php echo $personnel['personnel_address']; ?>">
+                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
+                                    <?php echo $personnel['personnel_address']; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
 
-                    <tr>
-                        <th>เบอร์บุคลากร:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="phone" value="<?php echo $personnel['personnel_phone']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $personnel['personnel_phone']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+                        <tr>
+                            <th>เบอร์บุคลากร:</th>
+                            <td>
+                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
+                                    <input type="text" name="phone" value="<?php echo $personnel['personnel_phone']; ?>">
+                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
+                                    <?php echo $personnel['personnel_phone']; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
 
-                    <tr>
-                        <th>ชื่อผู้ใช้บุคลากร:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="username" value="<?php echo $personnel['personnel_username']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $personnel['personnel_username']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>รหัสผ่าน:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="password" value="<?php echo $personnel['personnel_password']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $personnel['personnel_password']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+                        <tr>
+                            <th>ชื่อผู้ใช้บุคลากร:</th>
+                            <td>
+                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
+                                    <input type="text" name="username" value="<?php echo $personnel['personnel_username']; ?>">
+                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
+                                    <?php echo $personnel['personnel_username']; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>รหัสผ่าน:</th>
+                            <td>
+                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
+                                    <input type="text" name="password" value="<?php echo $personnel['personnel_password']; ?>">
+                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
+                                    <?php echo $personnel['personnel_password']; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
 
-                <?php endif; ?>
-            </table>
+                    <?php endif; ?>
+                </table>
 
-            <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
-            <?php if ($is_update): ?>
-                <button class="submit-button" type="submit"
-                    style=" border-radius: 6px;
-                        width: 120px;
-                        height: 40px;
-                        padding: 10px;
-                        margin-top:10px;
-                        /*border: 1px solid rgb(29, 188, 55);*/
-                        background-color: #333;
-                        text-decoration: none;
-                        color: #fff; ">บันทึก </button>
+                <!-- ปุ่มต่างๆ -->
+                <div class="detail-action flex gap-2  justify-end<?php echo $is_update ? '' : ''; ?> mx-3 mb-4">
+                    <?php if ($is_update): ?>
+                        <div class="flex gap-2 mt-4 justify-end">
+                            <a href="/?page=personnel_detail&tabel=personnel&id=<?php echo $personnel['personnel_id']; ?>"
+                                class="w-full p-2 px-5 text-center bg-red-500 text-white border rounded-lg shadow-lg hover:bg-red-600">
+                                ยกเลิก
+                            </a>
+                            <button type="submit"
+                                class="w-full p-2 px-5 bg-green-500 text-white border rounded-lg shadow-lg hover:bg-green-600">
+                                บันทึก
+                            </button>
+                        </div>
+                    <?php else: ?>
+                        <a href="/?page=personnel_list"
+                            class="mt-4 p-2 px-6 bg-gray-700 text-white border rounded-lg shadow-lg mr-2 hover:bg-gray-800">
+                            ย้อนกลับ
+                        </a>
+                        <a href="?page=personnel_detail&tabel=personnel&id=<?php echo $personnel['personnel_id']; ?>&is_update=1"
+                            class="mt-4 p-2 px-6 bg-blue-700 text-white border rounded-lg shadow-lg hover:bg-blue-800">
+                            ต้องการแก้ไข
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </form>
 
-            <?php endif; ?>
-        </form>
 
-        <div class="detail-action">
-            <a href="/?page=bar_personnel">ย้อนกลับหน้า List_<?php echo $tabel; ?></a>
-
-            <?php if ($is_update): ?>
-                <a href="?page=personnel_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $personnel['personnel_id']; ?>" style="margin-right: 6px;">ย้อนกลับไปที่ Detail</a>
-            <?php endif; ?>
-
-            <a href="?page=personnel_detail&tabel=personnel&id=<?php echo $personnel['personnel_id']; ?>&is_update=1">
-                ไปหน้าแก้ไข <?php echo $tabel; ?>
-            </a>
         </div>
-
     </div>
+
+    <?php if ($is_update): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('product-name').focus();
+            });
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>

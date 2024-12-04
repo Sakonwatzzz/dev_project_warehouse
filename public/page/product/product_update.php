@@ -145,7 +145,7 @@ $product_update = $stmt->fetch();
 
 <body>
     <div class="bg-[#F0F0F0] font-[Tahoma]">
-        <div class="mx-[20rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+        <div class="mx-[40rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
             <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">แก้ไขข้อมูลสินค้า</h2>
 
             <form class="p-5  space-y-2" action="../../page/product/product_update.php" method="POST">

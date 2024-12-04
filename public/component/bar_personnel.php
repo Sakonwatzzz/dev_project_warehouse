@@ -14,8 +14,8 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
     <link href="../../output.css" rel="stylesheet">
     <title>Document</title>
     <style>
-        /* พื้นหลังแบบ Windows XP */
-        body {
+         /* พื้นหลังแบบ Windows XP */
+         body {
             font-family: Tahoma, sans-serif;
             background-color: #e3f2fd;
             color: #333;
@@ -30,8 +30,8 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             background-color: #c8d8ed;
             border: 1px solid #81d4fa;
             padding: 10px;
-            border-radius: 4px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            border-bottom: 10px solid #96aac4;
         }
 
         .button-bb a {
@@ -41,38 +41,49 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
         }
 
         .button-bb button {
-            height: 80px;
+            height: 100px;
+            /* เพิ่มความสูง */
             width: 150px;
             display: flex;
+            flex-direction: column;
+            /* จัดเรียงเนื้อหาในแนวตั้ง */
             justify-content: center;
             align-items: center;
             background-color: #e1f5fe;
             border: 1px solid #4fc3f7;
-            padding: 6px 12px;
+            padding: 10px;
+            /* เพิ่มพื้นที่ด้านใน */
             cursor: pointer;
             border-radius: 4px;
             box-shadow: 1px 1px 3px #888;
+            text-align: center;
         }
 
         .button-bb button.active,
         .button-bb button:hover {
-            background-color: #e8bd4b;
-            border-color: #e8bd4b;
+            background: rgb(255, 250, 209);
+            background: -moz-linear-gradient(0deg, rgba(255, 250, 209, 1) 0%, rgba(253, 187, 45, 1) 43%);
+            background: -webkit-linear-gradient(0deg, rgba(255, 250, 209, 1) 0%, rgba(253, 187, 45, 1) 43%);
+            background: linear-gradient(0deg, rgba(255, 250, 209, 1) 0%, rgba(253, 187, 45, 1) 43%);
+            filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#fffad1", endColorstr="#fdbb2d", GradientType=1);
         }
 
-        /* ขนาดภาพ */
         .button-bb img {
-            width: 32px;
+            width: 48px;
+            /* เพิ่มขนาดของรูปภาพ */
             height: auto;
-            margin-right: 8px;
+            margin-bottom: 8px;
+            /* เพิ่มช่องว่างระหว่างรูปและข้อความ */
         }
 
-        /* สไตล์ข้อความ */
         .button-bb p {
             margin: 0;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 14px;
+            /* ปรับขนาดตัวอักษร */
             color: #333;
+            text-align: center;
+            /* จัดข้อความให้อยู่ตรงกลาง */
         }
 
         .button-bar-1,

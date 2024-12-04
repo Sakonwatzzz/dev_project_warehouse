@@ -35,43 +35,75 @@ $supplier_update  = $stmt->fetch();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/update.css">
-    <title>Document</title>
+    <link href="../../output.css" rel="stylesheet">
+    <title>suppliser update</title>
 
 </head>
 
 <body>
-    <div class="update-body">
-        <h2 class="update-title">แก้ไข ข้อมูลผู้ส่งมอบ</h2>
-        <form class="update-form" action="../../page/supplier/supplier_update.php" method="POST">
-            <input type="hidden" name="id" value="<?php echo ($supplier_update['supplier_id']) ?>">
+    <div class="bg-[#F0F0F0] font-[Tahoma]">
+        <div class="mx-[40rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+            <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">แก้ไข ข้อมูลผู้ส่งมอบ</h2>
 
-            <div class="box">
-                <label for="name">ชื่อผู้ส่งมอบ</label>
-                <input type="text" name="name" value="<?php echo ($supplier_update['supplier_name']) ?>" required>
-            </div>
+            <form class="p-5  space-y-2" action="../../page/supplier/supplier_update.php" method="POST">
+                <input type="hidden" name="id" value="<?php echo ($supplier_update['supplier_id']) ?>">
 
-
-            <div class="box">
-                <label for="address">ที่อยู่ผู้ส่งมอบ</label>
-                <input type="text" name="address" value="<?php echo ($supplier_update['supplier_address']) ?>" required>
-            </div>
-
-            <div class="box">
-                <label for="phone">เบอร์โทรศัพท์ผู้ส่งมอบ</label>
-                <input type="text" name="phone" value="<?php echo ($supplier_update['supplier_phone']) ?>" required>
-            </div>
+                <div class="flex items-center">
+                    <label for="name" for="barcode" class="w-[150px] text-base mr-4">ชื่อผู้ส่งมอบ</label>
+                    <input type="text" name="name" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($supplier_update['supplier_name']) ?>" required>
+                </div>
 
 
-            <div class="box">
-                <label for="detail">รายละเอียดผู้ส่งมอบ</label>
-                <input type="text" name="detail" value="<?php echo ($supplier_update['supplier_detail']) ?>" required>
-            </div>
+                <div class="flex items-center">
+                    <label for="address" for="barcode" class="w-[150px] text-base mr-4">ที่อยู่ผู้ส่งมอบ</label>
+                    <input type="text" name="address" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($supplier_update['supplier_address']) ?>" required>
+                </div>
 
-            <div class="box-action">
-                <a href="/?page=bar_supplier">ยกเลิก</a>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
-            </div>
-        </form>
+                <div class="flex items-center">
+                    <label for="phone" for="barcode" class="w-[150px] text-base mr-4">เบอร์โทรศัพท์ผู้ส่งมอบ</label>
+                    <input type="text" name="phone" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($supplier_update['supplier_phone']) ?>" required>
+                </div>
+
+
+                <div class="flex items-center">
+                    <label for="detail" for="barcode" class="w-[150px] text-base mr-4">รายละเอียดผู้ส่งมอบ</label>
+                    <input type="text" name="detail" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($supplier_update['supplier_detail']) ?>" required>
+                </div>
+
+                <div class="flex gap-1 justify-end">
+                    <button class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4
+                            py-1
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">
+                        <a href="/?page=bar_supplier">ยกเลิก</a>
+                    </button>
+
+                    <button class="
+                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
+                            border-t-white 
+                            border-l-white 
+            
+                            px-4
+                            py-1
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#E8F5E9] 
+                            active:border-[#A5D6A7] 
+                            active:border-b-white 
+                            active:border-r-white 
+                                active:shadow-inner
+                            " type="submit" value="เพิ่ม">บันทึก</button>
+                </div>
+            </form>
+        </div>
     </div>
 </body>
 

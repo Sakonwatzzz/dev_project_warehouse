@@ -50,7 +50,7 @@ ob_end_flush();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="../../style/insert.css">
-
+    <link href="../../output.css" rel="stylesheet">
     <style>
         .notification {
             position: fixed;
@@ -87,65 +87,96 @@ ob_end_flush();
 </head>
 
 <body>
-    <div class="add-box">
-        <h2 class="sub-title">เพิ่มสมาชิก</h2>
+    <div class="bg-[#F0F0F0] font-[Tahoma]">
+        <div class="mx-[20rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+            <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">เพิ่มสมาชิก</h2>
 
-        <div id="notification" class="notification">
-            <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">เพิ่มสมาชิกสำเร็จ!</div>
-        </div>
-
-
-        <form class="form-container" action="" method="POST">
-            <div class="box">
-                <label for="name">ชื่อสกุลสมาชิก:</label>
-                <input type="text" name="name" id="name">
+            <div id="notification" class="notification">
+                <div class="notification-header">การแจ้งเตือน</div>
+                <div class="notification-body">เพิ่มสมาชิกสำเร็จ!</div>
             </div>
 
-            <div class="box">
-                <label for="address">ที่อยู่สมาชิก:</label>
-                <input type="text" name="address" id="address">
 
-            </div>
-
-            <div class="box">
-                <label for="phone">เบอร์โทรศัพท์สมาชิก:</label>
-                <input type="text" name="phone" id="phone">
-
-            </div>
-
-            <div class="box">
-                <label for="registerdate">วันที่สมัครเป็นสมาชิก:</label>
-                <input type="date" name="registerdate" id="registerdate" value="<?= date('Y-m-d') ?>" readonly>
-
-            </div>
-
-            <?php if ($results->rowCount() > 0) { ?>
-                <div class="box">
-                    <label for="typename">ประเภทสมาชิก:</label>
-                    <select name="typename" id="typename">
-                        <?php while ($member_insert = $results->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <option value="<?php echo ($member_insert['member_type_id']); ?>">
-                                <?php echo ($member_insert['member_type_name']); ?>
-                            </option>
-                        <?php } ?>
-                    </select>
+            <form class="p-5  space-y-2" action="" method="POST">
+                <div class="flex items-center">
+                    <label for="name" class="w-[150px] text-base mr-4">ชื่อสกุลสมาชิก:</label>
+                    <input type="text" name="name" id="name" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                 </div>
 
-            <?php } else { ?>
-                <p>ไม่พบข้อมูลประเภทสมาชิก</p>
-            <?php } ?>
+                <div class="flex items-center">
+                    <label for="address" class="w-[150px] text-base mr-4">ที่อยู่สมาชิก:</label>
+                    <input type="text" name="address" id="address" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
 
-            <div class="box">
-                <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
-            </div>
-        </form>
+                </div>
+
+                <div class="flex items-center">
+                    <label for="phone" class="w-[150px] text-base mr-4">เบอร์โทรศัพท์สมาชิก:</label>
+                    <input type="text" name="phone" id="phone" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
+
+                </div>
+
+                <div class="flex items-center">
+                    <label for="registerdate" class="w-[150px] text-base mr-4">วันที่สมัครเป็นสมาชิก:</label>
+                    <input type="date" name="registerdate" id="registerdate" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?= date('Y-m-d') ?>" readonly>
+
+                </div>
+
+                <?php if ($results->rowCount() > 0) { ?>
+                    <div class="flex items-center">
+                        <label for="typename" class="w-[150px] text-base mr-4">ประเภทสมาชิก:</label>
+                        <select name="typename" id="typename" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
+                            <?php while ($member_insert = $results->fetch(PDO::FETCH_ASSOC)) { ?>
+                                <option value="<?php echo ($member_insert['member_type_id']); ?>">
+                                    <?php echo ($member_insert['member_type_name']); ?>
+                                </option>
+                            <?php } ?>
+                        </select>
+                    </div>
+
+                <?php } else { ?>
+                    <p>ไม่พบข้อมูลประเภทสมาชิก</p>
+                <?php } ?>
+
+                <div class="flex justify-end mt-5 gap-2">
+                    <a href="/?page=member_list" class="
+                        bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                     border-t-white 
+                     border-l-white 
+                     px-4 
+                     py-1 
+                     rounded 
+                                    shadow-md 
+                    hover:bg-[#FFEBEE] 
+                    active:border-[#EF9A9A] 
+                    active:border-b-white 
+                    active:border-r-white 
+                    active:shadow-inner
+                    ">ยกเลิก</a>
+
+                    <button
+                        type="submit"
+                        class="
+                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#E8F5E9] 
+                            active:border-[#A5D6A7] 
+                            active:border-b-white 
+                            active:border-r-white 
+                                active:shadow-inner
+                            ">
+                        บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-
-
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

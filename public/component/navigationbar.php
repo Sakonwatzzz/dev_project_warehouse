@@ -51,7 +51,7 @@ $product_section_pages = [
                     <li><a href="?page=bar_member"
                             class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
                     <li><a href="?page=bar_supplier"
-                            class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">ผู้ส่งมอบ</a></li>
+                            class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
                     <li><a href="?page=navigationbar_sale"
                             class="<?php echo $current_page == 'navigationbar_sale' ? 'active' : ''; ?>">ขาย</a></li>
                 </ul>
