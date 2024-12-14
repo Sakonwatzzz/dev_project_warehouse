@@ -176,7 +176,7 @@ try {
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[15rem] mt-11" ">
+    <div class="font-[Tahoma] mx-[25rem] mt-11" ">
         <div class=" title">
         <div class="count">
             <h2 class="text-2xl font-bold">ข้อมูลแบรนด์สินค้า</h2>
@@ -208,8 +208,8 @@ try {
         </tr>
         <thead>
             <tr>
-                <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อแบรนด์สินค้า</th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">
-                <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
+                <th class="w-[80%] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อแบรนด์สินค้า</th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">
+                <th class="w-[20%] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
             </tr>
         </thead>
         <tbody id="tableBody">

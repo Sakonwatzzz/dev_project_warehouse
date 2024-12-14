@@ -60,9 +60,16 @@ try {
     echo "Error: " . $e->getMessage();
 }
 
-// Fetch data for the current page
+// Fetch data for the current page with product count
 try {
-    $query = "SELECT product_type_id, product_type_name FROM product_type LIMIT :offset, :records_per_page";
+    $query = "SELECT 
+                pt.product_type_id, 
+                pt.product_type_name, 
+                COALESCE(COUNT(p.product_id), 0) as product_count
+              FROM product_type pt
+              LEFT JOIN product p ON pt.product_type_id = p.product_type_id
+              GROUP BY pt.product_type_id, pt.product_type_name
+              LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
@@ -138,7 +145,7 @@ try {
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[15rem] mt-11">
+    <div class="font-[Tahoma] mx-[25rem] mt-11">
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">ข้อมูลประเภทสินค้า</h2>
@@ -158,6 +165,7 @@ try {
                         <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทสินค้า" required
                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
                     </td>
+                    <td class="bg-white"></td>
                     <td class="bg-white">
                         <button type="submit"
                             class="px-11 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
@@ -168,14 +176,19 @@ try {
             </tr>
             <thead>
                 <tr>
-                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อประเภทสินค้า</th>
-                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
+                    <th class=" w-[60%] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อประเภทสินค้า</th>
+                    <th class=" w-[20%] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">จำนวนสินค้า</th>
+                    <th class="w-[20%] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <?php foreach ($producttypes as $type): ?>
                     <tr class="bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?php echo $type['product_type_id']; ?>">
                         <td class="type-name text-start pl-4"><?php echo ($type['product_type_name']); ?></td>
+                        <td class="type-name text-start pl-4" onclick="window.location.href='?type=<?php echo urlencode($type['product_type_name']); ?>'">  
+                            <?php echo htmlspecialchars($type['product_count']); ?>
+                        </td>
+
                         <td>
                             <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 

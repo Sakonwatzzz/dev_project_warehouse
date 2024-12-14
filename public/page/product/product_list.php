@@ -307,7 +307,7 @@ try {
             tr[0].style.display = "";
 
             // Search through data rows (start from index 2 to skip header and input row)
-            for (let i = 2; i < tr.length; i++) {
+            for (let i = 1; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
                 let rowMatchesSearch = false;
 

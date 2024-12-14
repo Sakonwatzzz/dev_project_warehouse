@@ -73,7 +73,8 @@ $product_section_pages = [
             'product_brandupdate',
             'product_detail',
             'product_update',
-            'product_type_update'
+            'product_type_update',
+            'product_type_group'
         ];
         $warehouse_page = [
             'warehouse_list',
