@@ -28,9 +28,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             display: flex;
             gap: 5px;
             align-items: center;
-            background-color: #c8d8ed;
-            border: 1px solid #81d4fa;
-            padding: 10px;
+            background-color: #d5e1f1;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
             border-bottom: 10px solid #96aac4;
         }
@@ -87,72 +85,80 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             /* จัดข้อความให้อยู่ตรงกลาง */
         }
 
-        .button-bar-1,
-        .button-bar-2 {
-            display: flex;
-            gap: 5px;
-        }
+        
     </style>
 </head>
 
 <body>
-    <div class="button-bb">
-        <div class="button-bar-1">
-            <a href="?page=product_list" class="button-link">
-                <button class="<?php echo ($current_page == 'product_list') ? 'active' : ''; ?>">
-                    <img src="../image/box.png" alt="">
-                    <p>รายการ</p>
-                </button>
-            </a>
-            <a href="?page=product_insert" class="button-link">
-                <button class="<?php echo ($current_page == 'product_insert') ? 'active' : ''; ?>">
-                    <img src="../image/add-product.png" alt="">
-                    <p>เพิ่มสินค้า</p>
-                </button>
-            </a>
-            <a href="?page=product_type" class="button-link">
-                <button class="<?php echo ($current_page == 'product_type') ? 'active' : ''; ?>">
-                    <img src="../image/box.png" alt="">
-                    <p>ประเภทสินค้า</p>
-                </button>
-            </a>
-            <a href="?page=product_brand" class="button-link">
-                <button class="<?php echo ($current_page == 'product_brand') ? 'active' : ''; ?>">
-                    <img src="../image/box.png" alt="">
-                    <p>แบรนด์</p>
-                </button>
-            </a>
+    <div class="button-bb ">
+        <div class=" border-2 border-[#a6c4de] rounded-lg bg-gradient-to-r bg-[#cbdbee] shadow-xl">
+            <div class="flex gap-1 p-2 ">
+                <a href="?page=product_list" class="button-link">
+                    <button class="<?php echo ($current_page == 'product_list') ? 'active' : ''; ?>">
+                        <img src="../image/box.png" alt="">
+                        <p>รายการ</p>
+                    </button>
+                </a>
+                <a href="?page=product_insert" class="button-link">
+                    <button class="<?php echo ($current_page == 'product_insert') ? 'active' : ''; ?>">
+                        <img src="../image/add-product.png" alt="">
+                        <p>เพิ่มสินค้า</p>
+                    </button>
+                </a>
+                <a href="?page=product_type" class="button-link">
+                    <button class="<?php echo ($current_page == 'product_type') ? 'active' : ''; ?>">
+                        <img src="../image/box.png" alt="">
+                        <p>ประเภทสินค้า</p>
+                    </button>
+                </a>
+                <a href="?page=product_brand" class="button-link">
+                    <button class="<?php echo ($current_page == 'product_brand') ? 'active' : ''; ?>">
+                        <img src="../image/box.png" alt="">
+                        <p>แบรนด์</p>
+                    </button>
+                </a>
+            </div>
+            <div class="flex justify-center font-bold bg-[#c2d9f1]  rounded-bl-lg rounded-br-lg">
+                <h1>สินค้า</h1>
+            </div>
+
         </div>
 
-        <div class="button-bar-2">
-            <a href="?page=warehouse_list" class="button-link">
-                <button class="<?php echo ($current_page == 'warehouse_list') ? 'active' : ''; ?>">
-                    <img src="../image/warehouse.png" alt="">
-                    <p>คลัง</p>
-                </button>
-            </a>
-            <a href="?page=lot_insertcombined" class="button-link">
-                <button class="<?php echo ($current_page == 'lot_insertcombined') ? 'active' : ''; ?>">
-                    <img src="../image/warehouse.png" alt="">
-                    <p>เพิ่มลอตและสินค้า</p>
-                </button>
-            </a>
-            <a href="?page=lot_list" class="button-link">
-                <button class="<?php echo ($current_page == 'lot_list') ? 'active' : ''; ?>">
-                    <img src="../image/warehouse.png" alt="">
-                    <p>รายการรับสินค้า</p>
-                </button>
-            </a>
-            <a href="?page=lot_productlist" class="button-link">
-                <button class="<?php echo ($current_page == 'lot_productlist') ? 'active' : ''; ?>">
-                    <img src="../image/warehouse.png" alt="">
-                    <p>รับรายการสินค้า</p>
-                </button>
-            </a>
+        <div class="border-2 border-[#a6c4de] rounded-lg bg-gradient-to-r bg-[#cbdbee] shadow-xl">
+
+            <div class="flex gap-1 p-2 ">
+                <a href="?page=warehouse_list" class="button-link">
+                    <button class="<?php echo ($current_page == 'warehouse_list') ? 'active' : ''; ?>">
+                        <img src="../image/warehouse.png" alt="">
+                        <p>คลัง</p>
+                    </button>
+                </a>
+                <a href="?page=lot_insertcombined" class="button-link">
+                    <button class="<?php echo ($current_page == 'lot_insertcombined') ? 'active' : ''; ?>">
+                        <img src="../image/warehouse.png" alt="">
+                        <p>เพิ่มลอตและสินค้า</p>
+                    </button>
+                </a>
+                <a href="?page=lot_list" class="button-link">
+                    <button class="<?php echo ($current_page == 'lot_list') ? 'active' : ''; ?>">
+                        <img src="../image/warehouse.png" alt="">
+                        <p>รายการรับสินค้า</p>
+                    </button>
+                </a>
+                <a href="?page=lot_productlist" class="button-link">
+                    <button class="<?php echo ($current_page == 'lot_productlist') ? 'active' : ''; ?>">
+                        <img src="../image/warehouse.png" alt="">
+                        <p>รับรายการสินค้า</p>
+                    </button>
+                </a>
+            </div>
+            <div class="flex justify-center font-bold bg-[#c2d9f1] rounded-bl-lg rounded-br-lg">
+                <h1>คลังสินค้า</h1>
+            </div>
         </div>
     </div>
 
-    
+
 </body>
 
 </html>

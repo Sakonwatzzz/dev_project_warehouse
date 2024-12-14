@@ -85,11 +85,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
     <div class="detail-body  xl:mx-[20rem]">
-        <div class="bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
+        <div class="bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
             <!-- เปลี่ยนสีหัวข้อเมื่ออยู่ในโหมดแก้ไข -->
-            <h2 class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700<?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
+            <h2 class=" bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed]<?php echo $is_update ? '' : ''; ?> text-gray-800 text-2xl font-bold px-3 py-2 border border-[#c8d8ed] shadow">
                 <?php echo $is_update ? 'กำลังแก้ไขสินค้า' : 'รายละเอียดสินค้า'; ?>
             </h2>
+
 
             <form class="detail-form " action="../../page/product/product_update.php" method="POST">
                 <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">

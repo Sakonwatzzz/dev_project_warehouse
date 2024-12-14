@@ -12,6 +12,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="../../output.css" rel="stylesheet">
     <title>Document</title>
     <style>
         /* พื้นหลังแบบ Windows XP */
@@ -29,7 +30,6 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             align-items: center;
             background-color: #c8d8ed;
             border: 1px solid #81d4fa;
-            padding: 10px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
             border-bottom: 10px solid #96aac4;
         }
@@ -96,7 +96,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
 
 <body>
     <div class="button-bb">
-        <div class="button-bar-1">
+        <div class="flex gap-1 p-2 border border--500 rounded-lg bg-gradient-to-r bg-[#cbdbee] shadow-xl">
             <a href="?page=sale_bill" class="button-link">
                 <button class="<?php echo ($current_page == 'sale_bill') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">

@@ -206,14 +206,15 @@ try {
             <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
-        <table class=" data-table mt-5 mb-8 w-[100%]  border shadow-lg" id="dataTable">
+        <table class="  mt-5 mb-8 w-[100%]  border-2 border-[#b7c4d5] shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <th class="w-[170px]  bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">บาร์โค้ดสินค้า</th>
-                    <th class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อสินค้า</th>
-                    <th class="w-[160px] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคาทุน</th>
-                    <th class="w-[160px] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ราคา4</th>
-                    <th class="w-[200px] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow"
+                    >บาร์โค้ดสินค้า</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อสินค้า</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาทุน</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคา4</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
