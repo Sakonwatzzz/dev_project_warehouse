@@ -1,52 +1,53 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-// รับค่าจาก URL เพื่อหา type ของตำแหน่ง
-$type = isset($_GET['type']) ? $_GET['type'] : '';
+// รับค่าจาก URL เพื่อหา type ของผลิตภัณฑ์
+$productTypeId = isset($_GET['id']) ? $_GET['id'] : '';
 
-// คำสั่ง SQL เพื่อดึงข้อมูลบุคลากรตามประเภท
+// คำสั่ง SQL เพื่อดึงข้อมูลสินค้าในประเภทที่เลือก
 $query = "
-    SELECT    
-        personnel.personnel_id,
-        personnel.personnel_name, 
-        personnel.personnel_address, 
-        personnel.personnel_username, 
-        personnel_type.personnel_type_name
-    FROM
-        personnel
-    INNER JOIN
-        personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id
-    WHERE
-        personnel_type.personnel_type_name = :type
-    ORDER BY
-        personnel.personnel_name;
+    SELECT 
+        product.product_id, 
+        product.product_barcode, 
+        product.product_name, 
+        product.product_price1, 
+        product.product_price2, 
+        product.product_price3, 
+        product.product_price4, 
+        product.product_capital, 
+        product.product_type_id
+    FROM 
+        product
+    WHERE 
+        product.product_type_id = :product_type_id
+    ORDER BY 
+        product.product_name;
 ";
 
 try {
     // ใช้ prepared statement เพื่อป้องกัน SQL Injection
     $stmt = $pdo->prepare($query);
-    $stmt->bindParam(':type', $type, PDO::PARAM_STR);
+    $stmt->bindParam(':product_type_id', $productTypeId, PDO::PARAM_INT);
     $stmt->execute();
 
-    // ดึงข้อมูลบุคลากร
-    $personnelData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // ดึงข้อมูลสินค้าตามประเภท
+    $productData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     echo "error: " . $e->getMessage();
     exit();
 }
 
-// คำสั่ง SQL เพื่อคำนวณจำนวนข้อมูลทั้งหมดในตำแหน่งที่กำหนด
+// คำสั่ง SQL เพื่อคำนวณจำนวนข้อมูลทั้งหมดในประเภทที่เลือก
 $query = "
     SELECT COUNT(*) as total_count
-    FROM personnel
-    INNER JOIN personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id
-    WHERE personnel_type.personnel_type_name = :type
+    FROM product
+    WHERE product.product_type_id = :product_type_id
 ";
 
 try {
     // ใช้ prepared statement เพื่อป้องกัน SQL Injection
     $stmt = $pdo->prepare($query);
-    $stmt->bindParam(':type', $type, PDO::PARAM_STR);
+    $stmt->bindParam(':product_type_id', $productTypeId, PDO::PARAM_INT);
     $stmt->execute();
 
     // ดึงจำนวนข้อมูลทั้งหมด
@@ -67,7 +68,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
     <link href="../../output.css" rel="stylesheet">
-    <title>กลุ่มบุคลากร</title>
+    <title>กลุ่มสินค้า</title>
     <style>
         table {
             width: 100%;
@@ -139,77 +140,58 @@ try {
     <div class="font-[Tahoma] mx-[23rem] mt-11">
         <div class="title">
             <div class="count">
-                <h2 class="text-2xl font-bold">รายชื่อบุคลากรตามตำแหน่ง: <?php echo htmlspecialchars($type); ?></h2>
+                <h2 class="text-2xl font-bold">รายการสินค้าตามประเภท</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>
             </div>
             <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาบุคลากร...">
+                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสินค้า...">
             </div>
         </div>
 
-        <?php if ($personnelData): ?>
+        <?php if ($productData): ?>
             <table class="data-table mt-5 mb-8 w-[100%]  border shadow-lg" id="dataTable">
                 <thead>
                     <tr>
-                        <th class="w-[170px] text-center bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อ-สกุล</th>
-                        <th class="w-[170px] text-center bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ประเภทบุคลากร</th>
-                        <th class="w-[170px] text-center bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อผู้ใช้</th>
-                        <th class="w-[170px] text-center bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">จัดการ</th>
+                        <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสสินค้า</th>
+                        <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">บาร์โค้ด</th>
+                        <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อสินค้า</th>
+                        <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาขาย 1</th>
+                        <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาขาย 2</th>
+                        <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาขาย 3</th>
+                        <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาทุน</th>
+                        <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จัดการ</th>
                     </tr>
                 </thead>
 
-                <!--ลูปข้อมูลตาม type ของตำแหน่ง-->
+                <!--ลูปข้อมูลตามประเภทสินค้า-->
                 <tbody>
-                    <?php foreach ($personnelData as $personnel): ?>
+                    <?php foreach ($productData as $product): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($personnel['personnel_name']); ?></td>
-                            <td><?php echo htmlspecialchars($personnel['personnel_type_name']); ?></td>
-                            <td><?php echo htmlspecialchars($personnel['personnel_username']); ?></td>
-
+                            <td><?php echo htmlspecialchars($product['product_id']); ?></td>
+                            <td><?php echo htmlspecialchars($product['product_barcode']); ?></td>
+                            <td><?php echo htmlspecialchars($product['product_name']); ?></td>
+                            <td><?php echo htmlspecialchars($product['product_price1']); ?></td>
+                            <td><?php echo htmlspecialchars($product['product_price2']); ?></td>
+                            <td><?php echo htmlspecialchars($product['product_price3']); ?></td>
+                            <td><?php echo htmlspecialchars($product['product_price4']); ?></td>
+                            <td><?php echo htmlspecialchars($product['product_capital']); ?></td>
                             <td class="text-center">
-                                <a href="?page=personnel_update&id=<?php echo $personnel['personnel_id']; ?>" class="
-                            bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
-                            text-white 
-                            text-lg 
-                            border border-yellow-700 
-                            border-t-white 
-                            border-l-white 
-                            px-2 
-                            py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#FFF9C4] 
-                            active:border-[#FFF176] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner
-                            ">แก้ไข</a>
-                                <a href="?page=bar_personnel&id=<?php echo $personnel['personnel_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                            border-t-white 
-                            border-l-white 
-                            px-4 
-                            py-1 
-                            rounded 
-                                            shadow-md 
-                            hover:bg-[#FFEBEE] 
-                            active:border-[#EF9A9A] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner">ลบ</a>
+                                <a href="?page=product_update&id=<?php echo $product['product_id']; ?>" class="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg border border-yellow-700 px-2 py-1 rounded shadow-md hover:bg-[#FFF9C4]">แก้ไข</a>
+                                <a href="?page=product_delete&id=<?php echo $product['product_id']; ?>" onclick="return confirm('ต้องการลบสินค้า?')" class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 px-4 py-1 rounded shadow-md hover:bg-[#FFEBEE]">ลบ</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         <?php else: ?>
-            <p>ไม่มีบุคลากรในตำแหน่งนี้</p>
+            <p>ไม่มีสินค้าในประเภทนี้</p>
         <?php endif; ?>
 
         <!--ย้อนกลับไปหน้าเดิม-->
         <div class="detail-action">
-            <a href="/?page=bar_personnel">ย้อนกลับ</a>
+            <a href="/?page=product_type_group">ย้อนกลับ</a>
         </div>
     </div>
 
@@ -225,10 +207,7 @@ try {
             // Always keep the header visible
             thead.style.display = "";
 
-            // Always keep the input row visible 
-            tr[0].style.display = "";
-
-            // Search through data rows (start from index 2 to skip header and input row)
+            // Search through data rows (start from index 1 to skip header)
             for (let i = 1; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
                 let rowMatchesSearch = false;
@@ -267,26 +246,6 @@ try {
                 }
             }
         }
-    </script>
-     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
-            if (urlParams.has('edit_success')) {
-                const notificationEdit = document.getElementById('notification-edit');
-                notificationEdit.style.display = 'block';
-                setTimeout(() => {
-                    notificationEdit.style.display = 'none';
-                }, 2000);
-            } else if (urlParams.has('delete_success')) {
-                const notificationDelete = document.getElementById('notification-delete');
-                notificationDelete.style.display = 'block';
-                setTimeout(() => {
-                    notificationDelete.style.display = 'none';
-                }, 2000);
-            }
-        });
     </script>
 </body>
 

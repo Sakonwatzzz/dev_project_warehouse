@@ -185,7 +185,11 @@ $product_section_pages = [
                     include $barfile;
                 }
                 $action = $parts[1] ?? 'list';
-                $filepath = "$basePath/product/product_{$action}.php";
+                if ($action) { 
+                    $filepath = "$basePath/product/product_{$action}.php";
+                } else {
+                    $filepath = "$basePath/product/product_type_group.php";
+                }
 
                 if (isset($_GET['id'])) {
                     $_REQUEST['id'] = $_GET['id'];

@@ -84,9 +84,9 @@ ob_end_flush();
             </div>
 
 
-            <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">เพิ่มสมาชิก</h2>
+            <h2 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">เพิ่มสมาชิก</h2>
 
-            <form class="p-5  space-y-2" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+            <form class="p-5  space-y-2  border-0" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
                 <div class="flex items-center ">
                     <label for="personnel_name" class="w-[150px] text-base mr-4">ชื่อ นามสกุลบุคลากร:</label>
                     <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_name" name="personnel_name">

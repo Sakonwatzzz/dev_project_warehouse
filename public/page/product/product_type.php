@@ -176,18 +176,20 @@ try {
             </tr>
             <thead>
                 <tr>
-                    <th class=" w-[60%] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">ชื่อประเภทสินค้า</th>
-                    <th class=" w-[20%] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">จำนวนสินค้า</th>
-                    <th class="w-[20%] bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow">การจัดการ</th>
+                    <th class=" w-[60%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อประเภทสินค้า</th>
+                    <th class=" w-[20%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้า</th>
+                    <th class="w-[20%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <?php foreach ($producttypes as $type): ?>
                     <tr class="bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?php echo $type['product_type_id']; ?>">
                         <td class="type-name text-start pl-4"><?php echo ($type['product_type_name']); ?></td>
-                        <td class="type-name text-start pl-4" onclick="window.location.href='?type=<?php echo urlencode($type['product_type_name']); ?>'">  
-                            <?php echo htmlspecialchars($type['product_count']); ?>
+                        <td class="type-name text-start pl-4"
+                            onclick="window.location.href='?page=product_type_group&tabel=product&id=<?php echo ($type['product_type_id']); ?>&product_type_name=<?php echo urlencode($type['product_type_name']); ?>'">
+                            <?php echo htmlspecialchars($type['product_type_name']); ?>
                         </td>
+
 
                         <td>
                             <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
