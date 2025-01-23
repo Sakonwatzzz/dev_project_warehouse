@@ -52,7 +52,7 @@ $offset = ($page - 1) * $records_per_page;
 
 // นับจำนวนรายการทั้งหมด
 try {
-    $total_query = "SELECT COUNT(*) FROM product_brand"; // เปลี่ยนจาก warehouse เป็น product_brand
+    $total_query = "SELECT COUNT(*) FROM product_brand"; // 
     $total_result = $pdo->query($total_query);
     $total_records = $total_result->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
@@ -72,6 +72,25 @@ try {
     echo "Error: " . $e->getMessage();
 }
 
+
+// Fetch data for the current page with product count
+try {
+    $query = "SELECT 
+                pt.product_brand_id, 
+                pt.product_brand_name, 
+                COALESCE(COUNT(p.product_id), 0) as product_count
+              FROM product_brand pt
+              LEFT JOIN product p ON pt.product_brand_id = p.product_brand_id
+              GROUP BY pt.product_brand_id, pt.product_brand_name
+              LIMIT :offset, :records_per_page";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+    $stmt->execute();
+    $producttypes = $stmt;
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
 
 ?>
 
@@ -198,6 +217,7 @@ try {
                     <input type="text" id="brandname" name="brandname" placeholder="ชื่อแบรนด์" required
                         class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
                 </td>
+                <td class=" bg-white "></td>
                 <td class=" bg-white ">
                     <button type="submit"
                         class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
@@ -209,6 +229,7 @@ try {
         <thead>
             <tr>
                 <th class="w-[80%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อแบรนด์สินค้า</th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                <th class="w-[80%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้า</th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                 <th class="w-[20%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
             </tr>
         </thead>
@@ -216,6 +237,12 @@ try {
             <?php foreach ($productbrands as $brand): ?>
                 <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?php echo $brand['product_brand_id']; ?>">
                     <td class="brand-name text-start pl-4"><?php echo ($brand['product_brand_name']); ?></td>
+
+                    <td class="text-center hover:bg-gray-100 cursor-pointer"
+                        onclick="window.location.href='?page=product_brandgroup&tabel=product_brand&id=<?php echo $brand['product_brand_id']; ?>&product_brand_name=<?php echo urlencode($brand['product_brand_name']); ?>'">
+                        <?php echo number_format($brand['product_count']); ?> รายการ
+                    </td>
+
                     <td>
                         <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 

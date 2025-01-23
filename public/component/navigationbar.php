@@ -74,7 +74,8 @@ $product_section_pages = [
             'product_detail',
             'product_update',
             'product_type_update',
-            'product_type_group'
+            'product_typegroup',
+            'product_brandgroup'
         ];
         $warehouse_page = [
             'warehouse_list',
@@ -187,10 +188,7 @@ $product_section_pages = [
                 $action = $parts[1] ?? 'list';
                 if ($action) { 
                     $filepath = "$basePath/product/product_{$action}.php";
-                } else {
-                    $filepath = "$basePath/product/product_type_group.php";
                 }
-
                 if (isset($_GET['id'])) {
                     $_REQUEST['id'] = $_GET['id'];
                 }
