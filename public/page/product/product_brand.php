@@ -61,35 +61,37 @@ try {
 }
 
 // ดึงข้อมูลตามการแบ่งหน้า
-try {
-    $query = "SELECT product_brand_id, product_brand_name FROM product_brand LIMIT :offset, :records_per_page";
-    $stmt = $pdo->prepare($query);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-    $stmt->execute();
-    $productbrands = $stmt;
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}
+// try {
+//     $query = "SELECT product_brand_id, product_brand_name FROM product_brand LIMIT :offset, :records_per_page";
+//     $stmt = $pdo->prepare($query);
+//     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+//     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+//     $stmt->execute();
+//     $productbrand = $stmt;
+// } catch (PDOException $e) {
+//     echo "Error: " . $e->getMessage();
+// }
 
 
 // Fetch data for the current page with product count
-try {
-    $query = "SELECT 
-                pt.product_brand_id, 
-                pt.product_brand_name, 
-                COALESCE(COUNT(p.product_id), 0) as product_count
-              FROM product_brand pt
-              LEFT JOIN product p ON pt.product_brand_id = p.product_brand_id
-              GROUP BY pt.product_brand_id, pt.product_brand_name
-              LIMIT :offset, :records_per_page";
+try{
+    $query = "
+        SELECT 
+        pt.product_brand_id,
+        pt.product_brand_name,
+        COALESCE(COUNT(p.product_id),0) as product_count
+        FROM product_brand pt
+        RIGHT JOIN product p ON pt.product_brand_id = p.product_brand_id
+        GROUP BY pt.product_brand_id, pt.product_brand_name 
+        LIMIT :offset, :records_per_page
+    ";
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $producttypes = $stmt;
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    $productbrand = $stmt;
+} catch (PDOException $e){
+    echo "Error :" . $e->getMessage();
 }
 
 ?>
@@ -195,7 +197,7 @@ try {
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[25rem] mt-11" ">
+    <div class="font-[Tahoma] mx-[25rem] mt-11">
         <div class=" title">
         <div class="count">
             <h2 class="text-2xl font-bold">ข้อมูลแบรนด์สินค้า</h2>
@@ -234,7 +236,7 @@ try {
             </tr>
         </thead>
         <tbody id="tableBody">
-            <?php foreach ($productbrands as $brand): ?>
+            <?php foreach ($productbrand as $brand): ?>
                 <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?php echo $brand['product_brand_id']; ?>">
                     <td class="brand-name text-start pl-4"><?php echo ($brand['product_brand_name']); ?></td>
 

@@ -148,7 +148,7 @@ try {
     <div class="font-[Tahoma] mx-[23rem] mt-11">
         <div class="title">
             <div class="count">
-                <h2 class="text-2xl font-bold">รายการสินค้าตามประเภท: <?php echo htmlspecialchars($productData[0]['product_brand_name']); ?></h2>
+                <h2 class="text-2xl font-bold">รายการสินค้าตามประเภท: <?php echo ($productData[0]['product_brand_name']); ?></h2>
 
                 <div class="listcount">
                     <?php echo $count; ?>
@@ -175,8 +175,8 @@ try {
                 <tbody>
                     <?php foreach ($productData as $product): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($product['product_barcode']); ?></td>
-                            <td><?php echo htmlspecialchars($product['product_name']); ?></td>
+                            <td><?php echo ($product['product_barcode']); ?></td>
+                            <td><?php echo ($product['product_name']); ?></td>
 
                             <td class="text-center">
                                 <a href="?page=product_update&id=<?php echo $product['product_id']; ?>" class="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg border border-yellow-700 px-2 py-1 rounded shadow-md hover:bg-[#FFF9C4]">แก้ไข</a>
