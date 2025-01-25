@@ -125,10 +125,10 @@ ob_end_flush();
         </div>
 
 
-        <h2 class="sub-title">การรับรายการสินค้า</h2>
-        <form class="form-container" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
+        <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">การรับรายการสินค้า</h2>
+        <form class="p-5 space-y-2" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
 
-            <div class="box">
+            <div class="flex items-center">
                 <label for="lot_product_id">รหัสรายการรับสินค้า:</label>
                 <p type="id" id="lot_product_id" name="lot_product_id" value="<?php echo $lot['lot_product_id']; ?>"
                     readonly>
@@ -136,10 +136,10 @@ ob_end_flush();
             <!-- loop -->
             <?php
             if (count(value: $lot_id) > 0) {
-                ?>
-                <div class="box">
-                    <label for="lot_id">รหัสล็อตสินค้า:</label>
-                    <select name="lot_id" id="lot_id">
+            ?>
+                <div class="flex items-center">
+                    <label class="w-[110px] text-base mr-4" for="lot_id">รหัสล็อตสินค้า:</label>
+                    <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="lot_id" id="lot_id">
                         <?php foreach ($lot_id as $lot_id_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
                             <option value="<?php echo ($lot_id_insert['lot_id']); ?>">
                                 <?php echo ($lot_id_insert['lot_id']); ?>
@@ -149,38 +149,38 @@ ob_end_flush();
                     </select><br>
                 </div>
 
-                <?php
+            <?php
             } else {
                 echo "No lot_id available.";
             }
             ?>
-            <div class="box">
-                <label for="lot_product_qty">จำนวนสินค้าเข้า:</label>
+            <div class="flex items-center ">
+                <label class="w-[110px] text-base mr-4" for="lot_product_qty">จำนวนสินค้าเข้า:</label>
                 <input type="text" id="lot_product_qty" name="lot_product_qty">
             </div>
-            <div class="box">
-                <label for="lot_product_remain">จำนวนสินค้าคงเหลือ:</label>
+            <div class="flex items-center ">
+                <label class="w-[110px] text-base mr-4" for="lot_product_remain">จำนวนสินค้าคงเหลือ:</label>
                 <input type="text" id="lot_product_remain" name="lot_product_remain">
             </div>
-            <div class="box">
-                <label for="lot_product_capital">ราคาต้นทุน:</label>
+            <div class="flex items-center ">
+                <label class="w-[110px] text-base mr-4" for="lot_product_capital">ราคาต้นทุน:</label>
                 <input type="text" id="lot_product_capital" name="lot_product_capital">
             </div>
-            <div class="box">
-                <label for="lot_product_date">วันที่รับสินค้า:</label>
+            <div class="flex items-center ">
+                <label class="w-[110px] text-base mr-4" for="lot_product_date">วันที่รับสินค้า:</label>
                 <input type="date" id="lot_product_date" name="lot_product_date" value="<?= date('Y-m-d') ?>" readonly>
             </div>
-            <div class="box">
-                <label for="lot_product_status">สถานะสินค้า:</label>
+            <div class="flex items-center ">
+                <label class="w-[110px] text-base mr-4" for="lot_product_status">สถานะสินค้า:</label>
                 <input type="id" id="lot_product_status" name="lot_product_status">
             </div>
             <!-- loop -->
             <?php
             if (count($product_id) > 0) {
-                ?>
-                <div class="box">
-                    <label for="product_id">รหัสสินค้า:</label>
-                    <select name="product_id" id="product_id">
+            ?>
+                <div class="flex items-center ">
+                    <label class="w-[110px] text-base mr-4" for="product_id">รหัสสินค้า:</label>
+                    <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="lot_status_id" id="lot_status_id" name="product_id" id="product_id">
                         <?php foreach ($product_id as $lot_product_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
                             <option value="<?php echo ($lot_product_insert['product_id']); ?>">
                                 <?php echo ($lot_product_insert['product_id']); ?>
@@ -189,22 +189,48 @@ ob_end_flush();
                     </select><br>
                 </div>
 
-                <?php
+            <?php
             } else {
                 echo "No product_id available.";
             }
             ?>
-            <div class="box">
-                <label for=""></label>
-                <button class="submit-button" type="submit" value="เพิ่ม">บันทึก</button>
-                <!-- แก้คำว่า "lass" เป็น "class" -->
+            <div class="flex justify-end mt-5 gap-2">
+                <a href="/?page=lot_productlist" class="
+                        bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                     border-t-white 
+                     border-l-white 
+                     px-4 
+                     py-1 
+                     rounded 
+                                    shadow-md 
+                    hover:bg-[#FFEBEE] 
+                    active:border-[#EF9A9A] 
+                    active:border-b-white 
+                    active:border-r-white 
+                    active:shadow-inner
+                    ">ยกเลิก</a>
+                <button class="
+                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#E8F5E9] 
+                            active:border-[#A5D6A7] 
+                            active:border-b-white 
+                            active:border-r-white 
+                                active:shadow-inner
+                            " type="submit" value="เพิ่ม">บันทึก</button>
+                <!--  -->
             </div>
         </form>
     </div>
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');

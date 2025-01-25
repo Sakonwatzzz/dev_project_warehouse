@@ -35,6 +35,7 @@ switch ($tabel) {
     store.store_id, 
     store.store_name, 
     lot.lot_id, 
+    lot.lot_number, 
     lot.lot_detail, 
     lot.lot_date, 
     lot.lot_status_id, 
@@ -82,6 +83,7 @@ $store_lot = $pdo->query($querystore);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lot_id = $_POST['lot_id'];
+    $lot_number = $_POST['lot_number'];
     $lot_detail = $_POST['lot_detail'];
     $lot_date = $_POST['lot_date'];
     $lot_status_id = $_POST['lot_status_id'];
@@ -92,12 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $pdo->prepare("
     UPDATE lot 
-    SET lot_id = ?, lot_detail = ?, lot_date = ?, lot_status_id = ?, 
+    SET lot_id = ?, lot_number = ? ,lot_detail = ?, lot_date = ?, lot_status_id = ?, 
         warehouse_id = ?, store_id = ?, supplier_id = ?
     WHERE lot_id = ?
 ");
 
-    $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id, $lot_id]);
+    $stmt->execute([$lot_id, $lot_number, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id, $lot_id]);
 
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
     header("Location: /?page=lot_detail&tabel=lot&id=$lot_id");

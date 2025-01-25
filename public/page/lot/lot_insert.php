@@ -3,17 +3,17 @@ require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
 try {
-    // ดึงชื่อคลังมาแสดงผล
+    // ดึงข้อมูล dropdown ต่าง ๆ
     $query = "SELECT lot_status_id, lot_status_name FROM lot_status";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $status_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    // ดึงชื่อคลังมาแสดงผล
+
     $query = "SELECT warehouse_id, warehouse_name FROM warehouse";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    // ดึงชื่อผู่ส่งมอบมาแสดงผล
+
     $query = "SELECT supplier_id, supplier_name FROM supplier";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
@@ -26,47 +26,50 @@ try {
 } catch (PDOException $e) {
     echo "error" . $e->getMessage();
 }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $lot_detail = $_POST['lot_detail'];
-    $lot_product_qty = $_POST['lot_product_qty'];
-    $lot_product_remain = $_POST['lot_product_remain'];
-    $lot_date = $_POST['lot_date'];
-    $lot_status_id = $_POST['lot_status_id'];
-    $warehouse_id = $_POST['warehouse_id'];
-    $store_id = $_POST['store_id'];
-    $supplier_id = $_POST['supplier_id'];
+    try {
+        // รับค่าจากฟอร์ม
+        $lot_detail = $_POST['lot_detail'];
+        $lot_number = $_POST['lot_number'];
+        $lot_date = $_POST['lot_date'];
+        $lot_status_id = $_POST['lot_status_id'];
+        $warehouse_id = $_POST['warehouse_id'];
+        $store_id = $_POST['store_id'];
+        $supplier_id = $_POST['supplier_id'];
+        $lot_product_qty = $_POST['lot_product_qty'];
+        $lot_product_remain = $_POST['lot_product_remain'];
+        $lot_product_capital = $_POST['lot_product_capital'];
+        $lot_product_date = $_POST['lot_date']; // สมมติใช้วันที่เดียวกับ lot_date
+        $lot_product_status = 1; // กำหนดค่าเริ่มต้น
 
-    $stmt = $pdo->prepare('INSERT INTO lot (lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
-    VALUES (?, ?, ?, ?, ?, ?)');
-    $stmt->execute([$lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
+        // เริ่ม Transaction
+        $pdo->beginTransaction();
 
-    $lot_id = $pdo->lastInsertId();
-    header("Location: index.php?page=lot_detail&tabel=lot&id=$lot_id");
-    exit;
+        // บันทึกข้อมูลในตาราง lot
+        $stmt = $pdo->prepare('INSERT INTO lot (lot_detail, lot_number, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$lot_detail, $lot_number, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
+
+        // รับ lot_id ที่เพิ่งเพิ่ม
+        $lot_id = $pdo->lastInsertId();
+
+        // บันทึกข้อมูลในตาราง lot_product
+        $stmt = $pdo->prepare('INSERT INTO lot_product (lot_product_qty, lot_product_remain, lot_product_capital, lot_product_date, lot_product_status, product_id) 
+        VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$lot_product_qty, $lot_product_remain, $lot_product_capital, $lot_product_date, $lot_product_status, $lot_id]); // product_id ใช้ lot_id เป็น FK
+
+        // Commit Transaction
+        $pdo->commit();
+
+        // Redirect พร้อมแจ้งเตือน
+        header("Location: index.php?page=lot_detail&tabel=lot&id=$lot_id&success=1");
+        exit;
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        echo "Transaction failed: " . $e->getMessage();
+    }
 }
-
-$query = "SELECT
-	lot_status.lot_status_id, 
-	lot_status.lot_status_name, 
-	supplier.supplier_id, 
-	supplier.supplier_name, 
-	warehouse.warehouse_name, 
-	warehouse.warehouse_id, 
-	store.store_id, 
-	store.store_name, 
-	lot.lot_id, 
-	lot.lot_detail, 
-	lot.lot_date, 
-	lot.lot_status_id, 
-	lot.warehouse_id, 
-	lot.store_id
-FROM
-	lot
-	LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-    LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
-    LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-    LEFT JOIN store ON lot.store_id = store.store_id";
-
 
 ob_end_flush();
 ?>
@@ -130,9 +133,16 @@ ob_end_flush();
 
         <form class="p-5  space-y-2" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
 
-            <div class="flex items-center ">
+            <div class="flex items-center">
                 <label class="w-[110px] text-base mr-4" for="lot_id">รหัสล็อตสินค้า:</label>
-                <p class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="lot_detail" type="id" id="lot_id" name="lot_id" value="<?php echo $lot['lot_id']; ?>" readonly>
+                <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                    type="id" id="lot_id" name="lot_id"
+                    value="<?php echo isset($lot['lot_id']) ? $lot['lot_id'] : ''; ?>"
+                    readonly>
+            </div>
+            <div class="flex items-center ">
+                <label class="w-[110px] text-base mr-4" for="lot_id">เลขที่ Lot สินค้า:</label>
+                <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="lot_number" type="lot_number" name="lot_id">
             </div>
             <div class="flex items-center ">
                 <label class="w-[110px] text-base mr-4" for="lot_detail">รายละเอียด:</label>

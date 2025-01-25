@@ -96,7 +96,6 @@ $store_lot = $stmt;
                     value="<?= date('Y-m-d') ?>"
                     readonly>
             </div>
-
             <?php if ($status_lot->rowCount() > 0): ?>
                 <div class="flex items-center">
                     <label class="w-[110px] text-base mr-4">สถานะล็อต</label>
