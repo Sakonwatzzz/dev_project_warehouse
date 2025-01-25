@@ -28,6 +28,8 @@ try {
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lot_detail = $_POST['lot_detail'];
+    $lot_product_qty = $_POST['lot_product_qty'];
+    $lot_product_remain = $_POST['lot_product_remain'];
     $lot_date = $_POST['lot_date'];
     $lot_status_id = $_POST['lot_status_id'];
     $warehouse_id = $_POST['warehouse_id'];
@@ -131,7 +133,6 @@ ob_end_flush();
             <div class="flex items-center ">
                 <label class="w-[110px] text-base mr-4" for="lot_id">รหัสล็อตสินค้า:</label>
                 <p class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="lot_detail" type="id" id="lot_id" name="lot_id" value="<?php echo $lot['lot_id']; ?>" readonly>
-
             </div>
             <div class="flex items-center ">
                 <label class="w-[110px] text-base mr-4" for="lot_detail">รายละเอียด:</label>
@@ -249,7 +250,7 @@ ob_end_flush();
                             active:border-r-white 
                                 active:shadow-inner
                             " type="submit" value="เพิ่ม">บันทึก</button>
-                <!-- แก้คำว่า "lass" เป็น "class" -->
+                <!--  -->
             </div>
         </form>
     </div>

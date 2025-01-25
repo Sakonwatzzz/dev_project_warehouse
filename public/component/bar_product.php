@@ -133,10 +133,10 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                         <p>คลัง</p>
                     </button>
                 </a>
-                <a href="?page=lot_insertcombined" class="button-link">
-                    <button class="<?php echo ($current_page == 'lot_insertcombined') ? 'active' : ''; ?>">
+                <a href="?page=lot_listinsert" class="button-link">
+                    <button class="<?php echo ($current_page == 'lot_listinsert') ? 'active' : ''; ?>">
                         <img src="../image/warehouse.png" alt="">
-                        <p>เพิ่มลอตและสินค้า</p>
+                        <p>เพิ่ม Lot รายการรับสินค้า</p>
                     </button>
                 </a>
                 <a href="?page=lot_list" class="button-link">

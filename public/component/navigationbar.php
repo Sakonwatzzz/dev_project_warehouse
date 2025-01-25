@@ -18,9 +18,10 @@ $product_section_pages = [
     'product_type',
     'product_brand',
     'warehouse_list',
-    'lot_insertcombined',
+    'lot_listinsert',
     'lot_list',
-    'lot_productlist'
+    'lot_productlist',
+    'lot_productinsert'
 ];
 ?>
 
@@ -83,11 +84,11 @@ $product_section_pages = [
             'warehouse_update'
         ];
         $lot_pages = [
-            'lot_insertcombined',
+            'lot_listinsert',
             'lot_list',
             'lot_insert',
             'lot_productlist',
-            'lot_product_insert',
+            'lot_productinsert',
             'lot_productupdate',
             'lot_update',
             'lot_detail',

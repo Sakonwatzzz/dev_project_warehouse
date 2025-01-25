@@ -159,11 +159,11 @@ try {
             <tr>
                 <form action="" method="POST">
                     <td class=" bg-white ">
-                        <input type="text" id="warehousename" name="warehousename" placeholder="ชื่อคลังสินค้า" required
+                        <input type="text" id="warehousename" name="warehousename" placeholder="ชื่อคลังสินค้า"
                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
                     </td>
                     <td class=" bg-white ">
-                        <input type="text" id="warehousestatus" name="warehousestatus" placeholder="สถานะ" required
+                        <input type="text" id="warehousestatus" name="warehousestatus" placeholder="สถานะ"
                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
                     </td>
                     <td class=" bg-white ">

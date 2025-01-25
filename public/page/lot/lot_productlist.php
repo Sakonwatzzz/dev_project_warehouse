@@ -132,21 +132,40 @@ ob_end_flush();
         <table class="mt-4 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
             <thead>
                 <tr>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสรายรับสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสล็อตสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้าเข้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้าคงเหลือ</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาต้นทุน</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">วันที่รับสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        รหัสรายรับสินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        รหัสล็อตสินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        จำนวนสินค้าเข้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        จำนวนสินค้าคงเหลือ</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ราคาต้นทุน</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        วันที่รับสินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        สถานะสินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ชื่อสินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        การจัดการ</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <?php if ($result_lotproduct_list->rowCount() > 0): ?>
                     <?php while ($lot_product_list = $result_lotproduct_list->fetch(PDO::FETCH_ASSOC)): ?>
-                        <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer " data-id="<?php echo $lot_product_list['lot_id']; ?>">
+                        <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer "
+                            data-id="<?php echo $lot_product_list['lot_id']; ?>">
                             <td
                                 onclick="window.location.href='?page=lot_productdetail&tabel=lot_product&id=<?php echo ($lot_product_list['lot_product_id']) ?>'">
                                 <?php echo ($lot_product_list['lot_product_id']); ?>
@@ -159,8 +178,7 @@ ob_end_flush();
                             <td><?php echo ($lot_product_list['lot_product_status']); ?></td>
                             <td><?php echo ($lot_product_list['product_name']); ?></td>
                             <td>
-                                <a
-                                    href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                                <a href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 
                             text-lg 
                             border border-yellow-700 
@@ -198,7 +216,21 @@ ob_end_flush();
                 <?php endif; ?>
             </tbody>
         </table>
-
+        <div class="box ">
+            <a class=" bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg border border-blue-700 
+                border-t-white 
+                border-l-white 
+                px-4 
+                py-4
+                rounded 
+                shadow-md 
+                hover:bg-[#E3F2FD] 
+                active:border-[#90CAF9] 
+                active:border-b-white 
+                active:border-r-white 
+                active:shadow-inner" href="/?page=lot_productinsert" value="เพิ่ม">เพิ่มการรับสินค้า</a class="submit-button">
+            <!-- -->
+        </div>
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
@@ -264,7 +296,7 @@ ob_end_flush();
 
     <script>
         // การแสดงผลการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search); // ตรวจสอบ URL
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();

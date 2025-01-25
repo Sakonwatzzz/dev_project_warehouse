@@ -33,14 +33,13 @@ try {
     echo "error: " . $e->getMessage();
     exit();
 }
-
-
+$querybrandName = "SELECT product_brand_name FROM product_brand WHERE product_brand_id = :product_brand_id";
 try {
-    $stmtType = $pdo->prepare($queryTypeName);
+    $stmtType = $pdo->prepare($querybrandName);
     $stmtType->bindParam(':product_brand_id', $productBrand, PDO::PARAM_INT);
     $stmtType->execute();
-    $typeResult = $stmtType->fetch(PDO::FETCH_ASSOC);
-    $productTypeName = $typeResult['product_brand_name'];
+    $brandResult = $stmtType->fetch(PDO::FETCH_ASSOC);
+    $productbrandName = $brandResult['product_brand_name'];
 } catch (Exception $e) {
     echo "error: " . $e->getMessage();
     exit();

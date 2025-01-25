@@ -60,31 +60,16 @@ try {
     echo "Error: " . $e->getMessage();
 }
 
-// ดึงข้อมูลตามการแบ่งหน้า
-// try {
-//     $query = "SELECT product_brand_id, product_brand_name FROM product_brand LIMIT :offset, :records_per_page";
-//     $stmt = $pdo->prepare($query);
-//     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-//     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-//     $stmt->execute();
-//     $productbrand = $stmt;
-// } catch (PDOException $e) {
-//     echo "Error: " . $e->getMessage();
-// }
-
-
 // Fetch data for the current page with product count
 try{
-    $query = "
-        SELECT 
+    $query = "SELECT 
         pt.product_brand_id,
         pt.product_brand_name,
         COALESCE(COUNT(p.product_id),0) as product_count
         FROM product_brand pt
-        RIGHT JOIN product p ON pt.product_brand_id = p.product_brand_id
+        LEFT JOIN product p ON pt.product_brand_id = p.product_brand_id
         GROUP BY pt.product_brand_id, pt.product_brand_name 
-        LIMIT :offset, :records_per_page
-    ";
+        LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
@@ -210,13 +195,11 @@ try{
         </div>
 
     </div>
-
-
     <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
         <tr>
             <form action="" method="POST">
                 <td class=" bg-white ">
-                    <input type="text" id="brandname" name="brandname" placeholder="ชื่อแบรนด์" required
+                    <input type="text" id="brandname" name="brandname" placeholder="ชื่อแบรนด์" 
                         class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
                 </td>
                 <td class=" bg-white "></td>

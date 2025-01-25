@@ -162,8 +162,8 @@ try {
             <tr>
                 <form action="" method="POST">
                     <td class="bg-white">
-                        <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทสินค้า" required
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
+                        <input type="text" id="typename" name="typename" placeholder="ชื่อประเภทสินค้า" 
+                            class="w-full p-3 border border-gray-600 rounded-lg focus:outline-none hover:border-gray-600" />
                     </td>
                     <td class="bg-white"></td>
                     <td class="bg-white">
