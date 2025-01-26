@@ -147,8 +147,17 @@ try {
     <div class="font-[Tahoma] mx-[23rem] mt-11">
         <div class="title">
             <div class="count">
-                <h2 class="text-2xl font-bold">รายการสินค้าตามประเภท: <?php echo ($productData[0]['product_brand_name']); ?></h2>
 
+                <h2 class="text-2xl font-bold">
+                    รายการสินค้าตามแบรนด์:
+                    <?php
+                    if (!empty($productData)) {
+                        echo htmlspecialchars($productData[0]['product_brand_name']);
+                    } else {
+                        echo htmlspecialchars($productbrandName ?? 'ไม่ทราบประเภท');
+                    }
+                    ?>
+                </h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>
@@ -191,7 +200,7 @@ try {
 
         <!--ย้อนกลับไปหน้าเดิม-->
         <div class="detail-action">
-            <a href="/?page=product_type"
+            <a href="/?page=product_brand"
                 class="mt-4 p-2 px-6 bg-gray-700 text-white border rounded-lg shadow-lg mr-2 hover:bg-gray-800">
                 ย้อนกลับ
             </a>

@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </td>
                     </tr>
                     <tr>
-                        <th>จำนวนวสินคงเหลือ:</th>
+                        <th>จำนวนสินคงเหลือ:</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="text" name="lot_product_remain"

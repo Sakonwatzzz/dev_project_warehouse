@@ -155,7 +155,17 @@ try {
     <div class="font-[Tahoma] mx-[23rem] mt-11">
         <div class="title">
             <div class="count">
-                <h2 class="text-2xl font-bold">รายการสินค้าตามประเภท: <?php echo htmlspecialchars($productData[0]['product_type_name']); ?></h2>
+                <h2 class="text-2xl font-bold">
+                    รายการสินค้าตามประเภท:
+                    <?php
+                    if (!empty($productData)) {
+                        echo htmlspecialchars($productData[0]['product_type_name']);
+                    } else {
+                        echo htmlspecialchars($productTypeName ?? 'ไม่ทราบประเภท');
+                    }
+                    ?>
+                </h2>
+
 
                 <div class="listcount">
                     <?php echo $count; ?>

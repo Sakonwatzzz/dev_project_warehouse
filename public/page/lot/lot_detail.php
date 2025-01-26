@@ -140,6 +140,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
 
                     <tr>
+                        <th>เลขล็อต:</th>
+                        <td class="shadow-lg">
+                            <?php if ($is_update): ?>
+                                <input type="text" name="lot_number" id="lot-number" value="<?php echo ($lot['lot_number']); ?>">
+                            <?php else: ?>
+                                <?php echo ($lot['lot_number']); ?>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+
+                    <tr>
                         <th>รายละเอียดล็อต:</th>
                         <td class="shadow-lg">
                             <?php if ($is_update): ?>
@@ -150,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </td>
                     </tr>
                     <tr>
-                        <th>วันที่การล็อต:</th>
+                        <th>วันที่ล็อต:</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="date" name="lot_date" value="<?php echo ($lot['lot_date']); ?>">

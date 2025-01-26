@@ -237,7 +237,7 @@ ob_end_flush();
                             <td class="text-start pl-4"><?php echo ($lot_list['store_name']) ?></td>
                             <td class="text-start pl-4"><?php echo ($lot_list['supplier_name']) ?></td>
                             <td>
-                                <a href="?page=lot_update&id=<?php echo ($lot_list['lot_id']) ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                                <a href="?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 
                             text-lg 
                             border border-yellow-700 

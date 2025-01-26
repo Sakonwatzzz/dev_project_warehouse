@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$lot_number, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
         $lot_id = $pdo->lastInsertId();
-        header("Location: index.php?page=lot_detail&tabel=lot&id=$lot_id&success=1");
+        header("Location: index.php?page=lot_listdetail&tabel=lot&id=$lot_id&success=1");
         exit;
     } catch (PDOException $e) {
         echo "Error: " . $e->getMessage();
@@ -107,9 +107,7 @@ ob_end_flush();
                             border-l-white 
                             px-2 
                             py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#FFF9C4] 
+                            rounded  
                             active:border-[#FFF176] 
                             active:border-b-white 
                             active:border-r-white 
@@ -118,12 +116,19 @@ ob_end_flush();
                                         แก้ไข
                                     </button>
                                     <!-- ปุ่มลบ -->
-                                    <button
-                                        class="delete-button bg-red-500 text-white px-4 py-2 rounded-md shadow hover:bg-red-600 transition">
-                                        <a href="?page=warehouse_list&id=<?php echo $warehouse_lot_list['warehouse_id']; ?>"
-                                            onclick="return confirm('ยืนยันการลบข้อมูล?')">
-                                            ลบ
-                                        </a>
+                                    <button class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">
+                                        <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button ">ลบ</a>
                                     </button>
                                 </td>
                             </tr>
