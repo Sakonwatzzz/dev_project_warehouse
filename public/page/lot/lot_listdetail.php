@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="lot_id" value="<?= sanitizeInput($lot['lot_id']) ?>">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 ">
                     <!-- Lot Number -->
-                    <div class=" grid grid-cols-6 ">
+                    <div class=" grid grid-cols-5 ">
                         <label class=" text-gray-700 text-lg font-bold ">เลขล็อต</label>
                         <div class="">
                             <span class="view-mode"><?= sanitizeInput($lot['lot_number']) ?></span>
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <!-- Lot Detail -->
-                    <div class=" grid grid-cols-6">
+                    <div class=" grid grid-cols-5">
                         <label class="text-gray-700 text-lg font-bold ">รายละเอียด</label>
                         <div>
                             <span class="view-mode"><?= sanitizeInput($lot['lot_detail']) ?></span>
@@ -181,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <!-- Lot Date -->
-                    <div class=" grid grid-cols-6">
+                    <div class=" grid grid-cols-5">
                         <label class="text-gray-700 text-lg font-bold ">วันที่ล็อต</label>
                         <div>
                             <span class="view-mode"><?= sanitizeInput($lot['lot_date']) ?></span>
@@ -192,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <!-- Lot Status -->
-                    <div class=" grid grid-cols-6">
+                    <div class=" grid grid-cols-5">
                         <label class="text-gray-700 text-lg font-bold ">สถานะล็อต</label>
                         <div>
                             <span class="view-mode"><?= sanitizeInput($lot['lot_status_name']) ?></span>
@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <!-- Warehouse -->
-                    <div class=" grid grid-cols-6">
+                    <div class=" grid grid-cols-5">
                         <label class="text-gray-700 text-lg font-bold ">คลังสินค้า</label>
                         <div>
                             <span class="view-mode"><?= sanitizeInput($lot['warehouse_name']) ?></span>
@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <!-- Store -->
-                    <div class=" grid grid-cols-6">
+                    <div class=" grid grid-cols-5">
                         <label class="text-gray-700 text-lg font-bold ">ร้านค้า</label>
                         <div>
                             <span class="view-mode"><?= sanitizeInput($lot['store_name']) ?></span>
@@ -240,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <!-- Supplier -->
-                    <div class=" grid grid-cols-6">
+                    <div class=" grid grid-cols-5">
                         <label class="text-gray-700 text-lg font-bold ">ผู้ส่งมอบ</label>
                         <div>
                             <span class="view-mode"><?= sanitizeInput($lot['supplier_name']) ?></span>
