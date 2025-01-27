@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 ">
                     <!-- Lot Number -->
                     <div class=" grid grid-cols-5 ">
-                        <label class=" text-gray-700 text-lg font-bold ">เลขล็อต</label>
+                        <label class=" text-gray-700 text-lg font-bold ">รหัส Lot สินค้า</label>
                         <div class="">
                             <span class="view-mode"><?= sanitizeInput($lot['lot_number']) ?></span>
                             <input type="text" name="lot_number"
@@ -260,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="bg-white shadow-md rounded px-8 pt-6 pb-8  w-[40%] ">
                 <!-- Lot Number -->
                 <div class=" grid grid-cols-3 ">
-                    <label class=" text-gray-700 text-lg font-bold ">รหัสล็อตสินค้า</label>
+                    <label class=" text-gray-700 text-lg font-bold ">รหัสรายการล็อตสินค้า</label>
                     <div class="">
                         <span class="view-mode"><?= sanitizeInput($lot['lot_number']) ?></span>
                         <input type="text" name="lot_number"

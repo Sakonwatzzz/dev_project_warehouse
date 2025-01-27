@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <table class="detail-table">
                 <?php if ($tabel === 'lot'): ?>
                     <tr>
-                        <th class="">รหัสล็อต:</th>
+                        <th class="">รหัสล็อต :</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="id" name="lot_id" value="<?php echo ($lot['lot_id']); ?> " readonly>
@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
 
                     <tr>
-                        <th>เลขล็อต:</th>
+                        <th>รหัสล็อตสินค้า :</th>
                         <td class="shadow-lg">
                             <?php if ($is_update): ?>
                                 <input type="text" name="lot_number" id="lot-number" value="<?php echo ($lot['lot_number']); ?>">
@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
 
                     <tr>
-                        <th>รายละเอียดล็อต:</th>
+                        <th>รายละเอียดล็อต :</th>
                         <td class="shadow-lg">
                             <?php if ($is_update): ?>
                                 <input type="text" name="lot_detail" id="lot-name" value="<?php echo ($lot['lot_detail']); ?>">
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </td>
                     </tr>
                     <tr>
-                        <th>วันที่ล็อต:</th>
+                        <th>วันที่ล็อต :</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <input type="date" name="lot_date" value="<?php echo ($lot['lot_date']); ?>">
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
 
                     <tr>
-                        <th>สถานะล็อต:</th>
+                        <th>สถานะล็อต :</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <select name="lot_status_id">
@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </td>
                     </tr>
                     <tr>
-                        <th>คลังสินค้า:</th>
+                        <th>คลังสินค้า :</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <select name="warehouse_id">
@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <tr>
 
                     <tr>
-                        <th>ร้านค้า:</th>
+                        <th>ร้านค้า :</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <select name="store_id">
@@ -231,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </td>
                     </tr>
                     <tr>
-                        <th>ผู้ส่งมอบ:</th>
+                        <th>ผู้ส่งมอบ :</th>
                         <td>
                             <?php if ($is_update): ?>
                                 <select name="supplier_id">
