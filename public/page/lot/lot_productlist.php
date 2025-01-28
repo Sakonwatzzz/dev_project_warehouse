@@ -110,6 +110,30 @@ ob_end_flush();
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             width: 70px;
         }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .pagination a {
+            display: inline-block;
+            padding: 8px 16px;
+            text-decoration: none;
+            background-color: #f1f1f1;
+            color: black;
+            border-radius: 5px;
+            margin: 0 4px;
+        }
+
+        .pagination a.active {
+            background-color: #5b97b2;
+            ;
+            color: white;
+        }
+
+        .pagination a:hover:not(.active) {
+            background-color: #ddd;
+        }
     </style>
 
     <title>รายการรับสินค้า</title>
@@ -140,22 +164,23 @@ ob_end_flush();
                         รหัสล็อตสินค้า</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ชื่อสินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ราคาต้นทุน</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         จำนวนสินค้าเข้า</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         จำนวนสินค้าคงเหลือ</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        ราคาต้นทุน</th>
+                        สถานะสินค้า</th>
+
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         วันที่รับสินค้า</th>
-                    <th
-                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        สถานะสินค้า</th>
-                    <th
-                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        ชื่อสินค้า</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         การจัดการ</th>
@@ -171,12 +196,12 @@ ob_end_flush();
                                 <?php echo ($lot_product_list['lot_product_id']); ?>
                             </td>
                             <td><?php echo ($lot_product_list['lot_id']); ?></td>
+                            <td><?php echo ($lot_product_list['product_name']); ?></td>
+                            <td><?php echo ($lot_product_list['lot_product_capital']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_qty']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_remain']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_product_capital']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_product_date']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_status']); ?></td>
-                            <td><?php echo ($lot_product_list['product_name']); ?></td>
+                            <td><?php echo ($lot_product_list['lot_product_date']); ?></td>
                             <td>
                                 <a href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 
@@ -216,7 +241,7 @@ ob_end_flush();
                 <?php endif; ?>
             </tbody>
         </table>
-        <div class="box ">
+        <div class="box mt-[5rem]">
             <a class=" bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg border border-blue-700 
                 border-t-white 
                 border-l-white 
@@ -234,16 +259,16 @@ ob_end_flush();
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
-                    <a href="?page=lot_product_list&page_num=1">First</a>
-                    <a href="?page=lot_product_list&page_num=<?php echo ($page - 1); ?>">Previous</a>
+                    <a href="?page=lot_productlist&page_num=1">&laquo;หน้าแรก</a>
+                    <a href="?page=lot_productlist&page_num=<?php echo ($page - 1); ?>"> &laquo;ก่อนหน้า</a>
                 <?php endif; ?>
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <a href="?page=lot_product_list&page_num=<?php echo $i; ?>"
+                    <a href="?page=lot_productlist&page_num=<?php echo $i; ?>"
                         class="<?php echo ($page == $i) ? 'active' : ''; ?>"><?php echo $i; ?></a>
                 <?php endfor; ?>
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=lot_product_list&page_num=<?php echo ($page + 1); ?>">Next</a>
-                    <a href="?page=lot_product_list&page_num=<?php echo $total_pages; ?>">Last</a>
+                    <a href="?page=lot_productlist&page_num=<?php echo ($page + 1); ?>">ถัดไป&raquo;</a>
+                    <a href="?page=lot_productlist&page_num=<?php echo $total_pages; ?>">สุดท้าย&raquo;</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
@@ -296,7 +321,7 @@ ob_end_flush();
 
     <script>
         // การแสดงผลการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search); // ตรวจสอบ URL
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
