@@ -122,9 +122,9 @@ ob_end_flush();
     <?php endif; ?>
 
     <div class="flex">
-        <div class="relative w-full h-[500px] mx-11 flex gap-8">
+        <div class="relative w-full  mx-11 flex gap-11">
             <!-- ส่วนซ้าย (การจัดการคลังสินค้า) -->
-            <div class="w-[30%] border border-[#7a7a7a] rounded-lg bg-[#cbdbe4]">
+            <div class="w-[40%] border border-[#7a7a7a] rounded-lg bg-[#cbdbe4]">
                 <div class="flex justify-between items-center px-4 py-2">
                     <h2 class="text-2xl">คลังสินค้า</h2>
                     <button onclick="showNewWarehouseForm()" class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-1 rounded shadow-md">
@@ -155,21 +155,21 @@ ob_end_flush();
                 </div>
 
                 <!-- ตารางแสดงรายการคลังสินค้า -->
-                <table class="w-full">
+                <table class="w-full ">
                     <thead>
                         <tr>
-                            <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            <th class="w-[40%]  bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                                 ชื่อคลังสินค้า
                             </th>
-                            <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            <th class="w-[30%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                                 สถานะ
                             </th>
-                            <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            <th class="w-[30%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                                 การจัดการ
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody >
                         <?php foreach ($warehouse_lot as $warehouse): ?>
                             <tr data-id="<?= htmlspecialchars($warehouse['warehouse_id']) ?>" class="hover:bg-gray-100">
                                 <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-name">
@@ -182,6 +182,7 @@ ob_end_flush();
                                     <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg px-2 py-1 rounded shadow-md">
                                         แก้ไข
                                     </button>
+
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -190,21 +191,21 @@ ob_end_flush();
             </div>
 
             <!-- ส่วนขวา (ฟอร์มเพิ่ม lot) -->
-            <form method="POST" action="" class="w-[70%]">
+            <form method="POST" action="" class="w-[60%]">
                 <div class="w-full flex justify-center items-center">
                     <div class="w-full flex flex-wrap space-y-3 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
                         <!-- รหัส Lot สินค้า -->
-                        <div class="w-full">
-                            <label for="lot_number" class="block mb-2">รหัส Lot สินค้า:</label>
+                        <div class="w-full flex">
+                            <label for="lot_number" class="w-[15%] mb-2">รหัส Lot สินค้า:</label>
                             <input type="text" name="lot_number" id="lot_number" required
-                                class="w-full border rounded px-2 py-1" placeholder="กรอกเลขที่ lot">
+                                class="w-[85%] border rounded px-2 py-1" placeholder="กรอกเลขที่ lot">
                         </div>
 
                         <!-- คลังสินค้า -->
-                        <div class="w-full">
-                            <label for="warehouse_id" class="block mb-2">คลังสินค้า:</label>
+                        <div class="w-full flex">
+                            <label for="warehouse_id" class="w-[15%] mb-2">คลังสินค้า:</label>
                             <select name="warehouse_id" id="warehouse_id" required
-                                class="w-full border rounded px-2 py-1">
+                                class="w-[85%] border rounded px-2 py-1">
                                 <?php foreach ($warehouse_lot as $warehouse): ?>
                                     <option value="<?= htmlspecialchars($warehouse['warehouse_id']) ?>">
                                         <?= htmlspecialchars($warehouse['warehouse_name']) ?>
@@ -214,10 +215,10 @@ ob_end_flush();
                         </div>
 
                         <!-- ผู้ส่งมอบ -->
-                        <div class="w-full">
-                            <label for="supplier_id" class="block mb-2">ผู้ส่งมอบ:</label>
+                        <div class="w-full flex">
+                            <label for="supplier_id" class="w-[15%] mb-2">ผู้ส่งมอบ:</label>
                             <select name="supplier_id" id="supplier_id" required
-                                class="w-full border rounded px-2 py-1">
+                                class="w-[85%] border rounded px-2 py-1">
                                 <?php foreach ($supplier_lot as $supplier): ?>
                                     <option value="<?= htmlspecialchars($supplier['supplier_id']) ?>">
                                         <?= htmlspecialchars($supplier['supplier_name']) ?>
@@ -227,11 +228,11 @@ ob_end_flush();
                         </div>
 
                         <!-- วันที่รับสินค้า -->
-                        <div class="w-full">
-                            <label for="lot_date" class="block mb-2">วันที่รับสินค้า:</label>
+                        <div class="w-full flex">
+                            <label for="lot_date" class="w-[15%] mb-2">วันที่รับสินค้า:</label>
                             <input type="date" id="lot_date" name="lot_date"
                                 value="<?= date('Y-m-d') ?>" readonly
-                                class="w-full border rounded px-2 py-1">
+                                class="w-[85%] border rounded px-2 py-1">
                         </div>
 
                         <!-- ปุ่มบันทึก -->
@@ -245,8 +246,6 @@ ob_end_flush();
             </form>
         </div>
     </div
-
-
 
 
         <!-- เพิ่ม Script สำหรับจัดการฟอร์มและการแก้ไข -->
@@ -286,63 +285,72 @@ ob_end_flush();
             const warehouseNameCell = row.querySelector('.warehouse-name');
             const warehouseStatusCell = row.querySelector('.warehouse-status');
             const warehouseId = row.getAttribute('data-id');
+            const managementCell = button.closest('td');
 
             if (button.innerText === 'แก้ไข') {
                 const originalName = warehouseNameCell.innerText.trim();
                 const originalStatus = warehouseStatusCell.innerText.trim();
 
-                // สร้างฟอร์มสำหรับแก้ไข
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.classList.add('edit-form');
-                form.innerHTML = `
-                    <div class="flex flex-col space-y-2">
-                        <input type="hidden" name="warehouse_id" value="${warehouseId}">
-                        <input type="text" name="update_warehousename" value="${originalName}" 
-                               class="border rounded px-2 py-1" required>
-                        <input type="text" name="update_warehousestatus" value="${originalStatus}" 
-                               class="border rounded px-2 py-1" required>
-                        <div class="flex justify-center space-x-2 mt-2">
-                            <button type="submit" name="update_warehouse" 
-                                    class="bg-gradient-to-b from-green-300 via-green-500 to-green-700 
-                                           text-white px-2 py-1 rounded">
-                                บันทึก
-                            </button>
-                            <button type="button" onclick="cancelEdit(this)" 
-                                    class="bg-gray-500 text-white px-2 py-1 rounded">
-                                ยกเลิก
-                            </button>
-                        </div>
-                    </div>
-                `;
+                // Replace name cell content with input
+                warehouseNameCell.innerHTML = `
+            <input type="text" name="update_warehousename" value="${originalName}" 
+                   class="w-full border rounded px-2 py-1" required>
+        `;
 
-                // แทนที่เนื้อหาเดิมด้วยฟอร์มแก้ไข
-                const formContainer = document.createElement('td');
-                formContainer.setAttribute('colspan', '2');
-                formContainer.appendChild(form);
+                // Replace status cell content with input
+                warehouseStatusCell.innerHTML = `
+            <input type="text" name="update_warehousestatus" value="${originalStatus}" 
+                   class="w-full border rounded px-2 py-1" required>
+        `;
 
-                warehouseNameCell.innerHTML = '';
-                warehouseNameCell.appendChild(form);
-                warehouseStatusCell.innerHTML = '';
-                button.style.display = 'none';
+                // Replace management cell content with save/cancel buttons
+                managementCell.innerHTML = `
+            <form method="POST" class="flex justify-center space-x-2">
+                <input type="hidden" name="warehouse_id" value="${warehouseId}">
+                <input type="hidden" name="update_warehousename" value="${originalName}">
+                <input type="hidden" name="update_warehousestatus" value="${originalStatus}">
+                <button type="button" onclick="cancelEdit(this)" 
+                        class="bg-gray-500 text-white text-lg px-2 py-1 rounded shadow-md">
+                    ยกเลิก
+                </button>               
+                <button type="submit" name="update_warehouse" 
+                        class="bg-gradient-to-b from-green-300 via-green-500 to-green-700 
+                               text-white text-lg px-2 py-1 rounded shadow-md">
+                    บันทึก
+                </button>
+            </form>
+        `;
+
+                // Add event listener to update hidden inputs when visible inputs change
+                const visibleInputs = row.querySelectorAll('input[type="text"]');
+                const hiddenInputs = managementCell.querySelectorAll('input[type="hidden"]');
+                visibleInputs.forEach((input, index) => {
+                    input.addEventListener('input', function() {
+                        hiddenInputs[index + 1].value = this.value;
+                    });
+                });
             }
         }
 
-        // ฟังก์ชันยกเลิกการแก้ไข
         function cancelEdit(button) {
             const row = button.closest('tr');
-            const form = row.querySelector('form');
             const warehouseNameCell = row.querySelector('.warehouse-name');
             const warehouseStatusCell = row.querySelector('.warehouse-status');
-            const editButton = row.querySelector('.edit-button');
+            const managementCell = button.closest('td');
+            const form = managementCell.querySelector('form');
 
-            // คืนค่าเดิม
+            // Get original values from hidden inputs
             const originalName = form.elements.update_warehousename.value;
             const originalStatus = form.elements.update_warehousestatus.value;
 
-            warehouseNameCell.innerHTML = originalName;
-            warehouseStatusCell.innerHTML = originalStatus;
-            editButton.style.display = 'inline-block';
+            // Restore original content
+            warehouseNameCell.textContent = originalName;
+            warehouseStatusCell.textContent = originalStatus;
+            managementCell.innerHTML = `
+        <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg px-2 py-1 rounded shadow-md">
+            แก้ไข
+        </button>
+    `;
         }
 
         // ฟังก์ชันตรวจสอบการกดปุ่มแก้ไขและลบ
@@ -361,24 +369,27 @@ ob_end_flush();
             });
         });
 
-        // เพิ่มการตรวจสอบฟอร์มก่อนส่ง
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function(event) {
-                const requiredFields = form.querySelectorAll('[required]');
-                let isValid = true;
+        // Add form validation
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('submit', function(event) {
+                if (event.target.querySelector('[name="update_warehouse"]')) {
+                    const row = event.target.closest('tr');
+                    const inputs = row.querySelectorAll('input[type="text"]');
+                    let isValid = true;
 
-                requiredFields.forEach(field => {
-                    if (!field.value.trim()) {
-                        isValid = false;
-                        field.classList.add('border-red-500');
-                    } else {
-                        field.classList.remove('border-red-500');
+                    inputs.forEach(input => {
+                        if (!input.value.trim()) {
+                            isValid = false;
+                            input.classList.add('border-red-500');
+                        } else {
+                            input.classList.remove('border-red-500');
+                        }
+                    });
+
+                    if (!isValid) {
+                        event.preventDefault();
+                        alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
                     }
-                });
-
-                if (!isValid) {
-                    event.preventDefault();
-                    alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
                 }
             });
         });
