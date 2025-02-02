@@ -2,9 +2,34 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
+// Function to check for duplicate barcodes
+function checkBarcodeExists($pdo, $barcode)
+{
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE product_barcode = ?");
+    $stmt->execute([$barcode]);
+    return $stmt->fetchColumn() > 0;
+}
+
+// แยก endpoint สำหรับ AJAX request
+if (isset($_GET['action']) && $_GET['action'] === 'check_barcode') {
+    header('Content-Type: application/json');
+    $barcode = $_GET['barcode'] ?? '';
+    $exists = checkBarcodeExists($pdo, $barcode);
+    echo json_encode(['exists' => $exists]);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // รับข้อมูลจากฟอร์ม
     $barcode = $_POST['barcode'];
+
+    if (checkBarcodeExists($pdo, $barcode)) {
+        echo "<script>
+                alert('รหัสบาร์โค้ดนี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่');
+                window.history.back();
+              </script>";
+        exit();
+    }
+
     $name = $_POST['name'];
     $price_1 = $_POST['price_1'];
     $price_2 = $_POST['price_2'];
@@ -15,15 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $typebrandname = $_POST['typebrandname'];
 
     try {
-        // การเพิ่มข้อมูลสินค้า
-        $stmt = $pdo->prepare('INSERT INTO product (product_barcode, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('INSERT INTO product (product_barcode, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([$barcode, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
-        // ใช้ lastInsertId() เพื่อดึง product_id ของสินค้าที่เพิ่งเพิ่ม
         $product_id = $pdo->lastInsertId();
-
-        // รีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
         header("Location: index.php?page=product_detail&tabel=product&id=$product_id");
         exit();
     } catch (PDOException $e) {
@@ -53,14 +74,14 @@ INNER JOIN
 INNER JOIN
     product_type ON product.product_type_id = product_type.product_type_id";
 
-$productResults = $pdo->query($query); // ใช้ PDO query
+$productResults = $pdo->query($query);
 
 // Query สำหรับประเภทสินค้า
 $queryTypes = "SELECT
     product_type.product_type_id, 
     product_type.product_type_name
 FROM product_type";
-$typeResults = $pdo->query($queryTypes); // ใช้ PDO query
+$typeResults = $pdo->query($queryTypes);
 
 if (!$typeResults) {
     die("Query failed: " . $pdo->errorInfo());
@@ -71,7 +92,7 @@ $querybrandTypes = "SELECT
     product_brand.product_brand_id, 
     product_brand.product_brand_name
 FROM product_brand";
-$brandResults = $pdo->query($querybrandTypes); // ใช้ PDO query
+$brandResults = $pdo->query($querybrandTypes);
 
 if (!$brandResults) {
     die("Query failed: " . $pdo->errorInfo());
@@ -88,6 +109,70 @@ if (!$brandResults) {
     <title>product_insert</title>
 
     <style>
+         .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            width: 300px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .modal-message {
+            margin: 15px 0;
+            color: #666;
+        }
+        
+        .modal-button {
+            margin-top: 15px;
+            padding: 8px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .modal-button:hover {
+            background-color: #45a049;
+        }
+
+        .modal-button.warning {
+            background-color: #f44336;
+        }
+
+        .modal-button.warning:hover {
+            background-color: #da190b;
+        }
+
+        .error-input {
+            border-color: #FF0000 !important;
+            background-color: #FFEBEE !important;
+        }
+
         .notification {
             position: fixed;
             top: 50%;
@@ -114,58 +199,101 @@ if (!$brandResults) {
             border-top-right-radius: 5px;
         }
 
+        .notification-header.error {
+            background-color: #FF9494;
+        }
+
         .notification-body {
             padding: 20px;
             font-size: 16px;
             text-align: center;
         }
+
+        .barcode-focus {
+            background-color: #e8f4ff !important;
+            border-color: #2196F3 !important;
+        }
+
+        .error-input {
+            border-color: #FF0000 !important;
+            background-color: #FFEBEE !important;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+        }
     </style>
 </head>
 
 <body>
+     <!-- Modal for duplicate barcode -->
+     <div id="duplicateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">แจ้งเตือน</div>
+            <div class="modal-message">รหัสบาร์โค้ดนี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่</div>
+            <button class="modal-button warning" onclick="closeModal('duplicateModal')">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- Modal for empty barcode -->
+    <div id="emptyBarcodeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">แจ้งเตือน</div>
+            <div class="modal-message">กรุณากรอกรหัสบาร์โค้ด</div>
+            <button class="modal-button" onclick="closeModal('emptyBarcodeModal')">ตกลง</button>
+        </div>
+    </div>
     <div class="bg-[#F0F0F0] font-[Tahoma] ">
         <div class="mx-[40rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
             <div id="notification" class="notification">
-                <div class="notification-header">การแจ้งเตือน</div>
-                <div class="notification-body">เพิ่มสินค้าสำเร็จ!</div>
+                <div id="notification-header" class="notification-header">การแจ้งเตือน</div>
+                <div id="notification-body" class="notification-body">เพิ่มสินค้าสำเร็จ!</div>
             </div>
 
             <h2 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border  border-[#8f959b] shadow  font-bold p-5">เพิ่มสินค้า</h2>
 
             <!-- Form for adding products -->
-            <form class="p-5  space-y-2" action="" method="POST">
+            <form class="p-5  space-y-2" action="" method="POST" id="productForm">
                 <div class="flex items-center ">
                     <label class="w-[110px] text-base mr-4" for="barcode">บาร์โค้ดสินค้า:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="barcode" id="barcode">
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                        type="text"
+                        name="barcode"
+                        id="barcode"
+                        autocomplete="off"
+                        required
+                        autofocus>
                 </div>
                 <div class="flex items-center ">
                     <label class="w-[110px] text-base mr-4" for="name">ชื่อสินค้า:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="name" id="name">
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="name" id="name" required>
                 </div>
 
                 <div class="flex items-center ">
                     <label class="w-[110px] text-base mr-4" for="price_1">ราคาที่1:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_1" id="price_1">
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_1" id="price_1" required>
                 </div>
 
                 <div class="flex items-center ">
                     <label class="w-[110px] text-base mr-4" for="price_2">ราคาที่2:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_2" id="price_2">
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_2" id="price_2" required>
                 </div>
 
                 <div class="flex items-center ">
                     <label class="w-[110px] text-base mr-4" for="price_3">ราคาที่3:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_3" id="price_3">
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_3" id="price_3" required>
                 </div>
 
                 <div class="flex items-center ">
                     <label class="w-[110px] text-base mr-4" for="price_4">ราคาที่4:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_4" id="price_4">
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_4" id="price_4" required>
                 </div>
 
                 <div class="flex items-center ">
                     <label class="w-[110px] text-base mr-4" for="capital">ราคาทุน:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="capital" id="capital">
+                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="capital" id="capital" required>
                 </div>
 
                 <?php if ($typeResults->rowCount() > 0) { ?>
@@ -201,17 +329,17 @@ if (!$brandResults) {
                 <div class="flex justify-end mt-5 gap-2">
                     <a href="/?page=product_list" class="
                         bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                     border-t-white 
-                     border-l-white 
-                     px-4 
-                     py-1 
-                     rounded 
-                                    shadow-md 
-                    hover:bg-[#FFEBEE] 
-                    active:border-[#EF9A9A] 
-                    active:border-b-white 
-                    active:border-r-white 
-                    active:shadow-inner
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-1 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#FFEBEE] 
+                        active:border-[#EF9A9A] 
+                        active:border-b-white 
+                        active:border-r-white 
+                        active:shadow-inner
                     ">ยกเลิก</a>
 
                     <button
@@ -228,28 +356,94 @@ if (!$brandResults) {
                             active:border-[#A5D6A7] 
                             active:border-b-white 
                             active:border-r-white 
-                                active:shadow-inner
-                            ">
+                            active:shadow-inner
+                        ">
                         บันทึก
                     </button>
                 </div>
-
             </form>
         </div>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block'; // แสดงการแจ้งเตือน
-
-                // ลบการแจ้งเตือนหลัง 2 วินาที
-                setTimeout(() => {
-                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
-                }, 2000);
+            const form = document.getElementById('productForm');
+            const barcodeInput = document.getElementById('barcode');
+            
+            // Function to show modal
+            function showModal(modalId) {
+                document.getElementById(modalId).style.display = 'block';
+                if (modalId === 'duplicateModal') {
+                    barcodeInput.classList.add('error-input');
+                }
             }
+            
+            // Function to close modal
+            window.closeModal = function(modalId) {
+                document.getElementById(modalId).style.display = 'none';
+                barcodeInput.focus();
+                if (modalId === 'duplicateModal') {
+                    barcodeInput.select();
+                }
+            }
+
+            // Close modals when clicking outside
+            window.onclick = function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                    barcodeInput.focus();
+                }
+            }
+
+            // Close modals with Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    const modals = document.getElementsByClassName('modal');
+                    for (let modal of modals) {
+                        if (modal.style.display === 'block') {
+                            modal.style.display = 'none';
+                            barcodeInput.focus();
+                        }
+                    }
+                }
+            });
+
+            async function checkBarcode(barcode) {
+                try {
+                    const response = await fetch(`?action=check_barcode&barcode=${encodeURIComponent(barcode)}`);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const data = await response.json();
+                    return data.exists;
+                } catch (error) {
+                    console.error('Error checking barcode:', error);
+                    return false;
+                }
+            }
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const barcode = barcodeInput.value.trim();
+                if (!barcode) {
+                    showModal('emptyBarcodeModal');
+                    return;
+                }
+
+                const exists = await checkBarcode(barcode);
+                if (exists) {
+                    showModal('duplicateModal');
+                } else {
+                    barcodeInput.classList.remove('error-input');
+                    form.submit();
+                }
+            });
+
+            // Remove error styling when barcode input changes
+            barcodeInput.addEventListener('input', function() {
+                this.classList.remove('error-input');
+            });
         });
     </script>
 </body>
