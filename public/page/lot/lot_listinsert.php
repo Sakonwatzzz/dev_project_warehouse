@@ -2,6 +2,35 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
+try {
+    $query = "SELECT
+    lot_status.lot_status_id, 
+    lot_status.lot_status_name, 
+    supplier.supplier_id, 
+    supplier.supplier_name, 
+    warehouse.warehouse_name, 
+    warehouse.warehouse_id,
+    store.store_id, 
+    store.store_name, 
+    lot.lot_id, 
+    lot.lot_number, 
+    lot.lot_detail, 
+    lot.lot_date, 
+    lot.lot_status_id, 
+    lot.warehouse_id, 
+    lot.store_id
+FROM
+    lot
+    LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
+    LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+    LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
+    LEFT JOIN store ON lot.store_id = store.store_id";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $result_lot_list = $stmt;
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
 // จัดการการส่งข้อมูลแบบ POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // กรณีเพิ่มคลังสินค้าใหม่
@@ -63,8 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+
 // ดึงข้อมูลสถานะ lot
-$query = "SELECT lot_status_id, lot_status_name FROM lot_status";
+$query = "SELECT lot_status_id, lot_status_name  FROM lot_status";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 $status_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -86,6 +116,11 @@ $query = "SELECT store_id, store_name FROM store";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 $store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// ดึงข้อมูลรายการรับสินค้า
+$query = "SELECT lot_product_qty, lot_product_remain FROM lot_product";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$product_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 ob_end_flush();
 ?>
@@ -155,7 +190,7 @@ ob_end_flush();
                 </div>
 
                 <!-- ตารางแสดงรายการคลังสินค้า -->
-                <table class="w-full ">
+                <table class="w-full">
                     <thead>
                         <tr>
                             <th class="w-[40%]  bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
@@ -164,12 +199,9 @@ ob_end_flush();
                             <th class="w-[30%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                                 สถานะ
                             </th>
-                            <th class="w-[30%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                การจัดการ
-                            </th>
                         </tr>
                     </thead>
-                    <tbody >
+                    <tbody>
                         <?php foreach ($warehouse_lot as $warehouse): ?>
                             <tr data-id="<?= htmlspecialchars($warehouse['warehouse_id']) ?>" class="hover:bg-gray-100">
                                 <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-name">
@@ -177,12 +209,6 @@ ob_end_flush();
                                 </td>
                                 <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-status">
                                     <?= htmlspecialchars($warehouse['warehouse_status']) ?>
-                                </td>
-                                <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 text-center">
-                                    <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg px-2 py-1 rounded shadow-md">
-                                        แก้ไข
-                                    </button>
-
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -245,10 +271,38 @@ ob_end_flush();
                 </div>
             </form>
         </div>
-    </div
+    </div>
+    <div class="flex">
+        <table class=" w-full  mx-11 mt-11 border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
+            <thead>
+                <!-- ส่วนหัวของตาราง -->
+                <tr class="">
 
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัส Lot สินค้า</th>
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">วันที่ล็อต</th>
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
 
-        <!-- เพิ่ม Script สำหรับจัดการฟอร์มและการแก้ไข -->
+                </tr>
+            </thead>
+            <tbody class="">
+                <?php
+                while ($lot_list = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
+                    <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
+                    <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
+                        <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
+                        <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_number']) ?></td>
+                        <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
+                        <td class="pl-4 border border-gray-500 text-start" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>&type=<?php echo urlencode($lot_list['warehouse_name']) ?>'">
+                            <?php echo ($lot_list['warehouse_name']) ?>
+                        </td>
+
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- เพิ่ม Script สำหรับจัดการฟอร์มและการแก้ไข -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // หาข้อความแจ้งเตือน
@@ -279,58 +333,14 @@ ob_end_flush();
             document.getElementById('newWarehouseForm').classList.add('hidden');
         }
 
-        // ฟังก์ชันเปิดโหมดแก้ไข
-        function enableEdit(button) {
-            const row = button.closest('tr');
-            const warehouseNameCell = row.querySelector('.warehouse-name');
-            const warehouseStatusCell = row.querySelector('.warehouse-status');
-            const warehouseId = row.getAttribute('data-id');
-            const managementCell = button.closest('td');
-
-            if (button.innerText === 'แก้ไข') {
-                const originalName = warehouseNameCell.innerText.trim();
-                const originalStatus = warehouseStatusCell.innerText.trim();
-
-                // Replace name cell content with input
-                warehouseNameCell.innerHTML = `
-            <input type="text" name="update_warehousename" value="${originalName}" 
-                   class="w-full border rounded px-2 py-1" required>
-        `;
-
-                // Replace status cell content with input
-                warehouseStatusCell.innerHTML = `
-            <input type="text" name="update_warehousestatus" value="${originalStatus}" 
-                   class="w-full border rounded px-2 py-1" required>
-        `;
-
-                // Replace management cell content with save/cancel buttons
-                managementCell.innerHTML = `
-            <form method="POST" class="flex justify-center space-x-2">
-                <input type="hidden" name="warehouse_id" value="${warehouseId}">
-                <input type="hidden" name="update_warehousename" value="${originalName}">
-                <input type="hidden" name="update_warehousestatus" value="${originalStatus}">
-                <button type="button" onclick="cancelEdit(this)" 
-                        class="bg-gray-500 text-white text-lg px-2 py-1 rounded shadow-md">
-                    ยกเลิก
-                </button>               
-                <button type="submit" name="update_warehouse" 
-                        class="bg-gradient-to-b from-green-300 via-green-500 to-green-700 
-                               text-white text-lg px-2 py-1 rounded shadow-md">
-                    บันทึก
-                </button>
-            </form>
-        `;
-
-                // Add event listener to update hidden inputs when visible inputs change
-                const visibleInputs = row.querySelectorAll('input[type="text"]');
-                const hiddenInputs = managementCell.querySelectorAll('input[type="hidden"]');
-                visibleInputs.forEach((input, index) => {
-                    input.addEventListener('input', function() {
-                        hiddenInputs[index + 1].value = this.value;
-                    });
-                });
-            }
-        }
+        // Add event listener to update hidden inputs when visible inputs change
+        const visibleInputs = row.querySelectorAll('input[type="text"]');
+        const hiddenInputs = managementCell.querySelectorAll('input[type="hidden"]');
+        visibleInputs.forEach((input, index) => {
+            input.addEventListener('input', function() {
+                hiddenInputs[index + 1].value = this.value;
+            });
+        });
 
         function cancelEdit(button) {
             const row = button.closest('tr');

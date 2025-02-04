@@ -2,41 +2,6 @@
 require_once __DIR__ . '../../../../config/database_server.php'; // โหลดไฟล์การตั้งค่าการเชื่อมต่อฐานข้อมูล
 ob_start(); // เริ่มต้นการเก็บบัฟเฟอร์ output (ใช้สำหรับจัดการการแสดงผล)
 
-// $query = "SELECT
-//     lot_status.lot_status_id, 
-//     lot_status.lot_status_name, 
-//     supplier.supplier_id, 
-//     supplier.supplier_name, 
-//     warehouse.warehouse_name, 
-//     warehouse.warehouse_id,
-//     store.store_id, 
-//     store.store_name, 
-//     lot.lot_id, 
-//     lot.lot_detail, 
-//     lot.lot_date, 
-//     lot.lot_status_id, 
-//     lot.warehouse_id, 
-//     lot.store_id
-// FROM
-//     lot
-//     LEFT JOIN
-// 	lot_status
-// 	ON 
-// 		lot.lot_id = lot_status.lot_status_id
-// 	LEFT JOIN
-// 	supplier
-// 	ON 
-// 		lot.lot_id = supplier.supplier_id
-// 	LEFT JOIN
-// 	warehouse
-// 	ON 
-// 		lot.lot_id = warehouse.warehouse_id
-// 	LEFT JOIN
-// 	store
-// 	ON 
-// 		lot.lot_id = store.store_id";
-// $result_lot_list = $pdo->query($query);
-
 // ดึงชื่อคลังมาแสดงผล
 $query = "SELECT lot_status_id, lot_status_name FROM lot_status";
 $stmt = $pdo->prepare($query);
@@ -278,8 +243,7 @@ ob_end_flush();
                 } ?>
             </tbody>
         </table>
-        <div class="box ">
-
+        <div class="box">
             <a class=" bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg border border-blue-700 
                             border-t-white 
                             border-l-white 
@@ -298,7 +262,6 @@ ob_end_flush();
         </div>
         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
         <div class="pagination">
-
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
                     <a href="?page=lot_list&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
