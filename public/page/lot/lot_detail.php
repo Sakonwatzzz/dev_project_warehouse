@@ -47,15 +47,12 @@ FROM
     LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
     LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
     LEFT JOIN store ON lot.store_id = store.store_id
-
         WHERE lot.lot_id = ?
         ");
         break;
     default:
         die("ระบุประเภทไม่ถูกต้อง");
 }
-
-
 // ดำเนินการ query ด้วย product_id ที่ระบุ
 $stmt->execute([$id]);
 $lot = $stmt->fetch(PDO::FETCH_ASSOC); // เก็บผลลัพธ์เป็นแถวข้อมูลในรูปแบบ array

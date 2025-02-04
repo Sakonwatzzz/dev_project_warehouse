@@ -32,6 +32,7 @@ try {
     echo "Error: " . $e->getMessage();
 }
 
+
 // จัดการการส่งข้อมูลแบบ POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // กรณีเพิ่มคลังสินค้าใหม่
@@ -144,8 +145,7 @@ $store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $query = "SELECT lot_product_id, lot_product_qty, lot_product_remain ,lot_product_capital FROM lot_product";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
-$product_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ob_end_flush();
 ?>
 
@@ -327,9 +327,8 @@ ob_end_flush();
                         </td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_number']) ?></td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
-                        <td class="pl-4 border border-gray-500 text-start" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>&type=<?php echo urlencode($lot_list['warehouse_name']) ?>'">
-                            <?php echo ($lot_list['warehouse_name']) ?>
-                        </td>
+                        <td class="text-start pl-4 border border-gray-500" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id&tabel=lot_product&id=<?php echo ($lot_list['lot_id']) ?>'"><?php echo ($lot_list['warehouse_name']) ?></td>
+
 
                     </tr>
                 <?php endwhile; ?>
@@ -439,6 +438,7 @@ ob_end_flush();
             });
         });
     </script>
+
 </body>
 
 </html>
