@@ -20,10 +20,25 @@ function fetchDropdownData($pdo, $query)
         return [];
     }
 }
-
 // Validate and sanitize GET parameters
 $tabel = isset($_GET['tabel']) ? sanitizeInput($_GET['tabel']) : '';
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if (isset($_GET['lot_id'])) {
+    if (isset($_GET['lot_id']) && is_numeric($_GET['lot_id'])) {
+        $lot_id = $_GET['lot_id'];
+    } else {
+        // ทำการแจ้งข้อผิดพลาดหรือทำการรีไดเรกต์
+        echo "Invalid lot_id.";
+        exit;
+    }
+
+    if (isset($_GET['lot_product_id']) && is_numeric($_GET['lot_product_id'])) {
+        $lot_product_id = $_GET['lot_product_id'];
+    } else {
+        // ทำการแจ้งข้อผิดพลาดหรือทำการรีไดเรกต์
+        echo "Invalid lot_product_id.";
+        exit;
+    }
+}
 $is_update = isset($_GET['is_update']) ? (bool)$_GET['is_update'] : false;
 
 // Validate table type
@@ -31,12 +46,11 @@ $allowedTables = ['lot', 'lot_product'];
 if (!in_array($tabel, $allowedTables)) {
     die("Invalid table specified");
 }
-
 try {
     // Prepare main query based on table type
     switch ($tabel) {
         case 'lot':
-            $stmt = $pdo->prepare("
+            $stmt = $pdo->prepare(" 
                 SELECT 
                     lot.*,
                     lot_status.lot_status_name, 
@@ -50,9 +64,19 @@ try {
                 LEFT JOIN store ON lot.store_id = store.store_id
                 WHERE lot.lot_id = ?
             ");
+            $stmt->execute([$lot_id]);
+            $lot_list = $stmt->fetch(PDO::FETCH_ASSOC);
             break;
+
         case 'lot_product':
-            $stmt = $pdo->prepare("
+            if (isset($_GET['lot_product_id'])) {
+                $lot_product_id = $_GET['lot_product_id'];
+            } else {
+                echo "Lot Product ID is missing.";
+                exit;
+            }
+
+            $stmt = $pdo->prepare(" 
                 SELECT 
                     lot_product.*,
                     product.product_name
@@ -61,14 +85,15 @@ try {
                 INNER JOIN product ON lot_product.product_id = product.product_id
                 WHERE lot_product.lot_product_id = ?
             ");
+            $stmt->execute([$lot_product_id]);
+            $lot_product = $stmt->fetch(PDO::FETCH_ASSOC);
             break;
     }
 
-    $stmt->execute([$id]);
-    $lot = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$lot) {
-        throw new Exception("No data found");
+    // Handle error if no data found
+    if (!$lot_list || ($tabel == 'lot_product' && !$lot_product)) {
+        echo "No data found.";
+        exit;
     }
 
     // Fetch dropdown data
@@ -78,10 +103,14 @@ try {
         'supplier_lot' => fetchDropdownData($pdo, "SELECT supplier_id, supplier_name FROM supplier"),
         'store_lot' => fetchDropdownData($pdo, "SELECT store_id, store_name FROM store")
     ];
+} catch (PDOException $e) {
+    echo "Database error: " . $e->getMessage();
+    exit;
 } catch (Exception $e) {
     error_log($e->getMessage());
     die("Error retrieving data: " . $e->getMessage());
 }
+
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -143,28 +172,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container mx-auto p-8">
         <h1 class="text-4xl font-bold text-center mb-6">รายการรับสินค้า</h1>
 
-        <div class="flex space-x-4 mb-6">
-            <button id="edit-button" onclick="toggleEditMode()"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition">
-                แก้ไข
+        <div class="flex gap-4 h-[70px]">
+            <button class="h-11 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition">
+                <a href="/?page=lot_listinsert">
+                    ย้อนกลับ</a>
             </button>
-            <button id="save-button" type="submit" form="lot-form"
-                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded hidden transition">
-                บันทึก
-            </button>
+
+            <div class="flex space-x-4  mb-6">
+                <button id="edit-button" onclick="toggleEditMode()"
+                    class="h-11 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition">
+                    แก้ไข
+                </button>
+                <button id="save-button" type="submit" form="lot-form"
+                    class="h-11 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded hidden transition">
+                    บันทึก
+                </button>
+            </div>
+
         </div>
 
         <div class="w-[100%] flex space-x-11">
             <form id="lot-form" method="POST" class="w-[60%] bg-white shadow-md rounded px-8 pt-6 pb-8  ">
-                <input type="hidden" name="lot_id" value="<?= sanitizeInput($lot['lot_id']) ?>">
+                <input type="hidden" name="lot_id" value="<?php echo ($lot['lot_id']) ?>">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 ">
                     <!-- Lot Number -->
                     <div class=" grid grid-cols-2 ">
                         <label class=" text-gray-700 text-lg font-bold ">รหัส Lot สินค้า</label>
                         <div class="">
-                            <span class="view-mode"><?= sanitizeInput($lot['lot_number']) ?></span>
+                            <span class="view-mode"><?php echo ($lot['lot_number']) ?></span>
                             <input type="text" name="lot_number"
-                                value="<?= sanitizeInput($lot['lot_number']) ?>"
+                                value="<?php echo ($lot['lot_number']) ?>"
                                 class="edit-mode hidden w-full border rounded px-3 ">
                         </div>
                     </div>
@@ -173,9 +210,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class=" grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold ">รายละเอียด</label>
                         <div>
-                            <span class="view-mode"><?= sanitizeInput($lot['lot_detail']) ?></span>
+                            <span class="view-mode"><?php echo ($lot['lot_detail']) ?></span>
                             <input type="text" name="lot_detail"
-                                value="<?= sanitizeInput($lot['lot_detail']) ?>"
+                                value="<?php echo ($lot['lot_detail']) ?>"
                                 class="edit-mode hidden w-full border rounded px-3 ">
                         </div>
                     </div>
@@ -184,9 +221,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class=" grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold ">วันที่ล็อต</label>
                         <div>
-                            <span class="view-mode"><?= sanitizeInput($lot['lot_date']) ?></span>
+                            <span class="view-mode"><?php echo ($lot['lot_date']) ?></span>
                             <input type="date" name="lot_date"
-                                value="<?= sanitizeInput($lot['lot_date']) ?>"
+                                value="<?php echo ($lot['lot_date']) ?>"
                                 class="edit-mode hidden w-full border rounded px-3 ">
                         </div>
                     </div>
@@ -195,12 +232,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class=" grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold ">สถานะล็อต</label>
                         <div>
-                            <span class="view-mode"><?= sanitizeInput($lot['lot_status_name']) ?></span>
+                            <span class="view-mode"><?php echo ($lot['lot_status_name']) ?></span>
                             <select name="lot_status_id" class="edit-mode hidden w-full border rounded px-3 ">
                                 <?php foreach ($dropdowns['status_lot'] as $status): ?>
                                     <option value="<?= $status['lot_status_id'] ?>"
                                         <?= $status['lot_status_id'] == $lot['lot_status_id'] ? 'selected' : '' ?>>
-                                        <?= sanitizeInput($status['lot_status_name']) ?>
+                                        <?php echo ($status['lot_status_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -211,12 +248,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class=" grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold ">คลังสินค้า</label>
                         <div>
-                            <span class="view-mode"><?= sanitizeInput($lot['warehouse_name']) ?></span>
+                            <span class="view-mode"><?php echo ($lot['warehouse_name']) ?></span>
                             <select name="warehouse_id" class="edit-mode hidden w-full border rounded px-3 ">
                                 <?php foreach ($dropdowns['warehouse_lot'] as $warehouse): ?>
                                     <option value="<?= $warehouse['warehouse_id'] ?>"
                                         <?= $warehouse['warehouse_id'] == $lot['warehouse_id'] ? 'selected' : '' ?>>
-                                        <?= sanitizeInput($warehouse['warehouse_name']) ?>
+                                        <?php echo ($warehouse['warehouse_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -227,12 +264,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class=" grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold ">ร้านค้า</label>
                         <div>
-                            <span class="view-mode"><?= sanitizeInput($lot['store_name']) ?></span>
+                            <span class="view-mode"><?php echo ($lot['store_name']) ?></span>
                             <select name="store_id" class="edit-mode hidden w-full border rounded px-3 ">
                                 <?php foreach ($dropdowns['store_lot'] as $store): ?>
                                     <option value="<?= $store['store_id'] ?>"
                                         <?= $store['store_id'] == $lot['store_id'] ? 'selected' : '' ?>>
-                                        <?= sanitizeInput($store['store_name']) ?>
+                                        <?php echo ($store['store_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -243,12 +280,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class=" grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold ">ผู้ส่งมอบ</label>
                         <div>
-                            <span class="view-mode"><?= sanitizeInput($lot['supplier_name']) ?></span>
+                            <span class="view-mode"><?php echo ($lot['supplier_name']) ?></span>
                             <select name="supplier_id" class="edit-mode hidden w-full border rounded px-3 ">
                                 <?php foreach ($dropdowns['supplier_lot'] as $supplier): ?>
                                     <option value="<?= $supplier['supplier_id'] ?>"
                                         <?= $supplier['supplier_id'] == $lot['supplier_id'] ? 'selected' : '' ?>>
-                                        <?= sanitizeInput($supplier['supplier_name']) ?>
+                                        <?php echo ($supplier['supplier_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -258,19 +295,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
 
             <div class="bg-white shadow-md rounded px-8 pt-6 pb-8  w-[40%] ">
-                <!-- Lot Number -->
                 <div class=" grid grid-cols-2 ">
                     <label class=" text-gray-700 text-lg font-bold ">รหัสรายการล็อตสินค้า</label>
                     <div class="">
-                        <span class="view-mode"><?= sanitizeInput($lot['lot_number']) ?></span>
-                        <input type="text" name="lot_number"
-                            value="<?= sanitizeInput($lot['lot_number']) ?>"
+                        <span class="view-mode"><?php echo ($lot_product['lot_product_id']) ?></span>
+                        <input type="text" name="lot_product_id"
+                            value="<?php echo ($lot_product['lot_product_id']) ?>"
                             class="edit-mode hidden w-full border rounded px-3 ">
                     </div>
                 </div>
 
             </div>
         </div>
+
         <!-- Product Table -->
         <div class="mt-4">
             <table class="w-full border-2 border-gray-300 shadow-lg">
@@ -283,7 +320,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr class="hover:bg-blue-50">
+                    <tr class="hover:bg-blue-50 bg-[#fff]">
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                    </tr>
+                    <tr class="hover:bg-blue-50 bg-[#fff]">
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                    </tr>
+                    <tr class="hover:bg-blue-50 bg-[#fff]">
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                        <td class="px-4 py-2 border text-center border-gray-400">-</td>
+                    </tr>
+                    <tr class="hover:bg-blue-50 bg-[#fff]">
                         <td class="px-4 py-2 border text-center border-gray-400">-</td>
                         <td class="px-4 py-2 border text-center border-gray-400">-</td>
                         <td class="px-4 py-2 border text-center border-gray-400">-</td>
@@ -292,6 +347,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </tbody>
             </table>
         </div>
+
+
+        <div class=" ">
+            <div class="flex flex-col md:flex-row gap-8 mt-8 ">
+                <div class="flex flex-col gap-2 bg-gray-100 p-6 rounded-lg shadow-md w-full md:w-1/2">
+                    <label class="font-bold text-3xl text-gray-700">จำนวนสินค้า</label>
+                    <div class="p-4 h-[70px] border border-gray-400 text-4xl flex justify-center items-center rounded-lg bg-white shadow">
+                        14 ชิ้น
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 bg-gray-100 p-6 rounded-lg shadow-md w-full md:w-1/2 ">
+                    <label class="font-bold text-3xl text-gray-700">ยอดรวม</label>
+                    <div class="p-4 h-[70px] border border-gray-400 text-4xl flex justify-center items-center rounded-lg bg-white shadow">
+                        980000000000000 บาท
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full mt-6 flex justify-center">
+                <button class="w-full px-6 py-3 bg-blue-600 text-white text-xl font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all">
+                    ยืนยัน
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <script>

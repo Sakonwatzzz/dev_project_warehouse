@@ -4,33 +4,34 @@ ob_start();
 
 try {
     $query = "SELECT
-    lot_status.lot_status_id, 
-    lot_status.lot_status_name, 
-    supplier.supplier_id, 
-    supplier.supplier_name, 
-    warehouse.warehouse_name, 
-    warehouse.warehouse_id,
-    store.store_id, 
-    store.store_name, 
-    lot.lot_id, 
-    lot.lot_number, 
-    lot.lot_detail, 
-    lot.lot_date, 
-    lot.lot_status_id, 
-    lot.warehouse_id, 
-    lot.store_id
-FROM
-    lot
-    LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-    LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
-    LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-    LEFT JOIN store ON lot.store_id = store.store_id";
+        lot_status.lot_status_id, 
+        lot_status.lot_status_name, 
+        supplier.supplier_id, 
+        supplier.supplier_name, 
+        warehouse.warehouse_name, 
+        warehouse.warehouse_id,
+        store.store_id, 
+        store.store_name, 
+        lot.lot_id, 
+        lot.lot_number, 
+        lot.lot_detail, 
+        lot.lot_date, 
+        lot.lot_status_id, 
+        lot.warehouse_id, 
+        lot.store_id
+    FROM
+        lot
+        LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
+        LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+        LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
+        LEFT JOIN store ON lot.store_id = store.store_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $result_lot_list = $stmt;
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
+
 // จัดการการส่งข้อมูลแบบ POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // กรณีเพิ่มคลังสินค้าใหม่
@@ -79,15 +80,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $warehouse_id = $_POST['warehouse_id'] ?? '';
         $store_id = $_POST['store_id'] ?? '';
         $supplier_id = $_POST['supplier_id'] ?? '';
+        $lot_product_id = $_POST['lot_product_id'] ?? '';
+        $lot_product_qty = $_POST['lot_product_qty'] ?? '';
+        $lot_product_remain = $_POST['lot_product_remain'] ?? '';
+        $lot_product_capital = $_POST['lot_product_capital'] ?? '';
         try {
+            // เริ่มต้น Transaction
+            $pdo->beginTransaction();
+
+            // ทำการ INSERT ข้อมูลในตาราง lot
             $stmt = $pdo->prepare('INSERT INTO lot (lot_number, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
             VALUES (?, ?, ?, ?, ?, ?)');
             $stmt->execute([$lot_number, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
+
+            // ดึง ID ของ lot ที่เพิ่ง INSERT
             $lot_id = $pdo->lastInsertId();
+
+            // ทำการ INSERT ข้อมูลในตาราง lot_product
+            $stmt_product = $pdo->prepare('INSERT INTO lot_product (lot_id, lot_product_id, lot_product_qty, lot_product_remain, lot_product_capital) 
+            VALUES (?, ?, ?, ?, ?)');
+            $stmt_product->execute([$lot_id, $lot_product_id, $lot_product_qty, $lot_product_remain, $lot_product_capital]);
+
+            // Commit การทำธุรกรรม
+            $pdo->commit();
+
+            // หลังจาก INSERT สำเร็จแล้ว redirect ไปที่หน้ารายละเอียด
             header("Location: index.php?page=lot_listdetail&tabel=lot&id=$lot_id&success=1");
             exit;
         } catch (PDOException $e) {
+            // หากเกิดข้อผิดพลาด Rollback การทำธุรกรรม
+            $pdo->rollBack();
             $error = 'เกิดข้อผิดพลาด: ' . $e->getMessage();
+            echo $error;
         }
     }
 }
@@ -117,7 +141,7 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 $store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // ดึงข้อมูลรายการรับสินค้า
-$query = "SELECT lot_product_qty, lot_product_remain FROM lot_product";
+$query = "SELECT lot_product_id, lot_product_qty, lot_product_remain ,lot_product_capital FROM lot_product";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 $product_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -220,6 +244,12 @@ ob_end_flush();
             <form method="POST" action="" class="w-[60%]">
                 <div class="w-full flex justify-center items-center">
                     <div class="w-full flex flex-wrap space-y-3 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
+                        <div class="w-full flex">
+                            <label for="lot_id" class="w-[15%] mb-2">รหัส Lot:</label>
+                            <input type="text" name="lot_id" id="lot_id" readonly value="<?= $lot_id ?? '' ?>"
+                                class="w-[85%] border rounded px-2 py-1">
+                        </div>
+
                         <!-- รหัส Lot สินค้า -->
                         <div class="w-full flex">
                             <label for="lot_number" class="w-[15%] mb-2">รหัส Lot สินค้า:</label>
@@ -277,7 +307,9 @@ ob_end_flush();
             <thead>
                 <!-- ส่วนหัวของตาราง -->
                 <tr class="">
-
+                    <th class="w-[15%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        รหัส Lot
+                    </th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัส Lot สินค้า</th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">วันที่ล็อต</th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
@@ -290,6 +322,9 @@ ob_end_flush();
                     <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
                     <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
                         <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
+                        <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300">
+                            <?= ($lot_list['lot_id']) ?>
+                        </td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_number']) ?></td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
                         <td class="pl-4 border border-gray-500 text-start" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>&type=<?php echo urlencode($lot_list['warehouse_name']) ?>'">

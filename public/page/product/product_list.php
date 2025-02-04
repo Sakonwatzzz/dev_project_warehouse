@@ -49,6 +49,16 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
     $stmt->execute([$id]);
+
+    // ตรวจสอบว่ามีข้อมูลเหลือในตารางหรือไม่
+    $stmt = $pdo->query("SELECT COUNT(*) FROM lot");
+    $count = $stmt->fetchColumn();
+
+    // ถ้าตารางว่างให้รีเซ็ต AUTO_INCREMENT
+    if ($count == 0) {
+        $pdo->query("ALTER TABLE lot AUTO_INCREMENT = 1");
+    }
+
     header("Location: /?page=product_list&delete_success");
     exit;
 }
@@ -209,8 +219,7 @@ try {
         <table class="  mt-5 mb-8 w-[100%]  border-2 border-[#b7c4d5] shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow"
-                    >บาร์โค้ดสินค้า</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">บาร์โค้ดสินค้า</th>
                     <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อสินค้า</th>
                     <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาทุน</th>
                     <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคา4</th>
@@ -223,7 +232,7 @@ try {
 
 
                         <td class="text-start"><?php echo ($product_list['product_barcode']); ?></td>
-                        <td class="text-start" onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'" ><?php echo ($product_list['product_name']); ?></td>
+                        <td class="text-start" onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'"><?php echo ($product_list['product_name']); ?></td>
                         <td class="text-start"><?php echo ($product_list['product_capital']); ?></td>
                         <td class="text-start"><?php echo ($product_list['product_price4']); ?></td>
 
