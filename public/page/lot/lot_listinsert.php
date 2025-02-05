@@ -245,8 +245,8 @@ ob_end_flush();
                 <div class="w-full flex justify-center items-center">
                     <div class="w-full flex flex-wrap space-y-3 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
                         <div class="w-full flex">
-                            <label for="lot_id" class="w-[15%] mb-2">รหัส Lot:</label>
-                            <input type="text" name="lot_id" id="lot_id" readonly value="<?= $lot_id ?? '' ?>"
+                            <label for="lot_id" class="w-[15%] mb-2"></label>
+                            <input type="hidden" name="lot_id" id="lot_id" readonly value="<?= $lot_id ?? '' ?>"
                                 class="w-[85%] border rounded px-2 py-1">
                         </div>
 
@@ -327,8 +327,7 @@ ob_end_flush();
                         </td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_number']) ?></td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
-                        <td class="text-start pl-4 border border-gray-500" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id&tabel=lot_product&id=<?php echo ($lot_list['lot_id']) ?>'"><?php echo ($lot_list['warehouse_name']) ?></td>
-
+                        <td class="text-start pl-4 border border-gray-500" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
 
                     </tr>
                 <?php endwhile; ?>
