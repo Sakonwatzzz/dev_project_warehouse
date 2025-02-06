@@ -59,14 +59,19 @@ if ($lot_id) {
     $lot_product_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-$querylot = "SELECT lot_number, lot_date, lot_detail FROM lot";
-$stmt = $pdo->prepare($querylot);
+$query_result = "SELECT lot_number, lot_date, lot_detail FROM lot";
+$stmt = $pdo->prepare($query_result);
 $stmt->execute();
 $lot_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$query_product = "SELECT product_id, product_name FROM product";
+$smtm  = $pdo->prepare($query_product);
+$smtm->execute();
+$product_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // คำสั่ง SQL เพื่อดึงข้อมูลสินค้าของ lot
-$queryproduct = "SELECT * FROM lot_product WHERE lot_id = :lot_id";
-$stmt = $pdo->prepare($queryproduct);
+$query_lot_product = "SELECT * FROM lot_product WHERE lot_id = :lot_id";
+$stmt = $pdo->prepare($query_lot_product);
 $stmt->execute(['lot_id' => $lot_id]);
 $lot_product_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // ค่าที่ได้จากการ execute query
@@ -114,7 +119,8 @@ try {
         'status_lot' => fetchDropdownData($pdo, "SELECT lot_status_id, lot_status_name FROM lot_status"),
         'warehouse_lot' => fetchDropdownData($pdo, "SELECT warehouse_id, warehouse_name FROM warehouse"),
         'supplier_lot' => fetchDropdownData($pdo, "SELECT supplier_id, supplier_name FROM supplier"),
-        'store_lot' => fetchDropdownData($pdo, "SELECT store_id, store_name FROM store")
+        'store_lot' => fetchDropdownData($pdo, "SELECT store_id, store_name FROM store"),
+        'product_lot' => fetchDropdownData($pdo, "SELECT product_id, product_name FROM product")
     ];
 
     // Fetch lot_product if applicable
@@ -345,9 +351,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <thead>
                     <tr class="bg-blue-100">
                         <th class="px-4 py-2 border border-gray-500">รหัสสินค้า</th>
-                        <th class="px-4 py-2 border border-gray-500">รายละเอียด</th>
                         <th class="px-4 py-2 border border-gray-500">ราคาทุน</th>
                         <th class="px-4 py-2 border border-gray-500">จำนวนเข้า</th>
+                        <th class="px-4 py-2 border border-gray-500">จำนวนคงเหลือ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -355,8 +361,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php foreach ($lot_product_result as $lot_product): ?>
                             <tr>
                                 <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['product_name']); ?></td>
-                                <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['lot_product_qty']); ?></td>
+                                <select name="product_id" class="edit-mode hidden w-full border rounded px-3">
+                                <?php foreach ($dropdowns['product_id'] as $product_lot_result): ?>
+                                    <option value="<?= $supplier['product_id'] ?>" <?= $product_lot_result['product_id'] == $$product_result['product_id'] ? 'selected' : '' ?>>
+                                        <?php echo htmlspecialchars($product_lot_result['product_name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                                 <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['lot_product_capital']); ?></td>
+                                <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['lot_product_qty']); ?></td>
                                 <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['lot_product_remain']); ?></td>
                             </tr>
                         <?php endforeach; ?>
@@ -375,13 +388,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="flex flex-col gap-2 bg-gray-100 p-6 rounded-lg shadow-md w-full md:w-1/2">
                     <label class="font-bold text-3xl text-gray-700">จำนวนสินค้า</label>
                     <div class="p-4 h-[70px] border border-gray-400 text-4xl flex justify-center items-center rounded-lg bg-white shadow">
-                        14 ชิ้น
                     </div>
                 </div>
                 <div class="flex flex-col gap-2 bg-gray-100 p-6 rounded-lg shadow-md w-full md:w-1/2 ">
                     <label class="font-bold text-3xl text-gray-700">ยอดรวม</label>
                     <div class="p-4 h-[70px] border border-gray-400 text-4xl flex justify-center items-center rounded-lg bg-white shadow">
-                        980000000000000 บาท
+                    
                     </div>
                 </div>
             </div>
