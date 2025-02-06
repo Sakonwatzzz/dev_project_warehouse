@@ -25,9 +25,6 @@ $tabel = isset($_GET['tabel']) ? sanitizeInput($_GET['tabel']) : '';
 $lot_id = isset($_GET['lot_id']) ? (int) $_GET['lot_id'] : (isset($_GET['id']) ? (int) $_GET['id'] : 0);
 $lot_product_id = isset($_GET['lot_product_id']) ? (int) $_GET['lot_product_id'] : 0;
 
-// echo "<pre>";
-// print_r($_GET);
-// echo "</pre>";
 
 if ($lot_id === 0 && $lot_product_id === 0) {
     echo "Invalid lot_id or lot_product_id.";
@@ -41,80 +38,85 @@ $allowedTables = ['lot', 'lot_product'];
 if (!in_array($tabel, $allowedTables)) {
     die("Invalid table specified");
 }
-// Assuming $conn is the database connection
-if ($lot_id) {
-    // Get lot data for the specific lot_id
-    $lot_sql = "SELECT * FROM lot WHERE lot_id = :lot_id";
-    $stmt = $pdo->prepare($lot_sql);
-    $stmt->bindParam(':lot_id', $lot_id, PDO::PARAM_INT);
-    $stmt->execute();
-    $lot_result = $stmt->fetch(PDO::FETCH_ASSOC);
 
 
-    // Get lot product data related to the specific lot_id
-    $lot_product_sql = "SELECT * FROM lot_product WHERE lot_id = :lot_id";
-    $stmt = $pdo->prepare($lot_product_sql);
-    $stmt->bindParam(':lot_id', $lot_id, PDO::PARAM_INT);
-    $stmt->execute();
-    $lot_product_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-$query_result = "SELECT lot_number, lot_date, lot_detail FROM lot";
-$stmt = $pdo->prepare($query_result);
-$stmt->execute();
-$lot_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$query_product = "SELECT product_id, product_name FROM product";
-$smtm  = $pdo->prepare($query_product);
-$smtm->execute();
-$product_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// คำสั่ง SQL เพื่อดึงข้อมูลสินค้าของ lot
-$query_lot_product = "SELECT * FROM lot_product WHERE lot_id = :lot_id";
-$stmt = $pdo->prepare($query_lot_product);
-$stmt->execute(['lot_id' => $lot_id]);
-$lot_product_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // ค่าที่ได้จากการ execute query
 try {
     // กำหนดเงื่อนไขและ SQL query ในรูปแบบ array
-    $queries = [
-        'lot' => [
-            'query' => "SELECT * FROM lot WHERE lot_id = :lot_id",
-            'param' => $lot_id,
-            'result_var' => 'lot_result'
-        ],
-        'lot_product' => [
-            'query' => "
-                SELECT
-                    lot_product.lot_product_id, 
-                    lot_product.lot_id, 
-                    lot_product.lot_product_qty, 
-                    lot_product.lot_product_remain,  
-                    lot_product.lot_product_capital, 
-                    lot_product.lot_product_date, 
-                    lot_product.lot_product_status,  
-                    lot_product.product_id, 
-                    product.product_id,
-                    product.product_name
-                FROM
-                    lot_product
-                INNER JOIN lot ON lot_product.lot_id = lot.lot_id
-                INNER JOIN product ON lot_product.product_id = product.product_id
-                WHERE lot_product.lot_product_id = ?",
-            'param' => $lot_product_id,
-            'result_var' => 'lot_product_result'
-        ]
-    ];
+    // Query สำหรับดึงข้อมูลของ lot
+    $lot_sql = "
+SELECT
+    lot.*, 
+    lot_status.lot_status_id, 
+    lot_status.lot_status_name, 
+    store.store_id, 
+    store.store_name, 
+    supplier.supplier_name, 
+    supplier.supplier_id, 
+    lot.lot_id, 
+    lot.lot_number, 
+    lot.lot_detail, 
+    lot.lot_date, 
+    lot.lot_status_id, 
+    lot.warehouse_id, 
+    lot.supplier_id, 
+    lot.store_id, 
+    warehouse.warehouse_id, 
+    warehouse.warehouse_name
+FROM
+    lot
+    INNER JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
+    INNER JOIN store ON lot.store_id = store.store_id
+    INNER JOIN supplier ON lot.supplier_id = supplier.supplier_id
+    INNER JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
+WHERE lot.lot_id = :lot_id
+";
 
-    // ตรวจสอบว่า table ที่รับมาอยู่ใน queries หรือไม่
-    if (isset($queries['lot']) && isset($queries['lot']['param']) && $queries['lot']['param'] > 0) {
-        $stmt = $pdo->prepare($queries['lot']['query']);
-        $stmt->bindParam(':lot_id', $queries['lot']['param'], PDO::PARAM_INT);
-        $stmt->execute();
-        $queries['lot']['result_var'] = $stmt->fetch(PDO::FETCH_ASSOC);
+    // เตรียมการ statement
+    $stmt = $pdo->prepare($lot_sql);
+    // Bind :lot_id ให้ตรงกับพารามิเตอร์
+    $stmt->bindParam(':lot_id', $lot_id, PDO::PARAM_INT);
+    // execute คำสั่ง
+    $stmt->execute();
+    // ดึงข้อมูลผลลัพธ์
+    $lot_result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Query สำหรับดึงข้อมูลของ lot_product
+    $lot_product_sql = "
+SELECT
+    lot_product.lot_product_id, 
+    lot_product.lot_id, 
+    lot_product.lot_product_qty, 
+    lot_product.lot_product_remain,  
+    lot_product.lot_product_capital, 
+    lot_product.lot_product_date, 
+    lot_product.lot_product_status,  
+    lot_product.product_id, 
+    product.product_id,
+    product.product_name
+FROM
+    lot_product
+INNER JOIN lot ON lot_product.lot_id = lot.lot_id
+INNER JOIN product ON lot_product.product_id = product.product_id
+WHERE lot_product.lot_product_id = :lot_product_id
+";
+
+    // เตรียมการ statement
+    $stmt2 = $pdo->prepare($lot_product_sql);
+    // Bind :lot_product_id ให้ตรงกับพารามิเตอร์
+    $stmt2->bindParam(':lot_product_id', $lot_product_id, PDO::PARAM_INT);
+    // execute คำสั่ง
+    $stmt2->execute();
+    // ดึงข้อมูลผลลัพธ์
+    $lot_product_result = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+    // ตรวจสอบค่า lot_id และ lot_product_id ก่อน
+    if (!$lot_id && !$lot_product_id) {
+        echo "Invalid lot_id or lot_product_id.";
+        exit;
     }
 
-    // Fetch dropdown data
+    // Fetch ข้อมูล dropdown
     $dropdowns = [
         'status_lot' => fetchDropdownData($pdo, "SELECT lot_status_id, lot_status_name FROM lot_status"),
         'warehouse_lot' => fetchDropdownData($pdo, "SELECT warehouse_id, warehouse_name FROM warehouse"),
@@ -124,9 +126,11 @@ try {
     ];
 
     // Fetch lot_product if applicable
-    if ($tabel === 'lot_product' && isset($lot_product_id) && $lot_product_id > 0) {
+    if (isset($table) && $table === 'lot_product' && isset($lot_product_id) && $lot_product_id > 0) {
         $stmt = $pdo->prepare($queries['lot_product']['query']);
-        $stmt->execute([$lot_product_id]);
+        // Correctly bind the :lot_product_id parameter
+        $stmt->bindParam(':lot_product_id', $lot_product_id, PDO::PARAM_INT);
+        $stmt->execute();
         $lot_product_result = $stmt->fetch(PDO::FETCH_ASSOC);
     }
 } catch (PDOException $e) {
@@ -137,10 +141,86 @@ try {
 }
 
 
+$sql = "SELECT * FROM lot WHERE lot_id = :lot_id";
+$stmt = $pdo->prepare($sql);
+$stmt->bindParam(':lot_id', $lot_id, PDO::PARAM_INT);
+$stmt->execute();
 
-// Handle form submission
+
+
+// ดึงข้อมูลสินค้าทั้งหมดจากตาราง product
+$query_product = "SELECT product_id, product_name FROM product";
+$stmt = $pdo->prepare($query_product);
+$stmt->execute();
+$product_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// ดึงข้อมูลสินค้าของ Lot ตาม warehouse_id ที่กำหนด
+$query_lot_product = "SELECT * FROM lot_product WHERE lot_id = :lot_id";
+$stmt2 = $pdo->prepare($query_lot_product); // ใช้ตัวแปรใหม่เพื่อป้องกันปัญหาทับค่า
+$stmt2->execute(['lot_id' => $lot_id]);
+$lot_product_result = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+// ตรวจสอบก่อนว่า $lot_id มีค่าหรือไม่
+if (!isset($lot_id) || empty($lot_id)) {
+    die("Error: lot_id is not set or is empty.");
+}
+
+
+// ดึงข้อมูลสถานะ lot
+$query = "SELECT lot_status_id, lot_status_name  FROM lot_status";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$status_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ดึงข้อมูลคลังสินค้า
+$query = "SELECT warehouse_id, warehouse_name, warehouse_status FROM warehouse ORDER BY warehouse_id";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ดึงข้อมูลผู้ส่งมอบ
+$query = "SELECT supplier_id, supplier_name FROM supplier";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$supplier_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ดึงข้อมูลร้านค้า
+$query = "SELECT store_id, store_name FROM store";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ใช้ isset() เพื่อตรวจสอบก่อนว่าคีย์มีอยู่ในอาร์เรย์หรือไม่
+$lotStatusName = isset($status_lot['lot_status_name']) ? $status_lot['lot_status_name'] : 'N/A';
+$warehouseName = isset($warehouse_lot['warehouse_name']) ? $warehouse_lot['warehouse_name'] : 'N/A';
+$storeName = isset($store_lot['store_name']) ? $store_lot['store_name'] : 'N/A';
+$supplierName = isset($supplier_lot['supplier_name']) ? $supplier_lot['supplier_name'] : 'N/A';
+
+
+
+// ตรวจสอบว่า $lot_result เป็น array หรือไม่
+if (is_array($lot_result) && isset($lot_result['lot_id'])) {
+    // ทำการแสดงผลลัพธ์ที่ได้
+    // echo ($lot_result['lot_number']);
+} else {
+    // ถ้าค่าไม่ใช่ array หรือไม่มีข้อมูล
+    echo "ไม่พบข้อมูลล็อต";
+}
+
+// ตรวจสอบว่า $lot_product_result เป็น array ก่อนเข้าถึงข้อมูล
+if (is_array($lot_product_result) && !empty($lot_product_result)) {
+    foreach ($lot_product_result as $lot_product) {
+        // ทำการแสดงผลลัพธ์ที่ได้
+        // echo ($lot_product['lot_product_qty']);
+    }
+} else {
+    // หากไม่มีข้อมูลหรือเกิดข้อผิดพลาด
+    echo "ไม่พบข้อมูลสินค้าสำหรับล็อตนี้";
+}
+
+
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        // ส่วนของการอัพเดตข้อมูลในตาราง lot
         $updateData = [
             'lot_number' => isset($_POST['lot_number']) ? trim($_POST['lot_number']) : '',
             'lot_detail' => isset($_POST['lot_detail']) ? trim($_POST['lot_detail']) : '',
@@ -152,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'lot_id' => isset($_POST['lot_id']) ? (int)$_POST['lot_id'] : null
         ];
 
-
+        // เริ่มการอัพเดตข้อมูลในตาราง lot
         $stmt = $pdo->prepare("
             UPDATE lot 
             SET 
@@ -177,6 +257,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updateData['lot_id']
         ]);
 
+        // ส่วนของการอัพเดตข้อมูลในตาราง lot_product
+        if (isset($_POST['lot_product_id']) && is_array($_POST['lot_product_id'])) {
+            foreach ($_POST['lot_product_id'] as $key => $lot_product_id) {
+                $lot_product_capital = isset($_POST['lot_product_capital'][$key]) ? $_POST['lot_product_capital'][$key] : null;
+                $lot_product_qty = isset($_POST['lot_product_qty'][$key]) ? $_POST['lot_product_qty'][$key] : null;
+                $lot_product_remain = isset($_POST['lot_product_remain'][$key]) ? $_POST['lot_product_remain'][$key] : null;
+
+                // คำสั่ง UPDATE สำหรับตาราง lot_product
+                $productStmt = $pdo->prepare("
+                    UPDATE lot_product 
+                    SET 
+                        lot_product_capital = ?, 
+                        lot_product_qty = ?, 
+                        lot_product_remain = ? 
+                    WHERE lot_product_id = ? AND lot_id = ?
+                ");
+
+                $productStmt->execute([
+                    $lot_product_capital,
+                    $lot_product_qty,
+                    $lot_product_remain,
+                    $lot_product_id,
+                    $updateData['lot_id']
+                ]);
+            }
+        }
+
+        // หลังจากที่การอัพเดตเสร็จสมบูรณ์แล้วให้ redirect
         header("Location: /?page=lot_listdetail&tabel=lot&id={$updateData['lot_id']}");
         exit;
     } catch (PDOException $e) {
@@ -184,6 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("Error updating record");
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -225,8 +334,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="text-gray-700 text-lg font-bold">รหัส Lot สินค้า</label>
                         <div class="">
                             <?php if (isset($lot_result['lot_number'])): ?>
-                                <span class="view-mode"><?php echo htmlspecialchars($lot_result['lot_number']); ?></span>
-                                <input type="text" name="lot_number" value="<?php echo htmlspecialchars($lot_result['lot_number']); ?>" class="edit-mode hidden w-full border rounded px-3">
+                                <span class="view-mode"><?php echo ($lot_result['lot_number']); ?></span>
+                                <input type="text" name="lot_number" value="<?php echo ($lot_result['lot_number']); ?>" class="edit-mode hidden w-full border rounded px-3">
                             <?php endif; ?>
                         </div>
                     </div>
@@ -235,8 +344,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold">รายละเอียด</label>
                         <div>
-                            <span class="view-mode"><?php echo htmlspecialchars($lot_result['lot_detail']); ?></span>
-                            <input type="text" name="lot_detail" value="<?php echo htmlspecialchars($lot_result['lot_detail']); ?>" class="edit-mode hidden w-full border rounded px-3">
+                            <span class="view-mode"><?php echo ($lot_result['lot_detail'] ?? ''); ?></span>
+                            <input type="text" name="lot_detail" value="<?php echo ($lot_result['lot_detail'] ?? ''); ?>" class="edit-mode hidden w-full border rounded px-3">
+
                         </div>
                     </div>
 
@@ -244,20 +354,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold">วันที่ล็อต</label>
                         <div>
-                            <span class="view-mode"><?php echo htmlspecialchars($lot_result['lot_date']); ?></span>
-                            <input type="date" name="lot_date" value="<?php echo htmlspecialchars($lot_result['lot_date']); ?>" class="edit-mode hidden w-full border rounded px-3">
+                            <span class="view-mode"><?php echo ($lot_result['lot_date']); ?></span>
+                            <input type="date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly class="edit-mode hidden w-full border rounded px-3">
                         </div>
+
                     </div>
 
                     <!-- Lot Status -->
                     <div class="grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold">สถานะล็อต</label>
                         <div>
-                            <span class="view-mode"><?php echo htmlspecialchars($lot_result['lot_status_name']); ?></span>
+                            <span class="view-mode">
+                                <?php echo isset($lot_result['lot_status_name']) ? ($lot_result['lot_status_name']) : 'ยังไม่ได้กรอกข้อมูล'; ?>
+                            </span>
                             <select name="lot_status_id" class="edit-mode hidden w-full border rounded px-3">
                                 <?php foreach ($dropdowns['status_lot'] as $status): ?>
                                     <option value="<?= $status['lot_status_id'] ?>" <?= $status['lot_status_id'] == $lot_result['lot_status_id'] ? 'selected' : '' ?>>
-                                        <?php echo htmlspecialchars($status['lot_status_name']); ?>
+                                        <?php echo ($status['lot_status_name']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -268,11 +381,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold">คลังสินค้า</label>
                         <div>
-                            <span class="view-mode"><?php echo htmlspecialchars($lot_result['warehouse_name']); ?></span>
+                            <span class="view-mode">
+                                <?php echo isset($lot_result['warehouse_name']) ? ($lot_result['warehouse_name']) : 'ยังไม่ได้กรอกข้อมูล'; ?>
+                            </span>
                             <select name="warehouse_id" class="edit-mode hidden w-full border rounded px-3">
                                 <?php foreach ($dropdowns['warehouse_lot'] as $warehouse): ?>
                                     <option value="<?= $warehouse['warehouse_id'] ?>" <?= $warehouse['warehouse_id'] == $lot_result['warehouse_id'] ? 'selected' : '' ?>>
-                                        <?php echo htmlspecialchars($warehouse['warehouse_name']); ?>
+                                        <?php echo ($warehouse['warehouse_name']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -283,11 +398,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold">ร้านค้า</label>
                         <div>
-                            <span class="view-mode"><?php echo htmlspecialchars($lot_result['store_name']); ?></span>
+                            <span class="view-mode">
+                                <?php echo isset($lot_result['store_name']) ? ($lot_result['store_name']) : 'ยังไม่ได้กรอกข้อมูล'; ?>
+                            </span>
                             <select name="store_id" class="edit-mode hidden w-full border rounded px-3">
                                 <?php foreach ($dropdowns['store_lot'] as $store): ?>
                                     <option value="<?= $store['store_id'] ?>" <?= $store['store_id'] == $lot_result['store_id'] ? 'selected' : '' ?>>
-                                        <?php echo htmlspecialchars($store['store_name']); ?>
+                                        <?php echo ($store['store_name']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -298,11 +415,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold">ผู้ส่งมอบ</label>
                         <div>
-                            <span class="view-mode"><?php echo htmlspecialchars($lot_result['supplier_name']); ?></span>
+                            <span class="view-mode">
+                                <?php echo isset($lot_result['supplier_name']) ? ($lot_result['supplier_name']) : 'ยังไม่ได้กรอกข้อมูล'; ?>
+                            </span>
                             <select name="supplier_id" class="edit-mode hidden w-full border rounded px-3">
                                 <?php foreach ($dropdowns['supplier_lot'] as $supplier): ?>
                                     <option value="<?= $supplier['supplier_id'] ?>" <?= $supplier['supplier_id'] == $lot_result['supplier_id'] ? 'selected' : '' ?>>
-                                        <?php echo htmlspecialchars($supplier['supplier_name']); ?>
+                                        <?php echo ($supplier['supplier_name']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -318,70 +437,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="grid grid-cols-2">
                             <label class="text-gray-700 text-lg font-bold">รหัสรายการล็อตสินค้า</label>
                             <div class="view-mode">
-                                <?php echo htmlspecialchars($lot_product['lot_product_id']); ?>
+                                <?php echo ($lot_product['lot_product_id']); ?>
                             </div>
-                            <input type="hidden" name="lot_product_id" value="<?php echo htmlspecialchars($lot_product['lot_product_id']); ?>">
+                            <input type="hidden" name="lot_product_id" value="<?php echo ($lot_product['lot_product_id']); ?>">
                         </div>
-                        <div class="grid grid-cols-2">
+                        <!-- <div class="grid grid-cols-2">
                             <label class="text-gray-700 text-lg font-bold">จำนวนสินค้า</label>
                             <div class="view-mode">
-                                <?php echo htmlspecialchars($lot_product['lot_product_qty']); ?>
+                                <?php echo ($lot_product['lot_product_qty']); ?>
                             </div>
                         </div>
                         <div class="grid grid-cols-2">
                             <label class="text-gray-700 text-lg font-bold">ราคาทุน</label>
                             <div class="view-mode">
-                                <?php echo htmlspecialchars($lot_product['lot_product_capital']); ?>
+                                <?php echo ($lot_product['lot_product_capital']); ?>
                             </div>
                         </div>
                         <div class="grid grid-cols-2">
                             <label class="text-gray-700 text-lg font-bold">จำนวนคงเหลือ</label>
                             <div class="view-mode">
-                                <?php echo htmlspecialchars($lot_product['lot_product_remain']); ?>
+                                <?php echo ($lot_product['lot_product_remain']); ?>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
                 <?php endforeach; ?>
             </div>
         </div>
 
         <!-- Product Table -->
-        <div class="mt-4">
-            <table class="w-full border-2 border-gray-300 shadow-lg">
-                <thead>
-                    <tr class="bg-blue-100">
-                        <th class="px-4 py-2 border border-gray-500">รหัสสินค้า</th>
-                        <th class="px-4 py-2 border border-gray-500">ราคาทุน</th>
-                        <th class="px-4 py-2 border border-gray-500">จำนวนเข้า</th>
-                        <th class="px-4 py-2 border border-gray-500">จำนวนคงเหลือ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($lot_product_result)): ?>
-                        <?php foreach ($lot_product_result as $lot_product): ?>
-                            <tr>
-                                <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['product_name']); ?></td>
-                                <select name="product_id" class="edit-mode hidden w-full border rounded px-3">
-                                <?php foreach ($dropdowns['product_id'] as $product_lot_result): ?>
-                                    <option value="<?= $supplier['product_id'] ?>" <?= $product_lot_result['product_id'] == $$product_result['product_id'] ? 'selected' : '' ?>>
-                                        <?php echo htmlspecialchars($product_lot_result['product_name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                                <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['lot_product_capital']); ?></td>
-                                <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['lot_product_qty']); ?></td>
-                                <td class="px-4 py-2 border text-center"><?php echo htmlspecialchars($lot_product['lot_product_remain']); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="4" class="px-4 py-2 text-center">ไม่มีข้อมูลสินค้า</td>
+        <form method="POST">
+            <div class="mt-4">
+                <table class="w-full border-2 border-gray-300 shadow-lg">
+                    <thead>
+                        <tr class="bg-blue-100">
+                            <th class="px-4 py-2 border border-gray-500">รหัสสินค้า</th>
+                            <th class="px-4 py-2 border border-gray-500">ราคาทุน</th>
+                            <th class="px-4 py-2 border border-gray-500">จำนวนเข้า</th>
+                            <th class="px-4 py-2 border border-gray-500">จำนวนคงเหลือ</th>
                         </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($lot_product_result)): ?>
+                            <?php foreach ($lot_product_result as $product_result): ?>
+                                <tr>
+                                    <td class="px-4 py-2 border text-center">
+                                        <span class="view-mode">
+                                            <?php echo isset($product_result['product_name']) ? ($product_result['product_name']) : 'ยังไม่ได้กรอกข้อมูล'; ?>
+                                        </span>
+                                        <select name="product_id" class="edit-mode hidden w-full border rounded px-3">
+                                            <?php foreach ($dropdowns['product_lot'] as $product): ?>
+                                                <option value="<?= $product['product_id'] ?>" <?= $product['product_id'] == $product_result['product_id'] ? 'selected' : '' ?>>
+                                                    <?php echo ($product['product_name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-2 border text-center">
+                                        <span class="view-mode"><?php echo isset($lot_product['lot_product_capital']); ?></span>
+                                        <input type="number" name="lot_product_capital" value="<?php echo isset($lot_product['lot_product_capital']); ?>" class="edit-mode hidden w-full border rounded px-3">
+                                    </td>
+                                    <td class="px-4 py-2 border text-center">
+                                        <span class="view-mode"><?php echo ($lot_product['lot_product_qty']); ?></span>
+                                        <input type="number" name="lot_product_qty" value="<?php echo isset($lot_product['lot_product_qty']); ?>" class="edit-mode hidden w-full border rounded px-3">
+                                    </td>
+                                    <td class="px-4 py-2 border text-center">
+                                        <span class="view-mode"><?php echo ($lot_product['lot_product_remain']); ?></span>
+                                        <input type="number" name="lot_product_remain" value="<?php echo isset($lot_product['lot_product_remain']); ?>" class="edit-mode hidden w-full border rounded px-3">
+                                    </td>
 
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" class="px-4 py-2 text-center">ไม่มีข้อมูลสินค้า</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </form>
 
         <div class=" ">
             <div class="flex flex-col md:flex-row gap-8 mt-8 ">
@@ -393,7 +527,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="flex flex-col gap-2 bg-gray-100 p-6 rounded-lg shadow-md w-full md:w-1/2 ">
                     <label class="font-bold text-3xl text-gray-700">ยอดรวม</label>
                     <div class="p-4 h-[70px] border border-gray-400 text-4xl flex justify-center items-center rounded-lg bg-white shadow">
-                    
+
                     </div>
                 </div>
             </div>
@@ -416,8 +550,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             viewElements.forEach(el => el.classList.toggle('hidden'));
             editElements.forEach(el => el.classList.toggle('hidden'));
-            saveButton.classList.toggle('hidden');
 
+            saveButton.classList.toggle('hidden');
             editButton.textContent = editButton.textContent === 'แก้ไข' ? 'ยกเลิก' : 'แก้ไข';
         }
     </script>
