@@ -200,13 +200,11 @@ $supplierName = isset($supplier_lot['supplier_name']) ? $supplier_lot['supplier_
 
 
 
-// ตรวจสอบว่า $lot_result เป็น array หรือไม่
-if (is_array($lot_result) && isset($lot_result['lot_id'])) {
-    // ทำการแสดงผลลัพธ์ที่ได้
-    // echo ($lot_result['lot_number']);
+ // ตรวจสอบว่าตัวแปร $lot_result เป็นอาร์เรย์ก่อน
+ if (is_array($lot_result) && isset($lot_result['lot_number'])) {
+    $lot_number = htmlspecialchars($lot_result['lot_number']);
 } else {
-    // ถ้าค่าไม่ใช่ array หรือไม่มีข้อมูล
-    echo "ไม่พบข้อมูลล็อต";
+    $lot_number = 'ไม่พบข้อมูลล็อต'; // ค่าเริ่มต้นหากไม่มีข้อมูล
 }
 
 // ตรวจสอบว่า $lot_product_result เป็น array ก่อนเข้าถึงข้อมูล
@@ -355,15 +353,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Lot Number -->
-                    <div class="grid grid-cols-2">
-                        <label class="text-gray-700 text-lg font-bold">รหัส Lot สินค้า</label>
-                        <div>
-                            <span class="view-mode"><?= htmlspecialchars($lot_result['lot_number']); ?></span>
-                            <input type="text" name="lot_number"
-                                value="<?= htmlspecialchars($lot_result['lot_number']); ?>"
-                                class="edit-mode hidden w-full border rounded px-3">
-                        </div>
-                    </div>
+<div class="grid grid-cols-2">
+    <label class="text-gray-700 text-lg font-bold">
+        รหัส Lot สินค้า
+    </label>
+    <div>
+        <span class="view-mode"><?= $lot_number; ?></span>
+        <input type="text" name="lot_number"
+            value="<?= $lot_number; ?>"
+            class="edit-mode hidden w-full border rounded px-3">
+    </div>
+</div>
                     <!-- Lot Detail -->
                     <div class="grid grid-cols-2">
                         <label class="text-gray-700 text-lg font-bold">รายละเอียด</label>
