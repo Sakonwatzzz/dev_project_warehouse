@@ -90,9 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
 
             // ทำการ INSERT ข้อมูลในตาราง lot
-            $stmt = $pdo->prepare('INSERT INTO lot (lot_number, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
-            VALUES (?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$lot_number, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
+            $stmt = $pdo->prepare('INSERT INTO lot (lot_number, lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$lot_number, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
             // ดึง ID ของ lot ที่เพิ่ง INSERT
             $lot_id = $pdo->lastInsertId();
@@ -141,8 +141,9 @@ $query = "SELECT store_id, store_name FROM store";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 $store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // ดึงข้อมูลรายการรับสินค้า
-$query = "SELECT lot_product_id, lot_product_qty, lot_product_remain ,lot_product_capital FROM lot_product";
+$query = "SELECT lot_product_id,  lot_product_qty, lot_product_remain ,lot_product_capital FROM lot_product";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -270,6 +271,28 @@ ob_end_flush();
                             </select>
                         </div>
 
+
+                        <!-- ร้าน -->
+                        <div class="w-full flex">
+                            <label for="store_name" class="w-[15%] mb-2">ร้าน:</label>
+                            <select name="store_id" id="store_name" required
+                                class="w-[85%] border rounded px-2 py-1">
+                                <?php foreach ($store_lot as $store): ?>
+                                    <option value="<?= htmlspecialchars($store['store_id']) ?>">
+                                        <?= htmlspecialchars($store['store_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <!-- รายละเอียด -->
+                        <div class="w-full flex">
+                            <label for="lot_detail" class="w-[15%] mb-2">รายละเอียด:</label>
+                            <input type="text" name="lot_detail" id="lot_detail" required
+                                class="w-[85%] border rounded px-2 py-1" placeholder="รายละเอียด">
+                        </div>
+
+
                         <!-- ผู้ส่งมอบ -->
                         <div class="w-full flex">
                             <label for="supplier_id" class="w-[15%] mb-2">ผู้ส่งมอบ:</label>
@@ -282,6 +305,21 @@ ob_end_flush();
                                 <?php endforeach; ?>
                             </select>
                         </div>
+
+
+                        <!-- สถาณะ -->
+                        <div class="w-full flex">
+                            <label for="lot_status_name" class="w-[15%] mb-2">สถาณะ:</label>
+                            <select name="lot_status_id" id="lot_status_name" required
+                                class="w-[85%] border rounded px-2 py-1">
+                                <?php foreach ($status_lot as $status): ?>
+                                    <option value="<?= htmlspecialchars($status['lot_status_id']) ?>">
+                                        <?= htmlspecialchars($status['lot_status_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
 
                         <!-- วันที่รับสินค้า -->
                         <div class="w-full flex">
@@ -319,11 +357,11 @@ ob_end_flush();
                 while ($lot_list = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
                     <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
                     <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
-                        <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->      
+                        <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_number']) ?></td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
                         <td class="text-start pl-4 border border-gray-500" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
-                            <?php echo($lot_list['warehouse_name']) ?>
+                            <?php echo ($lot_list['warehouse_name']) ?>
                     </tr>
                 <?php endwhile; ?>
             </tbody>
