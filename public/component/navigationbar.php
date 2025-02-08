@@ -93,7 +93,8 @@ $product_section_pages = [
             'lot_update',
             'lot_detail',
             'lot_productdetail',
-            'lot_listdetail'
+            'lot_listdetail',
+            'lot_ajax'
 
         ];
         $member_pages = [
