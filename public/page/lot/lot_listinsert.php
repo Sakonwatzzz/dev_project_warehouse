@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
             // ดึง ID ของ lot ที่เพิ่ง INSERT
-            $lot_id = $pdo->lastInsertId();
+            $lot_id = $pdo->lastInsertId();  // ค่าของ lot_id ที่เป็นค่าที่ถูกต้อง
 
             // ทำการ INSERT ข้อมูลในตาราง lot_product
             $stmt_product = $pdo->prepare('INSERT INTO lot_product (lot_id, lot_product_id, lot_product_qty, lot_product_remain, lot_product_capital) 
@@ -356,7 +356,7 @@ ob_end_flush();
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_id']) ?></td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
                         <td class="text-start pl-4 border border-gray-500" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
-                            <?php echo ($lot_list['warehouse_name']) ?>
+                            <?php echo ($lot_list['warehouse_name']) ?> </td>
                     </tr>
                 <?php endwhile; ?>
             </tbody>

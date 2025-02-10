@@ -34,9 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Prepare the SQL insert statement
         $stmt = $pdo->prepare('INSERT INTO lot_product (lot_id, lot_product_qty, lot_product_remain, lot_product_capital, lot_product_date, lot_product_status, product_id) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)');
-
-        // Execute the query with the data from the form
+    VALUES (?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $lot_id,
             $lot_product_qty,
@@ -69,7 +67,6 @@ ob_end_flush();
     <title>การรับรายการสินค้า</title>
 
     <style>
-        
         .notification {
             position: fixed;
             top: 50%;
@@ -132,29 +129,33 @@ ob_end_flush();
             <?php endif; ?>
 
             <form class="p-5 space-y-2" method="POST">
+            <div class="flex items-center">
+                    <label class="w-[150px] text-base mr-4" for="lot_product_id">รหัสรายการรับสินค้า:</label>
+                    <input type="hidden" id="lot_product_id" name="lot_product_id" class="flex-1 h-9 px-2 border border-[#7F9DB9]">
+                </div>
                 <div class="flex items-center">
                     <label for="lot_id" class="w-[150px] text-base mr-4">รหัสล็อตสินค้า:</label>
                     <input type="text"
                         id="lot_id"
                         name="lot_id"
-                        value="<?php echo htmlspecialchars($current_lot_id); ?>"
+                        value="<?php echo ($current_lot_id); ?>"
                         class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-gray-100"
                         readonly>
                 </div>
 
                 <div class="flex items-center">
                     <label class="w-[150px] text-base mr-4" for="lot_product_qty">จำนวนสินค้าเข้า:</label>
-                    <input type="number" id="lot_product_qty" name="lot_product_qty" class="flex-1 h-9 px-2 border border-[#7F9DB9]" required>
+                    <input type="number" id="lot_product_qty" name="lot_product_qty" class="flex-1 h-9 px-2 border border-[#7F9DB9]">
                 </div>
 
                 <div class="flex items-center">
                     <label class="w-[150px] text-base mr-4" for="lot_product_remain">จำนวนสินค้าคงเหลือ:</label>
-                    <input type="number" id="lot_product_remain" name="lot_product_remain" class="flex-1 h-9 px-2 border border-[#7F9DB9]" required>
+                    <input type="number" id="lot_product_remain" name="lot_product_remain" class="flex-1 h-9 px-2 border border-[#7F9DB9]">
                 </div>
 
                 <div class="flex items-center">
                     <label class="w-[150px] text-base mr-4" for="lot_product_capital">ราคาต้นทุน:</label>
-                    <input type="number" step="0.01" id="lot_product_capital" name="lot_product_capital" class="flex-1 h-9 px-2 border border-[#7F9DB9]" required>
+                    <input type="number" step="0.01" id="lot_product_capital" name="lot_product_capital" class="flex-1 h-9 px-2 border border-[#7F9DB9]">
                 </div>
 
                 <div class="flex items-center">
@@ -164,7 +165,7 @@ ob_end_flush();
 
                 <div class="flex items-center">
                     <label class="w-[150px] text-base mr-4" for="lot_product_status">สถานะสินค้า:</label>
-                    <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="lot_product_status" id="lot_product_status" required>
+                    <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="lot_product_status" id="lot_product_status">
                         <option value="1">พร้อมจำหน่าย</option>
                         <option value="0">ไม่พร้อมจำหน่าย</option>
                     </select>
@@ -172,14 +173,8 @@ ob_end_flush();
 
                 <div class="flex items-center">
                     <label class="w-[150px] text-base mr-4" for="product_id">รหัสสินค้า:</label>
-                    <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="product_id" id="product_id" required>
-                        <option value="">เลือกรหัสสินค้า</option>
-                        <?php foreach ($product_ids as $product): ?>
-                            <option value="<?php echo htmlspecialchars($product['product_id']); ?>">
-                                <?php echo htmlspecialchars($product['product_id']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <input type="number" step="0.01" id="product_id" name="product_id" class="flex-1 h-9 px-2 border border-[#7F9DB9]">
+
                 </div>
 
                 <div class="flex justify-end mt-5 gap-2">
