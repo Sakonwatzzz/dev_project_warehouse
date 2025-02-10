@@ -21,10 +21,10 @@ require_once __DIR__ . '/../config/database_server.php';
     </style>
 </head>
 
-<body class="bg-[#F0F0F0]">
+<body class="bg-[#f3f3f3]">
 
     <div class="main-body">
-        <?php include 'home.php'; ?>
+        <?php include 'component/navigationbar.php'; ?>
     </div>
 </body>
 

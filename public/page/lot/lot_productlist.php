@@ -2,6 +2,8 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
+
+
 $query = "SELECT
 lot_product.lot_product_id, 
 lot_product.lot_id, 
