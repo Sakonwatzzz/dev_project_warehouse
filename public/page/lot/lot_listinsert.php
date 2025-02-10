@@ -13,7 +13,6 @@ try {
         store.store_id, 
         store.store_name, 
         lot.lot_id, 
-        lot.lot_number, 
         lot.lot_detail, 
         lot.lot_date, 
         lot.lot_status_id, 
@@ -75,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // กรณีเพิ่มข้อมูล lot
     else {
-        $lot_number = $_POST['lot_number'] ?? '';
+        $lot_id = $_POST['lot_id'];
         $lot_date = $_POST['lot_date'] ?? '';
         $lot_status_id = $_POST['lot_status_id'] ?? '';
         $warehouse_id = $_POST['warehouse_id'] ?? '';
@@ -90,9 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
 
             // ทำการ INSERT ข้อมูลในตาราง lot
-            $stmt = $pdo->prepare('INSERT INTO lot (lot_number, lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$lot_number, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
+            $stmt = $pdo->prepare('INSERT INTO lot (lot_id, lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
+            VALUES (?, ?, ?, ?, ?, ? ,?)');
+            $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
             // ดึง ID ของ lot ที่เพิ่ง INSERT
             $lot_id = $pdo->lastInsertId();
@@ -245,16 +244,12 @@ ob_end_flush();
             <form method="POST" action="" class="w-[60%]">
                 <div class="w-full flex justify-center items-center">
                     <div class="w-full flex flex-wrap space-y-3 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
-                        <div class="w-full flex">
-                            <label for="lot_id" class="w-[15%] mb-2"></label>
-                            <input type="hidden" name="lot_id" id="lot_id" readonly value="<?= $lot_id ?? '' ?>"
-                                class="w-[85%] border rounded px-2 py-1">
-                        </div>
+
 
                         <!-- รหัส Lot สินค้า -->
                         <div class="w-full flex">
-                            <label for="lot_number" class="w-[15%] mb-2">รหัส Lot สินค้า:</label>
-                            <input type="text" name="lot_number" id="lot_number" required
+                            <label for="lot_id" class="w-[15%] mb-2">รหัส Lot สินค้า:</label>
+                            <input type="text" name="lot_id" id="lot_id" required
                                 class="w-[85%] border rounded px-2 py-1" placeholder="กรอกเลขที่ lot">
                         </div>
 
@@ -358,7 +353,7 @@ ob_end_flush();
                     <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
                     <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
                         <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
-                        <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_number']) ?></td>
+                        <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_id']) ?></td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
                         <td class="text-start pl-4 border border-gray-500" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
                             <?php echo ($lot_list['warehouse_name']) ?>
