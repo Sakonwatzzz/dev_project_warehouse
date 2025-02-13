@@ -61,11 +61,11 @@ FROM
     LEFT JOIN product ON lot_product.product_id = product.product_id
 LIMIT :offset, :records_per_page";
 
-    $smtm = $pdo->prepare($query);
-    $smtm->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $smtm->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-    $smtm->execute();
-    $result_lotproduct_list = $smtm;
+    $stmt = $pdo->prepare($query);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+    $stmt->execute();
+    $result_lotproduct_list = $stmt;
 } catch (PDOException $e) {
     echo "" . $e->getMessage();
 }

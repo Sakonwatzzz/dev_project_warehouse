@@ -84,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lot_product_qty = $_POST['lot_product_qty'] ?? '';
         $lot_product_remain = $_POST['lot_product_remain'] ?? '';
         $lot_product_capital = $_POST['lot_product_capital'] ?? '';
+        $product_id = $_POST['product_id'] ?? '';
         try {
             // เริ่มต้น Transaction
             $pdo->beginTransaction();
@@ -97,9 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lot_id = $pdo->lastInsertId();  // ค่าของ lot_id ที่เป็นค่าที่ถูกต้อง
 
             // ทำการ INSERT ข้อมูลในตาราง lot_product
-            $stmt_product = $pdo->prepare('INSERT INTO lot_product (lot_id, lot_product_id, lot_product_qty, lot_product_remain, lot_product_capital) 
+            $stmt_product = $pdo->prepare('INSERT INTO lot_product (lot_id, lot_product_qty, lot_product_remain, lot_product_capital, product_id) 
             VALUES (?, ?, ?, ?, ?)');
-            $stmt_product->execute([$lot_id, $lot_product_id, $lot_product_qty, $lot_product_remain, $lot_product_capital]);
+            $stmt_product->execute([$lot_id,  $lot_product_qty, $lot_product_remain, $lot_product_capital, $product_id]);
 
             // Commit การทำธุรกรรม
             $pdo->commit();
@@ -227,12 +228,12 @@ ob_end_flush();
                     </thead>
                     <tbody>
                         <?php foreach ($warehouse_lot as $warehouse): ?>
-                            <tr data-id="<?= htmlspecialchars($warehouse['warehouse_id']) ?>" class="hover:bg-gray-100">
+                            <tr data-id="<?=($warehouse['warehouse_id']) ?>" class="hover:bg-gray-100">
                                 <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-name">
-                                    <?= htmlspecialchars($warehouse['warehouse_name']) ?>
+                                    <?=($warehouse['warehouse_name']) ?>
                                 </td>
                                 <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-status">
-                                    <?= htmlspecialchars($warehouse['warehouse_status']) ?>
+                                    <?=($warehouse['warehouse_status']) ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
