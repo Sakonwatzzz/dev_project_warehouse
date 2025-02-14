@@ -75,11 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
     
-            // ใช้ lot_id จาก POST สำหรับตาราง lot_product
-            $stmt_product = $pdo->prepare('INSERT INTO lot_product (lot_id, lot_product_qty, lot_product_remain, lot_product_capital, product_id) 
-            VALUES (?, ?, ?, ?, ?)');
-            $stmt_product->execute([$lot_id, $lot_product_qty, $lot_product_remain, $lot_product_capital, $product_id]);
-    
             $pdo->commit();
     
             // ใช้ lot_id จาก POST ในการส่งไปกับ URL

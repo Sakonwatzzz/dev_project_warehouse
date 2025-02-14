@@ -44,8 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([$product_id, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
-        $product_id = $pdo->lastInsertId();
-        header("Location: index.php?page=product_detail&tabel=product&id=$product_id");
+        
+        // ใช้ $product_id ที่รับมาจากฟอร์มโดยตรง
+        header("Location: /?page=product_detail&tabel=product&id=" . urlencode($product_id));
         exit();
     } catch (PDOException $e) {
         die('Error: ' . $e->getMessage());

@@ -23,12 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $pdo->prepare("
         UPDATE product 
-        SET product_barcode = ?, product_name = ?, product_price1 = ?, product_price2 = ?, 
+        SET product_name = ?, product_price1 = ?, product_price2 = ?, 
             product_price3 = ?, product_price4 = ?, product_capital = ?, product_type_id = ?, 
             product_brand_id = ? 
         WHERE product_id = ?
     ");
-    $stmt->execute([$barcode, $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
+    $stmt->execute([ $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
 
     header("Location: /?page=product_detail&tabel=product&id=$id");
     exit;
@@ -153,8 +153,8 @@ $product_update = $stmt->fetch();
 
 
                 <div class="flex items-center">
-                    <label for="barcode" class="w-[150px] text-base mr-4">บาร์โค้ดสินค้า:</label>
-                    <input type="text" name="barcode" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_barcode']) ?>">
+                    <label for="product_id" class="w-[150px] text-base mr-4">รหัสสินค้า:</label>
+                    <input type="text" name="product_id" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_id']) ?>">
                 </div>
 
                 <div class="flex items-center">

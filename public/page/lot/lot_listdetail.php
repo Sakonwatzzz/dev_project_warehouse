@@ -196,16 +196,24 @@ try {
                             <th class="px-6 py-3 border text-left">ชื่อสินค้า</th>
                             <th class="px-6 py-3 border text-center">จำนวน</th>
                             <th class="px-6 py-3 border text-right">ราคาทุน</th>
+                            <th class="px-6 py-3 border text-right">มูลค่ารวม</th>
                             <th class="px-6 py-3 border text-right">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($lot_products as $item): ?>
+                        <?php
+                        $total_value = 0;
+                        foreach ($lot_products as $index => $item):
+                            $item_total = $item['lot_product_qty'] * $item['lot_product_capital'];
+                            $total_value += $item_total;
+                        ?>
+
                             <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer">
                                 <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_id']); ?></td>
                                 <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_name']); ?></td>
                                 <td class="text-center py-2 border"><?php echo htmlspecialchars($item['lot_product_qty']); ?></td>
                                 <td class="text-right py-2 border"><?php echo number_format($item['lot_product_capital'], 2); ?></td>
+                                <td class="text-right py-2 border"><?php echo number_format($item_total, 2); ?></td>
                                 <td class="text-right py-2 border px-4">
                                     <button type="button"
                                         class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
@@ -218,7 +226,15 @@ try {
                                     </button>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
+                            
+                            <?php endforeach; ?>
+                            <?php if (count($lot_products) > 0): ?>
+                                <tr class=" bg-gray-300  text-2xl h-12">
+                                    <td colspan="5" class="text-end">มูลค่ารวมทั้งสิ้น:</td>
+                                    <td class="text-end py-4 pr-4"><?php echo number_format($total_value, 2); ?></td>
+                                    <td></td>
+                                </tr>
+                            <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -267,92 +283,182 @@ try {
         }
 
         $(document).ready(function() {
-            // Barcode scanning
+            // Barcode scanning handler
             $('input[name="product_id"]').on('keypress', function(e) {
-                if (e.which == 13) {
+                if (e.which == 13) { // Enter key pressed
                     e.preventDefault();
-                    let product_id = $(this).val();
-                    if (product_id) {
-                        $.post(window.location.href, {
-                                barcode: product_id
-                            })
-                            .done(function(response) {
-                                try {
-                                    // ถ้า response เป็น string ที่มี JSON อยู่ท้าย
-                                    let jsonStr = response;
-                                    if (typeof response === 'string') {
-                                        // หา JSON ที่อยู่ท้ายสุด
-                                        const jsonStart = response.lastIndexOf('{');
-                                        const jsonEnd = response.lastIndexOf('}');
-                                        if (jsonStart !== -1 && jsonEnd !== -1) {
-                                            jsonStr = response.substring(jsonStart, jsonEnd + 1);
-                                        }
-                                    }
+                    const product_id = $(this).val();
 
-                                    const data = JSON.parse(jsonStr);
-                                    if (data.success) {
-                                        location.reload();
-                                    } else {
-                                        alert('เกิดข้อผิดพลาด: ' + data.error);
-                                    }
-                                } catch (e) {
-                                    console.error('Response parsing error:', e);
-                                    console.log('Raw response:', response);
-                                    alert('เกิดข้อผิดพลาดในการประมวลผลข้อมูล');
-                                }
-                            })
-                            .fail(function(jqXHR, textStatus, errorThrown) {
-                                console.error('Server response:', jqXHR.responseText);
-                                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + textStatus);
-                            });
+                    if (!product_id) {
+                        alert('กรุณาสแกนบาร์โค้ดสินค้า');
+                        return;
                     }
+
+                    // Clear input field
+                    $(this).val('');
+
+                    // Send request to server
+                    $.ajax({
+                        url: window.location.href,
+                        method: 'POST',
+                        data: {
+                            barcode: product_id
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถเพิ่มสินค้าได้'));
+                                $('input[name="product_id"]').focus();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Server response:', xhr.responseText);
+
+                            // Try to parse any JSON response that might be embedded in HTML
+                            try {
+                                const htmlContent = xhr.responseText;
+                                const jsonMatch = htmlContent.match(/\{.*\}/);
+
+                                if (jsonMatch) {
+                                    const jsonResponse = JSON.parse(jsonMatch[0]);
+                                    if (jsonResponse.success) {
+                                        location.reload();
+                                        return;
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('JSON parsing error:', e);
+                            }
+
+                            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+                            $('input[name="product_id"]').focus();
+                        }
+                    });
                 }
             });
+        });
 
-            // Edit button handler
-            $('.edit-product').click(function() {
-                const id = $(this).data('id');
-                const qty = $(this).data('qty');
-                const capital = $(this).data('capital');
-                const name = $(this).data('name');
-                const barcode = $(this).data('barcode');
+        // Edit button handler
+        $('.edit-product').click(function() {
+            const id = $(this).data('id');
+            const qty = $(this).data('qty');
+            const capital = $(this).data('capital');
+            const name = $(this).data('name');
+            const barcode = $(this).data('barcode');
 
-                $('#lot_product_id').val(id);
-                $('#product_barcode').val(barcode);
-                $('#product_name').val(name);
-                $('#qty').val(qty);
-                $('#capital').val(capital);
+            $('#lot_product_id').val(id);
+            $('#product_barcode').val(barcode);
+            $('#product_name').val(name);
+            $('#qty').val(qty);
+            $('#capital').val(capital);
 
-                document.getElementById('editModal').classList.remove('hidden');
-            });
+            document.getElementById('editModal').classList.remove('hidden');
+        });
 
-            // Save edit handler
-            $('#save-edit').click(function() {
-                const form = $('#edit-form');
-                if (!form[0].checkValidity()) {
-                    form[0].reportValidity();
-                    return;
-                }
+        $('#save-edit').click(function() {
+            const form = $('#edit-form');
+            const submitButton = $(this);
 
-                $.post(window.location.href, form.serialize())
-                    .done(function(response) {
+            // Validate form fields
+            if (!form[0].checkValidity()) {
+                form[0].reportValidity();
+                return;
+            }
+
+            // Get form values for validation
+            const qty = parseFloat($('#qty').val());
+            const capital = parseFloat($('#capital').val());
+
+            // Additional validation
+            if (qty <= 0) {
+                alert('จำนวนสินค้าต้องมากกว่า 0');
+                $('#qty').focus();
+                return;
+            }
+
+            if (capital < 0) {
+                alert('ราคาทุนต้องไม่ต่ำกว่า 0');
+                $('#capital').focus();
+                return;
+            }
+
+            // Disable submit button to prevent double submission
+            submitButton.prop('disabled', true);
+            submitButton.text('กำลังบันทึก...');
+
+            // Send AJAX request
+            $.ajax({
+                url: window.location.href,
+                method: 'POST',
+                data: form.serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    try {
                         if (response.success) {
                             location.reload();
                         } else {
-                            alert('เกิดข้อผิดพลาด: ' + response.error);
+                            alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถบันทึกข้อมูลได้'));
                         }
-                    })
-                    .fail(function() {
-                        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-                    });
-            });
+                    } catch (e) {
+                        console.error('Response parsing error:', e);
+                        alert('เกิดข้อผิดพลาดในการประมวลผลข้อมูล');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Server response:', xhr.responseText);
 
-            // Close modal when clicking outside
-            $('#editModal').click(function(e) {
-                if (e.target === this) {
-                    closeEditModal();
+                    // Try to parse any JSON response that might be embedded in HTML
+                    try {
+                        const htmlContent = xhr.responseText;
+                        const jsonMatch = htmlContent.match(/\{.*\}/);
+
+                        if (jsonMatch) {
+                            const jsonResponse = JSON.parse(jsonMatch[0]);
+                            if (jsonResponse.success) {
+                                location.reload();
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('JSON parsing error:', e);
+                    }
+
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+                },
+                complete: function() {
+                    // Re-enable submit button
+                    submitButton.prop('disabled', false);
+                    submitButton.text('บันทึก');
                 }
             });
+        });
+
+        // Add input validation handlers
+        $('#qty').on('input', function() {
+            let value = $(this).val();
+            if (value <= 0) {
+                $(this).addClass('border-red-500');
+            } else {
+                $(this).removeClass('border-red-500');
+            }
+        });
+
+        $('#capital').on('input', function() {
+            let value = $(this).val();
+            if (value < 0) {
+                $(this).addClass('border-red-500');
+            } else {
+                $(this).removeClass('border-red-500');
+            }
+        });
+
+        // Close modal when clicking outside
+        $('#editModal').click(function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
         });
     </script>
 
@@ -368,20 +474,6 @@ try {
             margin: 0;
         }
     </style>
-
-
-    <script>
-        document.getElementById('barcode-form').addEventListener('submit', function(e) {
-            let inputField = document.querySelector('input[name="product_id"]');
-            let value = inputField.value;
-
-            // ตรวจสอบว่าเป็นตัวเลขและมีค่ามากกว่า 0
-            if (!/^\d+$/.test(value) || value <= 0) {
-                alert("กรุณาใส่ข้อมูลบาร์โค้ดที่เป็นตัวเลขเท่านั้น");
-                e.preventDefault(); // หยุดการส่งฟอร์ม
-            }
-        });
-    </script>
 
 </body>
 
