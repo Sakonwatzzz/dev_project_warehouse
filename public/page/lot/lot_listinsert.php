@@ -53,63 +53,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // กรณีอัปเดตข้อมูลคลังสินค้า
-    elseif (isset($_POST['update_warehouse'])) {
-        $id = $_POST['warehouse_id'] ?? '';
-        $newWarehouseName = trim($_POST['update_warehousename'] ?? '');
-        $newWarehouseStatus = trim($_POST['update_warehousestatus'] ?? '');
-
-        if (!empty($id) && !empty($newWarehouseName) && !empty($newWarehouseStatus)) {
-            try {
-                $stmt = $pdo->prepare("UPDATE warehouse SET warehouse_name = ?, warehouse_status = ? WHERE warehouse_id = ?");
-                $stmt->execute([$newWarehouseName, $newWarehouseStatus, $id]);
-                header('Location: /index.php?page=lot_listinsert&success=updated');
-                exit;
-            } catch (PDOException $e) {
-                $error = 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล: ' . $e->getMessage();
-            }
-        } else {
-            $error = 'กรุณากรอกข้อมูลให้ครบทุกช่อง';
-        }
-    }
     // กรณีเพิ่มข้อมูล lot
     else {
-        $lot_id = $_POST['lot_id'];
+        $lot_id = $_POST['lot_id'] ?? ''; // รับค่า lot_id จาก POST
+        $lot_detail = $_POST['lot_detail'] ?? '';
         $lot_date = $_POST['lot_date'] ?? '';
         $lot_status_id = $_POST['lot_status_id'] ?? '';
         $warehouse_id = $_POST['warehouse_id'] ?? '';
         $store_id = $_POST['store_id'] ?? '';
         $supplier_id = $_POST['supplier_id'] ?? '';
-        $lot_product_id = $_POST['lot_product_id'] ?? '';
         $lot_product_qty = $_POST['lot_product_qty'] ?? '';
         $lot_product_remain = $_POST['lot_product_remain'] ?? '';
         $lot_product_capital = $_POST['lot_product_capital'] ?? '';
         $product_id = $_POST['product_id'] ?? '';
+    
         try {
-            // เริ่มต้น Transaction
             $pdo->beginTransaction();
-
-            // ทำการ INSERT ข้อมูลในตาราง lot
+    
+            // ใช้ lot_id จาก POST ในการ INSERT
             $stmt = $pdo->prepare('INSERT INTO lot (lot_id, lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
-            VALUES (?, ?, ?, ?, ?, ? ,?)');
+            VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
-
-            // ดึง ID ของ lot ที่เพิ่ง INSERT
-            $lot_id = $pdo->lastInsertId();  // ค่าของ lot_id ที่เป็นค่าที่ถูกต้อง
-
-            // ทำการ INSERT ข้อมูลในตาราง lot_product
+    
+            // ใช้ lot_id จาก POST สำหรับตาราง lot_product
             $stmt_product = $pdo->prepare('INSERT INTO lot_product (lot_id, lot_product_qty, lot_product_remain, lot_product_capital, product_id) 
             VALUES (?, ?, ?, ?, ?)');
-            $stmt_product->execute([$lot_id,  $lot_product_qty, $lot_product_remain, $lot_product_capital, $product_id]);
-
-            // Commit การทำธุรกรรม
+            $stmt_product->execute([$lot_id, $lot_product_qty, $lot_product_remain, $lot_product_capital, $product_id]);
+    
             $pdo->commit();
-
-            // หลังจาก INSERT สำเร็จแล้ว redirect ไปที่หน้ารายละเอียด
-            header("Location: index.php?page=lot_listdetail&tabel=lot&id=$lot_id&success=1");
+    
+            // ใช้ lot_id จาก POST ในการส่งไปกับ URL
+            header("Location: /?page=lot_listdetail&tabel=lot&id=" . $lot_id . "&success=1");
             exit;
         } catch (PDOException $e) {
-            // หากเกิดข้อผิดพลาด Rollback การทำธุรกรรม
             $pdo->rollBack();
             $error = 'เกิดข้อผิดพลาด: ' . $e->getMessage();
             echo $error;
@@ -166,19 +142,6 @@ ob_end_flush();
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mx-11 mb-4">
             <?= htmlspecialchars($error) ?>
         </div>
-    <?php endif; ?>
-
-    <?php if (isset($_GET['success'])): ?>
-        <div id="success-alert" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mx-11 mb-4">
-            <?php
-            if ($_GET['success'] === 'created') {
-                echo 'เพิ่มคลังสินค้าใหม่เรียบร้อยแล้ว';
-            } elseif ($_GET['success'] === 'updated') {
-                echo 'อัปเดตข้อมูลคลังสินค้าเรียบร้อยแล้ว';
-            }
-            ?>
-        </div>
-
     <?php endif; ?>
 
     <div class="flex">

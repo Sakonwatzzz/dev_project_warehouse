@@ -35,7 +35,6 @@ switch ($tabel) {
     store.store_id, 
     store.store_name, 
     lot.lot_id, 
-    lot.lot_number, 
     lot.lot_detail, 
     lot.lot_date, 
     lot.lot_status_id, 
@@ -80,7 +79,6 @@ $store_lot = $pdo->query($querystore);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lot_id = $_POST['lot_id'];
-    $lot_number = $_POST['lot_number'];
     $lot_detail = $_POST['lot_detail'];
     $lot_date = $_POST['lot_date'];
     $lot_status_id = $_POST['lot_status_id'];
@@ -91,12 +89,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $pdo->prepare("
     UPDATE lot 
-    SET lot_id = ?, lot_number = ? ,lot_detail = ?, lot_date = ?, lot_status_id = ?, 
+    SET lot_id  = ? ,lot_detail = ?, lot_date = ?, lot_status_id = ?, 
         warehouse_id = ?, store_id = ?, supplier_id = ?
     WHERE lot_id = ?
 ");
 
-    $stmt->execute([$lot_id, $lot_number, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id, $lot_id]);
+    $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id, $lot_id]);
 
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
     header("Location: /?page=lot_detail&tabel=lot&id=$lot_id");
@@ -132,17 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="id" name="lot_id" value="<?php echo ($lot['lot_id']); ?> " readonly>
                             <?php else: ?>
                                 <?php echo ($lot['lot_id']); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th>รหัสล็อตสินค้า :</th>
-                        <td class="shadow-lg">
-                            <?php if ($is_update): ?>
-                                <input type="text" name="lot_number" id="lot-number" value="<?php echo ($lot['lot_number']); ?>">
-                            <?php else: ?>
-                                <?php echo ($lot['lot_number']); ?>
                             <?php endif; ?>
                         </td>
                     </tr>

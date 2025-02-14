@@ -14,8 +14,8 @@ lot_product.product_id,
 product.product_name
 FROM
     lot_product
-    INNER JOIN lot ON lot_product.lot_id = lot.lot_id
-    INNER JOIN product ON lot_product.product_id = product.product_id";
+    INNER JOIN lot ON lot.lot_id = lot_product.lot_id
+    INNER JOIN product ON  product.product_id =  lot_product.product_id";
 $result_lotproduct_list = $pdo->query($query);
 
 // การลบข้อมูล
@@ -109,6 +109,7 @@ ob_end_flush();
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             width: 70px;
         }
+
         .pagination {
             margin-top: 20px;
             text-align: center;
