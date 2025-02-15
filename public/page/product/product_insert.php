@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([$product_id, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
-        
+
         // ใช้ $product_id ที่รับมาจากฟอร์มโดยตรง
         header("Location: /?page=product_detail&tabel=product&id=" . urlencode($product_id));
         exit();
@@ -298,33 +298,54 @@ if (!$brandResults) {
 
                 <?php if ($typeResults->rowCount() > 0) { ?>
                     <div class="flex items-center ">
-                        <label class="w-[110px] text-base mr-4" for="typename">ประเภทสินค้า:</label>
-                        <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typename" id="typename">
-                            <?php while ($row = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                                <option value="<?php echo ($row['product_type_id']); ?>">
-                                    <?php echo ($row['product_type_name']); ?>
-                                </option>
-                            <?php } ?>
-                        </select>
+                        <label class="w-[110px] text-base mr-4" for="typename">ประเภท:</label>
+                        <div class="flex-1">
+                            <div class="flex gap-2 items-center">
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typename" id="typename">
+                                    <?php if ($typeResults->rowCount() > 0) {
+                                        while ($row = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
+                                            <option value="<?php echo htmlspecialchars($row['product_type_id']); ?>">
+                                                <?php echo htmlspecialchars($row['product_type_name']); ?>
+                                            </option>
+                                        <?php }
+                                    } else { ?>
+                                        <option value="">ไม่มีประเภทสินค้า</option>
+                                    <?php } ?>
+                                </select>
+                                <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded add-product-type">
+                                    เพิ่ม
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 <?php } else { ?>
                     <p>ไม่พบข้อมูลประเภทสินค้า</p>
                 <?php } ?>
 
+
                 <?php if ($brandResults->rowCount() > 0) { ?>
                     <div class="flex items-center ">
-                        <label class="w-[110px] text-base mr-4" for="typebrandname">ประเภทแบรนด์สินค้า:</label>
-                        <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typebrandname" id="typebrandname" required>
-                            <?php while ($row = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                                <option value="<?php echo ($row['product_brand_id']); ?>">
-                                    <?php echo ($row['product_brand_name']); ?>
-                                </option>
-                            <?php } ?>
-                        </select>
+                        <label class="w-[110px] text-base mr-4" for="typebrandname">แบรนด์สินค้า:</label>
+                        <div class="flex-1">
+                            <div class="flex gap-2 items-center">
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typebrandname" id="typebrandname" required>
+                                    <?php while ($row = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
+                                        <option value="<?php echo ($row['product_brand_id']); ?>">
+                                            <?php echo ($row['product_brand_name']); ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                                <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded add-product-type">
+                                    เพิ่ม
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 <?php } else { ?>
                     <p>ไม่พบข้อมูลประเภทแบรนด์สินค้า</p>
                 <?php } ?>
+
+
 
                 <div class="flex justify-end mt-5 gap-2">
                     <a href="/?page=product_list" class="
@@ -446,6 +467,8 @@ if (!$brandResults) {
             });
         });
     </script>
+
+
 </body>
 
 </html>
