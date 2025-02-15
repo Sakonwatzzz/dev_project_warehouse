@@ -66,17 +66,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lot_product_remain = $_POST['lot_product_remain'] ?? '';
         $lot_product_capital = $_POST['lot_product_capital'] ?? '';
         $product_id = $_POST['product_id'] ?? '';
-    
+
         try {
             $pdo->beginTransaction();
-    
+
             // ใช้ lot_id จาก POST ในการ INSERT
             $stmt = $pdo->prepare('INSERT INTO lot (lot_id, lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
             VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
-    
+
             $pdo->commit();
-    
+
             // ใช้ lot_id จาก POST ในการส่งไปกับ URL
             header("Location: /?page=lot_listdetail&tabel=lot&id=" . $lot_id . "&success=1");
             exit;
@@ -186,12 +186,12 @@ ob_end_flush();
                     </thead>
                     <tbody>
                         <?php foreach ($warehouse_lot as $warehouse): ?>
-                            <tr data-id="<?=($warehouse['warehouse_id']) ?>" class="hover:bg-gray-100">
+                            <tr data-id="<?= ($warehouse['warehouse_id']) ?>" class="hover:bg-gray-100">
                                 <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-name">
-                                    <?=($warehouse['warehouse_name']) ?>
+                                    <?= ($warehouse['warehouse_name']) ?>
                                 </td>
                                 <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-status">
-                                    <?=($warehouse['warehouse_status']) ?>
+                                    <?= ($warehouse['warehouse_status']) ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -353,14 +353,23 @@ ob_end_flush();
             document.getElementById('newWarehouseForm').classList.add('hidden');
         }
 
-        // Add event listener to update hidden inputs when visible inputs change
-        const visibleInputs = row.querySelectorAll('input[type="text"]');
-        const hiddenInputs = managementCell.querySelectorAll('input[type="hidden"]');
-        visibleInputs.forEach((input, index) => {
-            input.addEventListener('input', function() {
-                hiddenInputs[index + 1].value = this.value;
+        function enableEdit(button) {
+            const row = button.closest('tr'); // หา row ของปุ่มที่กด
+            const managementCell = button.closest('td'); // หาเซลล์ที่อยู่ในคอลัมน์ของปุ่ม
+
+            const visibleInputs = row.querySelectorAll('input[type="text"]'); // ค้นหา input ที่มองเห็นได้
+            const hiddenInputs = managementCell.querySelectorAll('input[type="hidden"]'); // ค้นหา input แบบซ่อน
+
+            // เพิ่ม event listener สำหรับการอัปเดตค่า
+            visibleInputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    if (hiddenInputs[index + 1]) { // ตรวจสอบว่ามี hidden input อยู่ก่อนตั้งค่า
+                        hiddenInputs[index + 1].value = this.value;
+                    }
+                });
             });
-        });
+        }
+
 
         function cancelEdit(button) {
             const row = button.closest('tr');
