@@ -43,6 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
         $barcode = $_POST['barcode'];
         $isDeleteMode = isset($_POST['deleteMode']) && $_POST['deleteMode'] === 'true';
 
+        // รับจำนวนจากการป้อนข้อมูลหากมีการระบุ
+        $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int)$_POST['qty'] : 1;
+
+        // รับราคาทุนหากมีการระบุ
+        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float)$_POST['capital'] : 0;
+
         // Check if product exists in lot
         $stmt = $pdo->prepare("SELECT lp.*, p.product_name FROM lot_product lp 
                               LEFT JOIN product p ON p.product_id = lp.product_id 
@@ -53,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
         if ($existing_product) {
             // Product exists in lot
             if ($isDeleteMode) {
-                $newQty = $existing_product['lot_product_qty'] - 1;
+                $newQty = $existing_product['lot_product_qty'] - $quantity;
                 if ($newQty <= 0) {
                     // Delete if quantity becomes 0 or negative
                     $delete = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
@@ -67,13 +73,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     $update->execute([$newQty, $newQty, $lot_id, $barcode]);
                 }
             } else {
-                // Normal mode - increment quantity
-                $newQty = $existing_product['lot_product_qty'] + 1;
+                // Normal mode - add specified quantity
+                $newQty = $existing_product['lot_product_qty'] + $quantity;
+                $newCapital = $capital > 0 ? $capital : $existing_product['lot_product_capital'];
+
                 $update = $pdo->prepare("UPDATE lot_product SET 
                     lot_product_qty = ?,
-                    lot_product_remain = ?
+                    lot_product_remain = ?,
+                    lot_product_capital = ?
                     WHERE lot_id = ? AND product_id = ?");
-                $update->execute([$newQty, $newQty, $lot_id, $barcode]);
+                $update->execute([$newQty, $newQty, $newCapital, $lot_id, $barcode]);
             }
         } else {
             // Product doesn't exist in lot
@@ -87,9 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     lot_product_capital, 
                     lot_product_date,
                     lot_product_status
-                ) VALUES (?, ?, 1, 1, 0, NOW(), 1)");
+                ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
 
-                $insert->execute([$lot_id, $barcode]);
+                $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
             }
             // In delete mode, do nothing if product doesn't exist
         }
@@ -208,10 +217,27 @@ ORDER BY
 
         <h2 class="text-2xl font-semibold mb-4">สแกนสินค้าเข้าล็อต</h2>
         <form id="barcode-form" action="" method="POST">
-            <div class="mb-4 flex items-center gap-4 ">
-                <label class="" block mb-2">รหัสบาร์โค้ด:</label>
-                <input type="number" name="product_id" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400" autofocus>
+            <div class="mb-4 flex items-center gap-4">
+                <label class="block mb-2">รหัสบาร์โค้ด:</label>
+                <input type="text" name="product_id"
+                    class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    pattern="[0-9*]*"
+                    placeholder="กรอกเฉพาะตัวเลขหรือ *"
+                    autofocus>
             </div>
+            <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
+            <div class="flex space-x-4">
+                <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
+                    <p><b>รูปแบบการป้อนข้อมูล:</b> รหัสบาร์โค้ด*จำนวน*ราคาทุน (เช่น 12345*2*150)</p>
+                    <p>หากไม่ระบุจำนวนหรือราคาทุน ระบบจะใช้ค่าเริ่มต้น คือ 0 </p>
+                </div>
+                <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-red-300 bg-red-100">
+                    <p><b>รูปแบบการลบข้อมูล:</b> -รหัสบาร์โค้ด*จำนวน (เช่น -12345*3)</p>
+                    <p>หากไม่ระบุจำนวน ระบบจะลบออกทีละ 1 ชิ้น</p>
+                </div>
+
+            </div>
+
         </form>
 
         <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
@@ -422,20 +448,43 @@ ORDER BY
                 handleBarcodeInput: function(e) {
                     if (e.which === 13) { // Enter key
                         e.preventDefault();
-                        const product_id = $(e.target).val();
+                        const inputValue = $(e.target).val();
 
-                        // Check if we're in delete mode and update the active barcode for deletion
-                        const isDeleteMode = state.activeDeleteBarcode !== null;
+                        // Split input by "*" delimiter
+                        const parts = inputValue.split('*');
+                        let product_id = parts[0]; // First part is always the barcode
 
-                        $(e.target).val('');
+                        // Check if the barcode starts with '-', indicating delete mode
+                        let isDeleteMode = state.activeDeleteBarcode !== null;
+                        if (product_id.startsWith('-')) {
+                            isDeleteMode = true;
+                            product_id = product_id.substring(1); // Remove the '-' prefix
+                        }
 
-                        utils.sendRequest({
+                        // Create the request data
+                        let requestData = {
                             barcode: product_id,
                             deleteMode: isDeleteMode
-                        });
+                        };
 
-                        // If in delete mode, keep the active delete barcode until mode is explicitly changed
-                        if (isDeleteMode) {
+                        // If there's a quantity specified (format: barcode*qty)
+                        if (parts.length > 1 && parts[1]) {
+                            requestData.qty = parseInt(parts[1]);
+                        }
+
+                        // If there's a capital price specified (format: barcode*qty*price)
+                        if (parts.length > 2 && parts[2]) {
+                            requestData.capital = parseFloat(parts[2]);
+                        }
+
+                        // Clear the input field
+                        $(e.target).val('');
+
+                        // Send the request with all gathered data
+                        utils.sendRequest(requestData);
+
+                        // If we're not in delete mode initiated by '-', keep the active delete barcode
+                        if (!product_id.startsWith('-') && isDeleteMode) {
                             state.activeDeleteBarcode = product_id;
                         } else {
                             state.activeDeleteBarcode = null;
