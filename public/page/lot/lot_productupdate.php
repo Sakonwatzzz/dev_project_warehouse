@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$lot_product_qty, $lot_product_remain, $lot_product_capital, $lot_product_date, $lot_product_status, $product_id, $lot_product_id]);
 
         // Redirect to the list page with a success parameter
-        header("Location: /home.php?page=lot_productlist&success=1");
+        header("Location: /?page=lot_productdetail&tabel=lot_productt&id=$lot_product_id");
         exit;
     } else {
         echo "Missing required POST data.";

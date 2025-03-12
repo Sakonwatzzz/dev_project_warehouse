@@ -10,7 +10,7 @@ if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $lot_id = $_POST['lot_id'];
     // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
-    header("Location: lot_product_detail.php?tabel=lot&id=$lot_product_id");
+    header("Location: lot_productdetail.php?tabel=lot_product&id=". $lot_product_id);
     exit();
 }
 
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php echo $is_update ? 'กำลังแก้ไขล็อตสินค้า' : 'รายละเอียดล็อตสินค้า'; ?>
         </h2>
         <div class="detail-body">
-            <form class="detail-form" action="../../page/lot/lot_update.php" method="POST">
+            <form class="detail-form" action="../../page/lot/lot_productupdate.php" method="POST">
                 <input type="hidden" name="lot_product_id" value="<?php echo $lot['lot_product_id']; ?>">
                 <table class="detail-table">
                     <?php if ($tabel === 'lot_product'): ?>
@@ -223,20 +223,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </table>
 
                 <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
-                <?php if ($is_update): ?>
-                    <button class="submit-button" type="submit" style=" border-radius: 6px;
-                        width: 120px;
-                        height: 40px;
-                        padding: 10px;
-                        margin-top:10px;
-                        /*border: 1px solid rgb(29, 188, 55);*/
-                        background-color: #333;
-                        text-decoration: none;
-                        color: #fff; ">
-                        บันทึก</button>
-                <?php endif; ?>
-            </form>
-            <div class="detail-action flex gap-2  justify-end<?php echo $is_update ? '' : ''; ?> mx-3 mb-4">
                 <div class="detail-action flex gap-2  justify-end<?php echo $is_update ? '' : ''; ?> mx-3 mb-4">
                     <?php if ($is_update): ?>
                         <div class="flex gap-2 mt-4 justify-end">
@@ -260,8 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </a>
                     <?php endif; ?>
                 </div>
-
-            </div>
+            </form>
         </div>
     </div>
     <?php if ($is_update): ?>
