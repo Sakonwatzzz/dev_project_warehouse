@@ -104,121 +104,127 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="detail-body">
-        <h2 class="detail-title">รายละเอียดล็อต</h2>
-        <form class="detail-form" action="../../page/lot/lot_update.php" method="POST">
-            <input type="hidden" name="lot_product_id" value="<?php echo $lot['lot_product_id']; ?>">
-            <table class="detail-table">
-                <?php if ($tabel === 'lot_product'): ?>
-                    <tr>
-                        <th>รหัสรายการรับสินค้า:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <input type="id" name="lot_product_id" value="<?php echo ($lot['lot_product_id']); ?>" readonly>
-                            <?php else: ?>
-                                <?php echo ($lot['lot_product_id']); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+    <div class="detail-body mx-[25rem]  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
+        <h2
+            class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 <?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
+            <?php echo $is_update ? 'กำลังแก้ไขล็อตสินค้า' : 'รายละเอียดล็อตสินค้า'; ?>
+        </h2>
+        <div class="detail-body">
+            <form class="detail-form" action="../../page/lot/lot_update.php" method="POST">
+                <input type="hidden" name="lot_product_id" value="<?php echo $lot['lot_product_id']; ?>">
+                <table class="detail-table">
+                    <?php if ($tabel === 'lot_product'): ?>
+                        <tr>
+                            <th>รหัสรายการรับสินค้า:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <input type="id" name="lot_product_id" value="<?php echo ($lot['lot_product_id']); ?>"
+                                        readonly>
+                                <?php else: ?>
+                                    <?php echo ($lot['lot_product_id']); ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
 
-                    <tr>
-                        <th>รหัสล็อตสินค้า:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <select name="lot_id">
-                                    <option value="<?php echo ($lot['lot_id']); ?>" selected>
+                        <tr>
+                            <th>รหัสล็อตสินค้า:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <select name="lot_id">
+                                        <option value="<?php echo ($lot['lot_id']); ?>" selected>
+                                            <?php echo ($lot['lot_id']); ?>
+                                        </option>
+                                        <?php while ($lot_detail = $result_lot->fetch(PDO::FETCH_ASSOC)): ?>
+                                            <option value="<?php echo ($lot_detail['lot_id']); ?>">
+                                                <?php echo ($lot_detail['lot_id']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
                                         <?php echo ($lot['lot_id']); ?>
-                                    </option>
-                                    <?php while ($lot_detail = $result_lot->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo ($lot_detail['lot_id']); ?>">
-                                            <?php echo ($lot_detail['lot_id']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>จำนวนวสินค้าเข้า:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <input type="text" name="lot_product_qty" value="<?php echo ($lot['lot_product_qty']); ?>">
                                 <?php else: ?>
-                                    <?php echo ($lot['lot_id']); ?>
+                                    <?php echo ($lot['lot_product_qty']); ?>
                                 <?php endif; ?>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>จำนวนวสินค้าเข้า:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <input type="text" name="lot_product_qty" value="<?php echo ($lot['lot_product_qty']); ?>">
-                            <?php else: ?>
-                                <?php echo ($lot['lot_product_qty']); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>จำนวนสินคงเหลือ:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <input type="text" name="lot_product_remain"
-                                    value="<?php echo ($lot['lot_product_remain']); ?>">
-                            <?php else: ?>
-                                <?php echo ($lot['lot_product_remain']); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>ราคาต้นทุน:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <input type="text" name="lot_product_capital"
-                                    value="<?php echo ($lot['lot_product_capital']); ?>">
-                            <?php else: ?>
-                                <?php echo ($lot['lot_product_capital']); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>วันที่รับเข้า:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <input type="date" name="lot_product_date" value="<?php echo ($lot['lot_product_date']); ?>">
-                            <?php else: ?>
-                                <?php echo ($lot['lot_product_date']); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>สถานะสินค้า:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <input type="text" name="lot_product_status"
-                                    value="<?php echo ($lot['lot_product_status']); ?>">
-                            <?php else: ?>
-                                <?php echo ($lot['lot_product_status']); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>จำนวนสินคงเหลือ:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <input type="text" name="lot_product_remain"
+                                        value="<?php echo ($lot['lot_product_remain']); ?>">
+                                <?php else: ?>
+                                    <?php echo ($lot['lot_product_remain']); ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>ราคาต้นทุน:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <input type="text" name="lot_product_capital"
+                                        value="<?php echo ($lot['lot_product_capital']); ?>">
+                                <?php else: ?>
+                                    <?php echo ($lot['lot_product_capital']); ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>วันที่รับเข้า:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <input type="date" name="lot_product_date"
+                                        value="<?php echo ($lot['lot_product_date']); ?>">
+                                <?php else: ?>
+                                    <?php echo ($lot['lot_product_date']); ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>สถานะสินค้า:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <input type="text" name="lot_product_status"
+                                        value="<?php echo ($lot['lot_product_status']); ?>">
+                                <?php else: ?>
+                                    <?php echo ($lot['lot_product_status']); ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
 
-                    <tr>
-                        <th>รหัสสินค้า:</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <select name="product_name">
-                                    <option value="<?php echo ($lot['product_id']); ?>" selected>
+                        <tr>
+                            <th>รหัสสินค้า:</th>
+                            <td>
+                                <?php if ($is_update): ?>
+                                    <select name="product_name">
+                                        <option value="<?php echo ($lot['product_id']); ?>" selected>
+                                            <?php echo ($lot['product_name']); ?>
+                                        </option>
+                                        <?php while ($lot_product_detail = $result_product->fetch(PDO::FETCH_ASSOC)): ?>
+                                            <option value="<?php echo ($lot_product_detail['product_id']); ?>">
+                                                <?php echo ($lot_product_detail['product_name']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
                                         <?php echo ($lot['product_name']); ?>
-                                    </option>
-                                    <?php while ($lot_product_detail = $result_product->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo ($lot_product_detail['product_id']); ?>">
-                                            <?php echo ($lot_product_detail['product_name']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
-                                    <?php echo ($lot['product_name']); ?>
-                                <?php endif; ?>
-                            </select>
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            </table>
+                                    <?php endif; ?>
+                                </select>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                </table>
 
-            <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
-            <?php if ($is_update): ?>
-                <button class="submit-button" type="submit" style=" border-radius: 6px;
+                <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
+                <?php if ($is_update): ?>
+                    <button class="submit-button" type="submit" style=" border-radius: 6px;
                         width: 120px;
                         height: 40px;
                         padding: 10px;
@@ -227,27 +233,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         background-color: #333;
                         text-decoration: none;
                         color: #fff; ">
-                    บันทึก</button>
-            <?php endif; ?>
-        </form>
+                        บันทึก</button>
+                <?php endif; ?>
+            </form>
+            <div class="detail-action flex gap-2  justify-end<?php echo $is_update ? '' : ''; ?> mx-3 mb-4">
+                <div class="detail-action flex gap-2  justify-end<?php echo $is_update ? '' : ''; ?> mx-3 mb-4">
+                    <?php if ($is_update): ?>
+                        <div class="flex gap-2 mt-4 justify-end">
+                            <a href="/?page=lot_productdetail&tabel=lot_product&id=<?php echo $lot['lot_product_id']; ?>"
+                                class="w-full p-2 px-5 text-center bg-red-500 text-white border rounded-lg shadow-lg hover:bg-red-600">
+                                ยกเลิก
+                            </a>
+                            <button type="submit"
+                                class="w-full p-2 px-5 bg-green-500 text-white border rounded-lg shadow-lg hover:bg-green-600">
+                                บันทึก
+                            </button>
+                        </div>
+                    <?php else: ?>
+                        <a href="/?page=lot_productlist"
+                            class="mt-4 p-2 px-6 bg-gray-700 text-white border rounded-lg shadow-lg mr-2 hover:bg-gray-800">
+                            ย้อนกลับ
+                        </a>
+                        <a href="?page=lot_productdetail&tabel=lot_product&id=<?php echo $lot['lot_product_id']; ?>&is_update=1"
+                            class="mt-4 p-2 px-6 bg-blue-700 text-white border rounded-lg shadow-lg hover:bg-blue-800">
+                            ต้องการแก้ไข
+                        </a>
+                    <?php endif; ?>
+                </div>
 
-        <div class="detail-action">
-            <a href="/?page=lot_productlist">ย้อนกลับหน้ารายการ<?php echo ($tabel); ?></a>
-
-            <?php if ($is_update): ?>
-                <a href="?page=lot_productdetail&tabel=<?php echo $tabel; ?>&id=<?php echo $lot['lot_product_id']; ?>"
-                    style="margin-right: 6px;">ย้อนกลับไปที่ Detail
-                </a>
-            <?php endif; ?>
-
-            <a href="?page=lot_productdetail&tabel=lot_product&id=<?php echo $lot['lot_product_id']; ?>&is_update=1">
-                ไปหน้าแก้ไข <?php echo $tabel; ?>
-            </a>
+            </div>
         </div>
-
-
-
     </div>
+    <?php if ($is_update): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                document.getElementById('lot-name').focus();
+            });
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>

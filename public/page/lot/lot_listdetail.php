@@ -44,10 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
         $isDeleteMode = isset($_POST['deleteMode']) && $_POST['deleteMode'] === 'true';
 
         // รับจำนวนจากการป้อนข้อมูลหากมีการระบุ
-        $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int)$_POST['qty'] : 1;
+        $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int) $_POST['qty'] : 1;
 
         // รับราคาทุนหากมีการระบุ
-        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float)$_POST['capital'] : 0;
+        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : 0;
 
         // Check if product exists in lot
         $stmt = $pdo->prepare("SELECT lp.*, p.product_name FROM lot_product lp 
@@ -178,6 +178,7 @@ ORDER BY
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายละเอียดล็อตสินค้า</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -218,13 +219,12 @@ ORDER BY
         <h2 class="text-2xl font-semibold mb-4">สแกนสินค้าเข้าล็อต</h2>
         <form id="barcode-form" action="" method="POST">
             <div class="mb-4 flex items-center gap-4">
-                <label class="block mb-2">รหัสบาร์โค้ด:</label>
+                <label class="block mb-2" id="barcodeInput">รหัสบาร์โค้ด:</label>
                 <input type="text" name="product_id"
                     class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    pattern="[0-9*]*"
-                    placeholder="กรอกเฉพาะตัวเลขหรือ *"
-                    autofocus>
+                    pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ *" autofocus>
             </div>
+
             <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
             <div class="flex space-x-4">
                 <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
@@ -246,7 +246,7 @@ ORDER BY
                 <table class="w-full border-collapse" id="products-table">
                     <thead>
                         <tr class="bg-gray-50">
-                            <th class="px-6 py-3 border text-left">บาร์โค้ดสินค้า</th>
+                            <th class="px-6 py-3 border text-left">รหัสบาร์โค้ดสินค้า</th>
                             <th class="px-6 py-3 border text-left">ชื่อสินค้า</th>
                             <th class="px-6 py-3 border text-center">จำนวน</th>
                             <th class="px-6 py-3 border text-right">ราคาทุน</th>
@@ -260,17 +260,20 @@ ORDER BY
                         foreach ($lot_products as $index => $item):
                             $item_total = $item['lot_product_qty'] * $item['lot_product_capital'];
                             $total_value += $item_total;
-                        ?>
-
-                            <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer" data-product-id="<?php echo htmlspecialchars($item['product_id']); ?>">
+                            ?>
+                            <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer"
+                                data-product-id="<?php echo htmlspecialchars($item['product_id']); ?>">
                                 <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_id']); ?></td>
                                 <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_name']); ?></td>
-                                <td class="text-center py-2 border"><?php echo htmlspecialchars($item['lot_product_qty']); ?></td>
-                                <td class="text-right py-2 border"><?php echo number_format($item['lot_product_capital'], 2); ?></td>
+                                <td class="text-center py-2 border">
+                                    <?php echo htmlspecialchars($item['lot_product_qty']); ?>
+                                </td>
+                                <td class="text-right py-2 border">
+                                    <?php echo number_format($item['lot_product_capital'], 2); ?>
+                                </td>
                                 <td class="text-right py-2 border"><?php echo number_format($item_total, 2); ?></td>
                                 <td class="text-right py-2 border px-4">
-                                    <button type="button"
-                                        class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
+                                    <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
                                         data-id="<?php echo htmlspecialchars($item['lot_product_id']); ?>"
                                         data-qty="<?php echo htmlspecialchars($item['lot_product_qty']); ?>"
                                         data-capital="<?php echo htmlspecialchars($item['lot_product_capital']); ?>"
@@ -278,14 +281,12 @@ ORDER BY
                                         data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
                                         แก้ไข
                                     </button>
-                                    <button type="button"
-                                        class="bg-red-500 text-white px-4 py-1 rounded toggle-delete-mode"
+                                    <button type="button" class="bg-red-500 text-white px-4 py-1 rounded toggle-delete-mode"
                                         data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
                                         ลบ
                                     </button>
                                 </td>
                             </tr>
-
                         <?php endforeach; ?>
                         <?php if (count($lot_products) > 0): ?>
                             <tr class=" bg-gray-300  text-2xl h-12">
@@ -325,23 +326,24 @@ ORDER BY
 
                 <div class="mb-4">
                     <label class="block mb-2">ราคาทุน:</label>
-                    <input type="number" class="w-full p-2 border rounded" id="capital" name="capital" required min="0" step="0.01">
+                    <input type="number" class="w-full p-2 border rounded" id="capital" name="capital" required min="0"
+                        step="0.01">
                 </div>
-
                 <div class="flex justify-end gap-2">
-                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded" onclick="closeEditModal()">ยกเลิก</button>
-                    <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded" id="save-edit">บันทึก</button>
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded"
+                        onclick="closeEditModal()">ยกเลิก</button>
+                    <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded"
+                        id="save-edit">บันทึก</button>
                 </div>
             </form>
         </div>
     </div>
-
     <script>
         function closeEditModal() {
             document.getElementById('editModal').classList.add('hidden');
         }
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Shared state
             const state = {
                 activeDeleteBarcode: null,
@@ -350,7 +352,7 @@ ORDER BY
 
             // Utility functions
             const utils = {
-                handleServerResponse: function(response) {
+                handleServerResponse: function (response) {
                     if (response.success) {
                         location.reload();
                     } else {
@@ -359,7 +361,7 @@ ORDER BY
                     }
                 },
 
-                handleServerError: function(xhr) {
+                handleServerError: function (xhr) {
                     console.error('Server response:', xhr.responseText);
                     try {
                         const htmlContent = xhr.responseText;
@@ -378,7 +380,7 @@ ORDER BY
                     state.barcodeInput.focus();
                 },
 
-                sendRequest: function(data) {
+                sendRequest: function (data) {
                     $.ajax({
                         url: window.location.href,
                         method: 'POST',
@@ -389,7 +391,7 @@ ORDER BY
                     });
                 },
 
-                validateFormFields: function(qty, capital) {
+                validateFormFields: function (qty, capital) {
                     if (qty <= 0) {
                         alert('จำนวนสินค้าต้องมากกว่า 0');
                         $('#qty').focus();
@@ -405,7 +407,7 @@ ORDER BY
                     return true;
                 },
 
-                updateRowHighlighting: function() {
+                updateRowHighlighting: function () {
                     // Remove highlight from all rows
                     $('#products-table tbody tr').removeClass('bg-pink-100');
 
@@ -418,7 +420,7 @@ ORDER BY
 
             // Event handlers
             const handlers = {
-                toggleDeleteMode: function(e) {
+                toggleDeleteMode: function (e) {
                     const $target = $(e.target);
                     const barcode = $target.data('barcode');
                     const isActive = state.activeDeleteBarcode === barcode;
@@ -445,7 +447,7 @@ ORDER BY
                     state.barcodeInput.focus();
                 },
 
-                handleBarcodeInput: function(e) {
+                handleBarcodeInput: function (e) {
                     if (e.which === 13) { // Enter key
                         e.preventDefault();
                         const inputValue = $(e.target).val();
@@ -492,7 +494,7 @@ ORDER BY
                     }
                 },
 
-                handleEditProduct: function(e) {
+                handleEditProduct: function (e) {
                     const $target = $(e.target);
                     const productData = {
                         id: $target.data('id'),
@@ -511,7 +513,7 @@ ORDER BY
                     $('#editModal').removeClass('hidden');
                 },
 
-                handleSaveEdit: function(e) {
+                handleSaveEdit: function (e) {
                     const form = $('#edit-form');
                     const $submitButton = $(e.target);
 
@@ -536,13 +538,13 @@ ORDER BY
                         dataType: 'json',
                         success: utils.handleServerResponse,
                         error: utils.handleServerError,
-                        complete: function() {
+                        complete: function () {
                             $submitButton.prop('disabled', false).text('บันทึก');
                         }
                     });
                 },
 
-                handleInputValidation: function(e) {
+                handleInputValidation: function (e) {
                     const $input = $(e.target);
                     const value = parseFloat($input.val());
                     const minValue = $input.attr('id') === 'qty' ? 0 : -1;
@@ -560,7 +562,7 @@ ORDER BY
 
             // Modal close handlers
             const closeEditModal = () => $('#editModal').addClass('hidden');
-            $('#editModal').on('click', function(e) {
+            $('#editModal').on('click', function (e) {
                 if (e.target === this) closeEditModal();
             });
         });

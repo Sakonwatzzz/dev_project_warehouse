@@ -145,7 +145,8 @@ ob_end_flush();
             <div class="w-[40%] border border-[#7a7a7a] rounded-lg bg-[#cbdbe4]">
                 <div class="flex justify-between items-center px-4 py-2">
                     <h2 class="text-2xl">คลังสินค้า</h2>
-                    <button onclick="showNewWarehouseForm()" class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-1 rounded shadow-md">
+                    <button onclick="showNewWarehouseForm()"
+                        class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-1 rounded shadow-md">
                         เพิ่มคลัง
                     </button>
                 </div>
@@ -162,10 +163,12 @@ ob_end_flush();
                             <input type="text" name="warehousestatus" required class="w-full border rounded px-2 py-1">
                         </div>
                         <div class="flex justify-end space-x-2">
-                            <button type="button" onclick="hideNewWarehouseForm()" class="bg-gray-500 text-white px-3 py-1 rounded">
+                            <button type="button" onclick="hideNewWarehouseForm()"
+                                class="bg-gray-500 text-white px-3 py-1 rounded">
                                 ยกเลิก
                             </button>
-                            <button type="submit" name="new_warehouse" class="bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white px-3 py-1 rounded">
+                            <button type="submit" name="new_warehouse"
+                                class="bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white px-3 py-1 rounded">
                                 บันทึก
                             </button>
                         </div>
@@ -176,10 +179,12 @@ ob_end_flush();
                 <table class="w-full">
                     <thead>
                         <tr>
-                            <th class="w-[40%]  bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            <th
+                                class="w-[40%]  bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                                 ชื่อคลังสินค้า
                             </th>
-                            <th class="w-[30%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            <th
+                                class="w-[30%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                                 สถานะ
                             </th>
                         </tr>
@@ -202,7 +207,8 @@ ob_end_flush();
             <!-- ส่วนขวา (ฟอร์มเพิ่ม lot) -->
             <form method="POST" action="" class="w-[60%]">
                 <div class="w-full flex justify-center items-center">
-                    <div class="w-full flex flex-wrap space-y-3 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
+                    <div
+                        class="w-full flex flex-wrap space-y-3 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
 
 
                         <!-- รหัส Lot สินค้า -->
@@ -229,8 +235,7 @@ ob_end_flush();
                         <!-- ร้าน -->
                         <div class="w-full flex">
                             <label for="store_name" class="w-[15%] mb-2">ร้าน:</label>
-                            <select name="store_id" id="store_name" required
-                                class="w-[85%] border rounded px-2 py-1">
+                            <select name="store_id" id="store_name" required class="w-[85%] border rounded px-2 py-1">
                                 <?php foreach ($store_lot as $store): ?>
                                     <option value="<?= htmlspecialchars($store['store_id']) ?>">
                                         <?= htmlspecialchars($store['store_name']) ?>
@@ -278,14 +283,14 @@ ob_end_flush();
                         <!-- วันที่รับสินค้า -->
                         <div class="w-full flex">
                             <label for="lot_date" class="w-[15%] mb-2">วันที่รับสินค้า:</label>
-                            <input type="date" id="lot_date" name="lot_date"
-                                value="<?= date('Y-m-d') ?>" readonly
+                            <input type="date" id="lot_date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly
                                 class="w-[85%] border rounded px-2 py-1">
                         </div>
 
                         <!-- ปุ่มบันทึก -->
                         <div class="w-full flex justify-end mt-5">
-                            <button type="submit" class="bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg px-4 py-1 rounded shadow-md">
+                            <button type="submit"
+                                class="bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg px-4 py-1 rounded shadow-md">
                                 บันทึก
                             </button>
                         </div>
@@ -300,9 +305,15 @@ ob_end_flush();
                 <!-- ส่วนหัวของตาราง -->
                 <tr class="">
 
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัส Lot สินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">วันที่ล็อต</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        รหัส Lot สินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        วันที่ล็อต</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        คลังสินค้า</th>
 
                 </tr>
             </thead>
@@ -312,10 +323,15 @@ ob_end_flush();
                     <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
                     <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
                         <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
-                        <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_id']) ?></td>
+                        <td class="text-start pl-4 border border-gray-500"
+                            onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
+                            <?php echo($lot_list['lot_id']) ?>
+                        </td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
-                        <td class="text-start pl-4 border border-gray-500" onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
-                            <?php echo ($lot_list['warehouse_name']) ?> </td>
+                        <td class="text-start pl-4 border border-gray-500"
+                            onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
+                            <?php echo ($lot_list['warehouse_name']) ?>
+                        </td>
                     </tr>
                 <?php endwhile; ?>
             </tbody>
@@ -324,18 +340,18 @@ ob_end_flush();
 
     <!-- เพิ่ม Script สำหรับจัดการฟอร์มและการแก้ไข -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // หาข้อความแจ้งเตือน
             const alert = document.getElementById('success-alert');
 
             if (alert) {
                 // ซ่อนข้อความหลัง 2 วินาที
-                setTimeout(function() {
+                setTimeout(function () {
                     alert.style.transition = 'opacity 0.5s';
                     alert.style.opacity = '0';
 
                     // ลบ element ออกหลังจาก transition เสร็จสิ้น
-                    setTimeout(function() {
+                    setTimeout(function () {
                         alert.remove();
                     }, 500);
                 }, 2000);
@@ -362,7 +378,7 @@ ob_end_flush();
 
             // เพิ่ม event listener สำหรับการอัปเดตค่า
             visibleInputs.forEach((input, index) => {
-                input.addEventListener('input', function() {
+                input.addEventListener('input', function () {
                     if (hiddenInputs[index + 1]) { // ตรวจสอบว่ามี hidden input อยู่ก่อนตั้งค่า
                         hiddenInputs[index + 1].value = this.value;
                     }
@@ -393,9 +409,9 @@ ob_end_flush();
         }
 
         // ฟังก์ชันตรวจสอบการกดปุ่มแก้ไขและลบ
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.edit-button').forEach(button => {
-                button.addEventListener('click', function(event) {
+                button.addEventListener('click', function (event) {
                     event.preventDefault();
                     const editButtons = this.parentElement.querySelector('.edit-delete-buttons');
                     const saveButton = this.parentElement.querySelector('.save-button');
@@ -409,8 +425,8 @@ ob_end_flush();
         });
 
         // Add form validation
-        document.addEventListener('DOMContentLoaded', function() {
-            document.addEventListener('submit', function(event) {
+        document.addEventListener('DOMContentLoaded', function () {
+            document.addEventListener('submit', function (event) {
                 if (event.target.querySelector('[name="update_warehouse"]')) {
                     const row = event.target.closest('tr');
                     const inputs = row.querySelectorAll('input[type="text"]');
