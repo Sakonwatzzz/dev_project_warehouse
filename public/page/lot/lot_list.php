@@ -7,11 +7,13 @@ $query = "SELECT lot_status_id, lot_status_name FROM lot_status";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 $status_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // ดึงชื่อคลังมาแสดงผล
 $query = "SELECT warehouse_id, warehouse_name FROM warehouse";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // ดึงชื่อผู่ส่งมอบมาแสดงผล
 $query = "SELECT supplier_id, supplier_name FROM supplier";
 $stmt = $pdo->prepare($query);

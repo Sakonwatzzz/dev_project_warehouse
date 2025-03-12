@@ -2,27 +2,27 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
-// Function to check for duplicate barcodes
-function checkBarcodeExists($pdo, $barcode)
+// Function to check for duplicate product_ids
+function checkproduct_idExists($pdo, $product_id)
 {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE product_barcode = ?");
-    $stmt->execute([$barcode]);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE product_id = ?");
+    $stmt->execute([$product_id]);
     return $stmt->fetchColumn() > 0;
 }
 
 // แยก endpoint สำหรับ AJAX request
-if (isset($_GET['action']) && $_GET['action'] === 'check_barcode') {
+if (isset($_GET['action']) && $_GET['action'] === 'check_product_id') {
     header('Content-Type: application/json');
-    $barcode = $_GET['barcode'] ?? '';
-    $exists = checkBarcodeExists($pdo, $barcode);
+    $product_id = $_GET['product_id'] ?? '';
+    $exists = checkproduct_idExists($pdo, $product_id);
     echo json_encode(['exists' => $exists]);
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $barcode = $_POST['barcode'];
+    $product_id = $_POST['product_id'];
 
-    if (checkBarcodeExists($pdo, $barcode)) {
+    if (checkproduct_idExists($pdo, $product_id)) {
         echo "<script>
                 alert('รหัสบาร์โค้ดนี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่');
                 window.history.back();
@@ -40,12 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $typebrandname = $_POST['typebrandname'];
 
     try {
-        $stmt = $pdo->prepare('INSERT INTO product (product_barcode, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id)
+        $stmt = $pdo->prepare('INSERT INTO product (product_id, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$barcode, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
+        $stmt->execute([$product_id, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
-        $product_id = $pdo->lastInsertId();
-        header("Location: index.php?page=product_detail&tabel=product&id=$product_id");
+
+        // ใช้ $product_id ที่รับมาจากฟอร์มโดยตรง
+        header("Location: /?page=product_detail&tabel=product&id=" . urlencode($product_id));
         exit();
     } catch (PDOException $e) {
         die('Error: ' . $e->getMessage());
@@ -56,7 +57,6 @@ ob_end_flush();
 // Query สำหรับข้อมูลสินค้า
 $query = "SELECT
     product.product_id, 
-    product.product_barcode, 
     product.product_name, 
     product.product_price1, 
     product.product_price2, 
@@ -109,17 +109,17 @@ if (!$brandResults) {
     <title>product_insert</title>
 
     <style>
-         .modal {
+        .modal {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             z-index: 1000;
         }
-        
+
         .modal-content {
             position: fixed;
             top: 50%;
@@ -130,9 +130,9 @@ if (!$brandResults) {
             border-radius: 5px;
             text-align: center;
             width: 300px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        
+
         .modal-title {
             font-size: 18px;
             font-weight: bold;
@@ -144,7 +144,7 @@ if (!$brandResults) {
             margin: 15px 0;
             color: #666;
         }
-        
+
         .modal-button {
             margin-top: 15px;
             padding: 8px 20px;
@@ -155,7 +155,7 @@ if (!$brandResults) {
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        
+
         .modal-button:hover {
             background-color: #45a049;
         }
@@ -209,7 +209,7 @@ if (!$brandResults) {
             text-align: center;
         }
 
-        .barcode-focus {
+        .product_id-focus {
             background-color: #e8f4ff !important;
             border-color: #2196F3 !important;
         }
@@ -228,8 +228,8 @@ if (!$brandResults) {
 </head>
 
 <body>
-     <!-- Modal for duplicate barcode -->
-     <div id="duplicateModal" class="modal">
+    <!-- Modal for duplicate product_id -->
+    <div id="duplicateModal" class="modal">
         <div class="modal-content">
             <div class="modal-title">แจ้งเตือน</div>
             <div class="modal-message">รหัสบาร์โค้ดนี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่</div>
@@ -237,12 +237,12 @@ if (!$brandResults) {
         </div>
     </div>
 
-    <!-- Modal for empty barcode -->
-    <div id="emptyBarcodeModal" class="modal">
+    <!-- Modal for empty product_id -->
+    <div id="emptyproduct_idModal" class="modal">
         <div class="modal-content">
             <div class="modal-title">แจ้งเตือน</div>
             <div class="modal-message">กรุณากรอกรหัสบาร์โค้ด</div>
-            <button class="modal-button" onclick="closeModal('emptyBarcodeModal')">ตกลง</button>
+            <button class="modal-button" onclick="closeModal('emptyproduct_idModal')">ตกลง</button>
         </div>
     </div>
     <div class="bg-[#F0F0F0] font-[Tahoma] ">
@@ -257,11 +257,11 @@ if (!$brandResults) {
             <!-- Form for adding products -->
             <form class="p-5  space-y-2" action="" method="POST" id="productForm">
                 <div class="flex items-center ">
-                    <label class="w-[110px] text-base mr-4" for="barcode">บาร์โค้ดสินค้า:</label>
+                    <label class="w-[110px] text-base mr-4" for="product_id">รหัสสินค้า:</label>
                     <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
                         type="text"
-                        name="barcode"
-                        id="barcode"
+                        name="product_id"
+                        id="product_id"
                         autocomplete="off"
                         required
                         autofocus>
@@ -298,33 +298,54 @@ if (!$brandResults) {
 
                 <?php if ($typeResults->rowCount() > 0) { ?>
                     <div class="flex items-center ">
-                        <label class="w-[110px] text-base mr-4" for="typename">ประเภทสินค้า:</label>
-                        <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typename" id="typename">
-                            <?php while ($row = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                                <option value="<?php echo ($row['product_type_id']); ?>">
-                                    <?php echo ($row['product_type_name']); ?>
-                                </option>
-                            <?php } ?>
-                        </select>
+                        <label class="w-[110px] text-base mr-4" for="typename">ประเภท:</label>
+                        <div class="flex-1">
+                            <div class="flex gap-2 items-center">
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typename" id="typename">
+                                    <?php if ($typeResults->rowCount() > 0) {
+                                        while ($row = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
+                                            <option value="<?php echo htmlspecialchars($row['product_type_id']); ?>">
+                                                <?php echo htmlspecialchars($row['product_type_name']); ?>
+                                            </option>
+                                        <?php }
+                                    } else { ?>
+                                        <option value="">ไม่มีประเภทสินค้า</option>
+                                    <?php } ?>
+                                </select>
+                                <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded add-product-type">
+                                    เพิ่ม
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 <?php } else { ?>
                     <p>ไม่พบข้อมูลประเภทสินค้า</p>
                 <?php } ?>
 
+
                 <?php if ($brandResults->rowCount() > 0) { ?>
                     <div class="flex items-center ">
-                        <label class="w-[110px] text-base mr-4" for="typebrandname">ประเภทแบรนด์สินค้า:</label>
-                        <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typebrandname" id="typebrandname" required>
-                            <?php while ($row = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                                <option value="<?php echo ($row['product_brand_id']); ?>">
-                                    <?php echo ($row['product_brand_name']); ?>
-                                </option>
-                            <?php } ?>
-                        </select>
+                        <label class="w-[110px] text-base mr-4" for="typebrandname">แบรนด์สินค้า:</label>
+                        <div class="flex-1">
+                            <div class="flex gap-2 items-center">
+                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typebrandname" id="typebrandname" required>
+                                    <?php while ($row = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
+                                        <option value="<?php echo ($row['product_brand_id']); ?>">
+                                            <?php echo ($row['product_brand_name']); ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                                <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded add-product-type">
+                                    เพิ่ม
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 <?php } else { ?>
                     <p>ไม่พบข้อมูลประเภทแบรนด์สินค้า</p>
                 <?php } ?>
+
+
 
                 <div class="flex justify-end mt-5 gap-2">
                     <a href="/?page=product_list" class="
@@ -368,22 +389,22 @@ if (!$brandResults) {
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const form = document.getElementById('productForm');
-            const barcodeInput = document.getElementById('barcode');
-            
+            const product_idInput = document.getElementById('product_id');
+
             // Function to show modal
             function showModal(modalId) {
                 document.getElementById(modalId).style.display = 'block';
                 if (modalId === 'duplicateModal') {
-                    barcodeInput.classList.add('error-input');
+                    product_idInput.classList.add('error-input');
                 }
             }
-            
+
             // Function to close modal
             window.closeModal = function(modalId) {
                 document.getElementById(modalId).style.display = 'none';
-                barcodeInput.focus();
+                product_idInput.focus();
                 if (modalId === 'duplicateModal') {
-                    barcodeInput.select();
+                    product_idInput.select();
                 }
             }
 
@@ -391,7 +412,7 @@ if (!$brandResults) {
             window.onclick = function(event) {
                 if (event.target.classList.contains('modal')) {
                     event.target.style.display = 'none';
-                    barcodeInput.focus();
+                    product_idInput.focus();
                 }
             }
 
@@ -402,50 +423,52 @@ if (!$brandResults) {
                     for (let modal of modals) {
                         if (modal.style.display === 'block') {
                             modal.style.display = 'none';
-                            barcodeInput.focus();
+                            product_idInput.focus();
                         }
                     }
                 }
             });
 
-            async function checkBarcode(barcode) {
+            async function checkproduct_id(product_id) {
                 try {
-                    const response = await fetch(`?action=check_barcode&barcode=${encodeURIComponent(barcode)}`);
+                    const response = await fetch(`?action=check_product_id&product_id=${encodeURIComponent(product_id)}`);
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
                     const data = await response.json();
                     return data.exists;
                 } catch (error) {
-                    console.error('Error checking barcode:', error);
+                    console.error('Error checking product_id:', error);
                     return false;
                 }
             }
 
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
-                const barcode = barcodeInput.value.trim();
-                if (!barcode) {
-                    showModal('emptyBarcodeModal');
+
+                const product_id = product_idInput.value.trim();
+                if (!product_id) {
+                    showModal('emptyproduct_idModal');
                     return;
                 }
 
-                const exists = await checkBarcode(barcode);
+                const exists = await checkproduct_id(product_id);
                 if (exists) {
                     showModal('duplicateModal');
                 } else {
-                    barcodeInput.classList.remove('error-input');
+                    product_idInput.classList.remove('error-input');
                     form.submit();
                 }
             });
 
-            // Remove error styling when barcode input changes
-            barcodeInput.addEventListener('input', function() {
+            // Remove error styling when product_id input changes
+            product_idInput.addEventListener('input', function() {
                 this.classList.remove('error-input');
             });
         });
     </script>
+
+
 </body>
 
 </html>

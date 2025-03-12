@@ -31,7 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // รับค่าจากฟอร์ม
         $lot_detail = $_POST['lot_detail'];
-        $lot_number = $_POST['lot_number'];
         $lot_date = $_POST['lot_date'];
         $lot_status_id = $_POST['lot_status_id'];
         $warehouse_id = $_POST['warehouse_id'];
@@ -47,9 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
 
         // บันทึกข้อมูลในตาราง lot
-        $stmt = $pdo->prepare('INSERT INTO lot (lot_detail, lot_number, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$lot_detail, $lot_number, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
+        $stmt = $pdo->prepare('INSERT INTO lot (lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
+        VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
 
         // รับ lot_id ที่เพิ่งเพิ่ม
         $lot_id = $pdo->lastInsertId();
@@ -137,12 +136,7 @@ ob_end_flush();
                 <label class="w-[110px] text-base mr-4" for="lot_id">รหัสล็อตสินค้า:</label>
                 <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
                     type="id" id="lot_id" name="lot_id"
-                    value="<?php echo isset($lot['lot_id']) ? $lot['lot_id'] : ''; ?>"
-                    readonly>
-            </div>
-            <div class="flex items-center ">
-                <label class="w-[110px] text-base mr-4" for="lot_id">เลขที่ Lot สินค้า:</label>
-                <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="lot_number" type="lot_number" name="lot_id">
+                    value="<?php echo isset($lot['lot_id']) ? $lot['lot_id'] : ''; ?>">
             </div>
             <div class="flex items-center ">
                 <label class="w-[110px] text-base mr-4" for="lot_detail">รายละเอียด:</label>

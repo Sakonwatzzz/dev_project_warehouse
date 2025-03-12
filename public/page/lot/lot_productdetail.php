@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 
 // ดึงค่าตัวแปรจาก URL เพื่อระบุประเภทและ ID
+
 $tabel = $_GET['tabel'];
 $id = $_GET['id'];
 $is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false; // เช็คว่าอยู่ในโหมดแก้ไขหรือไม่

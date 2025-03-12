@@ -14,10 +14,9 @@ lot_product.product_id,
 product.product_name
 FROM
     lot_product
-    INNER JOIN lot ON lot_product.lot_id = lot.lot_id
-    INNER JOIN product ON lot_product.product_id = product.product_id";
+    INNER JOIN lot ON lot.lot_id = lot_product.lot_id
+    INNER JOIN product ON  product.product_id =  lot_product.product_id";
 $result_lotproduct_list = $pdo->query($query);
-
 
 // การลบข้อมูล
 if (isset($_GET['id'])) {
@@ -62,11 +61,11 @@ FROM
     LEFT JOIN product ON lot_product.product_id = product.product_id
 LIMIT :offset, :records_per_page";
 
-    $smtm = $pdo->prepare($query);
-    $smtm->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $smtm->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-    $smtm->execute();
-    $result_lotproduct_list = $smtm;
+    $stmt = $pdo->prepare($query);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+    $stmt->execute();
+    $result_lotproduct_list = $stmt;
 } catch (PDOException $e) {
     echo "" . $e->getMessage();
 }
@@ -110,6 +109,7 @@ ob_end_flush();
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             width: 70px;
         }
+
         .pagination {
             margin-top: 20px;
             text-align: center;
@@ -158,13 +158,13 @@ ob_end_flush();
                 <tr>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        รหัสรับสินค้า</th>
+                        รหัสรับรายการรับสินค้า</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         รหัสล็อตสินค้า</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        ชื่อสินค้า</th>
+                        รหัสสินค้า</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         ราคาต้นทุน</th>
@@ -189,14 +189,13 @@ ob_end_flush();
             <tbody id="tableBody">
                 <?php if ($result_lotproduct_list->rowCount() > 0): ?>
                     <?php while ($lot_product_list = $result_lotproduct_list->fetch(PDO::FETCH_ASSOC)): ?>
-                        <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer "
-                            data-id="<?php echo $lot_product_list['lot_id']; ?>">
+                        <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer" data-id="<?php echo $lot_product_list['lot_id']; ?>">
                             <td
                                 onclick="window.location.href='?page=lot_productdetail&tabel=lot_product&id=<?php echo ($lot_product_list['lot_product_id']) ?>'">
                                 <?php echo ($lot_product_list['lot_product_id']); ?>
                             </td>
                             <td><?php echo ($lot_product_list['lot_id']); ?></td>
-                            <td><?php echo ($lot_product_list['product_name']); ?></td>
+                            <td><?php echo ($lot_product_list['product_id']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_capital']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_qty']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_remain']); ?></td>

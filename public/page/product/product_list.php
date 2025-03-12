@@ -3,7 +3,7 @@ require_once __DIR__ . '../../../../config/database_server.php';
 
 
 
-$query = "SELECT product_id , product_barcode, product_name ,product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id  FROM product";
+$query = "SELECT product_id , product_name ,product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id  FROM product";
 $stmt = $pdo->query($query);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 try {
@@ -15,7 +15,6 @@ try {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['product_id'];
-    $barcode = $_POST['barcode'];
     $name = $_POST['name'];
     $price1 = $_POST['price_1'];
     $price2 = $_POST['price_2'];
@@ -27,12 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $pdo->prepare("
         UPDATE product 
-        SET product_barcode = ?, product_name = ?, product_price1 = ?, product_price2 = ?, 
+        SET product_name = ?, product_price1 = ?, product_price2 = ?, 
             product_price3 = ?, product_price4 = ?, product_capital = ?, product_type_id = ?, 
             product_brand_id = ? 
         WHERE product_id = ?
     ");
-    $stmt->execute([$barcode, $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
+    $stmt->execute([$name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
 
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
     header("Location: /?page=product_detail&tabel=product&id=$id");
@@ -49,6 +48,16 @@ if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
     $stmt->execute([$id]);
+
+    // ตรวจสอบว่ามีข้อมูลเหลือในตารางหรือไม่
+    $stmt = $pdo->query("SELECT COUNT(*) FROM lot");
+    $count = $stmt->fetchColumn();
+
+    // ถ้าตารางว่างให้รีเซ็ต AUTO_INCREMENT
+    if ($count == 0) {
+        $pdo->query("ALTER TABLE lot AUTO_INCREMENT = 1");
+    }
+
     header("Location: /?page=product_list&delete_success");
     exit;
 }
@@ -71,7 +80,7 @@ try {
 
 // ดึงข้อมูลตามการแบ่งหน้า
 try {
-    $query = "SELECT product_id , product_barcode, product_name ,product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id FROM product LIMIT :offset, :records_per_page";
+    $query = "SELECT product_id , product_name ,product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id FROM product LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
@@ -209,8 +218,7 @@ try {
         <table class="  mt-5 mb-8 w-[100%]  border-2 border-[#b7c4d5] shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow"
-                    >บาร์โค้ดสินค้า</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสสินค้า</th>
                     <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อสินค้า</th>
                     <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาทุน</th>
                     <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคา4</th>
@@ -220,10 +228,8 @@ try {
             <tbody>
                 <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)): ?>
                     <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
-
-
-                        <td class="text-start"><?php echo ($product_list['product_barcode']); ?></td>
-                        <td class="text-start" onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'" ><?php echo ($product_list['product_name']); ?></td>
+                        <td class="text-start"><?php echo ($product_list['product_id']); ?></td>
+                        <td class="text-start" onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'"><?php echo ($product_list['product_name']); ?></td>
                         <td class="text-start"><?php echo ($product_list['product_capital']); ?></td>
                         <td class="text-start"><?php echo ($product_list['product_price4']); ?></td>
 

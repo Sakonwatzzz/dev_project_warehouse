@@ -59,12 +59,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $pdo->prepare("
         UPDATE product 
-        SET product_barcode = ?, product_name = ?, product_price1 = ?, product_price2 = ?, 
+        SET product_name = ?, product_price1 = ?, product_price2 = ?, 
             product_price3 = ?, product_price4 = ?, product_capital = ?, product_type_id = ?, 
             product_brand_id = ? 
         WHERE product_id = ?
     ");
-    $stmt->execute([$barcode, $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
+    $stmt->execute([$name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
 
     // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
     header("Location: ?page=product_detail&tabel=product&id={$id}&success=1");
@@ -105,18 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <span class="text-gray-600 px-2"><?php echo ($product['product_id']); ?></span>
                                 <?php else: ?>
                                     <?php echo ($product['product_id']); ?>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>บาร์โค้ด:</th>
-                            <td>
-                                <?php if ($is_update): ?>
-                                    <input type="text" name="barcode" class="w-full border rounded px-2 focus:outline-yellow-500"
-                                        value="<?php echo ($product['product_barcode']); ?>">
-                                <?php else: ?>
-                                    <?php echo ($product['product_barcode']); ?>
                                 <?php endif; ?>
                             </td>
                         </tr>
