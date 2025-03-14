@@ -8,9 +8,9 @@ if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
 
 // ตรวจสอบว่าเป็นการเรียกด้วย POST (เมื่อมีการส่งข้อมูลจากฟอร์ม)
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $lot_id = $_POST['lot_id'];
+    $lot_product_id = $_POST['lot_id'];
     // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
-    header("Location: lot_productdetail.php?tabel=lot_product&id=". $lot_product_id);
+    header("Location: lot_productdetail.php?tabel=lot_product&id=" . $lot_product_id);
     exit();
 }
 
@@ -84,12 +84,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     $stmt = $pdo->prepare("
-        UPDATE lot_product 
-        SET product_lot_id = ?, product_lot_product_qty = ?, product_lot_product_remain = ?, lot_product_capital = ?, 
-            lot_product_date = ?, lot_product_status = ?, product_id 
-        WHERE lot_product_id = ?
-    ");
-    $stmt->execute([$lot_id, $lot_product_qty, $lot_product_remain, $lot_product_capital, $lot_product_date, $lot_product_status, $lot_product_status, $product_id, $lot_product_id]);
+    UPDATE lot_product 
+    SET 
+        lot_id = :lot_id, 
+        lot_product_qty = :lot_product_qty, 
+        lot_product_remain = :lot_product_remain, 
+        lot_product_capital = :lot_product_capital, 
+        lot_product_date = :lot_product_date, 
+        lot_product_status = :lot_product_status, 
+        product_id = :product_id 
+    WHERE lot_product_id = :lot_product_id
+");
+
+    $stmt->execute([
+        ':lot_id' => $lot_id,
+        ':lot_product_qty' => $lot_product_qty,
+        ':lot_product_remain' => $lot_product_remain,
+        ':lot_product_capital' => $lot_product_capital,
+        ':lot_product_date' => $lot_product_date,
+        ':lot_product_status' => $lot_product_status,
+        ':product_id' => $product_id,
+        ':lot_product_id' => $lot_product_id
+    ]);
+
+    // ทำการรีไดเรกต์ไปที่หน้ารายละเอียดสินค้า
+    header("Location: lot_productdetail.php?tabel=lot_product&id=$lot_product_id");
+    exit();
 }
 ?>
 
@@ -181,8 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <th>วันที่รับเข้า:</th>
                             <td>
                                 <?php if ($is_update): ?>
-                                    <input type="date" name="lot_product_date"
-                                        value="<?php echo ($lot['lot_product_date']); ?>">
+                                    <input type="date" name="lot_product_date" value="<?= date('Y-m-d') ?>">
                                 <?php else: ?>
                                     <?php echo ($lot['lot_product_date']); ?>
                                 <?php endif; ?>

@@ -258,7 +258,7 @@ ob_end_flush();
                             active:border-b-white 
                             active:border-r-white 
                             active:shadow-inner"
-                href="/?page=lot_insert" value="เพิ่ม">เพิ่มการรับสินค้า</a
+                href="/?page=lot_listinsert" value="เพิ่ม">เพิ่มการรับสินค้า</a
                 class="submit-button">
             <!-- แก้คำว่า "lass" เป็น "class" -->
         </div>

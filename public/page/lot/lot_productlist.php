@@ -252,7 +252,7 @@ ob_end_flush();
                 active:border-[#90CAF9] 
                 active:border-b-white 
                 active:border-r-white 
-                active:shadow-inner" href="/?page=lot_productinsert" value="เพิ่ม">เพิ่มการรับสินค้า</a class="submit-button">
+                active:shadow-inner" href="/?page=lot_listinsert" value="เพิ่ม">เพิ่มการรับสินค้า</a class="submit-button">
             <!-- -->
         </div>
         <div class="pagination">

@@ -116,7 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="detail-body mx-[25rem]  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
         <!-- เปลี่ยนสีหัวข้อเมื่ออยู่ในโหมดแก้ไข -->
-        <h2 class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 <?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
+        <h2
+            class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 <?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
             <?php echo $is_update ? 'กำลังแก้ไขล็อตสินค้า' : 'รายละเอียดล็อตสินค้า'; ?>
         </h2>
         <form class="detail-form" action="../../page/lot/lot_update.php" method="POST">
@@ -148,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th>วันที่ล็อต :</th>
                         <td>
                             <?php if ($is_update): ?>
-                                <input type="date" name="lot_date" value="<?php echo ($lot['lot_date']); ?>">
+                                <input type="date" name="lot_date" value="<?= date('Y-m-d') ?>">
                             <?php else: ?>
                                 <?php echo ($lot['lot_date']); ?>
                             <?php endif; ?>
@@ -171,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php else: ?>
                                     <?php echo ($lot['lot_status_name']); ?>
                                 <?php endif; ?>
-                                </select>
+                            </select>
                         </td>
                     </tr>
                     <tr>
@@ -190,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php else: ?>
                                     <?php echo ($lot['warehouse_name']); ?>
                                 <?php endif; ?>
-                                </select>
+                            </select>
                         </td>
                     </tr>
                     <tr>
@@ -264,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <?php if ($is_update): ?>
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('lot-name').focus();
             });
         </script>
