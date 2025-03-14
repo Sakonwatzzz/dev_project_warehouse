@@ -1,10 +1,10 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-// Validate ID
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    die("ค่า ID ไม่ถูกต้อง");
-}
+// // Validate ID
+// if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+//     die("ค่า ID ไม่ถูกต้อง");
+// }
 
 $lot_id = $_GET['id'];
 

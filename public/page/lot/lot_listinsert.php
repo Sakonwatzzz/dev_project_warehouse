@@ -128,6 +128,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจัดการคลังสินค้า</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body>
@@ -206,13 +207,25 @@ ob_end_flush();
 
             <!-- ส่วนขวา (ฟอร์มเพิ่ม lot) -->
             <form method="POST" action="" class="w-[60%]">
+                <div class="">
+                    <?php
+                    date_default_timezone_set('Asia/Bangkok'); // ตั้งโซนเวลาเป็นไทย
+                    $currentDateTime = date("Y-m-d H:i:s"); // วันที่และเวลาปัจจุบันในรูปแบบฐานข้อมูล (YYYY-MM-DD HH:MM:SS)
+                    $displayDateTime = date("d/m/Y H:i:s"); // แสดงวันที่สวยงาม
+                    ?>
+                    <!-- วันที่แสดงทางขวาบน -->
+                    <span class="absolute top-2 right-3 text-gray-900 text-xl">
+                        <?= $displayDateTime ?>
+                    </span>
+                </div>
                 <div class="w-full flex justify-center items-center">
+
                     <div
-                        class="w-full flex flex-wrap space-y-3 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
+                        class="w-full flex flex-wrap space-y-3 bg-gradient-to-b  from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
 
 
                         <!-- รหัส Lot สินค้า -->
-                        <div class="w-full flex">
+                        <div class="w-full flex pt-10">
                             <label for="lot_id" class="w-[15%] mb-2">รหัส Lot สินค้า:</label>
                             <input type="text" name="lot_id" id="lot_id" required
                                 class="w-[85%] border rounded px-2 py-1" placeholder="กรอกเลขที่ lot">
@@ -220,7 +233,7 @@ ob_end_flush();
 
                         <!-- คลังสินค้า -->
                         <div class="w-full flex">
-                            <label for="warehouse_id" class="w-[15%] mb-2">คลังสินค้า:</label>
+                            <label for="warehouse_id" class="w-[15%] mb-2">เก็บไปที่คลังสินค้า:</label>
                             <select name="warehouse_id" id="warehouse_id" required
                                 class="w-[85%] border rounded px-2 py-1">
                                 <?php foreach ($warehouse_lot as $warehouse): ?>
@@ -234,7 +247,7 @@ ob_end_flush();
 
                         <!-- ร้าน -->
                         <div class="w-full flex">
-                            <label for="store_name" class="w-[15%] mb-2">ร้าน:</label>
+                            <label for="store_name" class="w-[15%] mb-2">รับมาจากร้านร้าน:</label>
                             <select name="store_id" id="store_name" required class="w-[85%] border rounded px-2 py-1">
                                 <?php foreach ($store_lot as $store): ?>
                                     <option value="<?= htmlspecialchars($store['store_id']) ?>">
@@ -247,15 +260,15 @@ ob_end_flush();
                         <!-- รายละเอียด -->
                         <div class="w-full flex">
                             <label for="lot_detail" class="w-[15%] mb-2">รายละเอียด:</label>
-                            <input type="text" name="lot_detail" id="lot_detail" required
+                            <input type="text" name="lot_detail" id="lot_detail" 
                                 class="w-[85%] border rounded px-2 py-1" placeholder="รายละเอียด">
                         </div>
 
 
                         <!-- ผู้ส่งมอบ -->
                         <div class="w-full flex">
-                            <label for="supplier_id" class="w-[15%] mb-2">ผู้ส่งมอบ:</label>
-                            <select name="supplier_id" id="supplier_id" required
+                            <label for="supplier_id" class="w-[15%] mb-2">รับมาจากผู้ส่งมอบ:</label>
+                            <select name="supplier_id" id="supplier_id" 
                                 class="w-[85%] border rounded px-2 py-1">
                                 <?php foreach ($supplier_lot as $supplier): ?>
                                     <option value="<?= htmlspecialchars($supplier['supplier_id']) ?>">
@@ -268,7 +281,7 @@ ob_end_flush();
 
                         <!-- สถาณะ -->
                         <div class="w-full flex">
-                            <label for="lot_status_name" class="w-[15%] mb-2">สถาณะ:</label>
+                            <label for="lot_status_name" class="w-[15%] mb-2">สถานะ:</label>
                             <select name="lot_status_id" id="lot_status_name" required
                                 class="w-[85%] border rounded px-2 py-1">
                                 <?php foreach ($status_lot as $status): ?>
@@ -282,9 +295,9 @@ ob_end_flush();
 
                         <!-- วันที่รับสินค้า -->
                         <div class="w-full flex">
-                            <label for="lot_date" class="w-[15%] mb-2">วันที่รับสินค้า:</label>
-                            <input type="date" id="lot_date" name="lot_date" value="<?= date('Y-m-d') ?>" readonly
-                                class="w-[85%] border rounded px-2 py-1">
+                            <label for="lot_date" class="w-[15%] mb-2"></label>
+                            <input type="hidden" name="lot_date" value="<?= $currentDateTime ?>">
+
                         </div>
 
                         <!-- ปุ่มบันทึก -->
@@ -325,7 +338,7 @@ ob_end_flush();
                         <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
                         <td class="text-start pl-4 border border-gray-500"
                             onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'">
-                            <?php echo($lot_list['lot_id']) ?>
+                            <?php echo ($lot_list['lot_id']) ?>
                         </td>
                         <td class="text-start pl-4 border border-gray-500"><?php echo ($lot_list['lot_date']) ?></td>
                         <td class="text-start pl-4 border border-gray-500"
@@ -340,18 +353,18 @@ ob_end_flush();
 
     <!-- เพิ่ม Script สำหรับจัดการฟอร์มและการแก้ไข -->
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // หาข้อความแจ้งเตือน
             const alert = document.getElementById('success-alert');
 
             if (alert) {
                 // ซ่อนข้อความหลัง 2 วินาที
-                setTimeout(function () {
+                setTimeout(function() {
                     alert.style.transition = 'opacity 0.5s';
                     alert.style.opacity = '0';
 
                     // ลบ element ออกหลังจาก transition เสร็จสิ้น
-                    setTimeout(function () {
+                    setTimeout(function() {
                         alert.remove();
                     }, 500);
                 }, 2000);
@@ -378,7 +391,7 @@ ob_end_flush();
 
             // เพิ่ม event listener สำหรับการอัปเดตค่า
             visibleInputs.forEach((input, index) => {
-                input.addEventListener('input', function () {
+                input.addEventListener('input', function() {
                     if (hiddenInputs[index + 1]) { // ตรวจสอบว่ามี hidden input อยู่ก่อนตั้งค่า
                         hiddenInputs[index + 1].value = this.value;
                     }
@@ -409,9 +422,9 @@ ob_end_flush();
         }
 
         // ฟังก์ชันตรวจสอบการกดปุ่มแก้ไขและลบ
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.edit-button').forEach(button => {
-                button.addEventListener('click', function (event) {
+                button.addEventListener('click', function(event) {
                     event.preventDefault();
                     const editButtons = this.parentElement.querySelector('.edit-delete-buttons');
                     const saveButton = this.parentElement.querySelector('.save-button');
@@ -425,8 +438,8 @@ ob_end_flush();
         });
 
         // Add form validation
-        document.addEventListener('DOMContentLoaded', function () {
-            document.addEventListener('submit', function (event) {
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('submit', function(event) {
                 if (event.target.querySelector('[name="update_warehouse"]')) {
                     const row = event.target.closest('tr');
                     const inputs = row.querySelectorAll('input[type="text"]');
