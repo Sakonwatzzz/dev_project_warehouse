@@ -35,6 +35,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_lot') {
+    header('Content-Type: application/json');
+    try {
+        // เริ่มต้น transaction
+        $pdo->beginTransaction();
+
+        // อัปเดตสถานะล็อต
+        $updateLot = $pdo->prepare("UPDATE lot SET lot_status_id = 2 WHERE lot_id = ?");
+        $updateLot->execute([$_POST['lot_id']]);
+
+        // ทำสิ่งอื่นที่จำเป็น เช่น บันทึกประวัติ หรือปรับปรุงสต็อก
+
+        // ยืนยัน transaction
+        $pdo->commit();
+
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        // ยกเลิก transaction หากมีข้อผิดพลาด
+        $pdo->rollBack();
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit();
+}
+
 // Handle product scan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
     ob_clean();
@@ -168,7 +192,10 @@ ORDER BY
 } catch (PDOException $e) {
     die("การเชื่อมต่อฐานข้อมูลผิดพลาด: " . $e->getMessage());
 }
+
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="th">
@@ -222,7 +249,7 @@ ORDER BY
                 <label class="block mb-2" id="barcodeInput">รหัสบาร์โค้ด:</label>
                 <input type="text" name="product_id"
                     class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ *" autofocus>
+                    pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
             </div>
 
             <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
@@ -251,16 +278,19 @@ ORDER BY
                             <th class="px-6 py-3 border text-center">จำนวน</th>
                             <th class="px-6 py-3 border text-right">ราคาทุน</th>
                             <th class="px-6 py-3 border text-right">มูลค่ารวม</th>
+                            <th class="px-6 py-3 border text-right">สถานะ</th>
                             <th class="px-6 py-3 border text-right">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php
                         $total_value = 0;
+                        $total_quantity = 0;
                         foreach ($lot_products as $index => $item):
                             $item_total = $item['lot_product_qty'] * $item['lot_product_capital'];
                             $total_value += $item_total;
-                            ?>
+                            $total_quantity += $item['lot_product_qty'];
+                        ?>
                             <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer"
                                 data-product-id="<?php echo htmlspecialchars($item['product_id']); ?>">
                                 <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_id']); ?></td>
@@ -272,6 +302,9 @@ ORDER BY
                                     <?php echo number_format($item['lot_product_capital'], 2); ?>
                                 </td>
                                 <td class="text-right py-2 border"><?php echo number_format($item_total, 2); ?></td>
+                                <td class="text-right py-2 border">
+                                    <?php echo htmlspecialchars($lot_data['lot_status_name']); ?>
+                                </td>
                                 <td class="text-right py-2 border px-4">
                                     <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
                                         data-id="<?php echo htmlspecialchars($item['lot_product_id']); ?>"
@@ -289,11 +322,27 @@ ORDER BY
                             </tr>
                         <?php endforeach; ?>
                         <?php if (count($lot_products) > 0): ?>
-                            <tr class=" bg-gray-300  text-2xl h-12">
-                                <td colspan="5" class="text-end">มูลค่ารวมทั้งสิ้น:</td>
-                                <td class="text-end py-4 pr-4"><?php echo number_format($total_value, 2); ?></td>
+                            <!-- Summary row with improved styling -->
+                            <tr class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400">
+                                <td colspan="2" class="text-end pe-4 align-middle">ยอดรวมสินค้า:</td>
+                                <td class="text-center py-4 font-bold"><?php echo number_format($total_quantity); ?></td>
+                                <td></td>
+                                <td colspan="2" class="text-end pe-4 align-middle">มูลค่ารวมทั้งสิ้น:</td>
+                                <td class="text-end py-4 font-bold"><?php echo number_format($total_value, 2); ?> บาท</td>
+                                <td></td>
                                 <td></td>
                             </tr>
+
+                            <?php if (count($lot_products) > 0 && $lot_data['lot_status_id'] == 1): ?>
+                                <!-- แสดงปุ่มยืนยันเฉพาะเมื่อสถานะเป็น "รอการอนุมัติ" -->
+                                <tr class="h-16">
+                                    <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
+                                        <button id="confirm-button" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                                            <i class="fas fa-check-circle me-2"></i>ยืนยันรายการ
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -329,6 +378,7 @@ ORDER BY
                     <input type="number" class="w-full p-2 border rounded" id="capital" name="capital" required min="0"
                         step="0.01">
                 </div>
+
                 <div class="flex justify-end gap-2">
                     <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded"
                         onclick="closeEditModal()">ยกเลิก</button>
@@ -343,7 +393,7 @@ ORDER BY
             document.getElementById('editModal').classList.add('hidden');
         }
 
-        $(document).ready(function () {
+        $(document).ready(function() {
             // Shared state
             const state = {
                 activeDeleteBarcode: null,
@@ -352,7 +402,7 @@ ORDER BY
 
             // Utility functions
             const utils = {
-                handleServerResponse: function (response) {
+                handleServerResponse: function(response) {
                     if (response.success) {
                         location.reload();
                     } else {
@@ -361,7 +411,7 @@ ORDER BY
                     }
                 },
 
-                handleServerError: function (xhr) {
+                handleServerError: function(xhr) {
                     console.error('Server response:', xhr.responseText);
                     try {
                         const htmlContent = xhr.responseText;
@@ -380,7 +430,7 @@ ORDER BY
                     state.barcodeInput.focus();
                 },
 
-                sendRequest: function (data) {
+                sendRequest: function(data) {
                     $.ajax({
                         url: window.location.href,
                         method: 'POST',
@@ -391,7 +441,7 @@ ORDER BY
                     });
                 },
 
-                validateFormFields: function (qty, capital) {
+                validateFormFields: function(qty, capital) {
                     if (qty <= 0) {
                         alert('จำนวนสินค้าต้องมากกว่า 0');
                         $('#qty').focus();
@@ -407,7 +457,7 @@ ORDER BY
                     return true;
                 },
 
-                updateRowHighlighting: function () {
+                updateRowHighlighting: function() {
                     // Remove highlight from all rows
                     $('#products-table tbody tr').removeClass('bg-pink-100');
 
@@ -420,7 +470,7 @@ ORDER BY
 
             // Event handlers
             const handlers = {
-                toggleDeleteMode: function (e) {
+                toggleDeleteMode: function(e) {
                     const $target = $(e.target);
                     const barcode = $target.data('barcode');
                     const isActive = state.activeDeleteBarcode === barcode;
@@ -447,7 +497,7 @@ ORDER BY
                     state.barcodeInput.focus();
                 },
 
-                handleBarcodeInput: function (e) {
+                handleBarcodeInput: function(e) {
                     if (e.which === 13) { // Enter key
                         e.preventDefault();
                         const inputValue = $(e.target).val();
@@ -494,7 +544,7 @@ ORDER BY
                     }
                 },
 
-                handleEditProduct: function (e) {
+                handleEditProduct: function(e) {
                     const $target = $(e.target);
                     const productData = {
                         id: $target.data('id'),
@@ -513,7 +563,7 @@ ORDER BY
                     $('#editModal').removeClass('hidden');
                 },
 
-                handleSaveEdit: function (e) {
+                handleSaveEdit: function(e) {
                     const form = $('#edit-form');
                     const $submitButton = $(e.target);
 
@@ -538,22 +588,54 @@ ORDER BY
                         dataType: 'json',
                         success: utils.handleServerResponse,
                         error: utils.handleServerError,
-                        complete: function () {
+                        complete: function() {
                             $submitButton.prop('disabled', false).text('บันทึก');
                         }
                     });
                 },
 
-                handleInputValidation: function (e) {
+                handleInputValidation: function(e) {
                     const $input = $(e.target);
                     const value = parseFloat($input.val());
                     const minValue = $input.attr('id') === 'qty' ? 0 : -1;
 
                     $input.toggleClass('border-red-500', value <= minValue);
+                },
+
+                handleConfirmButton: function() {
+                    // ตรวจสอบว่ามีสินค้าในตารางหรือไม่
+                    if ($('#products-table tbody tr').length <= 1) {
+                        alert('ไม่มีสินค้าในรายการ กรุณาเพิ่มสินค้าก่อนยืนยัน');
+                        return;
+                    }
+
+                    // แสดงกล่องยืนยัน
+                    if (confirm('ต้องการยืนยันรายการสินค้าทั้งหมดหรือไม่?\nหลังจากยืนยันแล้วจะไม่สามารถแก้ไขรายการได้')) {
+                        // ส่งคำขอ AJAX ไปยังเซิร์ฟเวอร์
+                        $.ajax({
+                            url: window.location.href,
+                            method: 'POST',
+                            data: {
+                                action: 'confirm_lot',
+                                lot_id: <?php echo json_encode($lot_id); ?>
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.success) {
+                                    alert('ยืนยันรายการสำเร็จ');
+                                    location.reload();
+                                } else {
+                                    alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถยืนยันรายการได้'));
+                                }
+                            },
+                            error: utils.handleServerError
+                        });
+                    }
                 }
             };
 
             // Event bindings
+            $('#confirm-button').on('click', handlers.handleConfirmButton);
             $('.toggle-delete-mode').on('click', handlers.toggleDeleteMode);
             state.barcodeInput.on('keypress', handlers.handleBarcodeInput);
             $('.edit-product').on('click', handlers.handleEditProduct);
@@ -562,7 +644,7 @@ ORDER BY
 
             // Modal close handlers
             const closeEditModal = () => $('#editModal').addClass('hidden');
-            $('#editModal').on('click', function (e) {
+            $('#editModal').on('click', function(e) {
                 if (e.target === this) closeEditModal();
             });
         });
