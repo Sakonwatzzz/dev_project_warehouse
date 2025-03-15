@@ -40,53 +40,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // กรณีเพิ่มข้อมูล lot
-   // กรณีเพิ่มข้อมูล lot
-else {
-    // รับค่า lot_id จาก POST (แก้ไข)
-    $lot_id = $_POST['lot_id'] ?? '';
-    $lot_name = $_POST['lot_name'] ?? '';
-    $lot_detail = $_POST['lot_detail'] ?? '';
-    $lot_date = $_POST['lot_date'] ?? '';
-    $lot_status_id = $_POST['lot_status_id'] ?? '';
-    $warehouse_id = $_POST['warehouse_id'] ?? '';
-    $warehouse_from_id = $_POST['warehouse_from_id'] ?? '';
-    
-    // กำหนดค่า warehouse_inout เป็น 1 หากไม่มีการกรอกค่า
-    $warehouse_inout = $_POST['warehouse_inout'] ?? '1'; // ถ้าไม่มีค่าให้เป็น 1
-    
-    $supplier_id = $_POST['supplier_id'] ?? '';
-    $lot_product_qty = $_POST['lot_product_qty'] ?? '';
-    $lot_product_remain = $_POST['lot_product_remain'] ?? '';
-    $lot_product_capital = $_POST['lot_product_capital'] ?? '';
-    $product_id = $_POST['product_id'] ?? '';
+    // กรณีเพิ่มข้อมูล lot
+    else {
+        // รับค่า lot_id จาก POST (แก้ไข)
+        $lot_id = $_POST['lot_id'] ?? '';
+        $lot_name = $_POST['lot_name'] ?? '';
+        $lot_detail = $_POST['lot_detail'] ?? '';
+        $lot_date = $_POST['lot_date'] ?? '';
+        $lot_status_id = $_POST['lot_status_id'] ?? '';
+        $warehouse_id = $_POST['warehouse_id'] ?? '';
+        $warehouse_from_id = $_POST['warehouse_from_id'] ?? '';
 
-    // ตรวจสอบว่าค่าต่างๆ จากฟอร์มถูกส่งมาเรียบร้อยหรือไม่
-    if (empty($lot_name) ) {
-        $error = "กรุณากรอกข้อมูลให้ครบทุกช่อง";
-    } else {
-        try {
-            $pdo->beginTransaction();
+        // กำหนดค่า warehouse_inout เป็น 1 หากไม่มีการกรอกค่า
+        $warehouse_inout = $_POST['warehouse_inout'] ?? '1'; // ถ้าไม่มีค่าให้เป็น 1
 
-            // ใช้ lot_id จาก POST ในการ INSERT
-            $stmt = $pdo->prepare('INSERT INTO lot (lot_id, lot_name, lot_detail, lot_date, lot_status_id, warehouse_id, supplier_id, warehouse_from_id, warehouse_inout) 
-            VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$lot_id, $lot_name, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $supplier_id, $warehouse_from_id, $warehouse_inout]);
+        $supplier_id = $_POST['supplier_id'] ?? '';
+        $lot_product_qty = $_POST['lot_product_qty'] ?? '';
+        $lot_product_remain = $_POST['lot_product_remain'] ?? '';
+        $lot_product_capital = $_POST['lot_product_capital'] ?? '';
+        $product_id = $_POST['product_id'] ?? '';
 
-            $pdo->commit();
+        // ตรวจสอบว่าค่าต่างๆ จากฟอร์มถูกส่งมาเรียบร้อยหรือไม่
+        if (empty($lot_name)) {
+            $error = "อมูลไม่ครบ กรุณากรอกข้อมูลให้ครบถ้วน  lot_name, lot_date, warehouse_id";
+        } else {
+            try {
+                $pdo->beginTransaction();
 
-            // ใช้ lot_id จาก POST ในการส่งไปกับ URL
-            หา last_id_insert
-            $lot_id = ????;
-            header("Location: /?page=lot_listdetail&tabel=lot&id=" . $lot_id . "&success=1");
-            exit;
-        } catch (PDOException $e) {
-            $pdo->rollBack();
-            $error = 'เกิดข้อผิดพลาด: ' . $e->getMessage();
-            echo $error;
+                // ใช้ lot_id จาก POST หรือปล่อยให้ AUTO_INCREMENT ทำงาน
+                $stmt = $pdo->prepare('INSERT INTO lot (lot_name, lot_detail, lot_date, lot_status_id, warehouse_id, supplier_id, warehouse_from_id, warehouse_inout) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+
+                $stmt->execute([$lot_name, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $supplier_id, $warehouse_from_id, $warehouse_inout]);
+
+                // ดึง lot_id ที่เพิ่งเพิ่มเข้าไป
+                $lot_id = $pdo->lastInsertId(); // ดึง lot_id ที่ถูก insert ไป
+
+                // ตรวจสอบว่า $lot_id มีค่าหรือไม่
+                if (!$lot_id) {
+                    throw new Exception("ไม่สามารถดึงค่า lot_id ได้");
+                }
+
+                // ทำการ commit หลังจากการ insert สำเร็จ
+                $pdo->commit();
+
+
+                header("Location: index.php?page=lot_listdetail&tabel=lot&id=" . urlencode($lot_id) . "&success=1");
+                exit;
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                die('เกิดข้อผิดพลาด: ' . $e->getMessage());
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                die('เกิดข้อผิดพลาด: ' . $e->getMessage());
+            }
         }
     }
-}
-
 }
 // ดึงข้อมูล lot_id สำหรับ dropdown
 $query = "SELECT lot_id FROM lot";
@@ -117,6 +126,14 @@ $query = "SELECT lot_product_id, lot_product_qty, lot_product_remain ,lot_produc
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ตรวจสอบค่าที่ส่งมาจาก POST หรือกำหนดค่าเริ่มต้น
+$selected_status_id = $_POST['lot_status_id'] ?? ''; // หรือใช้ $selected_status_id จากฐานข้อมูลหากมี
+
+// ถ้าต้องการให้ค่าเริ่มต้นเป็นค่าที่เลือกแรกในรายการ
+if ($selected_status_id === '') {
+    $selected_status_id = $status_lot[0]['lot_status_id'] ?? ''; // เลือกสถานะแรกในรายการถ้าไม่มีการเลือก
+}
 ob_end_flush();
 ?>
 <!DOCTYPE html>
@@ -154,10 +171,10 @@ ob_end_flush();
                 <div class="w-[45%] flex flex-wrap space-y-3">
                     <h1>รับจากภายนอก (suplier)</h1>
                     <div class="w-full flex pt-10">
-    <label for="lot_id" class="w-[15%] mb-2" hidden>รหัส Lot สินค้า:</label>
-    <input type="hidden" name="lot_id" id="lot_id" class="w-[85%] border rounded px-2 py-1"
-           value="<?php echo isset($lot_id) ? $lot_id : ''; ?>" placeholder="กรอกเลขที่ lot">
-</div>
+                        <label for="lot_id" class="w-[15%] mb-2" hidden>รหัส Lot สินค้า:</label>
+                        <input type="hidden" name="lot_id" id="lot_id" class="w-[85%] border rounded px-2 py-1"
+                            value="<?php echo isset($lot_id) ? $lot_id : ''; ?>" placeholder="กรอกเลขที่ lot">
+                    </div>
 
                     <div class="w-full flex pt-10">
                         <label for="lot_name" class="w-[15%] mb-2">ชื่อ Lot สินค้า:</label>
@@ -185,7 +202,7 @@ ob_end_flush();
                 <div class="w-[45%] flex flex-wrap space-y-3">
                     <h1>รับมาจากคลัง (ย้ายคลัง/กิจการตัวเอง)</h1>
                     <!-- ผู้ส่งมอบ -->
-                    <div class="w-full flex flex pt-6">
+                    <div class="w-full flex pt-6">
                         <label for="supplier_id" class="w-[20%] ">รับมาจากผู้ส่งมอบ:</label>
                         <select name="supplier_id" id="supplier_id" class="w-[85%] border rounded px-2 py-1">
                             <?php foreach ($supplier_lot as $supplier): ?>
@@ -207,22 +224,23 @@ ob_end_flush();
                             <?php endforeach; ?>
                         </select>
                     </div>
+
                     <div class="w-full flex">
-    <label for="lot_status_name" class="w-[15%] mr-10 mb-2">สถานะ:</label>
-    <select name="lot_status_id" id="lot_status_name" class="w-[85%] border rounded px-2 py-1" style="pointer-events: none;">
-        <?php foreach ($status_lot as $status): ?>
-            <option value="<?= htmlspecialchars($status['lot_status_id']) ?>" 
-                <?php if ($status['lot_status_id'] == $selected_status_id) echo 'selected'; ?>>
-                <?= htmlspecialchars($status['lot_status_name']) ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-</div>
-<div class="w-full flex pt-10">
-    <label for="warehouse_inout" class="w-[15%] mb-1">1:in | 2:out</label>
-    <input type="text" name="warehouse_inout" id="warehouse_inout"
-        class="w-[85%] border rounded px-2 py-1" placeholder="กรอกชื่อหรือรหัส lot รายการสินค้า">
-</div>
+                        <label for="lot_status_name" class="w-[15%] mr-10 mb-2">สถานะ:</label>
+                        <select name="lot_status_id" id="lot_status_name" class="w-[85%] border rounded px-2 py-1" style="pointer-events: none;">
+                            <?php foreach ($status_lot as $status): ?>
+                                <option value="<?= htmlspecialchars($status['lot_status_id']) ?>"
+                                    <?= ($status['lot_status_id'] == $selected_status_id) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($status['lot_status_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="w-full flex pt-10">
+                        <label for="warehouse_inout" class="w-[15%] mb-1">1:in | 2:out</label>
+                        <input type="text" name="warehouse_inout" id="warehouse_inout"
+                            class="w-[85%] border rounded px-2 py-1" placeholder="กรอกชื่อหรือรหัส lot รายการสินค้า" value="1">
+                    </div>
 
                     <!-- วันที่รับสินค้า -->
                     <div class="w-full flex">
@@ -247,7 +265,6 @@ ob_end_flush();
             <thead>
                 <!-- ส่วนหัวของตาราง -->
                 <tr class="">
-
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         ชื่อ Lot สินค้า</th>
@@ -260,7 +277,6 @@ ob_end_flush();
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         ลงคลัง</th>
-
                 </tr>
             </thead>
             <tbody class="">
@@ -290,18 +306,18 @@ ob_end_flush();
 
     <!-- เพิ่ม Script สำหรับจัดการฟอร์มและการแก้ไข -->
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // หาข้อความแจ้งเตือน
             const alert = document.getElementById('success-alert');
 
             if (alert) {
                 // ซ่อนข้อความหลัง 2 วินาที
-                setTimeout(function () {
+                setTimeout(function() {
                     alert.style.transition = 'opacity 0.5s';
                     alert.style.opacity = '0';
 
                     // ลบ element ออกหลังจาก transition เสร็จสิ้น
-                    setTimeout(function () {
+                    setTimeout(function() {
                         alert.remove();
                     }, 500);
                 }, 2000);
@@ -328,7 +344,7 @@ ob_end_flush();
 
             // เพิ่ม event listener สำหรับการอัปเดตค่า
             visibleInputs.forEach((input, index) => {
-                input.addEventListener('input', function () {
+                input.addEventListener('input', function() {
                     if (hiddenInputs[index + 1]) { // ตรวจสอบว่ามี hidden input อยู่ก่อนตั้งค่า
                         hiddenInputs[index + 1].value = this.value;
                     }
@@ -359,9 +375,9 @@ ob_end_flush();
         }
 
         // ฟังก์ชันตรวจสอบการกดปุ่มแก้ไขและลบ
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.edit-button').forEach(button => {
-                button.addEventListener('click', function (event) {
+                button.addEventListener('click', function(event) {
                     event.preventDefault();
                     const editButtons = this.parentElement.querySelector('.edit-delete-buttons');
                     const saveButton = this.parentElement.querySelector('.save-button');
