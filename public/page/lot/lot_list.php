@@ -20,10 +20,7 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 $supplier_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$query = "SELECT store_id, store_name FROM store";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$store_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
@@ -50,29 +47,26 @@ try {
 
 // คำสั่ง SQL ดึงข้อมูลพร้อม LIMIT
 try {
-    $query =
-        "SELECT
-    lot_status.lot_status_id, 
-    lot_status.lot_status_name, 
-    supplier.supplier_id, 
-    supplier.supplier_name, 
-    warehouse.warehouse_name, 
-    warehouse.warehouse_id,
-    store.store_id, 
-    store.store_name, 
-    lot.lot_id, 
-    lot.lot_detail, 
-    lot.lot_date, 
-    lot.lot_status_id, 
-    lot.warehouse_id, 
-    lot.store_id
-FROM
-    lot
-    LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-    LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
-    LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-    LEFT JOIN store ON lot.store_id = store.store_id
-LIMIT :offset, :records_per_page";
+    $query = "
+    SELECT
+        lot_status.lot_status_id, 
+        lot_status.lot_status_name, 
+        supplier.supplier_id, 
+        supplier.supplier_name, 
+        warehouse.warehouse_name, 
+        warehouse.warehouse_id,
+        lot.lot_id, 
+        lot.lot_detail, 
+        lot.lot_date, 
+        lot.lot_status_id, 
+        lot.warehouse_id
+    FROM
+        lot
+        LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
+        LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+        LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
+    LIMIT :offset, :records_per_page";
+
 
     // ตรวจสอบคำสั่ง SQL ก่อนการ execute
     $stmt = $pdo->prepare($query);
@@ -171,20 +165,17 @@ ob_end_flush();
             </div>
         </div>
 
-
         <!-- ส่วนของการแจ้งเตือนเมื่อการแก้ไขเสร็จสมบูรณ์ -->
         <div id="notification" class="notification" style="display:none;">
             <div class="notification-header">การแจ้งเตือน</div>
             <div class="notification-body">แก้ไขสมาชิกสำเร็จ!</div>
         </div>
-
         <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
             <thead>
                 <!-- ส่วนหัวของตาราง -->
                 <tr class="">
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะล็อต</th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ร้านค้า</th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ผู้ส่งมอบ</th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
                 </tr>
@@ -201,7 +192,6 @@ ob_end_flush();
                             <!-- <td><?php echo ($lot_list['lot_date']) ?></td> -->
                             <td class="text-start pl-4" onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'"><?php echo ($lot_list['lot_status_name']) ?></td>
                             <td class="text-start pl-4"><?php echo ($lot_list['warehouse_name']) ?></td>
-                            <td class="text-start pl-4"><?php echo ($lot_list['store_name']) ?></td>
                             <td class="text-start pl-4"><?php echo ($lot_list['supplier_name']) ?></td>
                             <td>
                                 <a href="?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 

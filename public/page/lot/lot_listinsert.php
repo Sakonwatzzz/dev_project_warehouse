@@ -17,13 +17,12 @@ try {
         lot.lot_date, 
         lot.lot_status_id, 
         lot.warehouse_id, 
-        lot.store_id
     FROM
         lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
         LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
         LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-        LEFT JOIN store ON lot.store_id = store.store_id";
+";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $result_lot_list = $stmt;
@@ -60,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lot_date = $_POST['lot_date'] ?? '';
         $lot_status_id = $_POST['lot_status_id'] ?? '';
         $warehouse_id = $_POST['warehouse_id'] ?? '';
-        $store_id = $_POST['store_id'] ?? '';
         $supplier_id = $_POST['supplier_id'] ?? '';
         $lot_product_qty = $_POST['lot_product_qty'] ?? '';
         $lot_product_remain = $_POST['lot_product_remain'] ?? '';
@@ -71,9 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
 
             // ใช้ lot_id จาก POST ในการ INSERT
-            $stmt = $pdo->prepare('INSERT INTO lot (lot_id, lot_detail, lot_date, lot_status_id, warehouse_id, store_id, supplier_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $store_id, $supplier_id]);
+            $stmt = $pdo->prepare('INSERT INTO lot (lot_id, lot_detail, lot_date, lot_status_id, warehouse_id,  supplier_id) 
+            VALUES (?, ?, ?, ?, ?, ?, )');
+            $stmt->execute([$lot_id, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $supplier_id]);
 
             $pdo->commit();
 
@@ -130,10 +128,8 @@ ob_end_flush();
     <title>ระบบจัดการคลังสินค้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
 <body>
     <h1 class="mx-11 my-8 text-4xl font-bold">รอบของสินค้า</h1>
-
     <?php if (isset($error)): ?>
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mx-11 mb-4">
             <?= htmlspecialchars($error) ?>
@@ -142,89 +138,25 @@ ob_end_flush();
 
     <div class="flex">
         <div class="relative w-full  mx-11 flex gap-11">
-            <!-- ส่วนซ้าย (การจัดการคลังสินค้า) -->
-            <div class="w-[40%] border border-[#7a7a7a] rounded-lg bg-[#cbdbe4]">
-                <div class="flex justify-between items-center px-4 py-2">
-                    <h2 class="text-2xl">คลังสินค้า</h2>
-                    <button onclick="showNewWarehouseForm()"
-                        class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-1 rounded shadow-md">
-                        เพิ่มคลัง
-                    </button>
-                </div>
-
-                <!-- แบบฟอร์มเพิ่มคลังใหม่ (ซ่อนไว้) -->
-                <div id="newWarehouseForm" class="hidden px-4 py-2 bg-white">
-                    <form method="POST" class="space-y-3">
-                        <div>
-                            <label class="block">ชื่อคลังสินค้า:</label>
-                            <input type="text" name="warehousename" required class="w-full border rounded px-2 py-1">
-                        </div>
-                        <div>
-                            <label class="block">สถานะ:</label>
-                            <input type="text" name="warehousestatus" required class="w-full border rounded px-2 py-1">
-                        </div>
-                        <div class="flex justify-end space-x-2">
-                            <button type="button" onclick="hideNewWarehouseForm()"
-                                class="bg-gray-500 text-white px-3 py-1 rounded">
-                                ยกเลิก
-                            </button>
-                            <button type="submit" name="new_warehouse"
-                                class="bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white px-3 py-1 rounded">
-                                บันทึก
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- ตารางแสดงรายการคลังสินค้า -->
-                <table class="w-full">
-                    <thead>
-                        <tr>
-                            <th
-                                class="w-[40%]  bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                ชื่อคลังสินค้า
-                            </th>
-                            <th
-                                class="w-[30%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                สถานะ
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($warehouse_lot as $warehouse): ?>
-                            <tr data-id="<?= ($warehouse['warehouse_id']) ?>" class="hover:bg-gray-100">
-                                <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-name">
-                                    <?= ($warehouse['warehouse_name']) ?>
-                                </td>
-                                <td class="bg-white text-gray-800 px-3 py-2 border border-gray-300 warehouse-status">
-                                    <?= ($warehouse['warehouse_status']) ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-
             <!-- ส่วนขวา (ฟอร์มเพิ่ม lot) -->
             <form method="POST" action="" class="w-[60%]">
-                <div class="">
-                    <?php
-                    date_default_timezone_set('Asia/Bangkok'); // ตั้งโซนเวลาเป็นไทย
-                    $currentDateTime = date("Y-m-d H:i:s"); // วันที่และเวลาปัจจุบันในรูปแบบฐานข้อมูล (YYYY-MM-DD HH:MM:SS)
-                    $displayDateTime = date("d/m/Y H:i:s"); // แสดงวันที่สวยงาม
-                    ?>
-                    <!-- วันที่แสดงทางขวาบน -->
-                    <span class="absolute top-2 right-3 text-gray-900 text-xl">
-                        <?= $displayDateTime ?>
-                    </span>
-                </div>
+            <div class="">
+                        <?php
+                        date_default_timezone_set('Asia/Bangkok'); // ตั้งโซนเวลาเป็นไทย
+                        $currentDateTime = date("Y-m-d H:i:s"); // วันที่และเวลาปัจจุบันในรูปแบบฐานข้อมูล (YYYY-MM-DD HH:MM:SS)
+                        $displayDateTime = date("d/m/Y H:i:s"); // แสดงวันที่สวยงาม
+                        ?>
+                        <!-- วันที่แสดงทางขวาบน -->
+                        <span class="absolute top-2 right-3 text-gray-900 text-xl">
+                            <?= $displayDateTime ?>
+                        </span>
+                    </div>
                 <div class="w-full flex justify-center items-center">
-
+           
                     <div
                         class="w-full flex flex-wrap space-y-3 bg-gradient-to-b  from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg p-4 border border-[#8f959b] shadow rounded-lg">
-
-
                         <!-- รหัส Lot สินค้า -->
+
                         <div class="w-full flex pt-10">
                             <label for="lot_id" class="w-[15%] mb-2">รหัส Lot สินค้า:</label>
                             <input type="text" name="lot_id" id="lot_id" required
@@ -260,7 +192,7 @@ ob_end_flush();
                         <!-- รายละเอียด -->
                         <div class="w-full flex">
                             <label for="lot_detail" class="w-[15%] mb-2">รายละเอียด:</label>
-                            <input type="text" name="lot_detail" id="lot_detail" 
+                            <input type="text" name="lot_detail" id="lot_detail"
                                 class="w-[85%] border rounded px-2 py-1" placeholder="รายละเอียด">
                         </div>
 
@@ -268,8 +200,7 @@ ob_end_flush();
                         <!-- ผู้ส่งมอบ -->
                         <div class="w-full flex">
                             <label for="supplier_id" class="w-[15%] mb-2">รับมาจากผู้ส่งมอบ:</label>
-                            <select name="supplier_id" id="supplier_id" 
-                                class="w-[85%] border rounded px-2 py-1">
+                            <select name="supplier_id" id="supplier_id" class="w-[85%] border rounded px-2 py-1">
                                 <?php foreach ($supplier_lot as $supplier): ?>
                                     <option value="<?= htmlspecialchars($supplier['supplier_id']) ?>">
                                         <?= htmlspecialchars($supplier['supplier_name']) ?>
@@ -353,18 +284,18 @@ ob_end_flush();
 
     <!-- เพิ่ม Script สำหรับจัดการฟอร์มและการแก้ไข -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // หาข้อความแจ้งเตือน
             const alert = document.getElementById('success-alert');
 
             if (alert) {
                 // ซ่อนข้อความหลัง 2 วินาที
-                setTimeout(function() {
+                setTimeout(function () {
                     alert.style.transition = 'opacity 0.5s';
                     alert.style.opacity = '0';
 
                     // ลบ element ออกหลังจาก transition เสร็จสิ้น
-                    setTimeout(function() {
+                    setTimeout(function () {
                         alert.remove();
                     }, 500);
                 }, 2000);
@@ -391,7 +322,7 @@ ob_end_flush();
 
             // เพิ่ม event listener สำหรับการอัปเดตค่า
             visibleInputs.forEach((input, index) => {
-                input.addEventListener('input', function() {
+                input.addEventListener('input', function () {
                     if (hiddenInputs[index + 1]) { // ตรวจสอบว่ามี hidden input อยู่ก่อนตั้งค่า
                         hiddenInputs[index + 1].value = this.value;
                     }
@@ -422,9 +353,9 @@ ob_end_flush();
         }
 
         // ฟังก์ชันตรวจสอบการกดปุ่มแก้ไขและลบ
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.edit-button').forEach(button => {
-                button.addEventListener('click', function(event) {
+                button.addEventListener('click', function (event) {
                     event.preventDefault();
                     const editButtons = this.parentElement.querySelector('.edit-delete-buttons');
                     const saveButton = this.parentElement.querySelector('.save-button');
@@ -438,8 +369,8 @@ ob_end_flush();
         });
 
         // Add form validation
-        document.addEventListener('DOMContentLoaded', function() {
-            document.addEventListener('submit', function(event) {
+        document.addEventListener('DOMContentLoaded', function () {
+            document.addEventListener('submit', function (event) {
                 if (event.target.querySelector('[name="update_warehouse"]')) {
                     const row = event.target.closest('tr');
                     const inputs = row.querySelectorAll('input[type="text"]');

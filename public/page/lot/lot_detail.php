@@ -53,7 +53,7 @@ FROM
         die("ระบุประเภทไม่ถูกต้อง");
 }
 // ดำเนินการ query ด้วย product_id ที่ระบุ
-$stmt->execute([$id]);
+$stmt->execute([$lid]);
 $lot = $stmt->fetch(PDO::FETCH_ASSOC); // เก็บผลลัพธ์เป็นแถวข้อมูลในรูปแบบ array
 if (!$lot) {
     echo "ไม่พบข้อมูล";
