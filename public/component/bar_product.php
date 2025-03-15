@@ -139,6 +139,12 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                         <p>เพิ่ม Lot รายการรับสินค้า</p>
                     </button>
                 </a>
+                <a href="?page=lot_listinsertcopy" class="button-link">
+                    <button class="<?php echo ($current_page == 'lot_warehouse_in') ? 'active' : ''; ?>">
+                        <img src="../image/warehouse.png" alt="">
+                        <p>เพิ่ม Lot รายการรับสินค้า(Copy)</p>
+                    </button>
+                </a>
                 <a href="?page=lot_list" class="button-link">
                     <button class="<?php echo ($current_page == 'lot_list') ? 'active' : ''; ?>">
                         <img src="../image/warehouse.png" alt="">
@@ -151,6 +157,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                         <p>รับรายการสินค้า</p>
                     </button>
                 </a>
+            
             </div>
             <div class="flex justify-center font-bold bg-[#c2d9f1] rounded-bl-lg rounded-br-lg">
                 <h1>คลังสินค้า</h1>

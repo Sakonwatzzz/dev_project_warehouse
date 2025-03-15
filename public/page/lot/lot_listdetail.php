@@ -1,12 +1,12 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-// // Validate ID
-// if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-//     die("ค่า ID ไม่ถูกต้อง");
-// }
-
-$lot_id = $_GET['id'];
+$lot_id = $_POST['lot_id'] ?? '';
+if (empty($lot_id)) {
+    // แจ้งว่า lot_id ไม่มีค่า หรือไม่ถูกส่งมา
+    echo "lot_id is missing.";
+    exit;
+}
 
 // Handle product update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
@@ -14,7 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt = $pdo->prepare("UPDATE lot_product SET 
             lot_product_qty = ?, 
             lot_product_remain = ?,
-            lot_product_capital = ?
+            lot_product_capital = ?,
+            warehouse_from_id = ?
             WHERE lot_product_id = ? AND lot_id = ?");
 
         $stmt->execute([
@@ -136,23 +137,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
 
 $query = "SELECT
     l.lot_id,
+    l.lot_name,
     l.lot_detail,
     l.lot_date,
-    w.warehouse_id,
-    w.warehouse_name,
-    s.store_id,
-    s.store_name,
+    l.warehouse_from_id,
+    l.warehouse_inout,
+    l.warehouse_id,
+    w2.warehouse_name ,  -- ดึงชื่อคลังปลายทาง
+
     sup.supplier_id,
     sup.supplier_name,
     ls.lot_status_id,
     ls.lot_status_name
 FROM
     lot l
-    INNER JOIN warehouse w ON l.warehouse_id = w.warehouse_id
-    INNER JOIN store s ON l.store_id = s.store_id
+    LEFT JOIN warehouse w2 ON l.warehouse_id = w2.warehouse_id  -- คลังปลายทาง
     INNER JOIN supplier sup ON l.supplier_id = sup.supplier_id
     INNER JOIN lot_status ls ON l.lot_status_id = ls.lot_status_id
 WHERE l.lot_id = :lot_id";
+
 
 try {
     $stmt = $pdo->prepare($query);
@@ -165,6 +168,7 @@ try {
 
     // Query products in lot
     $product_query = "SELECT
+    lp.lot_id,
     lp.lot_product_id,
     lp.product_id,
     COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
@@ -193,7 +197,6 @@ ORDER BY
     die("การเชื่อมต่อฐานข้อมูลผิดพลาด: " . $e->getMessage());
 }
 
-
 ?>
 
 
@@ -211,7 +214,6 @@ ORDER BY
 <body class="bg-gray-100">
     <div class="container mx-auto p-8 mb-11">
         <h1 class="text-4xl font-bold mb-8">รายละเอียดล็อตสินค้า</h1>
-
         <?php if ($lot_data): ?>
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <div class="grid grid-cols-2 gap-6">
@@ -220,21 +222,35 @@ ORDER BY
                         <span><?php echo htmlspecialchars($lot_data['lot_id']); ?></span>
                     </div>
                     <div>
+                        <label class="font-semibold mb-2">ชื่อ Lot สินค้า:</label>
+                        <span><?php echo htmlspecialchars($lot_data['lot_name']); ?></span>
+                    </div>
+                    <div>
                         <label class="font-semibold mb-2">วันที่รับสินค้า:</label>
                         <span><?php echo htmlspecialchars($lot_data['lot_date']); ?></span>
                     </div>
                     <div>
-                        <label class="font-semibold mb-2">คลังสินค้า:</label>
-                        <span><?php echo htmlspecialchars($lot_data['warehouse_name']); ?></span>
-                    </div>
-                    <div>
-                        <label class="font-semibold mb-2">ผู้ส่งมอบ:</label>
+                        <label class="font-semibold mb-2">รับมาจากผู้ส่งมอบ:</label>
                         <span><?php echo htmlspecialchars($lot_data['supplier_name']); ?></span>
                     </div>
                     <div>
-                        <label class="font-semibold mb-2">ร้านค้า:</label>
-                        <span><?php echo htmlspecialchars($lot_data['store_name']); ?></span>
+                        <label class="font-semibold mb-2">ลงคลัง:</label>
+                        <span><?php echo htmlspecialchars($lot_data['warehouse_name']); ?></span>
+                        <?php foreach ($warehouse_lot as $warehouse): ?>
+                            <option value="<?= htmlspecialchars($warehouse['warehouse_id']) ?>">
+                                <?= htmlspecialchars($warehouse['warehouse_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
                     </div>
+                    <div>
+                        <label class="font-semibold mb-2">นำมาจากคลัง:</label>
+                        <span><?php echo !empty($lot_data['warehouse_from_id']) ? htmlspecialchars($lot_data['warehouse_from_id']) : "ยังไม่ระบุ"; ?></span>
+                    </div>
+                    <div>
+                        <label class="font-semibold mb-2">1 : in | 2 : out</label>
+                        <span><?php echo !empty($lot_data['warehouse_inout']) ? htmlspecialchars($lot_data['warehouse_inout']) : "ยังไม่ระบุ"; ?></span>
+                    </div>
+
                     <div>
                         <label class="font-semibold mb-2">สถานะ:</label>
                         <span><?php echo htmlspecialchars($lot_data['lot_status_name']); ?></span>
@@ -290,7 +306,7 @@ ORDER BY
                             $item_total = $item['lot_product_qty'] * $item['lot_product_capital'];
                             $total_value += $item_total;
                             $total_quantity += $item['lot_product_qty'];
-                        ?>
+                            ?>
                             <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer"
                                 data-product-id="<?php echo htmlspecialchars($item['product_id']); ?>">
                                 <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_id']); ?></td>
@@ -323,7 +339,8 @@ ORDER BY
                         <?php endforeach; ?>
                         <?php if (count($lot_products) > 0): ?>
                             <!-- Summary row with improved styling -->
-                            <tr class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400">
+                            <tr
+                                class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400">
                                 <td colspan="2" class="text-end pe-4 align-middle">ยอดรวมสินค้า:</td>
                                 <td class="text-center py-4 font-bold"><?php echo number_format($total_quantity); ?></td>
                                 <td></td>
@@ -337,7 +354,8 @@ ORDER BY
                                 <!-- แสดงปุ่มยืนยันเฉพาะเมื่อสถานะเป็น "รอการอนุมัติ" -->
                                 <tr class="h-16">
                                     <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
-                                        <button id="confirm-button" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                                        <button id="confirm-button"
+                                            class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                                             <i class="fas fa-check-circle me-2"></i>ยืนยันรายการ
                                         </button>
                                     </td>
@@ -393,7 +411,7 @@ ORDER BY
             document.getElementById('editModal').classList.add('hidden');
         }
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Shared state
             const state = {
                 activeDeleteBarcode: null,
@@ -402,7 +420,7 @@ ORDER BY
 
             // Utility functions
             const utils = {
-                handleServerResponse: function(response) {
+                handleServerResponse: function (response) {
                     if (response.success) {
                         location.reload();
                     } else {
@@ -411,7 +429,7 @@ ORDER BY
                     }
                 },
 
-                handleServerError: function(xhr) {
+                handleServerError: function (xhr) {
                     console.error('Server response:', xhr.responseText);
                     try {
                         const htmlContent = xhr.responseText;
@@ -430,7 +448,7 @@ ORDER BY
                     state.barcodeInput.focus();
                 },
 
-                sendRequest: function(data) {
+                sendRequest: function (data) {
                     $.ajax({
                         url: window.location.href,
                         method: 'POST',
@@ -441,7 +459,7 @@ ORDER BY
                     });
                 },
 
-                validateFormFields: function(qty, capital) {
+                validateFormFields: function (qty, capital) {
                     if (qty <= 0) {
                         alert('จำนวนสินค้าต้องมากกว่า 0');
                         $('#qty').focus();
@@ -457,7 +475,7 @@ ORDER BY
                     return true;
                 },
 
-                updateRowHighlighting: function() {
+                updateRowHighlighting: function () {
                     // Remove highlight from all rows
                     $('#products-table tbody tr').removeClass('bg-pink-100');
 
@@ -470,7 +488,7 @@ ORDER BY
 
             // Event handlers
             const handlers = {
-                toggleDeleteMode: function(e) {
+                toggleDeleteMode: function (e) {
                     const $target = $(e.target);
                     const barcode = $target.data('barcode');
                     const isActive = state.activeDeleteBarcode === barcode;
@@ -497,7 +515,7 @@ ORDER BY
                     state.barcodeInput.focus();
                 },
 
-                handleBarcodeInput: function(e) {
+                handleBarcodeInput: function (e) {
                     if (e.which === 13) { // Enter key
                         e.preventDefault();
                         const inputValue = $(e.target).val();
@@ -544,7 +562,7 @@ ORDER BY
                     }
                 },
 
-                handleEditProduct: function(e) {
+                handleEditProduct: function (e) {
                     const $target = $(e.target);
                     const productData = {
                         id: $target.data('id'),
@@ -563,7 +581,7 @@ ORDER BY
                     $('#editModal').removeClass('hidden');
                 },
 
-                handleSaveEdit: function(e) {
+                handleSaveEdit: function (e) {
                     const form = $('#edit-form');
                     const $submitButton = $(e.target);
 
@@ -588,13 +606,13 @@ ORDER BY
                         dataType: 'json',
                         success: utils.handleServerResponse,
                         error: utils.handleServerError,
-                        complete: function() {
+                        complete: function () {
                             $submitButton.prop('disabled', false).text('บันทึก');
                         }
                     });
                 },
 
-                handleInputValidation: function(e) {
+                handleInputValidation: function (e) {
                     const $input = $(e.target);
                     const value = parseFloat($input.val());
                     const minValue = $input.attr('id') === 'qty' ? 0 : -1;
@@ -602,7 +620,7 @@ ORDER BY
                     $input.toggleClass('border-red-500', value <= minValue);
                 },
 
-                handleConfirmButton: function() {
+                handleConfirmButton: function () {
                     // ตรวจสอบว่ามีสินค้าในตารางหรือไม่
                     if ($('#products-table tbody tr').length <= 1) {
                         alert('ไม่มีสินค้าในรายการ กรุณาเพิ่มสินค้าก่อนยืนยัน');
@@ -620,7 +638,7 @@ ORDER BY
                                 lot_id: <?php echo json_encode($lot_id); ?>
                             },
                             dataType: 'json',
-                            success: function(response) {
+                            success: function (response) {
                                 if (response.success) {
                                     alert('ยืนยันรายการสำเร็จ');
                                     location.reload();
@@ -644,7 +662,7 @@ ORDER BY
 
             // Modal close handlers
             const closeEditModal = () => $('#editModal').addClass('hidden');
-            $('#editModal').on('click', function(e) {
+            $('#editModal').on('click', function (e) {
                 if (e.target === this) closeEditModal();
             });
         });
