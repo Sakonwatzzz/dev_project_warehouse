@@ -111,9 +111,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                 $update->execute([$newQty, $newQty, $newCapital, $lot_id, $barcode]);
             }
         } else {
-            // Product doesn't exist in lot
             if (!$isDeleteMode) {
-                // Normal mode - add new product regardless of product table
+                // ตรวจสอบว่ามีสินค้านี้ในตาราง product หรือไม่
+                $stmt_product = $pdo->prepare("SELECT * FROM product WHERE product_id = ?");
+                $stmt_product->execute([$barcode]);
+                $product_exists = $stmt_product->fetch();
+
+                if (!$product_exists) {
+                    $insert_product = $pdo->prepare("INSERT INTO product (
+                        product_id, 
+                        product_name,
+                        product_price1,
+                        product_price2,
+                        product_price3,
+                        product_price4,
+                        product_capital,
+                        product_type_id,
+                        product_brand_id
+                    ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
+                    
+                    // และปรับการส่งค่าในการเรียกใช้ execute
+                    $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
+                    $insert_product->execute([$barcode, $product_name, $capital]);
+                }
+
+                // จากนั้นค่อยเพิ่มข้อมูลในตาราง lot_product ตามเดิม
                 $insert = $pdo->prepare("INSERT INTO lot_product (
                     lot_id, 
                     product_id, 
@@ -142,16 +164,17 @@ $query = "SELECT
     l.lot_detail,
     l.lot_date,
     l.warehouse_from_id,
+    w1.warehouse_name as warehouse_from_name,  -- ดึงชื่อคลังต้นทาง
     l.warehouse_inout,
     l.warehouse_id,
-    w2.warehouse_name ,  -- ดึงชื่อคลังปลายทาง
-
+    w2.warehouse_name,  -- ดึงชื่อคลังปลายทาง
     sup.supplier_id,
     sup.supplier_name,
     ls.lot_status_id,
     ls.lot_status_name
 FROM
     lot l
+    LEFT JOIN warehouse w1 ON l.warehouse_from_id = w1.warehouse_id  -- คลังต้นทาง
     LEFT JOIN warehouse w2 ON l.warehouse_id = w2.warehouse_id  -- คลังปลายทาง
     INNER JOIN supplier sup ON l.supplier_id = sup.supplier_id
     INNER JOIN lot_status ls ON l.lot_status_id = ls.lot_status_id
@@ -262,13 +285,36 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <label class="font-semibold mb-2">ลงคลัง:</label>
                         <span><?php echo htmlspecialchars($lot_data['warehouse_name']); ?></span>
                     </div>
+
                     <div>
                         <label class="font-semibold mb-2">นำมาจากคลัง:</label>
-                        <span><?php echo !empty($lot_data['warehouse_from_id']) ? htmlspecialchars($lot_data['warehouse_from_id']) : "ยังไม่ระบุ"; ?></span>
+                        <span>
+                            <?php
+                            if (!empty($lot_data['warehouse_from_name'])) {
+                                echo htmlspecialchars($lot_data['warehouse_from_name']);
+                            } elseif (!empty($lot_data['warehouse_from_id'])) {
+                                echo htmlspecialchars($lot_data['warehouse_from_id']) . " (ไม่พบชื่อคลัง)";
+                            } else {
+                                echo "ยังไม่ระบุ";
+                            }
+                            ?>
+                        </span>
                     </div>
+
                     <div>
-                        <label class="font-semibold mb-2">1 : in | 2 : out</label>
-                        <span><?php echo !empty($lot_data['warehouse_inout']) ? htmlspecialchars($lot_data['warehouse_inout']) : "ยังไม่ระบุ"; ?></span>
+                        <?php
+                        if (!empty($lot_data['warehouse_inout'])) {
+                            if ($lot_data['warehouse_inout'] == 1) {
+                                echo '<span class="text-green-600"><i class="fas fa-sign-in-alt mr-1"></i>รับเข้า</span>';
+                            } elseif ($lot_data['warehouse_inout'] == 2) {
+                                echo '<span class="text-red-600"><i class="fas fa-sign-out-alt mr-1"></i>นำออก</span>';
+                            } else {
+                                echo htmlspecialchars($lot_data['warehouse_inout']);
+                            }
+                        } else {
+                            echo "ยังไม่ระบุ";
+                        }
+                        ?>
                     </div>
 
                     <div>
@@ -433,12 +479,12 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
         function changeInputBackground(event) {
             if (event.keyCode === 8 || event.keyCode === 46) { // 8 = Backspace, 46 = Delete
                 inputField.classList.remove('input-normal');
-                inputField.classList.add('input-delete');   // เพิ่มคลาสสำหรับการลบข้อมูล
+                inputField.classList.add('input-delete'); // เพิ่มคลาสสำหรับการลบข้อมูล
             }
 
-            if (event.keyCode === 13) {  // 13 = Enter
+            if (event.keyCode === 13) { // 13 = Enter
                 inputField.classList.remove('input-normal');
-                inputField.classList.add('input-add');        // เพิ่มคลาสสำหรับการเพิ่มข้อมูล
+                inputField.classList.add('input-add'); // เพิ่มคลาสสำหรับการเพิ่มข้อมูล
             }
         }
 
@@ -451,12 +497,12 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // ฟังการกดปุ่มและการเริ่มกรอกข้อมูล
         inputField.addEventListener('keydown', function(event) {
-            changeInputBackground(event);  // เปลี่ยนพื้นหลังตามการกดปุ่ม
+            changeInputBackground(event); // เปลี่ยนพื้นหลังตามการกดปุ่ม
         });
 
         // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
         inputField.addEventListener('focus', function() {
-            resetInputBackground();  // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
+            resetInputBackground(); // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
         });
     </script>
 

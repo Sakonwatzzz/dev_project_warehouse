@@ -94,7 +94,8 @@ $product_section_pages = [
             'lot_detail',
             'lot_productdetail',
             'lot_listdetail',
-            'lot_listinsertcopy'
+            'lot_listinsertcopy',
+            'warehouse_lot'
 
         ];
         $member_pages = [
@@ -189,7 +190,7 @@ $product_section_pages = [
                     include $barfile;
                 }
                 $action = $parts[1] ?? 'list';
-                if ($action) { 
+                if ($action) {
                     $filepath = "$basePath/product/product_{$action}.php";
                 }
                 if (isset($_GET['id'])) {
@@ -218,6 +219,17 @@ $product_section_pages = [
 
                 if (isset($_GET['id'])) {
                     $_REQUEST['id'] = $_GET['id'];
+                }
+            } elseif ($prefix === 'warehouse' && $page === 'warehouse_lot') {
+                // โหลด bar_product.php ก่อน
+                $barfile = __DIR__ . "/bar_product.php";
+                if (file_exists($barfile)) {
+                    include $barfile;
+                }
+                $filepath = "$basePath/lot/warehouse_lot.php";
+
+                if (isset($_GET['warehouse_id'])) {
+                    $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
                 }
             } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
                 // โหลด bar_personnel.php ก่อน
