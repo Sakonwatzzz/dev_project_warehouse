@@ -147,12 +147,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                 ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
 
                 $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
+                
             }
             // In delete mode, do nothing if product doesn't exist
         }
 
         echo json_encode(['success' => true]);
     } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_lot') {
+    header('Content-Type: application/json');
+    try {
+        // เริ่มต้น transaction
+        $pdo->beginTransaction();
+
+        // อัปเดตสถานะล็อต
+        $updateLot = $pdo->prepare("UPDATE lot SET lot_status_id = 2 WHERE lot_id = ?");
+        $updateLot->execute([$_POST['lot_id']]);
+
+        // ทำสิ่งอื่นที่จำเป็น เช่น บันทึกประวัติ หรือปรับปรุงสต็อก
+
+        // ยืนยัน transaction
+        $pdo->commit();
+
+        // ส่งคืนข้อมูล JSON พร้อม URL สำหรับการเปลี่ยนเส้นทาง
+        echo json_encode([
+            'success' => true, 
+            'redirect' => "index.php?page=lot_listinsertcopy"
+        ]);
+    } catch (Exception $e) {
+        // ยกเลิก transaction หากมีข้อผิดพลาด
+        $pdo->rollBack();
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     exit();
