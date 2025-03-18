@@ -37,8 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_lot') {
-    header('Content-Type: application/json');
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
     try {
         // เริ่มต้น transaction
         $pdo->beginTransaction();
@@ -52,7 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // ยืนยัน transaction
         $pdo->commit();
 
-        echo json_encode(['success' => true]);
+        // Redirect ไปที่หน้าล็อตที่ต้องการ
+        header('Location: http://localhost:8000/index.php?page=lot_listinsertcopy');
+        exit();  // หยุดการทำงานของ PHP ต่อ
     } catch (Exception $e) {
         // ยกเลิก transaction หากมีข้อผิดพลาด
         $pdo->rollBack();
@@ -60,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     exit();
 }
-
 // Handle product scan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
     // ob_clean();
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                         product_type_id,
                         product_brand_id
                     ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
-                    
+
                     // และปรับการส่งค่าในการเรียกใช้ execute
                     $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
                     $insert_product->execute([$barcode, $product_name, $capital]);
@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                 ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
 
                 $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
-                
+
             }
             // In delete mode, do nothing if product doesn't exist
         }
@@ -159,33 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_lot') {
-    header('Content-Type: application/json');
-    try {
-        // เริ่มต้น transaction
-        $pdo->beginTransaction();
 
-        // อัปเดตสถานะล็อต
-        $updateLot = $pdo->prepare("UPDATE lot SET lot_status_id = 2 WHERE lot_id = ?");
-        $updateLot->execute([$_POST['lot_id']]);
-
-        // ทำสิ่งอื่นที่จำเป็น เช่น บันทึกประวัติ หรือปรับปรุงสต็อก
-
-        // ยืนยัน transaction
-        $pdo->commit();
-
-        // ส่งคืนข้อมูล JSON พร้อม URL สำหรับการเปลี่ยนเส้นทาง
-        echo json_encode([
-            'success' => true, 
-            'redirect' => "index.php?page=lot_listinsertcopy"
-        ]);
-    } catch (Exception $e) {
-        // ยกเลิก transaction หากมีข้อผิดพลาด
-        $pdo->rollBack();
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-    }
-    exit();
-}
 
 $query = "SELECT
     l.lot_id,
@@ -356,13 +330,14 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <h2 class="text-2xl font-semibold mb-4">สแกนสินค้าเข้าล็อต</h2>
         <form id="barcode-form" action="" method="POST">
+            <?php if($lot_status_id == 2) ?>
             <div class="mb-4 flex items-center gap-4">
                 <label class="block mb-2" id="barcodeInput">รหัสบาร์โค้ด:</label>
                 <input type="text" id="inputField" name="product_id"
                     class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                     pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
             </div>
-
+            <?php endif; ?>
             <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
             <div class="flex space-x-4">
                 <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
@@ -401,7 +376,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             $item_total = $item['lot_product_qty'] * $item['lot_product_capital'];
                             $total_value += $item_total;
                             $total_quantity += $item['lot_product_qty'];
-                        ?>
+                            ?>
                             <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer"
                                 data-product-id="<?php echo htmlspecialchars($item['product_id']); ?>">
                                 <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_id']); ?></td>
@@ -447,15 +422,22 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                             <?php if (count($lot_products) > 0 && $lot_data['lot_status_id'] == 1): ?>
                                 <!-- แสดงปุ่มยืนยันเฉพาะเมื่อสถานะเป็น "รอการอนุมัติ" -->
-                                <tr class="h-16">
-                                    <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
-                                        <button id="confirm-button"
-                                            class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                                            <i class="fas fa-check-circle me-2"></i>ยืนยันรายการ
-                                        </button>
-                                    </td>
-                                </tr>
+                                <form method="POST" action="">
+                                    <!-- ใส่ path ของไฟล์ PHP ที่ประมวลผลการอัปเดต -->
+                                    <tr class="h-16">
+                                        <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
+                                            <button type="submit"
+                                                class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                                                <i class="fas fa-check-circle me-2"></i>ยืนยันรายการ
+                                            </button>
+                                            <input type="hidden" name="lot_id" value="<?php echo $lot_data['lot_id']; ?>">
+                                            <!-- ส่ง lot_id ไปในฟอร์ม -->
+                                        </td>
+                                    </tr>
+                                </form>
                             <?php endif; ?>
+
+
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -525,12 +507,12 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         // ฟังการกดปุ่มและการเริ่มกรอกข้อมูล
-        inputField.addEventListener('keydown', function(event) {
+        inputField.addEventListener('keydown', function (event) {
             changeInputBackground(event); // เปลี่ยนพื้นหลังตามการกดปุ่ม
         });
 
         // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
-        inputField.addEventListener('focus', function() {
+        inputField.addEventListener('focus', function () {
             resetInputBackground(); // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
         });
     </script>
@@ -540,7 +522,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
             document.getElementById('editModal').classList.add('hidden');
         }
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Shared state
             const state = {
                 activeDeleteBarcode: null,
@@ -549,7 +531,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Utility functions
             const utils = {
-                handleServerResponse: function(response) {
+                handleServerResponse: function (response) {
                     if (response.success) {
                         location.reload();
                     } else {
@@ -558,7 +540,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     }
                 },
 
-                handleServerError: function(xhr) {
+                handleServerError: function (xhr) {
                     console.error('Server response:', xhr.responseText);
                     try {
                         const htmlContent = xhr.responseText;
@@ -577,7 +559,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     state.barcodeInput.focus();
                 },
 
-                sendRequest: function(data) {
+                sendRequest: function (data) {
                     $.ajax({
                         url: window.location.href,
                         method: 'POST',
@@ -588,7 +570,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     });
                 },
 
-                validateFormFields: function(qty, capital) {
+                validateFormFields: function (qty, capital) {
                     if (qty <= 0) {
                         alert('จำนวนสินค้าต้องมากกว่า 0');
                         $('#qty').focus();
@@ -604,7 +586,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     return true;
                 },
 
-                updateRowHighlighting: function() {
+                updateRowHighlighting: function () {
                     // Remove highlight from all rows
                     $('#products-table tbody tr').removeClass('bg-pink-100');
 
@@ -617,7 +599,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Event handlers
             const handlers = {
-                toggleDeleteMode: function(e) {
+                toggleDeleteMode: function (e) {
                     const $target = $(e.target);
                     const barcode = $target.data('barcode');
                     const isActive = state.activeDeleteBarcode === barcode;
@@ -644,7 +626,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     state.barcodeInput.focus();
                 },
 
-                handleBarcodeInput: function(e) {
+                handleBarcodeInput: function (e) {
                     if (e.which === 13) { // Enter key
                         e.preventDefault();
                         const inputValue = $(e.target).val();
@@ -691,7 +673,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     }
                 },
 
-                handleEditProduct: function(e) {
+                handleEditProduct: function (e) {
                     const $target = $(e.target);
                     const productData = {
                         id: $target.data('id'),
@@ -710,7 +692,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     $('#editModal').removeClass('hidden');
                 },
 
-                handleSaveEdit: function(e) {
+                handleSaveEdit: function (e) {
                     const form = $('#edit-form');
                     const $submitButton = $(e.target);
 
@@ -735,13 +717,13 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         dataType: 'json',
                         success: utils.handleServerResponse,
                         error: utils.handleServerError,
-                        complete: function() {
+                        complete: function () {
                             $submitButton.prop('disabled', false).text('บันทึก');
                         }
                     });
                 },
 
-                handleInputValidation: function(e) {
+                handleInputValidation: function (e) {
                     const $input = $(e.target);
                     const value = parseFloat($input.val());
                     const minValue = $input.attr('id') === 'qty' ? 0 : -1;
@@ -749,40 +731,37 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     $input.toggleClass('border-red-500', value <= minValue);
                 },
 
-                handleConfirmButton: function() {
-                    // ตรวจสอบว่ามีสินค้าในตารางหรือไม่
-                    if ($('#products-table tbody tr').length <= 1) {
-                        alert('ไม่มีสินค้าในรายการ กรุณาเพิ่มสินค้าก่อนยืนยัน');
-                        return;
-                    }
 
-                    // แสดงกล่องยืนยัน
-                    if (confirm('ต้องการยืนยันรายการสินค้าทั้งหมดหรือไม่?\nหลังจากยืนยันแล้วจะไม่สามารถแก้ไขรายการได้')) {
-                        // ส่งคำขอ AJAX ไปยังเซิร์ฟเวอร์
-                        $.ajax({
-                            url: window.location.href,
-                            method: 'POST',
-                            data: {
-                                action: 'confirm_lot',
-                                lot_id: <?php echo json_encode($lot_id); ?>
-                            },
-                            dataType: 'json',
-                            success: function(response) {
-                                if (response.success) {
-                                    alert('ยืนยันรายการสำเร็จ');
-                                    location.reload();
-                                } else {
-                                    alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถยืนยันรายการได้'));
-                                }
-                            },
-                            error: utils.handleServerError
-                        });
-                    }
-                }
             };
+            // ฟังก์ชันเมื่อกดปุ่มยืนยัน
+            // $('#confirm-button').on('click', function () {
+            //     // ถามยืนยันจากผู้ใช้
+            //     if (confirm('ต้องการยืนยันรายการสินค้าทั้งหมดหรือไม่?\nหลังจากยืนยันแล้วจะไม่สามารถแก้ไขรายการได้')) {
+            //         $.ajax({
+            //             url: window.location.href,  // ใช้ URL ปัจจุบันของหน้า
+            //             method: 'POST',
+            //             data: {
+            //                 action: 'confirm_lot',
+            //                 lot_id: <?php echo json_encode($lot_id); ?> // ส่ง lot_id ไป
+            //             },
+            //             dataType: 'json',
+            //             success: function (response) {
+            //                 if (response.success) {
+            //                     // ถ้าสำเร็จให้ redirect ไปยัง URL ที่ส่งกลับจากเซิร์ฟเวอร์
+            //                     window.location.href = response.redirect_url;
+            //                 } else {
+            //                     alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถยืนยันรายการได้'));
+            //                 }
+            //             },
+            //             error: function () {
+            //                 alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            //             }
+            //         });
+            //     }
+            // });
 
-            // Event bindings
-            $('#confirm-button').on('click', handlers.handleConfirmButton);
+            // // Event bindings
+            // $('#confirm-button').on('click', handlers.handleConfirmButton);
             $('.toggle-delete-mode').on('click', handlers.toggleDeleteMode);
             state.barcodeInput.on('keypress', handlers.handleBarcodeInput);
             $('.edit-product').on('click', handlers.handleEditProduct);
@@ -791,7 +770,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Modal close handlers
             const closeEditModal = () => $('#editModal').addClass('hidden');
-            $('#editModal').on('click', function(e) {
+            $('#editModal').on('click', function (e) {
                 if (e.target === this) closeEditModal();
             });
         });
