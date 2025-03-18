@@ -5,6 +5,7 @@ ob_start();
 $query = "SELECT
 lot_product.lot_product_id, 
 lot_product.lot_id, 
+lot.lot_name, 
 lot_product.lot_product_qty, 
 lot_product.lot_product_remain,  
 lot_product.lot_product_capital, 
@@ -15,7 +16,8 @@ product.product_name
 FROM
     lot_product
     INNER JOIN lot ON lot.lot_id = lot_product.lot_id
-    INNER JOIN product ON  product.product_id =  lot_product.product_id";
+    INNER JOIN product ON product.product_id = lot_product.product_id";
+
 $result_lotproduct_list = $pdo->query($query);
 
 // การลบข้อมูล
@@ -48,6 +50,7 @@ try {
     $query = "SELECT
 lot_product.lot_product_id, 
 lot_product.lot_id, 
+lot.lot_name, 
 lot_product.lot_product_qty, 
 lot_product.lot_product_remain,  
 lot_product.lot_product_capital, 
@@ -60,6 +63,7 @@ FROM
     LEFT JOIN lot ON lot_product.lot_id = lot.lot_id
     LEFT JOIN product ON lot_product.product_id = product.product_id
 LIMIT :offset, :records_per_page";
+
 
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -167,6 +171,9 @@ ob_end_flush();
                         รหัสสินค้า</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ชื่อล็อตสินค้า</th>
+                    <th
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                         ราคาต้นทุน</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
@@ -196,6 +203,7 @@ ob_end_flush();
                             </td>
                             <td><?php echo ($lot_product_list['lot_id']); ?></td>
                             <td><?php echo ($lot_product_list['product_id']); ?></td>
+                            <td><?php echo ($lot_product_list['lot_name']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_capital']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_qty']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_remain']); ?></td>

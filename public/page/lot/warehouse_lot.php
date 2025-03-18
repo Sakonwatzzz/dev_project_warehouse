@@ -45,11 +45,18 @@ try {
         lot.warehouse_inout,
         lot.supplier_id,
         lot_status.lot_status_name,
-        supplier.supplier_name
+        supplier.supplier_name,
+        lp.product_id,   -- Add product_id here
+        lp.lot_product_qty, -- Add lot_product_qty here
+         w.warehouse_name 
     FROM
         lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
         LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+        LEFT JOIN lot_product lp ON lp.lot_id = lot.lot_id  -- Join with lot_product
+        LEFT JOIN product p ON p.product_id = lp.product_id  -- Join with product
+        LEFT JOIN warehouse w ON lot.warehouse_id = w.warehouse_id  -- Join warehouse table
+
     WHERE
         lot.warehouse_id = ?
     ORDER BY 
@@ -152,6 +159,47 @@ ob_end_flush();
                     </div>
                 </div>
             </div>
+            <table class="mt-5 mb-8 w-[100%] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
+                <thead>
+                    <tr>
+                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อล็อตสินค้า</th>
+                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสสินค้า</th>
+                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้า</th>
+                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $previous_warehouse_name = null; // ตัวแปรเก็บ warehouse_name ก่อนหน้า
+                    $previous_lot_name = null; // ตัวแปรเก็บ lot_name ก่อนหน้า
+                    foreach ($warehouse_lot as $lot): ?>
+                        <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer">
+                            <?php if ($lot['lot_name'] !== $previous_lot_name): ?>
+                                <!-- แสดงข้อมูล lot_name เพียงครั้งเดียว -->
+                                <td><?php echo htmlspecialchars($lot['lot_name']); ?></td>
+                            <?php else: ?>
+                                <td></td> <!-- ไม่แสดงอะไรถ้า lot_name ซ้ำ -->
+                            <?php endif; ?>
+
+                            <td><?php echo htmlspecialchars($lot['product_id']); ?></td>
+                            <td><?php echo htmlspecialchars($lot['lot_product_qty']); ?></td>
+
+                            <?php if ($lot['warehouse_name'] !== $previous_warehouse_name): ?>
+                                <!-- แสดง warehouse_name เพียงครั้งเดียว -->
+                                <td class="text-start pl-4"><?php echo htmlspecialchars($lot['warehouse_name']); ?></td>
+                            <?php else: ?>
+                                <td></td> <!-- ไม่แสดงอะไรถ้า warehouse_name ซ้ำ -->
+                            <?php endif; ?>
+
+                        </tr>
+                        <?php
+                        $previous_lot_name = $lot['lot_name']; // อัปเดตค่า lot_name ก่อนหน้า
+                        $previous_warehouse_name = $lot['warehouse_name']; // อัปเดตค่า warehouse_name ก่อนหน้า
+                        ?>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
 
             <!-- Lots List -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
