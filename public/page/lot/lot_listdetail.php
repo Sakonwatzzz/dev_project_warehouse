@@ -10,28 +10,54 @@ if (!$lot_id) {
 }
 
 // Handle product update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
+//     try {
+//         $stmt = $pdo->prepare("UPDATE lot_product SET 
+//         lot_product_qty = ?, 
+//         lot_product_remain = ?,
+//         lot_product_capital = ?
+//         WHERE lot_product_id = ? AND lot_id = ?");
+
+
+//         $stmt->execute([
+//             $_POST['qty'],
+//             $_POST['qty'],
+//             $_POST['capital'],
+//             $_POST['lot_product_id'],
+//             $lot_id
+//         ]);
+
+//         header('Content-Type: application/json');
+//         echo json_encode(['success' => true]);
+//         exit();
+//     } catch (Exception $e) {
+//         header('Content-Type: application/json');
+//         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+//         exit();
+//     }
+// }
+// อัปเดตสินค้าภายในล๊อต
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
-        $stmt = $pdo->prepare("UPDATE lot_product SET 
-        lot_product_qty = ?, 
-        lot_product_remain = ?,
-        lot_product_capital = ?
-        WHERE lot_product_id = ? AND lot_id = ?");
+        if ($_POST['action'] === 'update') {
+            $stmt = $pdo->prepare("UPDATE lot_product SET 
+                lot_product_qty = ?, 
+                lot_product_remain = ?,
+                lot_product_capital = ?
+                WHERE lot_product_id = ? AND lot_id = ?");
 
+            $stmt->execute([
+                $_POST['qty'],
+                $_POST['qty'],
+                $_POST['capital'],
+                $_POST['lot_product_id'],
+                $lot_id
+            ]);
 
-        $stmt->execute([
-            $_POST['qty'],
-            $_POST['qty'],
-            $_POST['capital'],
-            $_POST['lot_product_id'],
-            $lot_id
-        ]);
-
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
-        exit();
+            echo json_encode(['success' => true, 'message' => 'Product updated successfully']);
+            exit();
+        }
     } catch (Exception $e) {
-        header('Content-Type: application/json');
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         exit();
     }
@@ -62,20 +88,110 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
     exit();
 }
 // Handle product scan
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
+//     // ob_clean();
+//     header('Content-Type: application/json');
+//     try {
+//         $barcode = $_POST['barcode'];
+//         $isDeleteMode = isset($_POST['deleteMode']) && $_POST['deleteMode'] === 'true';
+
+//         // รับจำนวนจากการป้อนข้อมูลหากมีการระบุ
+//         $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int) $_POST['qty'] : 1;
+
+//         // รับราคาทุนหากมีการระบุ
+//         $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : 0;
+
+//         // Check if product exists in lot
+//         $stmt = $pdo->prepare("SELECT lp.*, p.product_name FROM lot_product lp 
+//                               LEFT JOIN product p ON p.product_id = lp.product_id 
+//                               WHERE lp.lot_id = ? AND lp.product_id = ?");
+//         $stmt->execute([$lot_id, $barcode]);
+//         $existing_product = $stmt->fetch();
+
+//         if ($existing_product) {
+//             // Product exists in lot
+//             if ($isDeleteMode) {
+//                 $newQty = $existing_product['lot_product_qty'] - $quantity;
+//                 if ($newQty <= 0) {
+//                     // Delete if quantity becomes 0 or negative
+//                     $delete = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
+//                     $delete->execute([$lot_id, $barcode]);
+//                 } else {
+//                     // Update with reduced quantity
+//                     $update = $pdo->prepare("UPDATE lot_product SET 
+//                         lot_product_qty = ?,
+//                         lot_product_remain = ?
+//                         WHERE lot_id = ? AND product_id = ?");
+//                     $update->execute([$newQty, $newQty, $lot_id, $barcode]);
+//                 }
+//             } else {
+//                 // Normal mode - add specified quantity
+//                 $newQty = $existing_product['lot_product_qty'] + $quantity;
+//                 $newCapital = $capital > 0 ? $capital : $existing_product['lot_product_capital'];
+
+//                 $update = $pdo->prepare("UPDATE lot_product SET 
+//                     lot_product_qty = ?,
+//                     lot_product_remain = ?,
+//                     lot_product_capital = ?
+//                     WHERE lot_id = ? AND product_id = ?");
+//                 $update->execute([$newQty, $newQty, $newCapital, $lot_id, $barcode]);
+//             }
+//         } else {
+//             if (!$isDeleteMode) {
+//                 // ตรวจสอบว่ามีสินค้านี้ในตาราง product หรือไม่
+//                 $stmt_product = $pdo->prepare("SELECT * FROM product WHERE product_id = ?");
+//                 $stmt_product->execute([$barcode]);
+//                 $product_exists = $stmt_product->fetch();
+
+//                 if (!$product_exists) {
+//                     $insert_product = $pdo->prepare("INSERT INTO product (
+//                         product_id, 
+//                         product_name,
+//                         product_price1,
+//                         product_price2,
+//                         product_price3,
+//                         product_price4,
+//                         product_capital,
+//                         product_type_id,
+//                         product_brand_id
+//                     ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
+
+//                     // และปรับการส่งค่าในการเรียกใช้ execute
+//                     $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
+//                     $insert_product->execute([$barcode, $product_name, $capital]);
+//                 }
+
+//                 // จากนั้นค่อยเพิ่มข้อมูลในตาราง lot_product ตามเดิม
+//                 $insert = $pdo->prepare("INSERT INTO lot_product (
+//                     lot_id, 
+//                     product_id, 
+//                     lot_product_qty, 
+//                     lot_product_remain,
+//                     lot_product_capital, 
+//                     lot_product_date,
+//                     lot_product_status
+//                 ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
+
+//                 $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
+//             }
+//             // In delete mode, do nothing if product doesn't exist
+//         }
+
+//         echo json_encode(['success' => true]);
+//     } catch (Exception $e) {
+//         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+//     }
+//     exit();
+// }
+// สแกนสินค้าและอัปเดตข้อมูลสินค้า
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
-    // ob_clean();
-    header('Content-Type: application/json');
     try {
         $barcode = $_POST['barcode'];
         $isDeleteMode = isset($_POST['deleteMode']) && $_POST['deleteMode'] === 'true';
-
-        // รับจำนวนจากการป้อนข้อมูลหากมีการระบุ
         $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int) $_POST['qty'] : 1;
-
-        // รับราคาทุนหากมีการระบุ
         $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : 0;
 
-        // Check if product exists in lot
+        // ค้นหาสินค้าที่มีอยู่แล้วใน lot
         $stmt = $pdo->prepare("SELECT lp.*, p.product_name FROM lot_product lp 
                               LEFT JOIN product p ON p.product_id = lp.product_id 
                               WHERE lp.lot_id = ? AND lp.product_id = ?");
@@ -83,75 +199,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
         $existing_product = $stmt->fetch();
 
         if ($existing_product) {
-            // Product exists in lot
             if ($isDeleteMode) {
                 $newQty = $existing_product['lot_product_qty'] - $quantity;
                 if ($newQty <= 0) {
-                    // Delete if quantity becomes 0 or negative
                     $delete = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
                     $delete->execute([$lot_id, $barcode]);
+                    echo json_encode(['success' => true, 'message' => 'Product removed from lot']);
                 } else {
-                    // Update with reduced quantity
                     $update = $pdo->prepare("UPDATE lot_product SET 
-                        lot_product_qty = ?,
-                        lot_product_remain = ?
+                        lot_product_qty = ?, lot_product_remain = ?
                         WHERE lot_id = ? AND product_id = ?");
                     $update->execute([$newQty, $newQty, $lot_id, $barcode]);
+                    echo json_encode(['success' => true, 'message' => 'Product quantity reduced', 'new_qty' => $newQty]);
                 }
             } else {
-                // Normal mode - add specified quantity
                 $newQty = $existing_product['lot_product_qty'] + $quantity;
                 $newCapital = $capital > 0 ? $capital : $existing_product['lot_product_capital'];
 
                 $update = $pdo->prepare("UPDATE lot_product SET 
-                    lot_product_qty = ?,
-                    lot_product_remain = ?,
-                    lot_product_capital = ?
+                    lot_product_qty = ?, lot_product_remain = ?, lot_product_capital = ?
                     WHERE lot_id = ? AND product_id = ?");
                 $update->execute([$newQty, $newQty, $newCapital, $lot_id, $barcode]);
+
+                echo json_encode(['success' => true, 'message' => 'Product quantity updated', 'new_qty' => $newQty]);
             }
         } else {
             if (!$isDeleteMode) {
-                // ตรวจสอบว่ามีสินค้านี้ในตาราง product หรือไม่
                 $stmt_product = $pdo->prepare("SELECT * FROM product WHERE product_id = ?");
                 $stmt_product->execute([$barcode]);
                 $product_exists = $stmt_product->fetch();
 
                 if (!$product_exists) {
                     $insert_product = $pdo->prepare("INSERT INTO product (
-                        product_id, 
-                        product_name,
-                        product_price1,
-                        product_price2,
-                        product_price3,
-                        product_price4,
-                        product_capital,
-                        product_type_id,
-                        product_brand_id
+                        product_id, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id
                     ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
 
-                    // และปรับการส่งค่าในการเรียกใช้ execute
-                    $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
+                    $product_name = $_POST['product_name'] ?? "ยังไม่ระบุ";
                     $insert_product->execute([$barcode, $product_name, $capital]);
                 }
 
-                // จากนั้นค่อยเพิ่มข้อมูลในตาราง lot_product ตามเดิม
                 $insert = $pdo->prepare("INSERT INTO lot_product (
-                    lot_id, 
-                    product_id, 
-                    lot_product_qty, 
-                    lot_product_remain,
-                    lot_product_capital, 
-                    lot_product_date,
-                    lot_product_status
+                    lot_id, product_id, lot_product_qty, lot_product_remain, lot_product_capital, lot_product_date, lot_product_status
                 ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
-
                 $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
-            }
-            // In delete mode, do nothing if product doesn't exist
-        }
 
-        echo json_encode(['success' => true]);
+                echo json_encode(['success' => true, 'message' => 'Product added to lot']);
+            }
+        }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
@@ -325,13 +419,12 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 </div>
             </div>
         <?php endif; ?>
-
         <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
             <h2 class="text-2xl font-semibold mb-4">สแกนสินค้าเข้าล็อต</h2>
-            <form id="barcode-form" action="" method="POST">
+                   <label class="block mb-2" id="barcodeInput">รหัสบาร์โค้ด:</label>
+           <form id="barcode-form" action="" method="POST">
                 <div class="mb-4 flex items-center gap-4">
-                    <label class="block mb-2" id="barcodeInput">รหัสบาร์โค้ด:</label>
-                    <input type="text" id="inputField" name="product_id"
+                      <input type="text" id="inputField" name="product_id"
                         class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                         pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
                 </div>
@@ -437,8 +530,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                                     </tr>
                                 </form>
                             <?php endif; ?>
-
-
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -484,7 +575,71 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
             </form>
         </div>
     </div>
+    <script>
+        $(document).ready(function() {
+            $('#barcode-form').on('submit', function(e) {
+                e.preventDefault();
 
+                let barcodeInput = $('#inputField').val().trim();
+                if (barcodeInput === '') {
+                    alert('กรุณากรอกรหัสบาร์โค้ด');
+                    return;
+                }
+
+                $.post('update_lot.php', {
+                    product_id: barcodeInput
+                }, function(response) {
+                    if (response.success) {
+                        updateTable(response.data);
+                        $('#inputField').val('').focus();
+                    } else {
+                        alert(response.message);
+                    }
+                }, 'json').fail(function() {
+                    alert('เกิดข้อผิดพลาดในการส่งข้อมูล');
+                });
+            });
+
+            function updateTable(products) {
+                let tableBody = $('#products-table tbody');
+                tableBody.empty();
+
+                let totalValue = 0,
+                    totalQuantity = 0;
+
+                products.forEach(item => {
+                    let itemTotal = item.lot_product_qty * item.lot_product_capital;
+                    totalValue += itemTotal;
+                    totalQuantity += parseInt(item.lot_product_qty);
+
+                    let row = `
+                <tr>
+                    <td class="pl-6 py-2 border">${item.product_id}</td>
+                    <td class="pl-6 py-2 border">${item.product_name}</td>
+                    <td class="text-center py-2 border">${item.lot_product_qty}</td>
+                    <td class="text-right py-2 border">${item.lot_product_capital.toFixed(2)}</td>
+                    <td class="text-right py-2 border">${itemTotal.toFixed(2)}</td>
+                    <td class="text-right py-2 border">${item.lot_status_name}</td>
+                    <td class="text-right py-2 border">
+                        <button class="bg-blue-500 text-white px-4 py-1 rounded edit-product" data-id="${item.lot_product_id}" data-barcode="${item.product_id}">แก้ไข</button>
+                        <button class="bg-red-500 text-white px-4 py-1 rounded delete-product" data-barcode="${item.product_id}">ลบ</button>
+                    </td>
+                </tr>`;
+                    tableBody.append(row);
+                });
+
+                let summaryRow = `
+            <tr class="bg-gray-300 font-bold">
+                <td colspan="2" class="text-end pe-4">ยอดรวมสินค้า:</td>
+                <td class="text-center py-4">${totalQuantity}</td>
+                <td></td>
+                <td colspan="2" class="text-end pe-4">มูลค่ารวม:</td>
+                <td class="text-end py-4">${totalValue.toFixed(2)} บาท</td>
+            </tr>`;
+                tableBody.append(summaryRow);
+            }
+        });
+    </script>
     <script>
         const inputField = document.getElementById('inputField');
 
