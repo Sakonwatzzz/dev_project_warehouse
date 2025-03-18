@@ -37,8 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_lot') {
-    header('Content-Type: application/json');
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
     try {
         // เริ่มต้น transaction
         $pdo->beginTransaction();
@@ -52,7 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // ยืนยัน transaction
         $pdo->commit();
 
-        echo json_encode(['success' => true]);
+        // Redirect ไปที่หน้าล็อตที่ต้องการ
+        header('Location: http://localhost:8000/index.php?page=lot_listinsertcopy');
+        exit();  // หยุดการทำงานของ PHP ต่อ
     } catch (Exception $e) {
         // ยกเลิก transaction หากมีข้อผิดพลาด
         $pdo->rollBack();
@@ -60,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     exit();
 }
-
 // Handle product scan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
     // ob_clean();
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                         product_type_id,
                         product_brand_id
                     ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
-                    
+
                     // และปรับการส่งค่าในการเรียกใช้ execute
                     $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
                     $insert_product->execute([$barcode, $product_name, $capital]);
@@ -147,41 +147,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                 ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
 
                 $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
-                
             }
             // In delete mode, do nothing if product doesn't exist
         }
 
         echo json_encode(['success' => true]);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-    }
-    exit();
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_lot') {
-    header('Content-Type: application/json');
-    try {
-        // เริ่มต้น transaction
-        $pdo->beginTransaction();
-
-        // อัปเดตสถานะล็อต
-        $updateLot = $pdo->prepare("UPDATE lot SET lot_status_id = 2 WHERE lot_id = ?");
-        $updateLot->execute([$_POST['lot_id']]);
-
-        // ทำสิ่งอื่นที่จำเป็น เช่น บันทึกประวัติ หรือปรับปรุงสต็อก
-
-        // ยืนยัน transaction
-        $pdo->commit();
-
-        // ส่งคืนข้อมูล JSON พร้อม URL สำหรับการเปลี่ยนเส้นทาง
-        echo json_encode([
-            'success' => true, 
-            'redirect' => "index.php?page=lot_listinsertcopy"
-        ]);
-    } catch (Exception $e) {
-        // ยกเลิก transaction หากมีข้อผิดพลาด
-        $pdo->rollBack();
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     exit();
@@ -255,9 +226,10 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$lot_status_id = $lot_data['lot_status_id'] ?? null;
+$lot_status_name = $lot_data['lot_status_name'] ?? null;
+
 ?>
-
-
 <!DOCTYPE html>
 <html lang="th">
 
@@ -354,29 +326,28 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         <?php endif; ?>
 
-        <h2 class="text-2xl font-semibold mb-4">สแกนสินค้าเข้าล็อต</h2>
-        <form id="barcode-form" action="" method="POST">
-            <div class="mb-4 flex items-center gap-4">
-                <label class="block mb-2" id="barcodeInput">รหัสบาร์โค้ด:</label>
-                <input type="text" id="inputField" name="product_id"
-                    class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
-            </div>
-
-            <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
-            <div class="flex space-x-4">
-                <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
-                    <p><b>รูปแบบการป้อนข้อมูล:</b> รหัสบาร์โค้ด*จำนวน*ราคาทุน (เช่น 12345*2*150)</p>
-                    <p>หากไม่ระบุจำนวนหรือราคาทุน ระบบจะใช้ค่าเริ่มต้น คือ 0 </p>
+        <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
+            <h2 class="text-2xl font-semibold mb-4">สแกนสินค้าเข้าล็อต</h2>
+            <form id="barcode-form" action="" method="POST">
+                <div class="mb-4 flex items-center gap-4">
+                    <label class="block mb-2" id="barcodeInput">รหัสบาร์โค้ด:</label>
+                    <input type="text" id="inputField" name="product_id"
+                        class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
                 </div>
-                <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-red-300 bg-red-100">
-                    <p><b>รูปแบบการลบข้อมูล:</b> -รหัสบาร์โค้ด*จำนวน (เช่น -12345*3)</p>
-                    <p>หากไม่ระบุจำนวน ระบบจะลบออกทีละ 1 ชิ้น</p>
+                <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
+                <div class="flex space-x-4">
+                    <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
+                        <p><b>รูปแบบการป้อนข้อมูล:</b> รหัสบาร์โค้ด*จำนวน*ราคาทุน (เช่น 12345*2*150)</p>
+                        <p>หากไม่ระบุจำนวนหรือราคาทุน ระบบจะใช้ค่าเริ่มต้น คือ 0 </p>
+                    </div>
+                    <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-red-300 bg-red-100">
+                        <p><b>รูปแบบการลบข้อมูล:</b> -รหัสบาร์โค้ด*จำนวน (เช่น -12345*3)</p>
+                        <p>หากไม่ระบุจำนวน ระบบจะลบออกทีละ 1 ชิ้น</p>
+                    </div>
                 </div>
-
-            </div>
-
-        </form>
+            </form>
+        <?php endif; ?>
 
         <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
             <h3 class="text-xl font-semibold mb-4">รายการสินค้าที่สแกน</h3>
@@ -390,7 +361,10 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <th class="px-6 py-3 border text-right">ราคาทุน</th>
                             <th class="px-6 py-3 border text-right">มูลค่ารวม</th>
                             <th class="px-6 py-3 border text-right">สถานะ</th>
-                            <th class="px-6 py-3 border text-right">การจัดการ</th>
+                            <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
+                                <th class="px-6 py-3 border text-right">การจัดการ</th>
+                            <?php endif; ?>
+
                         </tr>
                     </thead>
                     <tbody>
@@ -416,20 +390,22 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <td class="text-right py-2 border">
                                     <?php echo htmlspecialchars($lot_data['lot_status_name']); ?>
                                 </td>
-                                <td class="text-right py-2 border px-4">
-                                    <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
-                                        data-id="<?php echo htmlspecialchars($item['lot_product_id']); ?>"
-                                        data-qty="<?php echo htmlspecialchars($item['lot_product_qty']); ?>"
-                                        data-capital="<?php echo htmlspecialchars($item['lot_product_capital']); ?>"
-                                        data-name="<?php echo htmlspecialchars($item['product_name']); ?>"
-                                        data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
-                                        แก้ไข
-                                    </button>
-                                    <button type="button" class="bg-red-500 text-white px-4 py-1 rounded toggle-delete-mode"
-                                        data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
-                                        ลบ
-                                    </button>
-                                </td>
+                                <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
+                                    <td class="text-right py-2 border px-4">
+                                        <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
+                                            data-id="<?php echo htmlspecialchars($item['lot_product_id']); ?>"
+                                            data-qty="<?php echo htmlspecialchars($item['lot_product_qty']); ?>"
+                                            data-capital="<?php echo htmlspecialchars($item['lot_product_capital']); ?>"
+                                            data-name="<?php echo htmlspecialchars($item['product_name']); ?>"
+                                            data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
+                                            แก้ไข
+                                        </button>
+                                        <button type="button" class="bg-red-500 text-white px-4 py-1 rounded toggle-delete-mode"
+                                            data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
+                                            ลบ
+                                        </button>
+                                    </td>
+                                <?php endif; ?>
                             </tr>
                         <?php endforeach; ?>
                         <?php if (count($lot_products) > 0): ?>
@@ -447,15 +423,22 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                             <?php if (count($lot_products) > 0 && $lot_data['lot_status_id'] == 1): ?>
                                 <!-- แสดงปุ่มยืนยันเฉพาะเมื่อสถานะเป็น "รอการอนุมัติ" -->
-                                <tr class="h-16">
-                                    <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
-                                        <button id="confirm-button"
-                                            class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                                            <i class="fas fa-check-circle me-2"></i>ยืนยันรายการ
-                                        </button>
-                                    </td>
-                                </tr>
+                                <form method="POST" action="">
+                                    <!-- ใส่ path ของไฟล์ PHP ที่ประมวลผลการอัปเดต -->
+                                    <tr class="h-16">
+                                        <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
+                                            <button type="submit"
+                                                class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                                                <i class="fas fa-check-circle me-2"></i>ยืนยันรายการ
+                                            </button>
+                                            <input type="hidden" name="lot_id" value="<?php echo $lot_data['lot_id']; ?>">
+                                            <!-- ส่ง lot_id ไปในฟอร์ม -->
+                                        </td>
+                                    </tr>
+                                </form>
                             <?php endif; ?>
+
+
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -501,6 +484,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </form>
         </div>
     </div>
+
     <script>
         const inputField = document.getElementById('inputField');
 
@@ -749,40 +733,37 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     $input.toggleClass('border-red-500', value <= minValue);
                 },
 
-                handleConfirmButton: function() {
-                    // ตรวจสอบว่ามีสินค้าในตารางหรือไม่
-                    if ($('#products-table tbody tr').length <= 1) {
-                        alert('ไม่มีสินค้าในรายการ กรุณาเพิ่มสินค้าก่อนยืนยัน');
-                        return;
-                    }
 
-                    // แสดงกล่องยืนยัน
-                    if (confirm('ต้องการยืนยันรายการสินค้าทั้งหมดหรือไม่?\nหลังจากยืนยันแล้วจะไม่สามารถแก้ไขรายการได้')) {
-                        // ส่งคำขอ AJAX ไปยังเซิร์ฟเวอร์
-                        $.ajax({
-                            url: window.location.href,
-                            method: 'POST',
-                            data: {
-                                action: 'confirm_lot',
-                                lot_id: <?php echo json_encode($lot_id); ?>
-                            },
-                            dataType: 'json',
-                            success: function(response) {
-                                if (response.success) {
-                                    alert('ยืนยันรายการสำเร็จ');
-                                    location.reload();
-                                } else {
-                                    alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถยืนยันรายการได้'));
-                                }
-                            },
-                            error: utils.handleServerError
-                        });
-                    }
-                }
             };
+            // ฟังก์ชันเมื่อกดปุ่มยืนยัน
+            // $('#confirm-button').on('click', function () {
+            //     // ถามยืนยันจากผู้ใช้
+            //     if (confirm('ต้องการยืนยันรายการสินค้าทั้งหมดหรือไม่?\nหลังจากยืนยันแล้วจะไม่สามารถแก้ไขรายการได้')) {
+            //         $.ajax({
+            //             url: window.location.href,  // ใช้ URL ปัจจุบันของหน้า
+            //             method: 'POST',
+            //             data: {
+            //                 action: 'confirm_lot',
+            //                 lot_id: <?php echo json_encode($lot_id); ?> // ส่ง lot_id ไป
+            //             },
+            //             dataType: 'json',
+            //             success: function (response) {
+            //                 if (response.success) {
+            //                     // ถ้าสำเร็จให้ redirect ไปยัง URL ที่ส่งกลับจากเซิร์ฟเวอร์
+            //                     window.location.href = response.redirect_url;
+            //                 } else {
+            //                     alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถยืนยันรายการได้'));
+            //                 }
+            //             },
+            //             error: function () {
+            //                 alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            //             }
+            //         });
+            //     }
+            // });
 
-            // Event bindings
-            $('#confirm-button').on('click', handlers.handleConfirmButton);
+            // // Event bindings
+            // $('#confirm-button').on('click', handlers.handleConfirmButton);
             $('.toggle-delete-mode').on('click', handlers.toggleDeleteMode);
             state.barcodeInput.on('keypress', handlers.handleBarcodeInput);
             $('.edit-product').on('click', handlers.handleEditProduct);
