@@ -106,7 +106,8 @@ ob_end_flush();
                 </a>
                 <h1 class="text-3xl font-bold text-gray-800">
                     <?php if (!$error && $warehouse_data): ?>
-                        <i class="fas fa-warehouse mr-2"></i>Lots ในคลัง: <?= htmlspecialchars($warehouse_data['warehouse_name']) ?>
+                        <i class="fas fa-warehouse mr-2"></i>Lots ในคลัง:
+                        <?= htmlspecialchars($warehouse_data['warehouse_name']) ?>
                     <?php else: ?>
                         <i class="fas fa-warehouse mr-2"></i>รายการ Lot ในคลัง
                     <?php endif; ?>
@@ -146,9 +147,11 @@ ob_end_flush();
                             <p class="text-gray-600 mb-1">สถานะ:</p>
                             <p class="text-xl font-medium">
                                 <?php if ($warehouse_data['warehouse_status'] == 'เปิดใช้งาน'): ?>
-                                    <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
+                                    <span class="text-green-600"><i
+                                            class="fas fa-check-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
                                 <?php else: ?>
-                                    <span class="text-red-600"><i class="fas fa-times-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
+                                    <span class="text-red-600"><i
+                                            class="fas fa-times-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
                                 <?php endif; ?>
                             </p>
                         </div>
@@ -162,10 +165,18 @@ ob_end_flush();
             <table class="mt-5 mb-8 w-[100%] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
                 <thead>
                     <tr>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อล็อตสินค้า</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสสินค้า</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้า</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            ชื่อล็อตสินค้า</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            รหัสสินค้า</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            จำนวนสินค้า</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            คลังสินค้า</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -199,11 +210,10 @@ ob_end_flush();
                     <?php endforeach; ?>
                 </tbody>
             </table>
-
-
             <!-- Lots List -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
+                <div
+                    class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
                         <i class="fas fa-box-open mr-2"></i>รายการ Lot ทั้งหมดในคลัง
                     </h2>
@@ -217,7 +227,8 @@ ob_end_flush();
                             <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
                             <p class="text-gray-500 text-xl">ไม่พบ Lot ในคลังนี้</p>
                             <div class="mt-4">
-                                <a href="index.php?page=lot_listinsertcopy" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                <a href="index.php?page=lot_listinsertcopy"
+                                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
                                     เพิ่ม Lot ใหม่
                                 </a>
                             </div>
@@ -229,7 +240,8 @@ ob_end_flush();
                                     onclick="window.location.href='index.php?page=lot_listdetail&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
                                     <div class="flex justify-between items-center">
                                         <h3 class="text-lg font-medium text-blue-600"><?= htmlspecialchars($lot['lot_name']) ?></h3>
-                                        <span class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>
+                                        <span
+                                            class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>
                                     </div>
 
                                     <p class="text-gray-600 mt-2">
@@ -249,12 +261,15 @@ ob_end_flush();
 
                                         <?php if (!empty($lot['warehouse_from_id']) && isset($warehouses_map[$lot['warehouse_from_id']])): ?>
                                             <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                                                <i class="fas fa-exchange-alt mr-1"></i>จาก: <?= htmlspecialchars($warehouses_map[$lot['warehouse_from_id']]) ?>
+                                                <i class="fas fa-exchange-alt mr-1"></i>จาก:
+                                                <?= htmlspecialchars($warehouses_map[$lot['warehouse_from_id']]) ?>
                                             </span>
                                         <?php endif; ?>
 
-                                        <span class="bg-<?= $lot['warehouse_inout'] == 1 ? 'green' : 'red' ?>-100 text-<?= $lot['warehouse_inout'] == 1 ? 'green' : 'red' ?>-700 px-2 py-1 rounded">
-                                            <i class="fas fa-<?= $lot['warehouse_inout'] == 1 ? 'sign-in-alt' : 'sign-out-alt' ?> mr-1"></i>
+                                        <span
+                                            class="bg-<?= $lot['warehouse_inout'] == 1 ? 'green' : 'red' ?>-100 text-<?= $lot['warehouse_inout'] == 1 ? 'green' : 'red' ?>-700 px-2 py-1 rounded">
+                                            <i
+                                                class="fas fa-<?= $lot['warehouse_inout'] == 1 ? 'sign-in-alt' : 'sign-out-alt' ?> mr-1"></i>
                                             <?= $lot['warehouse_inout'] == 1 ? 'รับเข้า' : 'จ่ายออก' ?>
                                         </span>
                                     </div>
@@ -273,11 +288,13 @@ ob_end_flush();
 
             <!-- Action Buttons -->
             <div class="flex justify-between">
-                <a href="index.php?page=lot_listinsertcopy" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+                <a href="index.php?page=lot_listinsertcopy"
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
                     <i class="fas fa-arrow-left mr-2"></i>กลับ
                 </a>
 
-                <a href="index.php?page=report_warehouse&warehouse_id=<?= htmlspecialchars($warehouse_id) ?>" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
+                <a href="index.php?page=report_warehouse&warehouse_id=<?= htmlspecialchars($warehouse_id) ?>"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
                     <i class="fas fa-file-alt mr-2"></i>รายงานสรุป
                 </a>
             </div>
