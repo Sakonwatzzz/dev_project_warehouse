@@ -12,13 +12,25 @@ if (!$lot_id) {
 // Handle product update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     try {
+        if (!isset($_POST['barcode']) || !isset($_POST['product_name']) || !isset($_POST['qty']) || !isset($_POST['capital']) || !isset($_POST['lot_product_id'])) {
+            throw new Exception('ข้อมูลไม่ครบถ้วน');
+        }
+
+        // Start transaction for consistent data
+        $pdo->beginTransaction();
+
+        // Update product name in product table
+        $productStmt = $pdo->prepare("UPDATE product SET 
+            product_name = ?
+            WHERE product_id = ?");
+        $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
+
+        // Update quantity and price in lot_product table
         $stmt = $pdo->prepare("UPDATE lot_product SET 
-        lot_product_qty = ?, 
-        lot_product_remain = ?,
-        lot_product_capital = ?
-        WHERE lot_product_id = ? AND lot_id = ?");
-
-
+            lot_product_qty = ?, 
+            lot_product_remain = ?,
+            lot_product_capital = ?
+            WHERE lot_product_id = ? AND lot_id = ?");
         $stmt->execute([
             $_POST['qty'],
             $_POST['qty'],
@@ -27,10 +39,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $lot_id
         ]);
 
+        // Commit transaction
+        $pdo->commit();
+
         header('Content-Type: application/json');
         echo json_encode(['success' => true]);
         exit();
     } catch (Exception $e) {
+        // Rollback on error
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         exit();
@@ -61,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
     }
     exit();
 }
+
 // Handle product scan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
     // ob_clean();
@@ -230,6 +251,7 @@ $lot_status_id = $lot_data['lot_status_id'] ?? null;
 $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 
@@ -437,8 +459,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                                     </tr>
                                 </form>
                             <?php endif; ?>
-
-
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -453,15 +473,15 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
             <form id="edit-form">
                 <input type="hidden" id="lot_product_id" name="lot_product_id">
                 <input type="hidden" name="action" value="update">
+                <input type="hidden" name="barcode" id="product_barcode_hidden">
 
                 <div class="mb-4">
                     <label class="block mb-2">บาร์โค้ด:</label>
                     <input type="text" class="w-full p-2 border rounded bg-gray-100" id="product_barcode" readonly>
                 </div>
-
                 <div class="mb-4">
                     <label class="block mb-2">ชื่อสินค้า:</label>
-                    <input type="text" class="w-full p-2 border rounded bg-gray-100" id="product_name" readonly>
+                    <input type="text" class="w-full p-2 border rounded" id="product_name" name="product_name">
                 </div>
 
                 <div class="mb-4">
@@ -534,11 +554,11 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
             // Utility functions
             const utils = {
                 handleServerResponse: function(response) {
+                    console.log('Server response:', response);
                     if (response.success) {
                         location.reload();
                     } else {
-                        alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถดำเนินการได้'));
-                        state.barcodeInput.focus();
+                        alert('เกิดข้อผิดพลาด: ' + (response.error || 'กรุณาลองใหม่อีกครั้ง'));
                     }
                 },
 
@@ -567,12 +587,22 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         method: 'POST',
                         data: data,
                         dataType: 'json',
-                        success: this.handleServerResponse,
-                        error: this.handleServerError
+                        success: function(response) {
+                            utils.handleServerResponse(response);
+                        },
+                        error: function(xhr) {
+                            utils.handleServerError(xhr);
+                        }
                     });
                 },
 
-                validateFormFields: function(qty, capital) {
+                validateFormFields: function(qty, capital, productName) {
+                    if (!productName || productName.trim() === '') {
+                        alert('กรุณาระบุชื่อสินค้า');
+                        $('#product_name').focus();
+                        return false;
+                    }
+
                     if (qty <= 0) {
                         alert('จำนวนสินค้าต้องมากกว่า 0');
                         $('#qty').focus();
@@ -676,7 +706,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 },
 
                 handleEditProduct: function(e) {
-                    const $target = $(e.target);
+                    const $target = $(e.currentTarget);
                     const productData = {
                         id: $target.data('id'),
                         qty: $target.data('qty'),
@@ -685,8 +715,11 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         barcode: $target.data('barcode')
                     };
 
+                    console.log('Edit product data:', productData);
+
                     $('#lot_product_id').val(productData.id);
                     $('#product_barcode').val(productData.barcode);
+                    $('#product_barcode_hidden').val(productData.barcode);
                     $('#product_name').val(productData.name);
                     $('#qty').val(productData.qty);
                     $('#capital').val(productData.capital);
@@ -705,20 +738,29 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
                     const qty = parseFloat($('#qty').val());
                     const capital = parseFloat($('#capital').val());
+                    const productName = $('#product_name').val();
 
-                    if (!utils.validateFormFields(qty, capital)) {
+                    if (!utils.validateFormFields(qty, capital, productName)) {
                         return;
                     }
 
                     $submitButton.prop('disabled', true).text('กำลังบันทึก...');
 
+                    const formData = form.serialize();
+                    console.log('Sending data:', formData);
+
                     $.ajax({
                         url: window.location.href,
                         method: 'POST',
-                        data: form.serialize(),
+                        data: formData,
                         dataType: 'json',
-                        success: utils.handleServerResponse,
-                        error: utils.handleServerError,
+                        success: function(response) {
+                            utils.handleServerResponse(response);
+                            closeEditModal();
+                        },
+                        error: function(xhr) {
+                            utils.handleServerError(xhr);
+                        },
                         complete: function() {
                             $submitButton.prop('disabled', false).text('บันทึก');
                         }
@@ -731,39 +773,10 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                     const minValue = $input.attr('id') === 'qty' ? 0 : -1;
 
                     $input.toggleClass('border-red-500', value <= minValue);
-                },
-
-
+                }
             };
-            // ฟังก์ชันเมื่อกดปุ่มยืนยัน
-            // $('#confirm-button').on('click', function () {
-            //     // ถามยืนยันจากผู้ใช้
-            //     if (confirm('ต้องการยืนยันรายการสินค้าทั้งหมดหรือไม่?\nหลังจากยืนยันแล้วจะไม่สามารถแก้ไขรายการได้')) {
-            //         $.ajax({
-            //             url: window.location.href,  // ใช้ URL ปัจจุบันของหน้า
-            //             method: 'POST',
-            //             data: {
-            //                 action: 'confirm_lot',
-            //                 lot_id: <?php echo json_encode($lot_id); ?> // ส่ง lot_id ไป
-            //             },
-            //             dataType: 'json',
-            //             success: function (response) {
-            //                 if (response.success) {
-            //                     // ถ้าสำเร็จให้ redirect ไปยัง URL ที่ส่งกลับจากเซิร์ฟเวอร์
-            //                     window.location.href = response.redirect_url;
-            //                 } else {
-            //                     alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่สามารถยืนยันรายการได้'));
-            //                 }
-            //             },
-            //             error: function () {
-            //                 alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
-            //             }
-            //         });
-            //     }
-            // });
 
-            // // Event bindings
-            // $('#confirm-button').on('click', handlers.handleConfirmButton);
+            // Event bindings
             $('.toggle-delete-mode').on('click', handlers.toggleDeleteMode);
             state.barcodeInput.on('keypress', handlers.handleBarcodeInput);
             $('.edit-product').on('click', handlers.handleEditProduct);
@@ -771,7 +784,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
             $('#qty, #capital').on('input', handlers.handleInputValidation);
 
             // Modal close handlers
-            const closeEditModal = () => $('#editModal').addClass('hidden');
             $('#editModal').on('click', function(e) {
                 if (e.target === this) closeEditModal();
             });
