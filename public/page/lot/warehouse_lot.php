@@ -46,27 +46,69 @@ try {
         lot.supplier_id,
         lot_status.lot_status_name,
         supplier.supplier_name,
-        lp.product_id,   -- Add product_id here
-        lp.lot_product_qty, -- Add lot_product_qty here
-         w.warehouse_name 
+        w.warehouse_name 
     FROM
         lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
         LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
-        LEFT JOIN lot_product lp ON lp.lot_id = lot.lot_id  -- Join with lot_product
-        LEFT JOIN product p ON p.product_id = lp.product_id  -- Join with product
-        LEFT JOIN warehouse w ON lot.warehouse_id = w.warehouse_id  -- Join warehouse table
-
+        LEFT JOIN warehouse w ON lot.warehouse_id = w.warehouse_id
     WHERE
         lot.warehouse_id = ?
     ORDER BY 
         lot.lot_date DESC";
 
     $lots_result = fetchData($pdo, $query, [$warehouse_id]);
-    $warehouse_lot = $lots_result->fetchAll(PDO::FETCH_ASSOC);
+    $warehouse_lots = $lots_result->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get the count
-    $lot_count = count($warehouse_lot);
+    // Get the count of lots
+    $lot_count = count($warehouse_lots);
+
+    // Fetch all products in this warehouse with quantities
+    $query = "SELECT 
+        p.product_id,
+        p.product_name,
+        SUM(lp.lot_product_qty) as total_qty,
+        COUNT(DISTINCT lot.lot_id) as lot_count
+    FROM 
+        lot_product lp
+        JOIN lot ON lp.lot_id = lot.lot_id
+        JOIN product p ON lp.product_id = p.product_id
+    WHERE 
+        lot.warehouse_id = ?
+    GROUP BY 
+        p.product_id, p.product_name
+    ORDER BY 
+        p.product_id";
+
+    $warehouse_products = fetchData($pdo, $query, [$warehouse_id])->fetchAll(PDO::FETCH_ASSOC);
+    $total_product_count = count($warehouse_products);
+    
+    // Calculate total inventory quantity
+    $total_inventory_qty = 0;
+    foreach ($warehouse_products as $product) {
+        $total_inventory_qty += $product['total_qty'];
+    }
+
+    // Fetch detailed product data with lot information
+    $query = "SELECT
+        lot.lot_id, 
+        lot.lot_name,
+        p.product_id,
+        p.product_name,
+        lp.lot_product_qty,
+        lot.warehouse_id,
+        w.warehouse_name
+    FROM
+        lot_product lp
+        JOIN lot ON lp.lot_id = lot.lot_id
+        JOIN product p ON lp.product_id = p.product_id
+        JOIN warehouse w ON lot.warehouse_id = w.warehouse_id
+    WHERE
+        lot.warehouse_id = ?
+    ORDER BY 
+        lot.lot_name, p.product_id";
+
+    $product_lots = fetchData($pdo, $query, [$warehouse_id])->fetchAll(PDO::FETCH_ASSOC);
 
     // Fetch warehouse data for "from" warehouses
     $query = "SELECT warehouse_id, warehouse_name FROM warehouse";
@@ -92,7 +134,7 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>รายการ Lot ในคลัง - ระบบจัดการคลังสินค้า</title>
+    <title>รายละเอียดคลังสินค้า - ระบบจัดการคลังสินค้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -106,9 +148,9 @@ ob_end_flush();
                 </a>
                 <h1 class="text-3xl font-bold text-gray-800">
                     <?php if (!$error && $warehouse_data): ?>
-                        <i class="fas fa-warehouse mr-2"></i>Lots ในคลัง: <?= htmlspecialchars($warehouse_data['warehouse_name']) ?>
+                        <i class="fas fa-warehouse mr-2"></i>รายละเอียดคลัง: <?= htmlspecialchars($warehouse_data['warehouse_name']) ?>
                     <?php else: ?>
-                        <i class="fas fa-warehouse mr-2"></i>รายการ Lot ในคลัง
+                        <i class="fas fa-warehouse mr-2"></i>รายละเอียดคลังสินค้า
                     <?php endif; ?>
                 </h1>
             </div>
@@ -159,60 +201,90 @@ ob_end_flush();
                     </div>
                 </div>
             </div>
-            <table class="mt-5 mb-8 w-[100%] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
-                <thead>
-                    <tr>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อล็อตสินค้า</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสสินค้า</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้า</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $previous_warehouse_name = null; // ตัวแปรเก็บ warehouse_name ก่อนหน้า
-                    $previous_lot_name = null; // ตัวแปรเก็บ lot_name ก่อนหน้า
-                    foreach ($warehouse_lot as $lot): ?>
-                        <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer">
-                            <?php if ($lot['lot_name'] !== $previous_lot_name): ?>
-                                <!-- แสดงข้อมูล lot_name เพียงครั้งเดียว -->
-                                <td><?php echo htmlspecialchars($lot['lot_name']); ?></td>
-                            <?php else: ?>
-                                <td></td> <!-- ไม่แสดงอะไรถ้า lot_name ซ้ำ -->
-                            <?php endif; ?>
 
-                            <td><?php echo htmlspecialchars($lot['product_id']); ?></td>
-                            <td><?php echo htmlspecialchars($lot['lot_product_qty']); ?></td>
+            <!-- Inventory Summary -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-chart-pie mr-2"></i>สรุปข้อมูลสินค้าในคลัง
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-blue-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-gray-600 mb-1">จำนวนรายการสินค้า:</p>
+                            <p class="text-2xl font-medium text-blue-600"><?= $total_product_count ?> รายการ</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-gray-600 mb-1">จำนวนสินค้าทั้งหมด:</p>
+                            <p class="text-2xl font-medium text-green-600"><?= number_format($total_inventory_qty, 0) ?> ชิ้น</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-gray-600 mb-1">จำนวน Lot:</p>
+                            <p class="text-2xl font-medium text-purple-600"><?= $lot_count ?> Lot</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                            <?php if ($lot['warehouse_name'] !== $previous_warehouse_name): ?>
-                                <!-- แสดง warehouse_name เพียงครั้งเดียว -->
-                                <td class="text-start pl-4"><?php echo htmlspecialchars($lot['warehouse_name']); ?></td>
-                            <?php else: ?>
-                                <td></td> <!-- ไม่แสดงอะไรถ้า warehouse_name ซ้ำ -->
-                            <?php endif; ?>
+            <!-- Products in Warehouse -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-boxes mr-2"></i>สินค้าทั้งหมดในคลัง
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <?php if (empty($warehouse_products)): ?>
+                        <div class="text-center py-8">
+                            <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
+                            <p class="text-gray-500 text-xl">ไม่พบสินค้าในคลังนี้</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200 shadow-sm">
+                                <thead>
+                                    <tr class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed]">
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">รหัสสินค้า</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อสินค้า</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">รายละเอียด</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวนคงเหลือ</th>
+                                        
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวน Lot</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($warehouse_products as $product): ?>
+                                        <tr class="hover:bg-[#aec5e366]">
+                                            <td class="py-3 px-4 border-b border-gray-200"><?= htmlspecialchars($product['product_id']) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200 font-medium"><?= htmlspecialchars($product['product_name']) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200">
+                                                <?= !empty($product['product_detail']) ? htmlspecialchars($product['product_detail']) : "-" ?>
+                                            </td>
+                                            <td class="py-3 px-4 border-b border-gray-200 text-right font-medium"><?= number_format($product['total_qty'], 0) ?></td>
+                                           
+                                            <td class="py-3 px-4 border-b border-gray-200 text-right"><?= htmlspecialchars($product['lot_count']) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
 
-                        </tr>
-                        <?php
-                        $previous_lot_name = $lot['lot_name']; // อัปเดตค่า lot_name ก่อนหน้า
-                        $previous_warehouse_name = $lot['warehouse_name']; // อัปเดตค่า warehouse_name ก่อนหน้า
-                        ?>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-
-
-            <!-- Lots List -->
+            <!-- Lot Details with Products -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
-                        <i class="fas fa-box-open mr-2"></i>รายการ Lot ทั้งหมดในคลัง
+                        <i class="fas fa-box-open mr-2"></i>รายการ Lot และสินค้าในคลัง
                     </h2>
                     <a href="index.php?page=lot_listinsertcopy" class="text-blue-600 hover:text-blue-800">
                         <i class="fas fa-plus mr-1"></i>เพิ่ม Lot ใหม่
                     </a>
                 </div>
                 <div class="p-6">
-                    <?php if (empty($warehouse_lot)): ?>
+                    <?php if (empty($product_lots)): ?>
                         <div class="text-center py-8">
                             <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
                             <p class="text-gray-500 text-xl">ไม่พบ Lot ในคลังนี้</p>
@@ -223,8 +295,67 @@ ob_end_flush();
                             </div>
                         </div>
                     <?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200 shadow-sm">
+                                <thead>
+                                    <tr class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed]">
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อ Lot</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">รหัสสินค้า</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อสินค้า</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวน</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-center">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $current_lot = null;
+                                    foreach ($product_lots as $index => $item): 
+                                        $is_new_lot = $current_lot !== $item['lot_name'];
+                                        if ($is_new_lot) {
+                                            $current_lot = $item['lot_name'];
+                                        }
+                                    ?>
+                                        <tr class="hover:bg-[#aec5e366] <?= $is_new_lot ? 'border-t-2 border-gray-300' : '' ?>">
+                                            <?php if ($is_new_lot): ?>
+                                                <td class="py-3 px-4 border-b border-gray-200 font-medium"><?= htmlspecialchars($item['lot_name']) ?></td>
+                                            <?php else: ?>
+                                                <td class="py-3 px-4 border-b border-gray-200"></td>
+                                            <?php endif; ?>
+                                            <td class="py-3 px-4 border-b border-gray-200"><?= htmlspecialchars($item['product_id']) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200"><?= htmlspecialchars($item['product_name']) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200 text-right"><?= number_format($item['lot_product_qty'], 0) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200 text-center">
+                                                <?php if ($is_new_lot): ?>
+                                                    <a href="index.php?page=lot_listdetail&tabel=lot&id=<?= htmlspecialchars($item['lot_id']) ?>" class="text-blue-600 hover:text-blue-800 mr-3">
+                                                        <i class="fas fa-eye"></i> รายละเอียด
+                                                    </a>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Lots List (Card View) -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-box-open mr-2"></i>รายการ Lot ทั้งหมดในคลัง
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <?php if (empty($warehouse_lots)): ?>
+                        <div class="text-center py-8">
+                            <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
+                            <p class="text-gray-500 text-xl">ไม่พบ Lot ในคลังนี้</p>
+                        </div>
+                    <?php else: ?>
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            <?php foreach ($warehouse_lot as $lot): ?>
+                            <?php foreach ($warehouse_lots as $lot): ?>
                                 <div class="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer"
                                     onclick="window.location.href='index.php?page=lot_listdetail&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
                                     <div class="flex justify-between items-center">

@@ -21,7 +21,6 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             color: #333;
         }
 
-        /* สไตล์ปุ่ม Windows XP */
         .button-bb {
             padding: 5px;
             display: flex;
@@ -97,19 +96,12 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
 <body>
     <div class="button-bb">
         <div class="flex gap-1 p-2 border border--500 rounded-lg bg-gradient-to-r bg-[#cbdbee] shadow-xl">
-            <a href="?page=dashboard" class="button-link">
+            <a href="?page=dashboard" >
                 <button class="<?php echo ($current_page == 'dashboard') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
                     <p>Dashboard</p>
                 </button>
             </a>
-            <a href="?page=about" class="button-link">
-                <button class="<?php echo ($current_page == 'about') ? 'active' : ''; ?>">
-                    <img src="../image/box.png" alt="">
-                    <p>About</p>
-                </button>
-            </a>
-
 
         </div>
     </div>

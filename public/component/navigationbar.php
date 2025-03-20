@@ -1,6 +1,6 @@
 <?php
 // Add to top of file to get current page and its parts
-$current_page = $_GET['page'] ?? '';
+$current_page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
 $page_parts = explode('_', $current_page);
 $main_section = $page_parts[0] ?? '';
 $sub_section = $page_parts[1] ?? '';
@@ -23,6 +23,9 @@ $product_section_pages = [
     'lot_productlist',
     'lot_productinsert'
 ];
+
+// Check if we're in dashboard section (for highlighting both home and dashboard)
+$is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 ?>
 
 <!DOCTYPE html>
@@ -44,7 +47,7 @@ $product_section_pages = [
             <div class="link">
                 <ul>
                     <li><a href="?page=bar_index"
-                            class="<?php echo $current_page == 'bar_index' ? 'active' : ''; ?>">หน้าแรก</a></li>
+                            class="<?php echo $is_dashboard ? 'active' : ''; ?>">หน้าแรก</a></li>
                     <li><a href="?page=bar_product"
                             class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a></li>
                     <li><a href="?page=bar_personnel"
@@ -63,9 +66,12 @@ $product_section_pages = [
     <div class="button-bar">
         <?php
         // Get page parameter and set defaults
-        $page = $_GET['page'] ?? 'bar_index';
+        $page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
         $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'navigationbar_sale'];
 
+        $dashboard_pages = [
+            'dashboard'
+        ];
         $product_pages = [
             'product_list',
             'product_insert',
@@ -131,137 +137,164 @@ $product_section_pages = [
             $prefix = $parts[0] ?? null;  // 'bar' หรือ 'member'
             $module = $parts[1] ?? null;  // 'product', 'supplier', 'list', 'insert', etc.
 
-            // ขั้นแรก ให้รวมไฟล์แถบนำทางหากเป็นหน้าที่ได้รับอนุญาต
-            if (in_array($page, $allowed_pages)) {
-                $basefile = __DIR__ . "/$page.php";
-                if (file_exists($basefile)) {
-                    include $basefile;
+            // If no page is specified or it's the homepage/bar_index, show dashboard
+            if ($page == 'dashboard' || $page == 'bar_index') {
+                // Load bar_index.php first
+                $barfile = __DIR__ . "/bar_index.php";
+                if (file_exists($barfile)) {
+                    include $barfile;
+                }
+                $filepath = __DIR__ . "/../page/dashboard/dashboard.php";
+                if (file_exists($filepath)) {
+                    include $filepath;
                 }
             }
-
-            // ตรวจสอบและโหลดหน้าต่างๆ
-            $basePath = __DIR__ . "/../page";
-
-            if ($prefix === 'bar') {
-                // แมปชื่อโมดูลกับชื่อโฟลเดอร์ที่ถูกต้อง
-                $folderMapping = [
-                    'product' => 'product',
-                    'supplier' => 'supplier',
-                    'personnel' => 'personnel',
-                    'member' => 'member',
-                    'lot' => 'lot'
-                ];
-
-                if (isset($folderMapping[$module])) {
-                    $folderName = $folderMapping[$module];
-
-                    if ($module === 'product') {
-                        // Special handling for product pages
-                        $action = $parts[2] ?? 'list';
-                        $subaction = $parts[3] ?? null;
-
-                        $filepath = "$basePath/$folderName/";
-                        if ($subaction) {
-                            $filepath .= "{$folderName}_{$action}_{$subaction}.php";
-                        } else {
-                            $filepath .= "{$folderName}_{$action}.php";
-                        }
-                    } else {
-                        // For all other modules
-                        $filepath = "$basePath/$folderName/{$folderName}_list.php";
+            // Process other pages as normal
+            else {
+                // ขั้นแรก ให้รวมไฟล์แถบนำทางหากเป็นหน้าที่ได้รับอนุญาต
+                if (in_array($page, $allowed_pages)) {
+                    $basefile = __DIR__ . "/$page.php";
+                    if (file_exists($basefile)) {
+                        include $basefile;
                     }
                 }
-            } elseif ($prefix === 'member' && in_array($page, $member_pages)) {
-                // โหลด bar_member.php ก่อน
-                $barfile = __DIR__ . "/bar_member.php";
-                if (file_exists($barfile)) {
-                    include $barfile;
-                }
-                $action = $parts[1] ?? 'list';
-                $filepath = "$basePath/member/member_{$action}.php";
 
-                if (isset($_GET['id'])) {
-                    $_REQUEST['id'] = $_GET['id'];
-                }
-            } elseif ($prefix === 'product' && in_array($page, $product_pages)) {
-                // โหลด bar_product.php ก่อน
-                $barfile = __DIR__ . "/bar_product.php";
-                if (file_exists($barfile)) {
-                    include $barfile;
-                }
-                $action = $parts[1] ?? 'list';
-                if ($action) {
-                    $filepath = "$basePath/product/product_{$action}.php";
-                }
-                if (isset($_GET['id'])) {
-                    $_REQUEST['id'] = $_GET['id'];
-                }
-            } elseif ($prefix === 'warehouse' && in_array($page, $warehouse_page)) {
-                // โหลด bar_product.php ก่อน
-                $barfile = __DIR__ . "/bar_product.php";
-                if (file_exists($barfile)) {
-                    include $barfile;
-                }
-                $action = $parts[1] ?? 'list';
-                $filepath = "$basePath/warehouse/warehouse_{$action}.php";
+                // ตรวจสอบและโหลดหน้าต่างๆ
+                $basePath = __DIR__ . "/../page";
 
-                if (isset($_GET['id'])) {
-                    $_REQUEST['id'] = $_GET['id'];
-                }
-            } elseif ($prefix === 'lot' && in_array($page, $lot_pages)) {
-                // โหลด bar_product.php ก่อน
-                $barfile = __DIR__ . "/bar_product.php";
-                if (file_exists($barfile)) {
-                    include $barfile;
-                }
-                $action = $parts[1] ?? 'list';
-                $filepath = "$basePath/lot/lot_{$action}.php";
+                if ($prefix === 'bar') {
+                    // แมปชื่อโมดูลกับชื่อโฟลเดอร์ที่ถูกต้อง
+                    $folderMapping = [
+                        'product' => 'product',
+                        'supplier' => 'supplier',
+                        'personnel' => 'personnel',
+                        'member' => 'member',
+                        'lot' => 'lot'
+                    ];
 
-                if (isset($_GET['id'])) {
-                    $_REQUEST['id'] = $_GET['id'];
-                }
-            } elseif ($prefix === 'warehouse' && $page === 'warehouse_lot') {
-                // โหลด bar_product.php ก่อน
-                $barfile = __DIR__ . "/bar_product.php";
-                if (file_exists($barfile)) {
-                    include $barfile;
-                }
-                $filepath = "$basePath/lot/warehouse_lot.php";
+                    if (isset($folderMapping[$module])) {
+                        $folderName = $folderMapping[$module];
 
-                if (isset($_GET['warehouse_id'])) {
-                    $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
-                }
-            } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
-                // โหลด bar_personnel.php ก่อน
-                $barfile = __DIR__ . "/bar_personnel.php";
-                if (file_exists($barfile)) {
-                    include $barfile;
-                }
-                $action = $parts[1] ?? 'list';
-                $filepath = "$basePath/personnel/personnel_{$action}.php";
+                        if ($module === 'product') {
+                            // Special handling for product pages
+                            $action = $parts[2] ?? 'list';
+                            $subaction = $parts[3] ?? null;
 
-                if (isset($_GET['id'])) {
-                    $_REQUEST['id'] = $_GET['id'];
-                }
-            } elseif ($prefix === 'supplier' && in_array($page, $supplier_pages)) {
-                // โหลด bar_supplier.php ก่อน
-                $barfile = __DIR__ . "/bar_supplier.php";
-                if (file_exists($barfile)) {
-                    include $barfile;
-                }
-                $action = $parts[1] ?? 'list';
-                $filepath = "$basePath/supplier/supplier_{$action}.php";
+                            $filepath = "$basePath/$folderName/";
+                            if ($subaction) {
+                                $filepath .= "{$folderName}_{$action}_{$subaction}.php";
+                            } else {
+                                $filepath .= "{$folderName}_{$action}.php";
+                            }
+                        } else {
+                            // For all other modules
+                            $filepath = "$basePath/$folderName/{$folderName}_list.php";
+                        }
+                    }
+                } elseif ($prefix === 'dashboard' && in_array($page, $dashboard_pages)) {
+                    // โหลด bar_index.php ก่อน
+                    $barfile = __DIR__ . "/bar_index.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? '';
+                    $filepath = "$basePath/dashboard/dashboard.php";
 
-                if (isset($_GET['id'])) {
-                    $_REQUEST['id'] = $_GET['id'];
-                }
-            }
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'member' && in_array($page, $member_pages)) {
+                    // โหลด bar_member.php ก่อน
+                    $barfile = __DIR__ . "/bar_member.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'list';
+                    $filepath = "$basePath/member/member_{$action}.php";
 
-            // Include the file if it exists
-            if (isset($filepath) && file_exists($filepath)) {
-                include $filepath;
-            } else if (isset($filepath)) {
-                echo "<h2>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</h2>";
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'product' && in_array($page, $product_pages)) {
+                    // โหลด bar_product.php ก่อน
+                    $barfile = __DIR__ . "/bar_product.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'list';
+                    if ($action) {
+                        $filepath = "$basePath/product/product_{$action}.php";
+                    }
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'warehouse' && in_array($page, $warehouse_page)) {
+                    // โหลด bar_product.php ก่อน
+                    $barfile = __DIR__ . "/bar_product.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'list';
+                    $filepath = "$basePath/warehouse/warehouse_{$action}.php";
+
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'lot' && in_array($page, $lot_pages)) {
+                    // โหลด bar_product.php ก่อน
+                    $barfile = __DIR__ . "/bar_product.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'list';
+                    $filepath = "$basePath/lot/lot_{$action}.php";
+
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'warehouse' && $page === 'warehouse_lot') {
+                    // โหลด bar_product.php ก่อน
+                    $barfile = __DIR__ . "/bar_product.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $filepath = "$basePath/lot/warehouse_lot.php";
+
+                    if (isset($_GET['warehouse_id'])) {
+                        $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
+                    }
+                } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
+                    // โหลด bar_personnel.php ก่อน
+                    $barfile = __DIR__ . "/bar_personnel.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'list';
+                    $filepath = "$basePath/personnel/personnel_{$action}.php";
+
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'supplier' && in_array($page, $supplier_pages)) {
+                    // โหลด bar_supplier.php ก่อน
+                    $barfile = __DIR__ . "/bar_supplier.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'list';
+                    $filepath = "$basePath/supplier/supplier_{$action}.php";
+
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                }
+
+                // Include the file if it exists
+                if (isset($filepath) && file_exists($filepath)) {
+                    include $filepath;
+                } else if (isset($filepath)) {
+                    echo "<h2>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</h2>";
+                }
             }
         } else {
             echo "<h2>ไม่พบเพจที่คุณต้องการ</h2>";
