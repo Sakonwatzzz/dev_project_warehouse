@@ -203,7 +203,7 @@ ob_end_flush();
                             </td>
                             <td hidden><?php echo ($lot_product_list['lot_id']); ?></td>
                             <td><?php echo ($lot_product_list['product_id']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_name']); ?></td>
+                            <td onclick="window.location.href='?page=lot_productdetail&tabel=lot_product&id=<?php echo ($lot_product_list['lot_product_id']) ?>'"><?php echo ($lot_product_list['lot_name']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_capital']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_qty']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_remain']); ?></td>
