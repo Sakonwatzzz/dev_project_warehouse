@@ -277,7 +277,7 @@ ob_end_flush();
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
-                        <i class="fas fa-box-open mr-2"></i>รายการ Lot และสินค้าในคลัง
+                        <i class="fas fa-box-open mr-2"></i>CheckOut รายการ Lot และสินค้าในคลัง
                     </h2>
                     <a href="index.php?page=lot_listinsertcopy" class="text-blue-600 hover:text-blue-800">
                         <i class="fas fa-plus mr-1"></i>เพิ่ม Lot ใหม่
@@ -300,9 +300,9 @@ ob_end_flush();
                                 <thead>
                                     <tr class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed]">
                                         <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อ Lot</th>
-                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">รหัสสินค้า</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left" hidden>รหัสสินค้า</th>
                                         <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อสินค้า</th>
-                                        <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวน</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวนสินค้า</th>
                                         <th class="py-3 px-4 border-b border-[#8f959b] text-center">การจัดการ</th>
                                     </tr>
                                 </thead>
@@ -321,7 +321,7 @@ ob_end_flush();
                                             <?php else: ?>
                                                 <td class="py-3 px-4 border-b border-gray-200"></td>
                                             <?php endif; ?>
-                                            <td class="py-3 px-4 border-b border-gray-200"><?= htmlspecialchars($item['product_id']) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200" hidden><?= htmlspecialchars($item['product_id']) ?></td>
                                             <td class="py-3 px-4 border-b border-gray-200"><?= htmlspecialchars($item['product_name']) ?></td>
                                             <td class="py-3 px-4 border-b border-gray-200 text-right"><?= number_format($item['lot_product_qty'], 0) ?></td>
                                             <td class="py-3 px-4 border-b border-gray-200 text-center">

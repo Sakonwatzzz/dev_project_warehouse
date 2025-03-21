@@ -161,10 +161,10 @@ ob_end_flush();
             <thead>
                 <tr>
                     <th
-                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow" hidden>
                         รหัสรับรายการรับสินค้า</th>
                     <th
-                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow" hidden>
                         รหัสล็อตสินค้า</th>
                     <th
                         class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
@@ -198,10 +198,10 @@ ob_end_flush();
                     <?php while ($lot_product_list = $result_lotproduct_list->fetch(PDO::FETCH_ASSOC)): ?>
                         <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer" data-id="<?php echo $lot_product_list['lot_id']; ?>">
                             <td
-                                onclick="window.location.href='?page=lot_productdetail&tabel=lot_product&id=<?php echo ($lot_product_list['lot_product_id']) ?>'">
+                                onclick="window.location.href='?page=lot_productdetail&tabel=lot_product&id=<?php echo ($lot_product_list['lot_product_id']) ?>'" hidden>
                                 <?php echo ($lot_product_list['lot_product_id']); ?>
                             </td>
-                            <td><?php echo ($lot_product_list['lot_id']); ?></td>
+                            <td hidden><?php echo ($lot_product_list['lot_id']); ?></td>
                             <td><?php echo ($lot_product_list['product_id']); ?></td>
                             <td><?php echo ($lot_product_list['lot_name']); ?></td>
                             <td><?php echo ($lot_product_list['lot_product_capital']); ?></td>
