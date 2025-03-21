@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             WHERE product_id = ?");
         $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
 
-        // Update quantity and price in lot_product table
+        // Update quantity and price in lot_product table - FIX: correct parameter order
         $stmt = $pdo->prepare("UPDATE lot_product SET 
             lot_product_qty = ?, 
             lot_product_remain = ?,
@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             WHERE lot_product_id = ? AND lot_id = ?");
         $stmt->execute([
             $_POST['qty'],
+            $_POST['qty'], // Set remain to same as qty
             $_POST['capital'],
             $_POST['lot_product_id'],
             $lot_id
@@ -55,29 +56,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit();
     }
 }
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
     try {
         $pdo->beginTransaction();
 
-        $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
-        $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
+        // First check if there are any products with missing information
+        $check_query = "SELECT lp.product_id, COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name, 
+                        lp.lot_product_capital 
+                        FROM lot_product lp
+                        LEFT JOIN product p ON p.product_id = lp.product_id
+                        WHERE lp.lot_id = ? 
+                        AND (p.product_name IS NULL OR p.product_name = 'ยังไม่ระบุ' OR lp.lot_product_capital = 0)";
+        
+        $check_stmt = $pdo->prepare($check_query);
+        $check_stmt->execute([$_POST['lot_id']]);
+        $invalid_products = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (count($invalid_products) > 0) {
+            // There are products with missing information
+            throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน กรุณาตรวจสอบและแก้ไขก่อนยืนยันรายการ");
+        }
+        
+        // Update product names if needed
+        if (isset($_POST['product_name']) && isset($_POST['barcode'])) {
+            $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
+            $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
+        }
 
+        // Update lot status to confirmed (status_id = 2)
         $updateLot = $pdo->prepare("UPDATE lot SET lot_status_id = 2 WHERE lot_id = ?");
         $updateLot->execute([$_POST['lot_id']]);
 
         $pdo->commit();
 
-        header('Location: http://localhost:8000/index.php?page=lot_listinsertcopy');
+        // Redirect with success message
+        header('Location: index.php?page=lot_listinsert&success=1');
         exit();
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
 
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        // For AJAX requests, return JSON
+        if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            exit();
+        }
+        
+        // For regular form submissions, redirect with error
+        header('Location: index.php?page=lot_view&id=' . $_POST['lot_id'] . '&error=' . urlencode($e->getMessage()));
         exit();
     }
 }
+
 // Handle product scan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
     header('Content-Type: application/json');
@@ -430,7 +463,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
                             <?php if (count($lot_products) > 0 && $lot_data['lot_status_id'] == 1): ?>
                                 <!-- แสดงปุ่มยืนยันเฉพาะเมื่อสถานะเป็น "รอการอนุมัติ" -->
-                                <form method="POST" action="" onsubmit="return validateForm(event)">
+                                <form id="confirm-form" method="POST" action="" onsubmit="return validateForm(event)">
                                     <!-- ใส่ path ของไฟล์ PHP ที่ประมวลผลการอัปเดต -->
                                     <tr class="h-16">
                                         <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
@@ -491,44 +524,92 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
     </div>
     <script>
         function validateForm(event) {
-            event.preventDefault(); // ป้องกันการ submit ฟอร์มก่อนตรวจสอบ
+            event.preventDefault(); // Prevent form submission before validation
 
-            let productName = document.getElementById("product_name").value.trim();
-            let capital = document.getElementById("capital").value.trim();
+            // Select only product rows, not the summary row
+            const productRows = document.querySelectorAll('#products-table tbody tr:not(.bg-gradient-to-r):not(.h-16)');
 
-            // เช็คว่าชื่อสินค้าว่าง หรือเป็น "ยังไม่ระบุ"
-            if (productName === "" || productName === "ยังไม่ระบุ") {
+            if (productRows.length === 0) {
                 Swal.fire({
                     icon: "warning",
-                    title: "ข้อมูลไม่ครบถ้วน",
-                    text: "กรุณาระบุชื่อสินค้าให้ถูกต้อง",
+                    title: "ไม่มีสินค้า",
+                    text: "กรุณาเพิ่มสินค้าก่อนยืนยันรายการ",
                     confirmButtonColor: "#3085d6"
                 });
-                return;
+                return false;
             }
 
-            // เช็คว่าราคาทุนว่าง หรือเป็น 0.00
-            if (capital === "" || parseFloat(capital) === 0.00) {
-                Swal.fire({
-                    icon: "warning",
-                    title: "ข้อมูลไม่ครบถ้วน",
-                    text: "กรุณาระบุราคาทุนให้ถูกต้อง",
-                    confirmButtonColor: "#3085d6"
-                });
-                return;
-            }
+            // Collect items with incomplete data
+            let invalidProducts = [];
+            productRows.forEach(row => {
+                const barcode = row.cells[0].textContent.trim();
+                const productName = row.cells[1].textContent.trim();
+                const capital = parseFloat(row.cells[3].textContent.replace(/,/g, '')) || 0;
 
-            // ถ้าข้อมูลถูกต้อง แสดง SweetAlert2 พร้อมยืนยัน
-            Swal.fire({
-                icon: "success",
-                title: "ยืนยันรายการสำเร็จ!",
-                text: "ข้อมูลถูกต้อง พร้อมส่งรายการ",
-                confirmButtonColor: "#28a745"
-            }).then((result) => {
-                if (result.isConfirmed) { // เมื่อคลิกปุ่ม "ยืนยัน"
-                    document.getElementById("product_form").submit(); // ส่งฟอร์ม
+                // Check product name and capital price
+                if (productName === "ยังไม่ระบุ" || productName === "ไม่มีสินค้าในระบบ" || capital === 0) {
+                    invalidProducts.push({
+                        barcode: barcode,
+                        name: productName,
+                        capital: capital
+                    });
                 }
             });
+
+            // If there are invalid products
+            if (invalidProducts.length > 0) {
+                let errorHTML = "<div style='text-align:left; max-height:300px; overflow-y:auto;'>";
+                errorHTML += "<p>กรุณาตรวจสอบและแก้ไขข้อมูลสินค้าต่อไปนี้ก่อนยืนยัน:</p><ul>";
+
+                invalidProducts.forEach(product => {
+                    errorHTML += `<li>บาร์โค้ด <b>${product.barcode}</b>: `;
+                    let issues = [];
+                    if (product.name === "ยังไม่ระบุ" || product.name === "ไม่มีสินค้าในระบบ") {
+                        issues.push("ชื่อสินค้าไม่ถูกต้อง");
+                    }
+                    if (product.capital === 0) {
+                        issues.push("ราคาทุนเป็น 0");
+                    }
+                    errorHTML += issues.join(" และ ") + "</li>";
+                });
+
+                errorHTML += "</ul></div>";
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "ข้อมูลไม่ครบถ้วน",
+                    html: errorHTML,
+                    confirmButtonColor: "#3085d6",
+                    confirmButtonText: "ตกลง"
+                });
+                return false;
+            }
+
+            // If all data is complete, show confirmation dialog
+            Swal.fire({
+                icon: "question",
+                title: "ยืนยันรายการ?",
+                text: "คุณต้องการยืนยันรายการนี้หรือไม่?",
+                showCancelButton: true,
+                confirmButtonColor: "#28a745",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "ใช่, ยืนยัน",
+                cancelButtonText: "ยกเลิก"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Disable the button to prevent multiple clicks
+                    let confirmBtn = document.querySelector('#confirm-form button[type="submit"]');
+                    if (confirmBtn) {
+                        confirmBtn.disabled = true;
+                        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>กำลังดำเนินการ...';
+                    }
+
+                    // Submit the form
+                    document.getElementById("confirm-form").submit();
+                }
+            });
+
+            return false; // Prevent automatic form submission
         }
     </script>
 

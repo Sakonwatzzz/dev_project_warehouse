@@ -82,7 +82,7 @@ try {
 
     $warehouse_products = fetchData($pdo, $query, [$warehouse_id])->fetchAll(PDO::FETCH_ASSOC);
     $total_product_count = count($warehouse_products);
-    
+
     // Calculate total inventory quantity
     $total_inventory_qty = 0;
     foreach ($warehouse_products as $product) {
@@ -143,7 +143,7 @@ ob_end_flush();
     <div class="container mx-auto px-4 py-8">
         <header class="flex justify-between items-center mb-8">
             <div class="flex items-center">
-                <a href="index.php?page=lot_listinsertcopy" class="text-blue-600 hover:text-blue-800 mr-4">
+                <a href="index.php?page=warehouse_list" class="text-blue-600 hover:text-blue-800 mr-4">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
                 <h1 class="text-3xl font-bold text-gray-800">
@@ -249,7 +249,7 @@ ob_end_flush();
                                         <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อสินค้า</th>
                                         <th class="py-3 px-4 border-b border-[#8f959b] text-left">รายละเอียด</th>
                                         <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวนคงเหลือ</th>
-                                        
+
                                         <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวน Lot</th>
                                     </tr>
                                 </thead>
@@ -262,7 +262,7 @@ ob_end_flush();
                                                 <?= !empty($product['product_detail']) ? htmlspecialchars($product['product_detail']) : "-" ?>
                                             </td>
                                             <td class="py-3 px-4 border-b border-gray-200 text-right font-medium"><?= number_format($product['total_qty'], 0) ?></td>
-                                           
+
                                             <td class="py-3 px-4 border-b border-gray-200 text-right"><?= htmlspecialchars($product['lot_count']) ?></td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -273,7 +273,7 @@ ob_end_flush();
                 </div>
             </div>
 
-            <!-- Lot Details with Products -->
+            <!-- Lot Details with Products 
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
@@ -309,7 +309,7 @@ ob_end_flush();
                                 <tbody>
                                     <?php
                                     $current_lot = null;
-                                    foreach ($product_lots as $index => $item): 
+                                    foreach ($product_lots as $index => $item):
                                         $is_new_lot = $current_lot !== $item['lot_name'];
                                         if ($is_new_lot) {
                                             $current_lot = $item['lot_name'];
@@ -339,8 +339,10 @@ ob_end_flush();
                     <?php endif; ?>
                 </div>
             </div>
+            -->
 
-            <!-- Lots List (Card View) -->
+            <!--
+            <!-- Lots List (Card View) 
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
@@ -401,10 +403,11 @@ ob_end_flush();
                     <?php endif; ?>
                 </div>
             </div>
+             -->
 
             <!-- Action Buttons -->
             <div class="flex justify-between">
-                <a href="index.php?page=lot_listinsertcopy" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+                <a href="index.php?page=warehouse_list" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
                     <i class="fas fa-arrow-left mr-2"></i>กลับ
                 </a>
 
