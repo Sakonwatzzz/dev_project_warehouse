@@ -349,7 +349,7 @@ ob_end_flush();
             </form>
         </div>
 
-        <!-- Warehouse Cards Section -->
+        <!-- Warehouse Cards Section
         <h2 class="text-2xl font-bold text-gray-800 mb-6">คลังสินค้า</h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
@@ -373,7 +373,7 @@ ob_end_flush();
                     </div>
                 </div>
             <?php endforeach; ?>
-        </div>
+        </div> -->
 
         <!-- Recent Lots Table Section -->
         <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">

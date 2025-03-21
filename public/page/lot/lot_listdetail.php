@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             product_name = ?
             WHERE product_id = ?");
         $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
-
+ 
         // Update quantity and price in lot_product table
         $stmt = $pdo->prepare("UPDATE lot_product SET 
             lot_product_qty = ?, 

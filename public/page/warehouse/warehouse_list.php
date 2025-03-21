@@ -1,5 +1,15 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
+function fetchData($pdo, $query, $params = [])
+{
+    try {
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt;
+    } catch (PDOException $e) {
+        die('Database error: ' . $e->getMessage());
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['warehousename'])) {
@@ -63,15 +73,75 @@ try {
 
 // Fetch data for current page
 try {
-    $query = "SELECT warehouse_id, warehouse_name, warehouse_status FROM warehouse LIMIT :offset, :records_per_page";
-    $stmt = $pdo->prepare($query);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-    $stmt->execute();
-    $warehouses = $stmt;
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    // Fetch lot list
+    $query = "SELECT
+        lot_status.lot_status_id, 
+        lot_status.lot_status_name, 
+        supplier.supplier_id, 
+        supplier.supplier_name, 
+        warehouse.warehouse_name AS warehouse_in_name, 
+        warehouse.warehouse_name AS warehouse_name, 
+        warehouse.warehouse_id,
+        lot.lot_id, 
+        lot.lot_name, 
+        lot.lot_detail, 
+        lot.lot_date, 
+        lot.lot_status_id, 
+        lot.warehouse_id, 
+        lot.warehouse_from_id,
+        lot.warehouse_inout
+    FROM
+        lot
+        LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
+        LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+        LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id";
+    $result_lot_list = fetchData($pdo, $query);
+
+    // Store result for later use in warehouse cards
+    $lots = $result_lot_list->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch lot_id options
+    $query = "SELECT lot_id FROM lot";
+    $lot_id_options = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch lot status data
+    $query = "SELECT lot_status_id, lot_status_name FROM lot_status";
+    $status_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch warehouse data
+    $query = "SELECT warehouse_id, warehouse_name, warehouse_status FROM warehouse ORDER BY warehouse_id";
+    $warehouse_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch supplier data
+    $query = "SELECT supplier_id, supplier_name FROM supplier";
+    $supplier_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch lot product data
+    $query = "SELECT lot_product_id, lot_product_qty, lot_product_remain, lot_product_capital FROM lot_product";
+    $result = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Set default status ID if not selected
+    $selected_status_id = $_POST['lot_status_id'] ?? '';
+    if ($selected_status_id === '') {
+        $selected_status_id = $status_lot[0]['lot_status_id'] ?? '';
+    }
+
+    // Count lots per warehouse
+    $warehouse_lot_counts = [];
+    foreach ($warehouse_lot as $warehouse) {
+        $warehouse_id = $warehouse['warehouse_id'];
+        $warehouse_lot_counts[$warehouse_id] = 0;
+
+        foreach ($lots as $lot) {
+            if ($lot['warehouse_id'] == $warehouse_id) {
+                $warehouse_lot_counts[$warehouse_id]++;
+            }
+        }
+    }
+} catch (Exception $e) {
+    $error = "เกิดข้อผิดพลาด: " . $e->getMessage();
 }
+
 
 ?>
 
@@ -182,7 +252,7 @@ try {
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <?php foreach ($warehouses as $warehouse): ?>
+                <?php foreach ($warehouse_lot as $warehouse): ?>
                     <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id=" <?php echo $warehouse['warehouse_id']; ?>">
                         <td class="warehouse-name"><?php echo $warehouse['warehouse_name']; ?></td>
                         <td class="warehouse-status"><?php echo $warehouse['warehouse_status']; ?></td>
@@ -225,7 +295,6 @@ try {
                 <?php endforeach; ?>
             </tbody>
         </table>
-
         <!-- Pagination for table -->
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
@@ -246,7 +315,33 @@ try {
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+        <!-- Warehouse Cards Section -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">คลังสินค้า</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+            <?php foreach ($warehouse_lot as $warehouse): ?>
+                <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                    onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>'">
+                    <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                        <h3 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($warehouse['warehouse_name']) ?></h3>
+                    </div>
+                    <div class="p-6 flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-600 mb-2"><i class="fas fa-box mr-2"></i>จำนวน Lot ทั้งหมด</p>
+                            <p class="text-3xl font-bold text-blue-600"><?= $warehouse_lot_counts[$warehouse['warehouse_id']] ?? 0 ?></p>
+                        </div>
+                        <div class="text-blue-500">
+                            <i class="fas fa-chevron-right text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-6 py-3 border-t">
+                        <p class="text-sm text-gray-500"><i class="fas fa-info-circle mr-1"></i> คลิกเพื่อดู Lot ทั้งหมดในคลังนี้</p>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
+
 
     <script>
         function searchTable() {
