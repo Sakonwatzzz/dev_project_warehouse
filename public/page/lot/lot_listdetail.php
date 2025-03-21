@@ -169,7 +169,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
 
                 $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
             }
-            // In delete mode, do nothing if product doesn't exist
         }
 
         echo json_encode(['success' => true]);
