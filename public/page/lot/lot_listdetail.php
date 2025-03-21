@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             product_name = ?
             WHERE product_id = ?");
         $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
- 
+
         // Update quantity and price in lot_product table
         $stmt = $pdo->prepare("UPDATE lot_product SET 
             lot_product_qty = ?, 
@@ -32,7 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             lot_product_capital = ?
             WHERE lot_product_id = ? AND lot_id = ?");
         $stmt->execute([
-            $_POST['qty'],
             $_POST['qty'],
             $_POST['capital'],
             $_POST['lot_product_id'],
@@ -57,43 +56,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
     try {
-        // เริ่มต้น transaction
         $pdo->beginTransaction();
 
-        // อัปเดตสถานะล็อต
+        $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
+        $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
+
         $updateLot = $pdo->prepare("UPDATE lot SET lot_status_id = 2 WHERE lot_id = ?");
         $updateLot->execute([$_POST['lot_id']]);
 
-        // ทำสิ่งอื่นที่จำเป็น เช่น บันทึกประวัติ หรือปรับปรุงสต็อก
-
-        // ยืนยัน transaction
         $pdo->commit();
 
-        // Redirect ไปที่หน้าล็อตที่ต้องการ
         header('Location: http://localhost:8000/index.php?page=lot_listinsertcopy');
-        exit();  // หยุดการทำงานของ PHP ต่อ
+        exit();
     } catch (Exception $e) {
-        // ยกเลิก transaction หากมีข้อผิดพลาด
-        $pdo->rollBack();
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-    }
-    exit();
-}
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
 
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        exit();
+    }
+}
 // Handle product scan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
-    // ob_clean();
     header('Content-Type: application/json');
     try {
         $barcode = $_POST['barcode'];
         $isDeleteMode = isset($_POST['deleteMode']) && $_POST['deleteMode'] === 'true';
-
-        // รับจำนวนจากการป้อนข้อมูลหากมีการระบุ
         $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int) $_POST['qty'] : 1;
-
-        // รับราคาทุนหากมีการระบุ
         $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : 0;
 
         // Check if product exists in lot
@@ -104,15 +97,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
         $existing_product = $stmt->fetch();
 
         if ($existing_product) {
-            // Product exists in lot
             if ($isDeleteMode) {
                 $newQty = $existing_product['lot_product_qty'] - $quantity;
                 if ($newQty <= 0) {
-                    // Delete if quantity becomes 0 or negative
                     $delete = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
                     $delete->execute([$lot_id, $barcode]);
                 } else {
-                    // Update with reduced quantity
                     $update = $pdo->prepare("UPDATE lot_product SET 
                         lot_product_qty = ?,
                         lot_product_remain = ?
@@ -120,7 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     $update->execute([$newQty, $newQty, $lot_id, $barcode]);
                 }
             } else {
-                // Normal mode - add specified quantity
                 $newQty = $existing_product['lot_product_qty'] + $quantity;
                 $newCapital = $capital > 0 ? $capital : $existing_product['lot_product_capital'];
 
@@ -133,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
             }
         } else {
             if (!$isDeleteMode) {
-                // ตรวจสอบว่ามีสินค้านี้ในตาราง product หรือไม่
                 $stmt_product = $pdo->prepare("SELECT * FROM product WHERE product_id = ?");
                 $stmt_product->execute([$barcode]);
                 $product_exists = $stmt_product->fetch();
@@ -151,12 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                         product_brand_id
                     ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
 
-                    // และปรับการส่งค่าในการเรียกใช้ execute
                     $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
                     $insert_product->execute([$barcode, $product_name, $capital]);
                 }
 
-                // จากนั้นค่อยเพิ่มข้อมูลในตาราง lot_product ตามเดิม
                 $insert = $pdo->prepare("INSERT INTO lot_product (
                     lot_id, 
                     product_id, 
@@ -169,7 +155,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
 
                 $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
             }
-            // In delete mode, do nothing if product doesn't exist
         }
 
         echo json_encode(['success' => true]);
@@ -261,6 +246,8 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
     <title>รายละเอียดล็อตสินค้า</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         /* กำหนดพื้นหลังสีแดงเมื่อลบข้อมูล */
         .input-delete {
@@ -445,7 +432,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
                             <?php if (count($lot_products) > 0 && $lot_data['lot_status_id'] == 1): ?>
                                 <!-- แสดงปุ่มยืนยันเฉพาะเมื่อสถานะเป็น "รอการอนุมัติ" -->
-                                <form method="POST" action="">
+                                <form method="POST" action="" onsubmit="return validateForm(event)">
                                     <!-- ใส่ path ของไฟล์ PHP ที่ประมวลผลการอัปเดต -->
                                     <tr class="h-16">
                                         <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
@@ -504,6 +491,48 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
             </form>
         </div>
     </div>
+    <script>
+        function validateForm(event) {
+            event.preventDefault(); // ป้องกันการ submit ฟอร์มก่อนตรวจสอบ
+
+            let productName = document.getElementById("product_name").value.trim();
+            let capital = document.getElementById("capital").value.trim();
+
+            // เช็คว่าชื่อสินค้าว่าง หรือเป็น "ยังไม่ระบุ"
+            if (productName === "" || productName === "ยังไม่ระบุ") {
+                Swal.fire({
+                    icon: "warning",
+                    title: "ข้อมูลไม่ครบถ้วน",
+                    text: "กรุณาระบุชื่อสินค้าให้ถูกต้อง",
+                    confirmButtonColor: "#3085d6"
+                });
+                return;
+            }
+
+            // เช็คว่าราคาทุนว่าง หรือเป็น 0.00
+            if (capital === "" || parseFloat(capital) === 0.00) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "ข้อมูลไม่ครบถ้วน",
+                    text: "กรุณาระบุราคาทุนให้ถูกต้อง",
+                    confirmButtonColor: "#3085d6"
+                });
+                return;
+            }
+
+            // ถ้าข้อมูลถูกต้อง แสดง SweetAlert2 พร้อมยืนยัน
+            Swal.fire({
+                icon: "success",
+                title: "ยืนยันรายการสำเร็จ!",
+                text: "ข้อมูลถูกต้อง พร้อมส่งรายการ",
+                confirmButtonColor: "#28a745"
+            }).then((result) => {
+                if (result.isConfirmed) { // เมื่อคลิกปุ่ม "ยืนยัน"
+                    document.getElementById("product_form").submit(); // ส่งฟอร์ม
+                }
+            });
+        }
+    </script>
 
     <script>
         const inputField = document.getElementById('inputField');

@@ -145,6 +145,10 @@ ob_end_flush();
         .pagination a:hover:not(.active) {
             background-color: #ddd;
         }
+
+        .zoom-in {
+            cursor: zoom-in;
+        }
     </style>
     <title>Document</title>
 </head>
@@ -170,72 +174,7 @@ ob_end_flush();
             <div class="notification-header">การแจ้งเตือน</div>
             <div class="notification-body">แก้ไขสมาชิกสำเร็จ!</div>
         </div>
-        <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
-            <thead>
-                <!-- ส่วนหัวของตาราง -->
-                <tr class="">
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะล็อต</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ผู้ส่งมอบ</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
-                </tr>
-            </thead>
-            <tbody class="">
-                <?php
-                if ($result_lot_list->rowCount() > 0) {
-                    while ($lot_list = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
-                        <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
-                        <tr class=" bg-white hover:bg-[#aec5e366] cursor-pointer ">
-                            <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
-                            <!-- <td><?php echo ($lot_list['lot_id']) ?></td> -->
-                            <!-- <td><?php echo ($lot_list['lot_detail']) ?></td> -->
-                            <!-- <td><?php echo ($lot_list['lot_date']) ?></td> -->
-                            <td class="text-start pl-4" onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'"><?php echo ($lot_list['lot_status_name']) ?></td>
-                            <td class="text-start pl-4"><?php echo ($lot_list['warehouse_name']) ?></td>
-                            <td class="text-start pl-4"><?php echo ($lot_list['supplier_name']) ?></td>
-                            <td>
-                                <a href="?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>" class="  bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
-                            text-white 
-                            text-lg 
-                            border border-yellow-700 
-                            border-t-white 
-                            border-l-white 
-                            px-2 
-                            py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#FFF9C4] 
-                            active:border-[#FFF176] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner ">
-                                    แก้ไข</a>
-
-
-                                <a href="?page=lot_list&id=<?php echo ($lot_list['lot_id']) ?>"
-                                    onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                            border-t-white 
-                            border-l-white 
-                            px-4 
-                            py-1 
-                            rounded 
-                                            shadow-md 
-                            hover:bg-[#FFEBEE] 
-                            active:border-[#EF9A9A] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner">ลบ</a>
-                                <!-- ลิงก์ไปหน้าลบข้อมูลสมาชิก และมีการยืนยันการลบ -->
-                            </td>
-                        </tr>
-
-                <?php endwhile;
-                } else {
-                    echo "<tr><td colspan='8'>ไม่มีข้อมูล</td></tr>";
-                } ?>
-            </tbody>
-        </table>
-        <div class="box">
+        <div class="box flex w-full">
             <a class=" bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg border border-blue-700 
                             border-t-white 
                             border-l-white 
@@ -252,6 +191,82 @@ ob_end_flush();
                 class="submit-button">
             <!-- แก้คำว่า "lass" เป็น "class" -->
         </div>
+        <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
+            <thead>
+                <!-- ส่วนหัวของตาราง -->
+                <tr class="">
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">วันและเวลาที่ล็อต</th>
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ผู้ส่งมอบ</th>
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะล็อต</th>
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
+                </tr>
+            </thead>
+            <tbody class="">
+                <?php
+                if ($result_lot_list->rowCount() > 0) {
+                    while ($lot_list = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
+                        <!-- ใช้ while เพื่อลูปข้อมูลที่ได้จากฐานข้อมูล -->
+                        <tr class=" bg-white ">
+                            <!-- เมื่อคลิกแถวนี้จะพาไปยังหน้ารายละเอียดของสมาชิก -->
+                            <td hidden><?php echo ($lot_list['lot_id']) ?></td>
+                            <td hidden><?php echo ($lot_list['lot_detail']) ?></td>
+                            <td class="hover:bg-[#aec5e366] cursor-pointer "><?php echo ($lot_list['lot_date']) ?></td>
+                            <td class="text-start pl-4 group zoom-in hover:bg-[#aec5e366] cursor-pointer"
+                                onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo $lot_list['warehouse_id']; ?>'">
+                                <span><?php echo ($lot_list['warehouse_name']) ?></span>
+                            </td>
+
+                            <td class="text-start pl-4 hover:bg-[#aec5e366] cursor-pointer "> <?php echo ($lot_list['supplier_name']) ?></td>
+                            <td class=" text-start pl-4 " onclick=" window.location.href='?page=lot_detail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>'"><?php echo ($lot_list['lot_status_name']) ?></td>
+
+                            <td>
+                                <?php if ($lot_list['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list['lot_status_id'] != 2): ?>
+                                    <a href=" ?page=lot_listdetail&tabel=lot&id=<?php echo ($lot_list['lot_id']) ?>" class="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
+                                text-white 
+                                text-lg 
+                                border border-yellow-700 
+                                border-t-white 
+                                border-l-white 
+                                px-2 
+                                py-1 
+                                rounded 
+                                shadow-md 
+                                hover:bg-[#FFF9C4] 
+                                active:border-[#FFF176] 
+                                active:border-b-white 
+                                active:border-r-white 
+                                active:shadow-inner ">
+                                        แก้ไข
+                                    </a>
+
+                                    <a href="?page=lot_list&id=<?php echo ($lot_list['lot_id']) ?>"
+                                        onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')" class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            border-t-white 
+                            border-l-white 
+                            px-4 
+                            py-1 
+                            rounded 
+                            shadow-md 
+                            hover:bg-[#FFEBEE] 
+                            active:border-[#EF9A9A] 
+                            active:border-b-white 
+                            active:border-r-white 
+                            active:shadow-inner">
+                                        ลบ
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+
+                        </tr>
+
+                <?php endwhile;
+                } else {
+                    echo "<tr><td colspan='8'>ไม่มีข้อมูล</td></tr>";
+                } ?>
+            </tbody>
+        </table>
+
         <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
