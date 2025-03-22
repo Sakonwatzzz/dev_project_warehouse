@@ -32,20 +32,16 @@ switch ($tabel) {
     supplier.supplier_name, 
     warehouse.warehouse_name, 
     warehouse.warehouse_id,
-    store.store_id, 
-    store.store_name, 
     lot.lot_id, 
     lot.lot_detail, 
     lot.lot_date, 
     lot.lot_status_id, 
-    lot.warehouse_id, 
-    lot.store_id
+    lot.warehouse_id
 FROM
 	lot
 	LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
     LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
     LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-    LEFT JOIN store ON lot.store_id = store.store_id
         WHERE lot.lot_id = ?
         ");
         break;
@@ -53,7 +49,7 @@ FROM
         die("ระบุประเภทไม่ถูกต้อง");
 }
 // ดำเนินการ query ด้วย product_id ที่ระบุ
-$stmt->execute([$lid]);
+$stmt->execute([$id]);
 $lot = $stmt->fetch(PDO::FETCH_ASSOC); // เก็บผลลัพธ์เป็นแถวข้อมูลในรูปแบบ array
 if (!$lot) {
     echo "ไม่พบข้อมูล";
@@ -72,8 +68,6 @@ $querysupplier = "SELECT supplier_id, supplier_name FROM supplier";
 $supplier_lot = $pdo->query($querysupplier);
 
 
-$querystore = "SELECT store_id, store_name FROM store";
-$store_lot = $pdo->query($querystore);
 
 
 
@@ -172,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php else: ?>
                                     <?php echo ($lot['lot_status_name']); ?>
                                 <?php endif; ?>
-                            </select>
+                                </select>
                         </td>
                     </tr>
                     <tr>
@@ -191,30 +185,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php else: ?>
                                     <?php echo ($lot['warehouse_name']); ?>
                                 <?php endif; ?>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-
-                    <tr>
-                        <th>ร้านค้า :</th>
-                        <td>
-                            <?php if ($is_update): ?>
-                                <select name="store_id">
-                                    <option value="<?php echo ($lot['store_id']); ?>" selected>
-                                        <?php echo ($lot['store_name']); ?>
-                                    </option>
-                                    <?php while ($store_result = $store_lot->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo ($store_result['store_id']); ?>">
-                                            <?php echo ($store_result['store_name']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
                                 </select>
-                            <?php else: ?>
-                                <?php echo ($lot['store_name']); ?>
-                            <?php endif; ?>
                         </td>
                     </tr>
+                    <tr>
                     <tr>
                         <th>ผู้ส่งมอบ :</th>
                         <td>
@@ -265,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <?php if ($is_update): ?>
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
+            document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('lot-name').focus();
             });
         </script>

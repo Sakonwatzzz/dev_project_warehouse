@@ -82,7 +82,7 @@ try {
 
     $warehouse_products = fetchData($pdo, $query, [$warehouse_id])->fetchAll(PDO::FETCH_ASSOC);
     $total_product_count = count($warehouse_products);
-    
+
     // Calculate total inventory quantity
     $total_inventory_qty = 0;
     foreach ($warehouse_products as $product) {
@@ -137,18 +137,245 @@ ob_end_flush();
     <title>รายละเอียดคลังสินค้า - ระบบจัดการคลังสินค้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .dashboard-container {
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-title {
+            font-size: 24px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .date-time {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-title {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #e6f7ff;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #1890ff;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-description {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-button {
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .chart-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .chart-content {
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .recent-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+        }
+
+        .recent-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .recent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .recent-title {
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .see-all {
+            font-size: 14px;
+            color: #1890ff;
+            text-decoration: none;
+        }
+
+        .recent-content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .recent-content th {
+            text-align: left;
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .recent-content td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .status.completed {
+            background-color: #e6f7ff;
+            color: #1890ff;
+        }
+
+        .status.pending {
+            background-color: #fff7e6;
+            color: #fa8c16;
+        }
+
+        .status.cancelled {
+            background-color: #fff1f0;
+            color: #f5222d;
+        }
+
+        .chart-content canvas {
+            max-width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+
+            .recent-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-gray-50">
     <div class="container mx-auto px-4 py-8">
         <header class="flex justify-between items-center mb-8">
             <div class="flex items-center">
-                <a href="index.php?page=lot_listinsertcopy" class="text-blue-600 hover:text-blue-800 mr-4">
+                <a href="index.php?page=warehouse_list" class="text-blue-600 hover:text-blue-800 mr-4">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
                 <h1 class="text-3xl font-bold text-gray-800">
                     <?php if (!$error && $warehouse_data): ?>
-                        <i class="fas fa-warehouse mr-2"></i>รายละเอียดคลัง: <?= htmlspecialchars($warehouse_data['warehouse_name']) ?>
+                        <i class="fas fa-warehouse mr-2"></i>รายละเอียดคลัง :
+                        <?= htmlspecialchars($warehouse_data['warehouse_id']) ?> :
+                        <?= htmlspecialchars($warehouse_data['warehouse_name']) ?>
                     <?php else: ?>
                         <i class="fas fa-warehouse mr-2"></i>รายละเอียดคลังสินค้า
                     <?php endif; ?>
@@ -169,111 +396,137 @@ ob_end_flush();
                 </div>
             </div>
         <?php else: ?>
-            <!-- Warehouse Information Card -->
-            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
-                    <h2 class="text-xl font-semibold text-gray-800">ข้อมูลคลังสินค้า</h2>
+            <div class="dashboard-container p-6 bg-gray-100 min-h-screen">
+                <!-- Warehouse Information Card -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                    <div class="from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
+                        <h2 class="text-xl font-semibold text-gray-800">
+                            <i class="fas fa-chart-pie mr-2"></i>สรุปข้อมูลสินค้าในคลัง
+                        </h2>
+                    </div>
                 </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <p class="text-gray-600 mb-1">รหัสคลัง:</p>
-                            <p class="text-xl font-medium"><?= htmlspecialchars($warehouse_data['warehouse_id']) ?></p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 mb-1">ชื่อคลัง:</p>
-                            <p class="text-xl font-medium"><?= htmlspecialchars($warehouse_data['warehouse_name']) ?></p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 mb-1">สถานะ:</p>
-                            <p class="text-xl font-medium">
-                                <?php if ($warehouse_data['warehouse_status'] == 'เปิดใช้งาน'): ?>
-                                    <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
-                                <?php else: ?>
-                                    <span class="text-red-600"><i class="fas fa-times-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
-                                <?php endif; ?>
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 mb-1">จำนวน Lot ในคลัง:</p>
-                            <p class="text-xl font-medium text-blue-600"><?= $lot_count ?> รายการ</p>
+                <!-- Inventory Summary -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-violet-50 p-4 rounded-lg shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-gray-600 mb-1 text-xl">สถานะ:
+                                    </p>
+                                    <img src="../../image/signal.png" alt="chech-icon" class="w-[35px]">
+                                </div>
+                                <p class="text-2xl font-medium text-green-600">
+                                    <?php if ($warehouse_data['warehouse_status'] == 'เปิดใช้งาน'): ?>
+                                        <span class="text-green-600"><i
+                                                class="fas fa-check-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
+                                    <?php else: ?>
+                                        <span class="text-red-600"><i
+                                                class="fas fa-times-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
+                                    <?php endif; ?>
+                                </p>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-gray-600 mb-1 text-xl">จำนวนรายการสินค้า:
+                                    </p>
+                                    <img src="../../image/schedule.png" alt="quantity-icon" class="w-[35px]">
+                                </div>
+                                <p class="text-2xl font-medium text-blue-600"><?= $total_product_count ?> รายการ</p>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-gray-600 mb-1 text-xl">จำนวนสินค้าทั้งหมด:
+                                    </p>
+                                    <img src="../../image/thinking.png" alt="product-icon" class="w-[35px]">
+
+                                </div>
+                                <p class="text-2xl font-medium text-green-600"><?= number_format($total_inventory_qty, 0) ?>
+                                    ชิ้น</p>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-gray-600 mb-1">จำนวน Lot:
+                                    </p>
+                                    <img src="../../image/number.png" alt="" class="w-[35px]">
+                                </div>
+
+                                <p class="text-2xl font-medium text-purple-600"><?= $lot_count ?> Lot</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Inventory Summary -->
-            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
-                    <h2 class="text-xl font-semibold text-gray-800">
-                        <i class="fas fa-chart-pie mr-2"></i>สรุปข้อมูลสินค้าในคลัง
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-blue-50 p-4 rounded-lg shadow-sm">
-                            <p class="text-gray-600 mb-1">จำนวนรายการสินค้า:</p>
-                            <p class="text-2xl font-medium text-blue-600"><?= $total_product_count ?> รายการ</p>
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">หมวดหมู่รายการล็อตสินค้า</div>
+                            <div class="chart-actions">
+                                <button class="chart-button">สัปดาห์นี้</button>
+                                <button class="chart-button">เดือนนี้</button>
+                                <button class="chart-button">ปีนี้</button>
+                            </div>
                         </div>
-                        <div class="bg-green-50 p-4 rounded-lg shadow-sm">
-                            <p class="text-gray-600 mb-1">จำนวนสินค้าทั้งหมด:</p>
-                            <p class="text-2xl font-medium text-green-600"><?= number_format($total_inventory_qty, 0) ?> ชิ้น</p>
-                        </div>
-                        <div class="bg-purple-50 p-4 rounded-lg shadow-sm">
-                            <p class="text-gray-600 mb-1">จำนวน Lot:</p>
-                            <p class="text-2xl font-medium text-purple-600"><?= $lot_count ?> Lot</p>
+                        <div class="chart-content">
+                            <canvas id="categoryChart"></canvas>
                         </div>
                     </div>
                 </div>
-            </div>
+                <!-- Products in Warehouse -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                    <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
+                        <h2 class="text-xl font-semibold text-gray-800">
+                            <i class="fas fa-boxes mr-2"></i>สินค้าทั้งหมดในคลัง
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <?php if (empty($warehouse_products)): ?>
+                            <div class="text-center py-8">
+                                <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
+                                <p class="text-gray-500 text-xl">ไม่พบสินค้าในคลังนี้</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full bg-white border border-gray-200 shadow-sm">
+                                    <thead>
+                                        <tr class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed]">
+                                            <th class="py-3 px-4 border-b border-[#8f959b] text-left">รหัสสินค้า</th>
+                                            <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อสินค้า</th>
+                                            <th class="py-3 px-4 border-b border-[#8f959b] text-left">รายละเอียด</th>
+                                            <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวนคงเหลือ</th>
 
-            <!-- Products in Warehouse -->
-            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
-                    <h2 class="text-xl font-semibold text-gray-800">
-                        <i class="fas fa-boxes mr-2"></i>สินค้าทั้งหมดในคลัง
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <?php if (empty($warehouse_products)): ?>
-                        <div class="text-center py-8">
-                            <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
-                            <p class="text-gray-500 text-xl">ไม่พบสินค้าในคลังนี้</p>
-                        </div>
-                    <?php else: ?>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white border border-gray-200 shadow-sm">
-                                <thead>
-                                    <tr class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed]">
-                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">รหัสสินค้า</th>
-                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อสินค้า</th>
-                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">รายละเอียด</th>
-                                        <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวนคงเหลือ</th>
-                                        
-                                        <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวน Lot</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($warehouse_products as $product): ?>
-                                        <tr class="hover:bg-[#aec5e366]">
-                                            <td class="py-3 px-4 border-b border-gray-200"><?= htmlspecialchars($product['product_id']) ?></td>
-                                            <td class="py-3 px-4 border-b border-gray-200 font-medium"><?= htmlspecialchars($product['product_name']) ?></td>
-                                            <td class="py-3 px-4 border-b border-gray-200">
-                                                <?= !empty($product['product_detail']) ? htmlspecialchars($product['product_detail']) : "-" ?>
-                                            </td>
-                                            <td class="py-3 px-4 border-b border-gray-200 text-right font-medium"><?= number_format($product['total_qty'], 0) ?></td>
-                                           
-                                            <td class="py-3 px-4 border-b border-gray-200 text-right"><?= htmlspecialchars($product['lot_count']) ?></td>
+                                            <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวน Lot</th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($warehouse_products as $product): ?>
+                                            <tr class="hover:bg-[#aec5e366]">
+                                                <td class="py-3 px-4 border-b border-gray-200">
+                                                    <?= htmlspecialchars($product['product_id']) ?>
+                                                </td>
+                                                <td class="py-3 px-4 border-b border-gray-200 font-medium">
+                                                    <?= htmlspecialchars($product['product_name']) ?>
+                                                </td>
+                                                <td class="py-3 px-4 border-b border-gray-200">
+                                                    <?= !empty($product['product_detail']) ? htmlspecialchars($product['product_detail']) : "-" ?>
+                                                </td>
+                                                <td class="py-3 px-4 border-b border-gray-200 text-right font-medium">
+                                                    <?= number_format($product['total_qty'], 0) ?>
+                                                </td>
+
+                                                <td class="py-3 px-4 border-b border-gray-200 text-right">
+                                                    <?= htmlspecialchars($product['lot_count']) ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
 
-            <!-- Lot Details with Products -->
+
+            <!-- Lot Details with Products 
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
@@ -309,12 +562,12 @@ ob_end_flush();
                                 <tbody>
                                     <?php
                                     $current_lot = null;
-                                    foreach ($product_lots as $index => $item): 
+                                    foreach ($product_lots as $index => $item):
                                         $is_new_lot = $current_lot !== $item['lot_name'];
                                         if ($is_new_lot) {
                                             $current_lot = $item['lot_name'];
                                         }
-                                    ?>
+                                        ?>
                                         <tr class="hover:bg-[#aec5e366] <?= $is_new_lot ? 'border-t-2 border-gray-300' : '' ?>">
                                             <?php if ($is_new_lot): ?>
                                                 <td class="py-3 px-4 border-b border-gray-200 font-medium"><?= htmlspecialchars($item['lot_name']) ?></td>
@@ -339,8 +592,10 @@ ob_end_flush();
                     <?php endif; ?>
                 </div>
             </div>
+            -->
 
-            <!-- Lots List (Card View) -->
+            <!--
+            <!-- Lots List (Card View) 
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
@@ -401,19 +656,97 @@ ob_end_flush();
                     <?php endif; ?>
                 </div>
             </div>
+             -->
 
             <!-- Action Buttons -->
             <div class="flex justify-between">
-                <a href="index.php?page=lot_listinsertcopy" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+                <a href="index.php?page=warehouse_list"
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
                     <i class="fas fa-arrow-left mr-2"></i>กลับ
                 </a>
 
-                <a href="index.php?page=report_warehouse&warehouse_id=<?= htmlspecialchars($warehouse_id) ?>" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
+                <a href="index.php?page=report_warehouse&warehouse_id=<?= htmlspecialchars($warehouse_id) ?>"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
                     <i class="fas fa-file-alt mr-2"></i>รายงานสรุป
                 </a>
             </div>
         <?php endif; ?>
     </div>
 </body>
+<script> src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+<script>
+    // Current date time
+    function updateDateTime() {
+        const now = new Date();
+        const options = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        document.getElementById('currentDateTime').textContent = now.toLocaleDateString('th-TH', options);
+    }
+
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
+
+    // Sales Chart
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+            datasets: [{
+                label: 'ยอดขาย (พันบาท)',
+                data: [250, 320, 280, 360, 400, 450, 420, 480, 520, 540, 580, 620],
+                backgroundColor: 'rgba(24, 144, 255, 0.2)',
+                borderColor: 'rgba(24, 144, 255, 1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Category Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryChart = new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['อาหารและเครื่องดื่ม', 'อิเล็กทรอนิกส์', 'เครื่องแต่งกาย', 'เครื่องสำอาง', 'อื่นๆ'],
+            datasets: [{
+                data: [35, 25, 20, 15, 5],
+                backgroundColor: [
+                    'rgba(24, 144, 255, 0.7)',
+                    'rgba(47, 194, 91, 0.7)',
+                    'rgba(250, 140, 22, 0.7)',
+                    'rgba(245, 34, 45, 0.7)',
+                    'rgba(114, 46, 209, 0.7)'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+</script>
 
 </html>
