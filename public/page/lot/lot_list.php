@@ -91,7 +91,7 @@ ob_end_flush();
 </head>
 
 <body class="bg-gray-50">
-    <div class="font-[Tahoma] mx-auto max-w-6xl px-4 mt-8 sm:px-6 lg:px-8">
+    <div class="font-[Tahoma] mx-auto max-w-6xl px-4 py-8 mt-8 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
             <div class="flex items-center gap-6">
                 <h2 class="text-2xl font-bold text-gray-800">จำนวนรายการรับสินค้ามี:</h2>

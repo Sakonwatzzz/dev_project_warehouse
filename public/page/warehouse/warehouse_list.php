@@ -141,8 +141,6 @@ try {
 } catch (Exception $e) {
     $error = "เกิดข้อผิดพลาด: " . $e->getMessage();
 }
-
-
 ?>
 
 <!DOCTYPE html>
@@ -151,112 +149,57 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/personnel_list.css">
     <link href="../../output.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .title {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-
-        .count {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-        }
-
-        .listcount {
-            font-size: 16px;
-            text-align: right;
-            color: #000;
-            padding: 4px 10px 4px 10px;
-            border: 1px solid gray;
-            border-radius: 5px;
-            background-color: #fff;
-            display: inline-block;
-            margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: 70px;
-        }
-
-        .pagination {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .pagination a {
-            display: inline-block;
-            padding: 8px 16px;
-            text-decoration: none;
-            background-color: #aec5e366;
-            color: black;
-            border-radius: 5px;
-            margin: 0 4px;
-        }
-
-        .pagination a.active {
-            background-color: #333;
-            ;
-            color: white;
-        }
-
-        .pagination a:hover:not(.active) {
-            background-color: #ddd;
-        }
-    </style>
     <title>Warehouse List</title>
 </head>
 
-<body>
-    <div class="font-[Tahoma] mx-[15rem] mt-11">
-        <div class="title">
-            <div class="count">
+<body class="font-[Tahoma]">
+    <div class="mx-[15rem] mt-11">
+        <div class="grid grid-cols-2 items-center justify-center gap-[5px]">
+            <div class="flex gap-6 items-center">
                 <h2 class="text-2xl font-bold">จำนวนคลังสินค้า</h2>
-                <div class="listcount">
+                <div class="text-base text-right text-black py-1 px-[10px] border border-gray-500 rounded-md bg-white inline-block mt-[10px] shadow-sm w-[70px]">
                     <?php echo $count; ?>
                 </div>
             </div>
             <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาคลังสินค้า...">
+                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาคลังสินค้า..."
+                    class="w-full p-2 border border-gray-300 rounded-md">
             </div>
         </div>
 
-        <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
+        <table class="mt-5 mb-8 w-[100%] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
             <tr>
                 <form action="" method="POST">
-                    <td class=" bg-white ">
+                    <td class="bg-white">
                         <input type="text" id="warehousename" name="warehousename" placeholder="ชื่อคลังสินค้า"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
                     </td>
-                    <td class=" bg-white ">
+                    <td class="bg-white">
                         <input type="text" id="warehousestatus" name="warehousestatus" placeholder="สถานะ"
                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
                     </td>
-                    <td class=" bg-white ">
+                    <td class="bg-white py-2 flex justify-center items-center">
                         <button type="submit"
-                            class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                            class="w-[130px] px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
                             เพิ่ม
                         </button>
                     </td>
                 </form>
             </tr>
-            <thead class="">
+            <thead>
                 <tr>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อคลังสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะ</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
+                    <th class=" bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อคลังสินค้า</th>
+                    <th class=" bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะ</th>
+                    <th class="w-[250px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <?php foreach ($warehouse_lot as $warehouse): ?>
-                    <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id=" <?php echo $warehouse['warehouse_id']; ?>">
-                        <td class="warehouse-name"><?php echo $warehouse['warehouse_name']; ?></td>
-                        <td class="warehouse-status"><?php echo $warehouse['warehouse_status']; ?></td>
-                        <td>
+                    <tr class="bg-white hover:bg-[#b7babe66] cursor-pointer " data-id="<?php echo $warehouse['warehouse_id']; ?>">
+                        <td class="warehouse-name border p-2 "><?php echo $warehouse['warehouse_name']; ?></td>
+                        <td class="warehouse-status border p-2 text-center"><?php echo $warehouse['warehouse_status']; ?></td>
+                        <td class="border p-2 flex gap-2 justify-center items-center">
                             <button onclick="enableEdit(this)" class="edit-button 
                             bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 
@@ -268,53 +211,60 @@ try {
                             py-1 
                             rounded 
                             shadow-md 
-                            hover:bg-[#FFF9C4] 
-                            active:border-[#FFF176] 
+                            hover:bg-yellow-100 
+                            active:border-yellow-300
                             active:border-b-white 
                             active:border-r-white 
                             active:shadow-inner
                             ">แก้ไข</button>
 
-                            <button class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                            <button class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 
+                            text-white 
+                            text-lg 
+                            border border-red-700 
                             border-t-white 
                             border-l-white 
                             px-4 
                             py-1 
                             rounded 
-                                            shadow-md 
-                            hover:bg-[#FFEBEE] 
-                            active:border-[#EF9A9A] 
+                            shadow-md 
+                            hover:bg-red-100
+                            active:border-red-300
                             active:border-b-white 
                             active:border-r-white 
                             active:shadow-inner">
-                                <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button ">ลบ</a>
+                                <a href="?page=warehouse_list&id=<?php echo $warehouse['warehouse_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button">ลบ</a>
                             </button>
-
                         </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
+
         <!-- Pagination for table -->
-        <div class="pagination">
+        <div class="mt-5 text-center">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
-                    <a href="?page=warehouse_list&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
+                    <a href="?page=warehouse_list&page_num=<?php echo ($page - 1); ?>"
+                        class="inline-block px-4 py-2 bg-[#aec5e366] text-black no-underline rounded-md mx-1 hover:bg-gray-300">&laquo; ก่อนหน้า</a>
                 <?php endif; ?>
 
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                     <?php if ($i == $page): ?>
-                        <a href="#" class="active"><?php echo $i; ?></a>
+                        <a href="#" class="inline-block px-4 py-2 bg-gray-800 text-white no-underline rounded-md mx-1"><?php echo $i; ?></a>
                     <?php else: ?>
-                        <a href="?page=warehouse_list&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                        <a href="?page=warehouse_list&page_num=<?php echo $i; ?>"
+                            class="inline-block px-4 py-2 bg-[#aec5e366] text-black no-underline rounded-md mx-1 hover:bg-gray-300"><?php echo $i; ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
 
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=warehouse_list&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                    <a href="?page=warehouse_list&page_num=<?php echo ($page + 1); ?>"
+                        class="inline-block px-4 py-2 bg-[#aec5e366] text-black no-underline rounded-md mx-1 hover:bg-gray-300">ถัดไป &raquo;</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+
         <!-- Warehouse Cards Section -->
         <h2 class="text-2xl font-bold text-gray-800 mb-6">คลังสินค้า</h2>
 
@@ -341,7 +291,6 @@ try {
             <?php endforeach; ?>
         </div>
     </div>
-
 
     <script>
         function searchTable() {
@@ -385,10 +334,7 @@ try {
                     noDataMessage = document.createElement("p");
                     noDataMessage.id = "noDataMessage";
                     noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.style.color = "red";
-                    noDataMessage.style.fontWeight = "bold";
-                    noDataMessage.style.textAlign = "center";
-                    noDataMessage.style.marginTop = "10px";
+                    noDataMessage.className = "text-red-600 font-bold text-center mt-3";
                     table.parentNode.insertBefore(noDataMessage, table.nextSibling);
                 }
             } else {
@@ -397,7 +343,6 @@ try {
                 }
             }
         }
-
 
         function enableEdit(button) {
             const row = button.closest('tr');
@@ -410,8 +355,8 @@ try {
 
             if (button.innerText === 'แก้ไข') {
                 // Switch to edit mode
-                warehouseNameCell.innerHTML = `<input type="text" class="edit-input" style="border: 1px solid #333;" value="${originalWarehouseName}" />`;
-                warehouseStatusCell.innerHTML = `<input type="text" class="edit-input" style="border: 1px solid #333;" value="${originalWarehouseStatus}" />`;
+                warehouseNameCell.innerHTML = `<input type="text" class="edit-input w-full border border-gray-500" style="border: 1px solid #333;" value="${originalWarehouseName}" />`;
+                warehouseStatusCell.innerHTML = `<input type="text" class="edit-input w-full border border-gray-500" style="border: 1px solid #333;" value="${originalWarehouseStatus}" />`;
 
                 button.innerText = 'บันทึก';
                 const deleteButton = row.querySelector('.delete-button');
@@ -422,25 +367,7 @@ try {
                 // Create and display a save button
                 const saveButton = document.createElement('button');
                 saveButton.innerText = 'บันทึก';
-                saveButton.classList.add('save-button', 'bg-gradient-to-b',
-                    'from-green-300',
-                    'via-green-500',
-                    'to-green-700',
-                    'text-white',
-                    'text-lg',
-                    'border',
-                    'border-green-700',
-                    'border-t-white',
-                    'border-l-white',
-                    'px-2',
-                    'py-1',
-                    'rounded',
-                    'shadow-md',
-                    'hover:bg-[#E8F5E9]',
-                    'active:border-[#A5D6A7]',
-                    'active:border-b-white',
-                    'active:border-r-white',
-                    'active:shadow-inner');
+                saveButton.className = 'save-button bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 border-t-white border-l-white px-2 py-1 rounded shadow-md hover:bg-green-100 active:border-green-300 active:border-b-white active:border-r-white active:shadow-inner';
                 saveButton.onclick = function() {
                     // Save changes
                     const newWarehouseName = warehouseNameCell.querySelector('.edit-input').value;
@@ -470,39 +397,27 @@ try {
                 row.querySelector('td:last-child').appendChild(saveButton);
             }
         }
-    </script>
 
-    <script>
-        // เมื่อคลิกปุ่มแก้ไข ให้ซ่อนปุ่มแก้ไขและลบ และแสดงปุ่มบันทึก
-        document.querySelectorAll('.edit-button').forEach(button => {
-            button.addEventListener('click', function() {
-                // หยุดการกระทำของลิงก์
-                event.preventDefault();
-                // ซ่อนปุ่มแก้ไขและลบ
-                this.parentElement.querySelector('.edit-delete-buttons').style.display = 'none';
-                // แสดงปุ่มบันทึก
-                this.parentElement.querySelector('.save-button').style.display = 'block';
-            });
-        });
-    </script>
-
-    <script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
             if (urlParams.has('edit_success')) {
                 const notificationEdit = document.getElementById('notification-edit');
-                notificationEdit.style.display = 'block';
-                setTimeout(() => {
-                    notificationEdit.style.display = 'none';
-                }, 2000);
+                if (notificationEdit) {
+                    notificationEdit.style.display = 'block';
+                    setTimeout(() => {
+                        notificationEdit.style.display = 'none';
+                    }, 2000);
+                }
             } else if (urlParams.has('delete_success')) {
                 const notificationDelete = document.getElementById('notification-delete');
-                notificationDelete.style.display = 'block';
-                setTimeout(() => {
-                    notificationDelete.style.display = 'none';
-                }, 2000);
+                if (notificationDelete) {
+                    notificationDelete.style.display = 'block';
+                    setTimeout(() => {
+                        notificationDelete.style.display = 'none';
+                    }, 2000);
+                }
             }
         });
     </script>

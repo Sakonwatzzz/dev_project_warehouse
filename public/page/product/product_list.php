@@ -264,6 +264,7 @@ try {
 
 <body>
     <div class="font-[Tahoma] mx-[23rem] mt-11">
+        <!-- Keep title, count, search, mode-toggle and notifications unchanged -->
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">รายการสินค้า</h2>
@@ -322,16 +323,6 @@ try {
                         empty($product_list['product_price4']) ||
                         empty($product_list['product_capital']) ||
                         empty($product_list['product_type_id']);
-
-                    // สร้าง array เก็บรายการข้อมูลที่ไม่ครบ
-                    $missing_fields = [];
-                    if (empty($product_list['product_name'])) $missing_fields[] = 'ชื่อสินค้า';
-                    if (empty($product_list['product_price1'])) $missing_fields[] = 'ราคา1';
-                    if (empty($product_list['product_price2'])) $missing_fields[] = 'ราคา2';
-                    if (empty($product_list['product_price3'])) $missing_fields[] = 'ราคา3';
-                    if (empty($product_list['product_price4'])) $missing_fields[] = 'ราคา4';
-                    if (empty($product_list['product_capital'])) $missing_fields[] = 'ราคาทุน';
-                    if (empty($product_list['product_type_id'])) $missing_fields[] = 'ประเภท';
                 ?>
                     <tr class="<?php echo $is_incomplete ? 'incomplete-data' : 'bg-white'; ?> hover:bg-[#aec5e366] cursor-pointer">
                         <td class="text-start"><?php echo ($product_list['product_id']); ?></td>
@@ -348,9 +339,6 @@ try {
                         <td class="text-start">
                             <?php if ($is_incomplete): ?>
                                 <span class="text-red-600 font-bold">ข้อมูลไม่ครบ</span>
-                                <div class="text-xs text-red-500">
-                                    <?php echo implode(', ', $missing_fields); ?>
-                                </div>
                             <?php else: ?>
                                 <span class="text-green-600 font-bold">ข้อมูลครบถ้วน</span>
                             <?php endif; ?>
@@ -407,7 +395,7 @@ try {
             </div>
         <?php endif; ?>
 
-        <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
+        <!-- Keep the pagination and add product button unchanged -->
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
@@ -452,6 +440,7 @@ try {
         </div>
     </div>
 
+    <!-- Keep the scripts unchanged -->
     <script>
         function searchTable() {
             const input = document.getElementById("searchInput");

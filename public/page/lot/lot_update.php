@@ -7,13 +7,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lot_date = $_POST['lot_date'];
     $lot_status_id = $_POST['lot_status_id'];
     $warehouse_id = $_POST['warehouse_id'];
-    $store_id = $_POST['store_id'];
     $supplier_id = $_POST['supplier_id'];
 
     $stmt = $pdo->prepare("
     UPDATE lot 
-    SET lot_detail = ?, lot_date = ?, lot_status_id = ?, 
-        warehouse_id = ?, store_id = ?, supplier_id = ?
+    SET lot_detail = ?, lot_date = ?, lot_status_id = ?, warehouse_id = ?, supplier_id = ?
     WHERE lot_id = ?
     ");
     $stmt->execute([
@@ -21,7 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lot_date,
         $lot_status_id,
         $warehouse_id,
-        $store_id,
         $supplier_id,
         $lot_id
     ]);
@@ -51,10 +48,6 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 $supplier_lot = $stmt;
 
-$query = "SELECT store_id, store_name FROM store";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$store_lot = $stmt;
 
 ?>
 
@@ -126,20 +119,6 @@ $store_lot = $stmt;
                 </div>
             <?php endif; ?>
 
-            <?php if ($store_lot->rowCount() > 0): ?>
-                <div class="flex items-center">
-                    <label class="w-[110px] text-base mr-4">ร้านค้า</label>
-                    <select
-                        name="store_id"
-                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
-                        <?php while ($store_lot_update = $store_lot->fetch(PDO::FETCH_ASSOC)): ?>
-                            <option value="<?php echo $store_lot_update['store_id']; ?>">
-                                <?php echo $store_lot_update['store_name']; ?>
-                            </option>
-                        <?php endwhile; ?>
-                    </select>
-                </div>
-            <?php endif; ?>
 
             <?php if ($supplier_lot->rowCount() > 0): ?>
                 <div class="flex items-center">
