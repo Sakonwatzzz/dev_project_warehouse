@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -12,40 +15,40 @@
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         body {
             background-color: #f8f9fa;
         }
-        
+
         .dashboard-container {
             padding: 20px;
         }
-        
+
         .dashboard-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
-        
+
         .dashboard-title {
             font-size: 24px;
             color: #333;
             font-weight: bold;
         }
-        
+
         .date-time {
             font-size: 14px;
             color: #666;
         }
-        
+
         .stats-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
         }
-        
+
         .stat-card {
             background-color: #fff;
             border-radius: 8px;
@@ -54,19 +57,19 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         .stat-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
-        
+
         .stat-title {
             font-size: 16px;
             color: #666;
         }
-        
+
         .stat-icon {
             width: 40px;
             height: 40px;
@@ -77,51 +80,51 @@
             align-items: center;
             color: #1890ff;
         }
-        
+
         .stat-value {
             font-size: 28px;
             font-weight: bold;
             color: #333;
             margin-bottom: 5px;
         }
-        
+
         .stat-description {
             font-size: 14px;
             color: #888;
         }
-        
+
         .charts-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
         }
-        
+
         .chart-card {
             background-color: #fff;
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
+
         .chart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
-        
+
         .chart-title {
             font-size: 18px;
             color: #333;
             font-weight: bold;
         }
-        
+
         .chart-actions {
             display: flex;
             gap: 10px;
         }
-        
+
         .chart-button {
             background-color: #f0f0f0;
             border: none;
@@ -131,11 +134,11 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        
+
         .chart-button:hover {
             background-color: #e0e0e0;
         }
-        
+
         .chart-content {
             height: 250px;
             display: flex;
@@ -143,44 +146,44 @@
             align-items: center;
             position: relative;
         }
-        
+
         .recent-section {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
             gap: 20px;
         }
-        
+
         .recent-card {
             background-color: #fff;
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
+
         .recent-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
-        
+
         .recent-title {
             font-size: 18px;
             color: #333;
             font-weight: bold;
         }
-        
+
         .see-all {
             font-size: 14px;
             color: #1890ff;
             text-decoration: none;
         }
-        
+
         .recent-content table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         .recent-content th {
             text-align: left;
             padding: 12px 10px;
@@ -188,29 +191,29 @@
             color: #666;
             font-weight: normal;
         }
-        
+
         .recent-content td {
             padding: 12px 10px;
             border-bottom: 1px solid #eee;
         }
-        
+
         .status {
             display: inline-block;
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 12px;
         }
-        
+
         .status.completed {
             background-color: #e6f7ff;
             color: #1890ff;
         }
-        
+
         .status.pending {
             background-color: #fff7e6;
             color: #fa8c16;
         }
-        
+
         .status.cancelled {
             background-color: #fff1f0;
             color: #f5222d;
@@ -224,7 +227,7 @@
             .charts-container {
                 grid-template-columns: 1fr;
             }
-            
+
             .recent-section {
                 grid-template-columns: 1fr;
             }
@@ -238,7 +241,7 @@
             <h1 class="dashboard-title">แดชบอร์ด</h1>
             <div class="date-time" id="currentDateTime"></div>
         </div>
-        
+
         <div class="stats-container">
             <div class="stat-card">
                 <div class="stat-header">
@@ -250,7 +253,7 @@
                 <div class="stat-value">245</div>
                 <div class="stat-description">เพิ่มขึ้น 15% จากเดือนที่แล้ว</div>
             </div>
-            
+
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">จำนวนลอต</div>
@@ -261,7 +264,7 @@
                 <div class="stat-value">52</div>
                 <div class="stat-description">มี 12 ลอตที่กำลังจะหมดอายุ</div>
             </div>
-            
+
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">สมาชิกทั้งหมด</div>
@@ -272,7 +275,7 @@
                 <div class="stat-value">1,284</div>
                 <div class="stat-description">เพิ่มขึ้น 5% จากเดือนที่แล้ว</div>
             </div>
-            
+
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">ยอดขายวันนี้</div>
@@ -284,7 +287,7 @@
                 <div class="stat-description">จากการขาย 48 รายการ</div>
             </div>
         </div>
-        
+
         <div class="charts-container">
             <div class="chart-card">
                 <div class="chart-header">
@@ -299,7 +302,7 @@
                     <canvas id="salesChart"></canvas>
                 </div>
             </div>
-            
+
             <div class="chart-card">
                 <div class="chart-header">
                     <div class="chart-title">หมวดหมู่สินค้าที่ขายดี</div>
@@ -314,7 +317,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="recent-section">
             <div class="recent-card">
                 <div class="recent-header">
@@ -372,7 +375,7 @@
                     </table>
                 </div>
             </div>
-            
+
             <div class="recent-card">
                 <div class="recent-header">
                     <div class="recent-title">สินค้าใกล้หมด</div>
@@ -437,20 +440,20 @@
         // Current date time
         function updateDateTime() {
             const now = new Date();
-            const options = { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
             };
             document.getElementById('currentDateTime').textContent = now.toLocaleDateString('th-TH', options);
         }
-        
+
         updateDateTime();
         setInterval(updateDateTime, 60000);
-        
+
         // Sales Chart
         const salesCtx = document.getElementById('salesChart').getContext('2d');
         const salesChart = new Chart(salesCtx, {
@@ -477,7 +480,7 @@
                 }
             }
         });
-        
+
         // Category Chart
         const categoryCtx = document.getElementById('categoryChart').getContext('2d');
         const categoryChart = new Chart(categoryCtx, {
@@ -508,4 +511,5 @@
         });
     </script>
 </body>
+
 </html>

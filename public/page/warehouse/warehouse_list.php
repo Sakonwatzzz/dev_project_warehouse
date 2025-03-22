@@ -215,7 +215,7 @@ try {
     <div class="font-[Tahoma] mx-[15rem] mt-11">
         <div class="title">
             <div class="count">
-                <h2 class="text-2xl font-bold">ข้อมูลคลังสินค้า</h2>
+                <h2 class="text-2xl font-bold">จำนวนคลังสินค้า</h2>
                 <div class="listcount">
                     <?php echo $count; ?>
                 </div>

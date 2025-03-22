@@ -3,7 +3,8 @@ require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
 // Database queries for dropdowns
-function fetchDataFromTable($pdo, $query) {
+function fetchDataFromTable($pdo, $query)
+{
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -76,23 +77,29 @@ ob_end_flush();
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../../output.css" rel="stylesheet">
     <title>ระบบจัดการล็อตสินค้า</title>
+    <style>
+        .zoom-in {
+            cursor: zoom-in;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-50">
     <div class="font-[Tahoma] mx-auto max-w-6xl px-4 mt-8 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
             <div class="flex items-center gap-6">
-                <h2 class="text-2xl font-bold text-gray-800">ข้อมูลการรับสินค้า</h2>
-                <div class="px-4 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[70px]">
+                <h2 class="text-2xl font-bold text-gray-800">จำนวนรายการรับสินค้ามี:</h2>
+                <div class="px-4 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[50px]">
                     <?php echo $count; ?>
                 </div>
-                <a href="/?page=lot_listinsert" 
-                   class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow transition-colors duration-200">
+                <a href="/?page=lot_listinsert"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow transition-colors duration-200">
                     <i class="fas fa-plus mr-2"></i>เพิ่มการรับสินค้า
                 </a>
             </div>
@@ -105,7 +112,8 @@ ob_end_flush();
         </div>
 
         <!-- Notification -->
-        <div id="notification" class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
+        <div id="notification"
+            class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
             <div class="bg-green-500 text-white px-4 py-2 font-bold">การแจ้งเตือน</div>
             <div class="px-4 py-3">แก้ไขสมาชิกสำเร็จ!</div>
         </div>
@@ -115,11 +123,21 @@ ob_end_flush();
             <table class="mt-4 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
                 <thead>
                     <tr>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">วันและเวลาที่ล็อต</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">คลังสินค้า</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ผู้ส่งมอบ</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะล็อต</th>
-                        <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            วันและเวลาที่ล็อต</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            คลังสินค้า</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            ผู้ส่งมอบ</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            สถานะล็อต</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            การจัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -129,32 +147,33 @@ ob_end_flush();
                                 <td hidden><?php echo htmlspecialchars($lot_list['lot_id']); ?></td>
                                 <td hidden><?php echo htmlspecialchars($lot_list['lot_detail']); ?></td>
                                 <td class="px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer">
-                                    <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>" 
-                                    class="text-blue-600 hover:text-blue-800 hover:underline  ">
+                                    <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
+                                        class="text-blue-600 hover:text-blue-800 hover:underline  ">
                                         <?php echo htmlspecialchars($lot_list['lot_date']); ?>
                                     </a>
                                 </td>
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer"
+                                <td class="zoom-in px-4 py-3 border border-gray-200 hover:bg-gray-200  cursor-pointer"
                                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list['warehouse_id']); ?>'">
                                     <span><?php echo htmlspecialchars($lot_list['warehouse_name']); ?></span>
                                 </td>
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer">
+                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer ">
                                     <?php echo htmlspecialchars($lot_list['supplier_name']); ?>
                                 </td>
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer " 
+                                
+                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer "
                                     onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>'">
                                     <?php echo htmlspecialchars($lot_list['lot_status_name']); ?>
                                 </td>
                                 <td class="px-4 py-3 border border-gray-200 ">
                                     <?php if ($lot_list['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list['lot_status_id'] != 2): ?>
                                         <div class="flex space-x-2">
-                                            <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>" 
-                                            class="inline-block px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow transition-colors duration-150">
+                                            <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
+                                                class="inline-block px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow transition-colors duration-150">
                                                 แก้ไข
                                             </a>
                                             <a href="?page=lot_list&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
-                                            onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')" 
-                                            class="inline-block px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow transition-colors duration-150">
+                                                onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')"
+                                                class="inline-block px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow transition-colors duration-150">
                                                 ลบ
                                             </a>
                                         </div>
@@ -163,7 +182,9 @@ ob_end_flush();
                             </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <tr><td colspan="5" class="px-4 py-3 text-center border border-gray-200">ไม่มีข้อมูล</td></tr>
+                        <tr>
+                            <td colspan="5" class="px-4 py-3 text-center border border-gray-200">ไม่มีข้อมูล</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -173,29 +194,28 @@ ob_end_flush();
         <div class="flex justify-center mt-6 space-x-2">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
-                    <a href="?page=lot_list&page_num=<?php echo ($page - 1); ?>" 
-                       class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
+                    <a href="?page=lot_list&page_num=<?php echo ($page - 1); ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
                         &laquo; ก่อนหน้า
                     </a>
                 <?php endif; ?>
 
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                     <?php if ($i == $page): ?>
-                        <a href="#" 
-                           class="px-4 py-2 bg-gray-500 text-white rounded">
+                        <a href="#" class="px-4 py-2 bg-gray-500 text-white rounded">
                             <?php echo $i; ?>
                         </a>
                     <?php else: ?>
-                        <a href="?page=lot_list&page_num=<?php echo $i; ?>" 
-                           class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
+                        <a href="?page=lot_list&page_num=<?php echo $i; ?>"
+                            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
                             <?php echo $i; ?>
                         </a>
                     <?php endif; ?>
                 <?php endfor; ?>
 
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=lot_list&page_num=<?php echo ($page + 1); ?>" 
-                       class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
+                    <a href="?page=lot_list&page_num=<?php echo ($page + 1); ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
                         ถัดไป &raquo;
                     </a>
                 <?php endif; ?>
@@ -254,11 +274,11 @@ ob_end_flush();
         }
 
         // Notification handler
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
-            
+
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
                 notification.classList.remove('hidden');
@@ -270,4 +290,5 @@ ob_end_flush();
         });
     </script>
 </body>
+
 </html>
