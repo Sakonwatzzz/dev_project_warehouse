@@ -673,7 +673,7 @@ ob_end_flush();
         <?php endif; ?>
     </div>
 </body>
-script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+<script> src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
 <script>
     // Current date time
     function updateDateTime() {

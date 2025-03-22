@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <!-- Repeat similar pattern for price and other fields -->
                         <tr>
-                            <th>ราคาที่ 1:</th>
+                            <th>ราคาขายที่ 1:</th>
                             <td>
                                 <?php if ($is_update): ?>
                                     <input type="text" name="price_1" class="w-full border rounded px-2 focus:outline-yellow-500" value="<?php echo ($product['product_price1']); ?>">
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </td>
                         </tr>
                         <tr>
-                            <th>ราคาที่ 2:</th>
+                            <th>ราคาขายที่ 2:</th>
                             <td>
                                 <?php if ($is_update): ?>
                                     <input type="text" name="price_2" class="w-full border rounded px-2 focus:outline-yellow-500" value="<?php echo ($product['product_price2']); ?>">
@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </td>
                         </tr>
                         <tr>
-                            <th>ราคาที่ 3:</th>
+                            <th>ราคาขายที่ 3:</th>
                             <td>
                                 <?php if ($is_update): ?>
                                     <input type="text" name="price_3" class="w-full border rounded px-2 focus:outline-yellow-500" value="<?php echo ($product['product_price3']); ?>">
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </td>
                         </tr>
                         <tr>
-                            <th>ราคาที่ 4:</th>
+                            <th>ราคาขายที่ 4:</th>
                             <td>
                                 <?php if ($is_update): ?>
                                     <input type="text" name="price_4" class="w-full border rounded px-2 focus:outline-yellow-500" value="<?php echo ($product['product_price4']); ?>">

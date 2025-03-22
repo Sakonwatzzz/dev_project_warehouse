@@ -94,7 +94,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                 <a href="?page=product_list" class="button-link">
                     <button class="<?php echo ($current_page == 'product_list') ? 'active' : ''; ?>">
                         <img src="../image/box.png" alt="">
-                        <p>รายการ</p>
+                        <p>รายการสินค้า</p>
                     </button>
                 </a>
                 <a href="?page=product_insert" class="button-link">
