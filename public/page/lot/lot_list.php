@@ -156,10 +156,11 @@ ob_end_flush();
                                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list['warehouse_id']); ?>'">
                                     <span><?php echo htmlspecialchars($lot_list['warehouse_name']); ?></span>
                                 </td>
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer ">
+                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer"
+                                    onclick="window.location.href='?page=supplier_lot&supplier_id=<?php echo htmlspecialchars($lot_list['supplier_id']); ?>'">
                                     <?php echo htmlspecialchars($lot_list['supplier_name']); ?>
                                 </td>
-                                
+
                                 <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer "
                                     onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>'">
                                     <?php echo htmlspecialchars($lot_list['lot_status_name']); ?>
@@ -274,7 +275,7 @@ ob_end_flush();
         }
 
         // Notification handler
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
