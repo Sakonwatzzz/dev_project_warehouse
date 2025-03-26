@@ -91,7 +91,7 @@ ob_end_flush();
 </head>
 
 <body class="bg-gray-50">
-    <div class="font-[Tahoma] mx-auto max-w-6xl px-4 mt-8 sm:px-6 lg:px-8">
+    <div class="font-[Tahoma] mx-auto max-w-6xl px-4 py-8 mt-8 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
             <div class="flex items-center gap-6">
                 <h2 class="text-2xl font-bold text-gray-800">จำนวนรายการรับสินค้ามี:</h2>
@@ -156,10 +156,11 @@ ob_end_flush();
                                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list['warehouse_id']); ?>'">
                                     <span><?php echo htmlspecialchars($lot_list['warehouse_name']); ?></span>
                                 </td>
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer ">
+                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer"
+                                    onclick="window.location.href='?page=supplier_lot&supplier_id=<?php echo htmlspecialchars($lot_list['supplier_id']); ?>'">
                                     <?php echo htmlspecialchars($lot_list['supplier_name']); ?>
                                 </td>
-                                
+
                                 <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer "
                                     onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>'">
                                     <?php echo htmlspecialchars($lot_list['lot_status_name']); ?>
@@ -274,7 +275,7 @@ ob_end_flush();
         }
 
         // Notification handler
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();

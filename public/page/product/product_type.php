@@ -234,6 +234,8 @@ try {
         </div>
     </div>
 
+
+
     <script>
         function searchTable() {
             const input = document.getElementById("searchInput");

@@ -1,3 +1,5 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
@@ -120,6 +122,7 @@ try {
 } catch (Exception $e) {
     $error = "เกิดข้อผิดพลาด: " . $e->getMessage();
 }
+
 
 // Set timezone and get current date/time
 date_default_timezone_set('Asia/Bangkok');
@@ -470,6 +473,7 @@ ob_end_flush();
                         </div>
                     </div>
                 </div>
+                
                 <!-- Products in Warehouse -->
                 <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                     <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
