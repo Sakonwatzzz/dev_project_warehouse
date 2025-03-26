@@ -55,22 +55,26 @@ if (isset($_GET['id'])) {
 
 // การแบ่งหน้า
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
 $offset = ($page - 1) * $records_per_page;
 
 // คำสั่ง SQL สำหรับโหมดแสดงข้อมูลไม่ครบ
 if ($incomplete_mode) {
-    $where_condition = "WHERE product_name = '' OR product_name IS NULL OR 
-                        product_price1 = '' OR product_price1 IS NULL OR 
-                        product_price2 = '' OR product_price2 IS NULL OR 
-                        product_price3 = '' OR product_price3 IS NULL OR 
-                        product_price4 = '' OR product_price4 IS NULL OR 
-                        product_capital = '' OR product_capital IS NULL OR 
-                        product_type_id = '' OR product_type_id IS NULL";
+    $where_condition = "WHERE product.product_name = '' OR product.product_name IS NULL OR 
+                        product.product_price1 = '' OR product.product_price1 IS NULL OR 
+                        product.product_price2 = '' OR product.product_price2 IS NULL OR 
+                        product.product_price3 = '' OR product.product_price3 IS NULL OR 
+                        product.product_price4 = '' OR product.product_price4 IS NULL OR 
+                        product.product_capital = '' OR product.product_capital IS NULL OR 
+                        product.product_type_id = '' OR product.product_type_id IS NULL OR 
+                        product.product_brand_id = '' OR product.product_brand_id IS NULL";
 
     // นับจำนวนรายการที่ข้อมูลไม่ครบ
     try {
-        $total_query = "SELECT COUNT(*) FROM product $where_condition";
+        $total_query = "SELECT COUNT(*) FROM product 
+        INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
+        INNER JOIN product_type ON product.product_type_id = product_type.product_type_id
+        $where_condition";
         $total_result = $pdo->query($total_query);
         $incomplete_count = $total_result->fetchColumn();
     } catch (PDOException $e) {
@@ -92,9 +96,27 @@ try {
 
 // ดึงข้อมูลตามการแบ่งหน้าและโหมดที่เลือก
 try {
-    $query = "SELECT product_id, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id 
-             FROM product $where_condition 
-             LIMIT :offset, :records_per_page";
+    $query = "SELECT
+    product.product_id, 
+    product.product_name, 
+    product.product_price1, 
+    product.product_price2, 
+    product.product_price3, 
+    product.product_price4, 
+    product.product_capital, 
+    product.product_type_id, 
+    product.product_brand_id,
+    product_brand.product_brand_name, 
+    product_type.product_type_name
+    FROM
+        product
+    INNER JOIN
+        product_brand ON product.product_brand_id = product_brand.product_brand_id
+    INNER JOIN
+        product_type ON product.product_type_id = product_type.product_type_id
+    $where_condition
+    LIMIT :offset, :records_per_page";
+
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
@@ -285,10 +307,12 @@ try {
         </div>
 
         <div class="mode-toggle">
-            <a href="?page=product_list" class="mode-button normal-mode <?php echo !$incomplete_mode ? 'active' : ''; ?>">
+            <a href="?page=product_list"
+                class="mode-button normal-mode <?php echo !$incomplete_mode ? 'active' : ''; ?>">
                 แสดงทั้งหมด
             </a>
-            <a href="?page=product_list&mode=incomplete" class="mode-button incomplete-mode <?php echo $incomplete_mode ? 'active' : ''; ?>">
+            <a href="?page=product_list&mode=incomplete"
+                class="mode-button incomplete-mode <?php echo $incomplete_mode ? 'active' : ''; ?>">
                 แสดงข้อมูลไม่ครบ
             </a>
         </div>
@@ -305,12 +329,30 @@ try {
         <table class="mt-5 mb-8 w-[100%] border-2 border-[#b7c4d5] shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสสินค้า</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อสินค้า</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคาทุน</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ราคา4</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะข้อมูล</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
+                    <th
+                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        รหัสสินค้า</th>
+                    <th
+                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ชื่อสินค้า</th>
+                    <th
+                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ราคาทุน</th>
+                    <th
+                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ราคาขาย</th>
+                    <th
+                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        ประเภทสินค้า</th>
+                    <th
+                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        แบรนด์สินค้า</th>
+                    <th
+                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        สถานะข้อมูล</th>
+                    <th
+                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                        การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
@@ -322,19 +364,30 @@ try {
                         empty($product_list['product_price3']) ||
                         empty($product_list['product_price4']) ||
                         empty($product_list['product_capital']) ||
-                        empty($product_list['product_type_id']);
-                ?>
-                    <tr class="<?php echo $is_incomplete ? 'incomplete-data' : 'bg-white'; ?> hover:bg-[#aec5e366] cursor-pointer">
+                        empty($product_list['product_type_id']) ||
+                        empty($product_list['product_brand_id']);
+                    ?>
+                    <tr
+                        class="<?php echo $is_incomplete ? 'incomplete-data' : 'bg-white'; ?> hover:bg-[#aec5e366] cursor-pointer">
                         <td class="text-start"><?php echo ($product_list['product_id']); ?></td>
                         <td class="text-start <?php echo empty($product_list['product_name']) ? 'missing-field' : ''; ?>"
                             onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
                             <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : $product_list['product_name']; ?>
                         </td>
-                        <td class="text-start <?php echo empty($product_list['product_capital']) ? 'missing-field' : ''; ?>">
+                        <td
+                            class="text-start <?php echo empty($product_list['product_capital']) ? 'missing-field' : ''; ?>">
                             <?php echo empty($product_list['product_capital']) ? 'ไม่มีข้อมูล' : $product_list['product_capital']; ?>
                         </td>
                         <td class="text-start <?php echo empty($product_list['product_price4']) ? 'missing-field' : ''; ?>">
                             <?php echo empty($product_list['product_price4']) ? 'ไม่มีข้อมูล' : $product_list['product_price4']; ?>
+                        </td>
+                        <td
+                            class="text-start <?php echo empty($product_list['product_type_id']) ? 'missing-field' : ''; ?>">
+                            <?php echo empty($product_list['product_type_name']) ? 'ไม่มีข้อมูล' : $product_list['product_type_name']; ?>
+                        </td>
+                        <td
+                            class="text-start <?php echo empty($product_list['product_brand_id']) ? 'missing-field' : ''; ?>">
+                            <?php echo empty($product_list['product_brand_name']) ? 'ไม่มีข้อมูล' : $product_list['product_brand_name']; ?>
                         </td>
                         <td class="text-start">
                             <?php if ($is_incomplete): ?>
@@ -365,8 +418,7 @@ try {
                             </a>
 
                             <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
-                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')"
-                                class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
+                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
                                border-t-white 
                                border-l-white 
                                px-4 
@@ -399,19 +451,24 @@ try {
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
-                    <a href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
+                    <a
+                        href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page - 1); ?>">&laquo;
+                        ก่อนหน้า</a>
                 <?php endif; ?>
 
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                     <?php if ($i == $page): ?>
                         <a href="#" class="active"><?php echo $i; ?></a>
                     <?php else: ?>
-                        <a href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                        <a
+                            href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
 
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                    <a
+                        href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page + 1); ?>">ถัดไป
+                        &raquo;</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
@@ -498,7 +555,7 @@ try {
     </script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
