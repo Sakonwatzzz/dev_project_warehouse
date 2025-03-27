@@ -230,7 +230,7 @@ function updateProductData($pdo) {
                                     </tr>
                                 <?php endforeach; ?>
                                 <tr>
-                                    <th class="p-2 border bg-gray-50">สินค้าทั้งหมด:</th>
+                                    <th class="p-2 border bg-gray-50">จำนวนสินค้าทั้งหมด:</th>
                                     <td class="border">
                                         <?php if ($is_update): ?>
                                             <input type="text" name="total_qty" class="w-full border rounded px-2 py-2 focus:outline-yellow-500 focus:ring-1 focus:ring-yellow-500 bg-gray-100" value="<?php echo $totalProductQty; ?>" readonly>
