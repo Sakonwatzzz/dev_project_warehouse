@@ -535,7 +535,6 @@ $brandResults = $pdo->query("SELECT product_brand_id, product_brand_name FROM pr
     <script>
         // Get all checkboxes
         const checkboxes = document.querySelectorAll('.filter-checkbox');
-
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
                 let selectedTypes = [];
