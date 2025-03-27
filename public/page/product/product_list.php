@@ -1,160 +1,190 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-// จำนวนข้อมูลทั้งหมดในตาราง
-$query = "SELECT COUNT(*) as total_count FROM product";
-$stmt = $pdo->query($query);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$count = $row['total_count'];
-
-// ตรวจสอบโหมดการแสดงผล
-$incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
-
-
-// Get selected filters from GET request
-$selected_types = isset($_GET['product_type']) ? explode(',', $_GET['product_type']) : [];
-$selected_brands = isset($_GET['product_brand']) ? explode(',', $_GET['product_brand']) : [];
-
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['product_id'];
-    $name = $_POST['name'];
-    $price1 = $_POST['price_1'];
-    $price2 = $_POST['price_2'];
-    $price3 = $_POST['price_3'];
-    $price4 = $_POST['price_4'];
-    $capital = $_POST['capital'];
-    $type = $_POST['typename'];
-    $brand = $_POST['typebrandname'];
-
-    $stmt = $pdo->prepare("
-        UPDATE product 
-        SET product_name = ?, product_price1 = ?, product_price2 = ?, 
-            product_price3 = ?, product_price4 = ?, product_capital = ?, product_type_id = ?, 
-            product_brand_id = ? 
-        WHERE product_id = ?
-    ");
-    $stmt->execute([$name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
-
-    // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
-    header("Location: /?page=product_detail&tabel=product&id=$id");
-    exit;
-}
-
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
-    $stmt->execute([$id]);
-
-    // ตรวจสอบว่ามีข้อมูลเหลือในตารางหรือไม่
-    $stmt = $pdo->query("SELECT COUNT(*) FROM lot");
-    $count = $stmt->fetchColumn();
-
-    // ถ้าตารางว่างให้รีเซ็ต AUTO_INCREMENT
-    if ($count == 0) {
-        $pdo->query("ALTER TABLE lot AUTO_INCREMENT = 1");
-    }
-
-    header("Location: /?page=product_list&delete_success");
-    exit;
-}
-
-// การแบ่งหน้า
-$records_per_page = 10;
-$page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
-$offset = ($page - 1) * $records_per_page;
-
-// คำสั่ง SQL สำหรับโหมดแสดงข้อมูลไม่ครบ
-$where_condition = "WHERE 1=1"; // เริ่มต้นเงื่อนไขให้ปลอดภัย
-
-if ($incomplete_mode) {
-    $where_condition .= " AND (
-        product.product_name = '' OR product.product_name IS NULL OR 
-        product.product_price1 = '' OR product.product_price1 IS NULL OR 
-        product.product_price2 = '' OR product.product_price2 IS NULL OR 
-        product.product_price3 = '' OR product.product_price3 IS NULL OR 
-        product.product_price4 = '' OR product.product_price4 IS NULL OR 
-        product.product_capital = '' OR product.product_capital IS NULL OR 
-        product.product_type_id = '' OR product.product_type_id IS NULL OR 
-        product.product_brand_id = '' OR product.product_brand_id IS NULL
-    )";
-}
-
-// กรองประเภทสินค้า
-if (!empty($selected_types)) {
-    $type_placeholders = implode(' AND product.product_type_id = ', array_map(function ($i) { return ":type$i"; }, range(1, count($selected_types))));
-    $where_condition .= " AND product.product_type_id = $type_placeholders";
-}
-
-// กรองแบรนด์สินค้า
-if (!empty($selected_brands)) {
-    $brand_placeholders = implode(' AND product.product_brand_id = ', array_map(function ($i) { return ":brand$i"; }, range(1, count($selected_brands))));
-    $where_condition .= " AND product.product_brand_id = $brand_placeholders";
-}
-
-// การเลือกข้อมูลในตาราง product
-$query = "SELECT 
-    product.product_id, 
-    product.product_name, 
-    product.product_price1, 
-    product.product_price2, 
-    product.product_price3, 
-    product.product_price4, 
-    product.product_capital, 
-    product.product_type_id, 
-    product.product_brand_id,
-    product_brand.product_brand_name, 
-    product_type.product_type_name
-FROM product
-INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
-INNER JOIN product_type ON product.product_type_id = product_type.product_type_id
-$where_condition
-LIMIT :offset, :records_per_page"; // ใช้ named parameters :offset และ :records_per_page
-
-
-$stmt = $pdo->prepare($query);
-
-// Bind Parameters สำหรับ selected types
-$paramIndex = 1;
-if (!empty($selected_types)) {
-    foreach ($selected_types as $type) {
-        $stmt->bindValue(':type' . $paramIndex, (int) $type, PDO::PARAM_INT);
-        $paramIndex++;
-    }
-}
-
-// Bind Parameters สำหรับ selected brands
-if (!empty($selected_brands)) {
-    foreach ($selected_brands as $brand) {
-        $stmt->bindValue(':brand' . $paramIndex, (int) $brand, PDO::PARAM_INT);
-        $paramIndex++;
-    }
-}
-
-// Bind for offset and records_per_page
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-
-// Execute query
-if ($stmt->execute()) {
-    $resultsproduct = $stmt;
-} else {
-    echo "Error executing query.";
-}
-
-
-// นับจำนวนรายการทั้งหมด
 try {
-    $total_query = "SELECT COUNT(*) FROM product $where_condition";
-    $total_result = $pdo->query($total_query);
-    $total_records = $total_result->fetchColumn();
-    $total_pages = ceil($total_records / $records_per_page);
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}
-$typeResults = $pdo->query("SELECT product_type_id, product_type_name FROM product_type");
-$brandResults = $pdo->query("SELECT product_brand_id, product_brand_name FROM product_brand");
+    // Count total records in the product table
+    $query = "SELECT COUNT(*) as total_count FROM product";
+    $stmt = $pdo->query($query);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $count = $row['total_count'];
 
+    // Check display mode
+    $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
+
+    // Sanitize and validate input filters
+    $selected_types = isset($_GET['product_type']) 
+        ? array_map('intval', explode(',', $_GET['product_type'])) 
+        : [];
+    $selected_brands = isset($_GET['product_brand']) 
+        ? array_map('intval', explode(',', $_GET['product_brand'])) 
+        : [];
+
+    // Handle POST request for updating product
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
+        $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
+        $prices = [
+            'price1' => filter_input(INPUT_POST, 'price_1', FILTER_VALIDATE_FLOAT),
+            'price2' => filter_input(INPUT_POST, 'price_2', FILTER_VALIDATE_FLOAT),
+            'price3' => filter_input(INPUT_POST, 'price_3', FILTER_VALIDATE_FLOAT),
+            'price4' => filter_input(INPUT_POST, 'price_4', FILTER_VALIDATE_FLOAT),
+        ];
+        $capital = filter_input(INPUT_POST, 'capital', FILTER_VALIDATE_FLOAT);
+        $type = filter_input(INPUT_POST, 'typename', FILTER_VALIDATE_INT);
+        $brand = filter_input(INPUT_POST, 'typebrandname', FILTER_VALIDATE_INT);
+
+        if ($id && $name && $type && $brand) {
+            $stmt = $pdo->prepare("
+                UPDATE product 
+                SET product_name = ?, 
+                    product_price1 = ?, 
+                    product_price2 = ?, 
+                    product_price3 = ?, 
+                    product_price4 = ?, 
+                    product_capital = ?, 
+                    product_type_id = ?, 
+                    product_brand_id = ? 
+                WHERE product_id = ?
+            ");
+            $stmt->execute([
+                $name, 
+                $prices['price1'], 
+                $prices['price2'], 
+                $prices['price3'], 
+                $prices['price4'], 
+                $capital, 
+                $type, 
+                $brand, 
+                $id
+            ]);
+
+            header("Location: /?page=product_detail&tabel=product&id=$id");
+            exit;
+        }
+    }
+
+    // Handle deletion request
+    if (isset($_GET['id'])) {
+        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        
+        if ($id) {
+            $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
+            $stmt->execute([$id]);
+
+            // Reset AUTO_INCREMENT if table is empty
+            $stmt = $pdo->query("SELECT COUNT(*) FROM lot");
+            $count = $stmt->fetchColumn();
+
+            if ($count == 0) {
+                $pdo->query("ALTER TABLE lot AUTO_INCREMENT = 1");
+            }
+
+            header("Location: /?page=product_list&delete_success");
+            exit;
+        }
+    }
+
+    // Pagination setup
+    $records_per_page = 10;
+    $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
+    $offset = ($page - 1) * $records_per_page;
+
+    // Build WHERE condition for filtering
+    $where_conditions = [];
+    $bind_params = [];
+
+    if ($incomplete_mode) {
+        $where_conditions[] = "(
+            product.product_name = '' OR product.product_name IS NULL OR 
+            product.product_price1 = '' OR product.product_price1 IS NULL OR 
+            product.product_price2 = '' OR product.product_price2 IS NULL OR 
+            product.product_price3 = '' OR product.product_price3 IS NULL OR 
+            product.product_price4 = '' OR product.product_price4 IS NULL OR 
+            product.product_capital = '' OR product.product_capital IS NULL OR 
+            product.product_type_id = '' OR product.product_type_id IS NULL OR 
+            product.product_brand_id = '' OR product.product_brand_id IS NULL
+        )";
+    }
+
+    // Add type filters
+    if (!empty($selected_types)) {
+        $type_placeholders = implode(',', array_fill(0, count($selected_types), '?'));
+        $where_conditions[] = "product.product_type_id IN ($type_placeholders)";
+        $bind_params = array_merge($bind_params, $selected_types);
+    }
+
+    // Add brand filters
+    if (!empty($selected_brands)) {
+        $brand_placeholders = implode(',', array_fill(0, count($selected_brands), '?'));
+        $where_conditions[] = "product.product_brand_id IN ($brand_placeholders)";
+        $bind_params = array_merge($bind_params, $selected_brands);
+    }
+
+    $where_clause = !empty($where_conditions) 
+        ? 'WHERE ' . implode(' AND ', $where_conditions) 
+        : '';
+
+    // Main query to fetch products
+    $query = "SELECT 
+        product.product_id, 
+        product.product_name, 
+        product.product_price1, 
+        product.product_price2, 
+        product.product_price3, 
+        product.product_price4, 
+        product.product_capital, 
+        product.product_type_id, 
+        product.product_brand_id,
+        product_brand.product_brand_name, 
+        product_type.product_type_name
+    FROM product
+    INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
+    INNER JOIN product_type ON product.product_type_id = product_type.product_type_id
+    $where_clause
+    LIMIT ?, ?";
+
+    // Prepare and execute query
+    $stmt = $pdo->prepare($query);
+    
+    // Bind parameters with proper types
+    $param_types = array_fill(0, count($bind_params), PDO::PARAM_INT);
+    $param_types[] = PDO::PARAM_INT; // offset
+    $param_types[] = PDO::PARAM_INT; // records per page
+
+    $bind_params[] = $offset;
+    $bind_params[] = $records_per_page;
+
+    foreach ($bind_params as $i => $param) {
+        $stmt->bindValue($i + 1, $param, $param_types[$i]);
+    }
+
+    $stmt->execute();
+    $resultsproduct = $stmt;
+
+    // Count total records for pagination
+    $count_query = "SELECT COUNT(*) FROM product $where_clause";
+    $count_stmt = $pdo->prepare($count_query);
+    
+    // Bind parameters for count query
+    foreach ($bind_params as $i => $param) {
+        if ($i < count($bind_params) - 2) { // Exclude offset and limit
+            $count_stmt->bindValue($i + 1, $param, PDO::PARAM_INT);
+        }
+    }
+
+    $count_stmt->execute();
+    $total_records = $count_stmt->fetchColumn();
+    $total_pages = ceil($total_records / $records_per_page);
+
+    // Fetch product types and brands for filter dropdowns
+    $typeResults = $pdo->query("SELECT product_type_id, product_type_name FROM product_type");
+    $brandResults = $pdo->query("SELECT product_brand_id, product_brand_name FROM product_brand");
+
+} catch (PDOException $e) {
+    // Log error or handle it appropriately
+    error_log("Database error: " . $e->getMessage());
+    die("An error occurred while processing your request.");
+}
 ?>
 
 
