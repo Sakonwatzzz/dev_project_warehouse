@@ -68,16 +68,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
                         LEFT JOIN product p ON p.product_id = lp.product_id
                         WHERE lp.lot_id = ? 
                         AND (p.product_name IS NULL OR p.product_name = 'ยังไม่ระบุ' OR lp.lot_product_capital = 0)";
-        
+
         $check_stmt = $pdo->prepare($check_query);
         $check_stmt->execute([$_POST['lot_id']]);
         $invalid_products = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         if (count($invalid_products) > 0) {
             // There are products with missing information
             throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน กรุณาตรวจสอบและแก้ไขก่อนยืนยันรายการ");
         }
-        
+
         // Update product names if needed
         if (isset($_POST['product_name']) && isset($_POST['barcode'])) {
             $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
@@ -104,13 +104,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
             exit();
         }
-        
+
         // For regular form submissions, redirect with error
         header('Location: index.php?page=lot_view&id=' . $_POST['lot_id'] . '&error=' . urlencode($e->getMessage()));
         exit();
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'get_products') {
+    header('Content-Type: application/json');
+    $lot_id = $_POST['lot_id'];
+    $stmt = $pdo->prepare("SELECT lp.*, p.product_name FROM lot_product lp 
+                          LEFT JOIN product p ON p.product_id = lp.product_id 
+                          WHERE lp.lot_id = ?");
+    $stmt->execute([$lot_id]);
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode($products);
+    exit();
+}
 // Handle product scan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
     header('Content-Type: application/json');
@@ -375,7 +386,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                         pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
                 </div>
-                <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
                 <div class="flex space-x-4">
                     <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
                         <p><b>รูปแบบการป้อนข้อมูล:</b> รหัสบาร์โค้ด*จำนวน*ราคาทุน (เช่น 12345*2*150)</p>
@@ -388,6 +398,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 </div>
             </form>
         <?php endif; ?>
+
 
         <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
             <h3 class="text-xl font-semibold mb-4">รายการสินค้าที่สแกน</h3>
@@ -523,6 +534,116 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
         </div>
     </div>
     <script>
+        $(document).ready(function() {
+            // โหลดข้อมูลสินค้าเริ่มต้น
+            loadProducts();
+
+            // ตรวจจับการ submit ฟอร์ม
+            $('#barcode-form').submit(function(e) {
+                e.preventDefault();
+                let input = $('#inputField').val().trim();
+                if (!input) return; // ถ้า input ว่าง ไม่ทำอะไร
+
+                let deleteMode = input.startsWith('-');
+                let parts = input.replace('-', '').split('*');
+                let barcode = parts[0];
+                if (!barcode.match(/^[0-9]+$/)) { // ตรวจสอบว่า barcode เป็นตัวเลข
+                    alert('รหัสบาร์โค้ดต้องเป็นตัวเลขเท่านั้น');
+                    return;
+                }
+                let quantity = parts[1] && !isNaN(parts[1]) ? parseInt(parts[1]) : 1;
+                let capital = parts[2] && !isNaN(parts[2]) ? parseFloat(parts[2]) : 0;
+
+                // ส่งข้อมูลไปยัง PHP ด้วย AJAX
+                $.ajax({
+                    url: '', // ใช้ไฟล์เดียวกัน (index.php)
+                    type: 'POST',
+                    data: {
+                        barcode: barcode,
+                        deleteMode: deleteMode,
+                        qty: quantity,
+                        capital: capital
+                        lot_id: '<?php echo $lot_id; ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            loadProducts(); // อัปเดตตารางสินค้า
+                            $('#inputField').val(''); // ล้างช่อง input
+                            $('#inputField').focus(); // โฟกัสกลับไปที่ช่อง input
+                        } else {
+                            alert('เกิดข้อผิดพลาด: ' + response.error);
+                        }
+                    },
+                    error: function() {
+                        alert('การเชื่อมต่อล้มเหลว');
+                    }
+                });
+            });
+
+            // ฟังก์ชันโหลดข้อมูลสินค้า
+            function loadProducts() {
+                $.ajax({
+                    url: '', // ใช้ไฟล์เดียวกัน
+                    type: 'POST',
+                    data: {
+                        action: 'get_products',
+                        lot_id: '<?php echo $lot_id; ?>'
+                    }, // ส่ง lot_id ไปด้วย
+                    dataType: 'json',
+                    success: function(data) {
+                        let tbody = '';
+                        let total_value = 0;
+                        let total_quantity = 0;
+
+                        data.forEach(item => {
+                            let item_total = item.lot_product_qty * item.lot_product_capital;
+                            total_value += item_total;
+                            total_quantity += item.lot_product_qty;
+
+                            tbody += `
+                        <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer" data-product-id="${item.product_id}">
+                            <td class="pl-6 py-2 border">${item.product_id}</td>
+                            <td class="pl-6 py-2 border">${item.product_name}</td>
+                            <td class="text-center py-2 border">${item.lot_product_qty}</td>
+                            <td class="text-right py-2 border">${parseFloat(item.lot_product_capital).toFixed(2)}</td>
+                            <td class="text-right py-2 border">${item_total.toFixed(2)}</td>
+                            <td class="text-right py-2 border">${'<?php echo $lot_status_name; ?>'}</td>
+                            <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
+                            <td class="text-right py-2 border px-4">
+                                <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
+                                    data-id="${item.lot_product_id}"
+                                    data-qty="${item.lot_product_qty}"
+                                    data-capital="${item.lot_product_capital}"
+                                    data-name="${item.product_name}"
+                                    data-barcode="${item.product_id}">แก้ไข</button>
+                                <button type="button" class="bg-red-500 text-white px-4 py-1 rounded toggle-delete-mode"
+                                    data-barcode="${item.product_id}">ลบ</button>
+                            </td>
+                            <?php endif; ?>
+                        </tr>`;
+                        });
+
+                        if (data.length > 0) {
+                            tbody += `
+                        <tr class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400">
+                            <td colspan="2" class="text-end pe-4 align-middle">ยอดรวมสินค้า:</td>
+                            <td class="text-center py-4 font-bold">${total_quantity}</td>
+                            <td></td>
+                            <td colspan="2" class="text-end pe-4 align-middle">มูลค่ารวมทั้งสิ้น:</td>
+                            <td class="text-end py-4 font-bold">${total_value.toFixed(2)} บาท</td>
+                            <td></td>
+                            <td></td>
+                        </tr>`;
+                        }
+
+                        $('tbody').html(tbody);
+                    }
+                });
+            }
+        });
+    </script>
+    <script>
         function validateForm(event) {
             event.preventDefault(); // Prevent form submission before validation
 
@@ -618,7 +739,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
         // ฟังก์ชันสำหรับการเปลี่ยนสีพื้นหลังตามการกดปุ่ม
         function changeInputBackground(event) {
-            if (event.keyCode === 8 || event.keyCode === 46) { // 8 = Backspace, 46 = Delete
+            if (event.keyCode === 46) { // 8 = Backspace, 46 = Delete
                 inputField.classList.remove('input-normal');
                 inputField.classList.add('input-delete'); // เพิ่มคลาสสำหรับการลบข้อมูล
             }
