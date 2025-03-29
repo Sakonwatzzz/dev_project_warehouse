@@ -309,10 +309,8 @@ ob_end_flush();
                                         <i class="fas fa-exchange-alt text-gray-400"></i>
                                     </div>
                                     <select name="warehouse_inout" id="warehouse_inout"
-                                        class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none bg-gray-100 cursor-not-allowed"
-                                        disabled>
-                                        <option value="2" <?= ($selected_warehouse_inout == 2) ? 'selected' : '' ?>>จ่ายออก
-                                            (2)</option>
+                                        class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none bg-gray-100 cursor-not-allowed" disabled>
+                                        <option value="2">จ่ายออก(2)</option>
                                     </select>
                                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                         <i class="fas fa-lock text-gray-400"></i>
@@ -485,13 +483,13 @@ ob_end_flush();
     <!-- JavaScript functions -->
     <script>
         // Alert handling
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const alert = document.getElementById('success-alert');
             if (alert) {
-                setTimeout(function () {
+                setTimeout(function() {
                     alert.style.transition = 'opacity 0.5s';
                     alert.style.opacity = '0';
-                    setTimeout(function () {
+                    setTimeout(function() {
                         alert.remove();
                     }, 500);
                 }, 2000);
