@@ -1,131 +1,196 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-// จำนวนข้อมูลทั้งหมดในตาราง
-$query = "SELECT COUNT(*) as total_count FROM product";
-$stmt = $pdo->query($query);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$count = $row['total_count'];
+try {
+    // Count total records in the product table
+    $query = "SELECT COUNT(*) as total_count FROM product";
+    $stmt = $pdo->query($query);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $count = $row['total_count'];
 
-// ตรวจสอบโหมดการแสดงผล
-$incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
+    // Check display mode
+    $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['product_id'];
-    $name = $_POST['name'];
-    $price1 = $_POST['price_1'];
-    $price2 = $_POST['price_2'];
-    $price3 = $_POST['price_3'];
-    $price4 = $_POST['price_4'];
-    $capital = $_POST['capital'];
-    $type = $_POST['typename'];
-    $brand = $_POST['typebrandname'];
+    // Sanitize and validate input filters
+    $selected_types = isset($_GET['product_type']) && !empty($_GET['product_type'])
+        ? array_filter(array_map('intval', explode(',', $_GET['product_type'])))
+        : [];
+    $selected_brands = isset($_GET['product_brand']) && !empty($_GET['product_brand'])
+        ? array_filter(array_map('intval', explode(',', $_GET['product_brand'])))
+        : [];
 
-    $stmt = $pdo->prepare("
-        UPDATE product 
-        SET product_name = ?, product_price1 = ?, product_price2 = ?, 
-            product_price3 = ?, product_price4 = ?, product_capital = ?, product_type_id = ?, 
-            product_brand_id = ? 
-        WHERE product_id = ?
-    ");
-    $stmt->execute([$name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
+    // Handle POST request for updating product
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
+        $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
+        $prices = [
+            'price1' => filter_input(INPUT_POST, 'price_1', FILTER_VALIDATE_FLOAT),
+            'price2' => filter_input(INPUT_POST, 'price_2', FILTER_VALIDATE_FLOAT),
+            'price3' => filter_input(INPUT_POST, 'price_3', FILTER_VALIDATE_FLOAT),
+            'price4' => filter_input(INPUT_POST, 'price_4', FILTER_VALIDATE_FLOAT),
+        ];
+        $capital = filter_input(INPUT_POST, 'capital', FILTER_VALIDATE_FLOAT);
+        $type = filter_input(INPUT_POST, 'typename', FILTER_VALIDATE_INT);
+        $brand = filter_input(INPUT_POST, 'typebrandname', FILTER_VALIDATE_INT);
 
-    // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
-    header("Location: /?page=product_detail&tabel=product&id=$id");
-    exit;
-}
+        if ($id && $name && $type && $brand) {
+            $stmt = $pdo->prepare("
+                UPDATE product 
+                SET product_name = ?, 
+                    product_price1 = ?, 
+                    product_price2 = ?, 
+                    product_price3 = ?, 
+                    product_price4 = ?, 
+                    product_capital = ?, 
+                    product_type_id = ?, 
+                    product_brand_id = ? 
+                WHERE product_id = ?
+            ");
+            $stmt->execute([
+                $name,
+                $prices['price1'],
+                $prices['price2'],
+                $prices['price3'],
+                $prices['price4'],
+                $capital,
+                $type,
+                $brand,
+                $id
+            ]);
 
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
-    $stmt->execute([$id]);
-
-    // ตรวจสอบว่ามีข้อมูลเหลือในตารางหรือไม่
-    $stmt = $pdo->query("SELECT COUNT(*) FROM lot");
-    $count = $stmt->fetchColumn();
-
-    // ถ้าตารางว่างให้รีเซ็ต AUTO_INCREMENT
-    if ($count == 0) {
-        $pdo->query("ALTER TABLE lot AUTO_INCREMENT = 1");
+            header("Location: /?page=product_detail&tabel=product&id=$id");
+            exit;
+        }
     }
 
-    header("Location: /?page=product_list&delete_success");
-    exit;
-}
+    // Handle deletion request
+    if (isset($_GET['id'])) {
+        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
-// การแบ่งหน้า
-$records_per_page = 5;
-$page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
-$offset = ($page - 1) * $records_per_page;
+        if ($id) {
+            $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
+            $stmt->execute([$id]);
 
-// คำสั่ง SQL สำหรับโหมดแสดงข้อมูลไม่ครบ
-if ($incomplete_mode) {
-    $where_condition = "WHERE product.product_name = '' OR product.product_name IS NULL OR 
-                        product.product_price1 = '' OR product.product_price1 IS NULL OR 
-                        product.product_price2 = '' OR product.product_price2 IS NULL OR 
-                        product.product_price3 = '' OR product.product_price3 IS NULL OR 
-                        product.product_price4 = '' OR product.product_price4 IS NULL OR 
-                        product.product_capital = '' OR product.product_capital IS NULL OR 
-                        product.product_type_id = '' OR product.product_type_id IS NULL OR 
-                        product.product_brand_id = '' OR product.product_brand_id IS NULL";
+            // Reset AUTO_INCREMENT if table is empty
+            $stmt = $pdo->query("SELECT COUNT(*) FROM product"); // แก้จาก lot เป็น product
+            $count = $stmt->fetchColumn();
 
-    // นับจำนวนรายการที่ข้อมูลไม่ครบ
-    try {
-        $total_query = "SELECT COUNT(*) FROM product 
-        INNER JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
-        INNER JOIN product_type ON product.product_type_id = product_type.product_type_id
-        $where_condition";
-        $total_result = $pdo->query($total_query);
-        $incomplete_count = $total_result->fetchColumn();
-    } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
+            if ($count == 0) {
+                $pdo->query("ALTER TABLE product AUTO_INCREMENT = 1"); // แก้จาก lot เป็น product
+            }
+
+            header("Location: /?page=product_list&delete_success");
+            exit;
+        }
     }
-} else {
-    $where_condition = "";
-}
 
-// นับจำนวนรายการทั้งหมด
-try {
-    $total_query = "SELECT COUNT(*) FROM product $where_condition";
-    $total_result = $pdo->query($total_query);
-    $total_records = $total_result->fetchColumn();
-    $total_pages = ceil($total_records / $records_per_page);
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}
+    // Pagination setup
+    $records_per_page = 10;
+    $page = isset($_GET['page_num']) ? max(1, (int) $_GET['page_num']) : 1;
+    $offset = ($page - 1) * $records_per_page;
 
-// ดึงข้อมูลตามการแบ่งหน้าและโหมดที่เลือก
-try {
-    $query = "SELECT
-    product.product_id, 
-    product.product_name, 
-    product.product_price1, 
-    product.product_price2, 
-    product.product_price3, 
-    product.product_price4, 
-    product.product_capital, 
-    product.product_type_id, 
-    product.product_brand_id,
-    product_brand.product_brand_name, 
-    product_type.product_type_name
-    FROM
-        product
-    INNER JOIN
-        product_brand ON product.product_brand_id = product_brand.product_brand_id
-    INNER JOIN
-        product_type ON product.product_type_id = product_type.product_type_id
-    $where_condition
-    LIMIT :offset, :records_per_page";
+    // Build WHERE condition for filtering
+    $where_conditions = [];
+    $bind_params = [];
+
+    if ($incomplete_mode) {
+        $where_conditions[] = "(
+            product.product_name = '' OR product.product_name IS NULL OR 
+            product.product_price1 = '' OR product.product_price1 IS NULL OR 
+            product.product_price2 = '' OR product.product_price2 IS NULL OR 
+            product.product_price3 = '' OR product.product_price3 IS NULL OR 
+            product.product_price4 = '' OR product.product_price4 IS NULL OR 
+            product.product_capital = '' OR product.product_capital IS NULL OR 
+            product.product_type_id = '' OR product.product_type_id IS NULL OR 
+            product.product_brand_id = '' OR product.product_brand_id IS NULL
+        )";
+    }
+
+    if (!empty($selected_types)) {
+        $type_placeholders = implode(',', array_fill(0, count($selected_types), '?'));
+        $where_conditions[] = "product.product_type_id IN ($type_placeholders)";
+        $bind_params = array_merge($bind_params, $selected_types);
+    }
+
+    if (!empty($selected_brands)) {
+        $brand_placeholders = implode(',', array_fill(0, count($selected_brands), '?'));
+        $where_conditions[] = "product.product_brand_id IN ($brand_placeholders)";
+        $bind_params = array_merge($bind_params, $selected_brands);
+    }
+
+    $where_clause = !empty($where_conditions)
+        ? 'WHERE ' . implode(' AND ', $where_conditions)
+        : '';
+
+    // Main query to fetch products
+    $query = "SELECT 
+        product.product_id, 
+        product.product_name, 
+        product.product_price1, 
+        product.product_price2, 
+        product.product_price3, 
+        product.product_price4, 
+        product.product_capital, 
+        product.product_type_id, 
+        product.product_brand_id,
+        COALESCE(product_brand.product_brand_name, 'ไม่มีข้อมูล') AS product_brand_name, 
+        COALESCE(product_type.product_type_name, 'ไม่มีข้อมูล') AS product_type_name
+    FROM product
+    LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
+    LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id
+    $where_clause
+    LIMIT ?, ?";
 
     $stmt = $pdo->prepare($query);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+    $bind_params[] = $offset;
+    $bind_params[] = $records_per_page;
+
+    foreach ($bind_params as $i => $param) {
+        $stmt->bindValue($i + 1, $param, PDO::PARAM_INT);
+    }
+
     $stmt->execute();
     $resultsproduct = $stmt;
+
+    // Count total records for pagination
+    $count_query = "SELECT COUNT(*) FROM product $where_clause";
+    $count_stmt = $pdo->prepare($count_query);
+
+    foreach ($bind_params as $i => $param) {
+        if ($i < count($bind_params) - 2) { // Exclude offset and limit
+            $count_stmt->bindValue($i + 1, $param, PDO::PARAM_INT);
+        }
+    }
+
+    $count_stmt->execute();
+    $total_records = $count_stmt->fetchColumn();
+    $total_pages = ceil($total_records / $records_per_page);
+
+    // Product Type and Brand filters
+    $typeLimit = isset($_POST['type_limit']) ? intval($_POST['type_limit']) : 5;
+    $brandLimit = isset($_POST['brand_limit']) ? intval($_POST['brand_limit']) : 5;
+    $action = isset($_POST['action']) ? $_POST['action'] : '';
+
+    $totalTypeCount = $pdo->query("SELECT COUNT(*) FROM product_type")->fetchColumn();
+    $totalBrandCount = $pdo->query("SELECT COUNT(*) FROM product_brand")->fetchColumn();
+
+    // Fetch Product Types
+    $type_stmt = $pdo->prepare("SELECT product_type_id, product_type_name FROM product_type LIMIT ?");
+    $type_stmt->bindValue(1, $typeLimit, PDO::PARAM_INT);
+    $type_stmt->execute();
+    $typeResults = $type_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch Product Brands
+    $brand_stmt = $pdo->prepare("SELECT product_brand_id, product_brand_name FROM product_brand LIMIT ?");
+    $brand_stmt->bindValue(1, $brandLimit, PDO::PARAM_INT);
+    $brand_stmt->execute();
+    $brandResults = $brand_stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    error_log("Database error: " . $e->getMessage());
+    die("An error occurred while processing your request.");
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -134,6 +199,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="../../output.css" rel="stylesheet">
     <style>
         .title {
@@ -285,36 +351,63 @@ try {
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[23rem] mt-11">
+    <div class="font-[Tahoma] mx-[15rem] mt-11 w-auto">
         <!-- Keep title, count, search, mode-toggle and notifications unchanged -->
         <div class="title">
             <div class="count">
-                <h2 class="text-2xl font-bold">รายการสินค้า</h2>
                 <?php if ($incomplete_mode): ?>
+                    <h2 class="text-2xl font-bold">จำนวนรายการสินค้าที่กรอกข้อมูลไม่ครบ</h2>
                     <div class="incompletecount">
                         <?php echo isset($incomplete_count) ? $incomplete_count : '0'; ?>
                     </div>
                 <?php else: ?>
+                    <h2 class="text-2xl font-bold">จำนวนรายการสินค้าทั้งหมด</h2>
+
                     <div class="listcount">
                         <?php echo $count; ?>
                     </div>
                 <?php endif; ?>
             </div>
-
             <div class="search">
                 <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสินค้า...">
             </div>
         </div>
 
-        <div class="mode-toggle">
-            <a href="?page=product_list"
-                class="mode-button normal-mode <?php echo !$incomplete_mode ? 'active' : ''; ?>">
-                แสดงทั้งหมด
-            </a>
-            <a href="?page=product_list&mode=incomplete"
-                class="mode-button incomplete-mode <?php echo $incomplete_mode ? 'active' : ''; ?>">
-                แสดงข้อมูลไม่ครบ
-            </a>
+        <div class="mt-6 pl-[20%]">
+            <div class="flex items-center space-x-4">
+                <div class="mode-toggle flex space-x-4">
+                    <a href="?page=product_list"
+                        class="mode-button normal-mode <?php echo !$incomplete_mode ? 'active' : ''; ?>">
+                        แสดงทั้งหมด
+                    </a>
+                    <a href="?page=product_list&mode=incomplete"
+                        class="mode-button incomplete-mode <?php echo $incomplete_mode ? 'active' : ''; ?>">
+                        แสดงข้อมูลไม่ครบ
+                    </a>
+                </div>
+                <div>
+                    <a href="?page=product_insert" class="
+                        bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 
+                        text-white 
+                        text-lg 
+                        border border-blue-700 
+                        border-t-white 
+                        border-l-white 
+                        px-4 
+                        py-2 
+                        rounded 
+                        shadow-md 
+                        hover:bg-[#E3F2FD] 
+                        active:border-[#90CAF9] 
+                        active:border-b-white 
+                        active:border-r-white 
+                        active:shadow-inner
+                    ">
+                        เพิ่มสินค้าใหม่
+                    </a>
+                </div>
+            </div>
+
         </div>
 
         <div id="notification-edit" class="notification">
@@ -326,116 +419,181 @@ try {
             <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
-        <table class="mt-5 mb-8 w-[100%] border-2 border-[#b7c4d5] shadow-lg" id="dataTable">
-            <thead>
-                <tr>
-                    <th
-                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        รหัสสินค้า</th>
-                    <th
-                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        ชื่อสินค้า</th>
-                    <th
-                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        ราคาทุน</th>
-                    <th
-                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        ราคาขาย</th>
-                    <th
-                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        ประเภทสินค้า</th>
-                    <th
-                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        แบรนด์สินค้า</th>
-                    <th
-                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        สถานะข้อมูล</th>
-                    <th
-                        class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                        การจัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($product_list = $resultsproduct->fetch(PDO::FETCH_ASSOC)):
-                    // ตรวจสอบว่ามีข้อมูลไม่ครบหรือไม่
-                    $is_incomplete = empty($product_list['product_name']) ||
-                        empty($product_list['product_price1']) ||
-                        empty($product_list['product_price2']) ||
-                        empty($product_list['product_price3']) ||
-                        empty($product_list['product_price4']) ||
-                        empty($product_list['product_capital']) ||
-                        empty($product_list['product_type_id']) ||
-                        empty($product_list['product_brand_id']);
-                    ?>
-                    <tr
-                        class="<?php echo $is_incomplete ? 'incomplete-data' : 'bg-white'; ?> hover:bg-[#aec5e366] cursor-pointer">
-                        <td class="text-start"><?php echo ($product_list['product_id']); ?></td>
-                        <td class="text-start <?php echo empty($product_list['product_name']) ? 'missing-field' : ''; ?>"
-                            onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
-                            <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : $product_list['product_name']; ?>
-                        </td>
-                        <td
-                            class="text-start <?php echo empty($product_list['product_capital']) ? 'missing-field' : ''; ?>">
-                            <?php echo empty($product_list['product_capital']) ? 'ไม่มีข้อมูล' : $product_list['product_capital']; ?>
-                        </td>
-                        <td class="text-start <?php echo empty($product_list['product_price4']) ? 'missing-field' : ''; ?>">
-                            <?php echo empty($product_list['product_price4']) ? 'ไม่มีข้อมูล' : $product_list['product_price4']; ?>
-                        </td>
-                        <td
-                            class="text-start <?php echo empty($product_list['product_type_id']) ? 'missing-field' : ''; ?>">
-                            <?php echo empty($product_list['product_type_name']) ? 'ไม่มีข้อมูล' : $product_list['product_type_name']; ?>
-                        </td>
-                        <td
-                            class="text-start <?php echo empty($product_list['product_brand_id']) ? 'missing-field' : ''; ?>">
-                            <?php echo empty($product_list['product_brand_name']) ? 'ไม่มีข้อมูล' : $product_list['product_brand_name']; ?>
-                        </td>
-                        <td class="text-start">
-                            <?php if ($is_incomplete): ?>
-                                <span class="text-red-600 font-bold">ข้อมูลไม่ครบ</span>
-                            <?php else: ?>
-                                <span class="text-green-600 font-bold">ข้อมูลครบถ้วน</span>
+
+        <div class="flex">
+            <div class="w-[20%] px-6 ">
+                <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-filter text-blue-500"></i>
+                    <span>ค้นหาแบบละเอียด</span>
+                </h1>
+
+                <!-- ค้นหาตามหมวดหมู่ -->
+                <div class="pt-2 pb-4 border-b border-gray-400">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-3">ค้นหาตามหมวดหมู่</h2>
+                    <div class="flex flex-col gap-3">
+                        <?php foreach ($typeResults as $typeRow): ?>
+                            <div class="flex items-center gap-2 text-gray-600">
+                                <input type="checkbox"
+                                    class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    name="product_type[]" value="<?php echo $typeRow['product_type_id']; ?>"
+                                    <?php echo in_array($typeRow['product_type_id'], $selected_types) ? 'checked' : ''; ?>>
+                                <span><?php echo $typeRow['product_type_name']; ?></span>
+                            </div>
+                        <?php endforeach; ?>
+
+                        <div class="flex justify-between mt-2 gap-2">
+                            <?php if ($typeLimit < $totalTypeCount): ?>
+                                <form action="" method="POST" class="w-1/2">
+                                    <input type="hidden" name="type_limit" value="<?php echo $typeLimit + 5; ?>">
+                                    <input type="hidden" name="brand_limit" value="<?php echo $brandLimit; ?>">
+                                    <input type="hidden" name="action" value="show_more_types">
+                                    <button type="submit"
+                                        class="w-full py-2 px-3 bg-white border border-gray-300 rounded-md text-gray-700 text-sm hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">แสดงเพิ่มเติม</button>
+                                </form>
                             <?php endif; ?>
-                        </td>
-                        <td>
-                            <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>" class="
-                            bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
-                            text-white 
-                            text-lg 
-                            border border-yellow-700 
-                            border-t-white 
-                            border-l-white 
-                            px-2 
-                            py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#FFF9C4] 
-                            active:border-[#FFF176] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner
-                            ">
-                                แก้ไข
-                            </a>
+                            <?php if ($typeLimit > 5): ?>
+                                <form action="" method="POST" class="w-1/2">
+                                    <input type="hidden" name="type_limit" value="5">
+                                    <input type="hidden" name="brand_limit" value="<?php echo $brandLimit; ?>">
+                                    <input type="hidden" name="action" value="show_less_types">
+                                    <button type="submit"
+                                        class="w-full py-2 px-3 bg-white border border-gray-300 rounded-md text-gray-700 text-sm hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">แสดงน้อยลง</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
 
-                            <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
-                                onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                               border-t-white 
-                               border-l-white 
-                               px-4 
-                               py-1 
-                               rounded 
-                               shadow-md 
-                               hover:bg-[#FFEBEE] 
-                               active:border-[#EF9A9A] 
-                               active:border-b-white 
-                               active:border-r-white 
-                               active:shadow-inner">ลบ</a>
-                        </td>
-                    </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
+                <!-- ค้นหาตามแบรนด์ -->
+                <div class="pt-2 pb-4">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-3">ค้นหาตามแบรนด์</h2>
+                    <div class="flex flex-col gap-3">
+                        <?php foreach ($brandResults as $brandRow): ?>
+                            <div class="flex items-center gap-2 text-gray-600">
+                                <input type="checkbox"
+                                    class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    name="product_brand[]" value="<?php echo $brandRow['product_brand_id']; ?>"
+                                    <?php echo in_array($brandRow['product_brand_id'], $selected_brands) ? 'checked' : ''; ?>>
+                                <span><?php echo $brandRow['product_brand_name']; ?></span>
+                            </div>
+                        <?php endforeach; ?>
 
+                        <div class="flex justify-between mt-2 gap-2">
+                            <?php if ($brandLimit < $totalBrandCount): ?>
+                                <form action="" method="POST" class="w-1/2">
+                                    <input type="hidden" name="brand_limit" value="<?php echo $brandLimit + 5; ?>">
+                                    <input type="hidden" name="type_limit" value="<?php echo $typeLimit; ?>">
+                                    <input type="hidden" name="action" value="show_more_brands">
+                                    <button type="submit"
+                                        class="w-full py-2 px-3 bg-white border border-gray-300 rounded-md text-gray-700 text-sm hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">แสดงเพิ่มเติม</button>
+                                </form>
+                            <?php endif; ?>
+                            <?php if ($brandLimit > 5): ?>
+                                <form action="" method="POST" class="w-1/2">
+                                    <input type="hidden" name="brand_limit" value="5">
+                                    <input type="hidden" name="type_limit" value="<?php echo $typeLimit; ?>">
+                                    <input type="hidden" name="action" value="show_less_brands">
+                                    <button type="submit"
+                                        class="w-full py-2 px-3 bg-white border border-gray-300 rounded-md text-gray-700 text-sm hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">แสดงน้อยลง</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="w-[80%] md:flex-row gap-4 ">
+                <div id="product-list-container"></div>
+                <table class=" mb-8 w-[100%] border-2 border-[#b7c4d5] shadow-lg" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th
+                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                                รหัสสินค้า</th>
+                            <th
+                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                                ชื่อสินค้า</th>
+                            <th
+                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                                ราคาทุน</th>
+                            <th
+                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                                ราคาขาย</th>
+                            <th
+                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                                ประเภทสินค้า</th>
+                            <th
+                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                                แบรนด์สินค้า</th>
+                            <th
+                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                                สถานะข้อมูล</th>
+                            <th
+                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                                การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($resultsproduct as $product_list): ?>
+                            <?php
+                            $is_incomplete = empty($product_list['product_name']) ||
+                                empty($product_list['product_price1']) ||
+                                empty($product_list['product_price2']) ||
+                                empty($product_list['product_price3']) ||
+                                empty($product_list['product_price4']) ||
+                                empty($product_list['product_capital']) ||
+                                empty($product_list['product_type_id']) ||
+                                empty($product_list['product_brand_id']);
+                            ?>
+                            <tr class="<?php echo $is_incomplete ? 'incomplete-data' : 'bg-white'; ?>">
+                                <td class="text-start bg-amber-200"><?php echo ($product_list['product_id']); ?></td>
+                                <td class="text-start hover:bg-[#aec5e366] cursor-pointer<?php echo empty($product_list['product_name']) ? 'missing-field' : ''; ?>"
+                                    onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
+                                    <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : $product_list['product_name']; ?>
+                                </td>
+                                <td
+                                    class="text-start <?php echo empty($product_list['product_capital']) ? 'missing-field' : ''; ?>">
+                                    <?php echo empty($product_list['product_capital']) ? 'ไม่มีข้อมูล' : $product_list['product_capital']; ?>
+                                </td>
+                                <td
+                                    class="text-start <?php echo empty($product_list['product_price4']) ? 'missing-field' : ''; ?>">
+                                    <?php echo empty($product_list['product_price4']) ? 'ไม่มีข้อมูล' : $product_list['product_price4']; ?>
+                                </td>
+                                <td
+                                    class="text-start <?php echo empty($product_list['product_type_id']) ? 'missing-field' : ''; ?>">
+                                    <?php echo !empty($product_list['product_type_name']) ? $product_list['product_type_name'] : 'ไม่มีข้อมูล'; ?>
+                                </td>
+                                <td
+                                    class="text-start <?php echo empty($product_list['product_brand_id']) ? 'missing-field' : ''; ?>">
+                                    <?php echo !empty($product_list['product_brand_name']) ? $product_list['product_brand_name'] : 'ไม่มีข้อมูล'; ?>
+                                </td>
+
+                                <td class="text-start">
+                                    <?php if ($is_incomplete): ?>
+                                        <span class="text-red-600 font-bold">ข้อมูลไม่ครบ</span>
+                                    <?php else: ?>
+                                        <span class="text-green-600 font-bold">ข้อมูลครบถ้วน</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>"
+                                        class="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg border border-yellow-700 border-t-white border-l-white px-2 py-1 rounded shadow-md hover:bg-[#FFF9C4] active:border-[#FFF176] active:border-b-white active:border-r-white active:shadow-inner">
+                                        แก้ไข
+                                    </a>
+
+                                    <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
+                                        onclick="return confirm('ลบหรือไม่ลบ สรุป?')"
+                                        class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 border-t-white border-l-white px-4 py-1 rounded shadow-md hover:bg-[#FFEBEE] active:border-[#EF9A9A] active:border-b-white active:border-r-white active:shadow-inner">
+                                        ลบ
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         <!-- ถ้าไม่มีข้อมูลให้แสดงข้อความ -->
         <?php if ($total_records == 0): ?>
             <div class="text-center py-4 text-red-600 font-bold">
@@ -450,6 +608,7 @@ try {
         <!-- Keep the pagination and add product button unchanged -->
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
+
                 <?php if ($page > 1): ?>
                     <a
                         href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page - 1); ?>">&laquo;
@@ -473,32 +632,36 @@ try {
             <?php endif; ?>
         </div>
 
-        <!-- ปุ่มเพิ่มสินค้า -->
-        <div class="text-end mt-4 mb-8">
-            <a href="?page=product_insert" class="
-                bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 
-                text-white 
-                text-lg 
-                border border-blue-700 
-                border-t-white 
-                border-l-white 
-                px-4 
-                py-2 
-                rounded 
-                shadow-md 
-                hover:bg-[#E3F2FD] 
-                active:border-[#90CAF9] 
-                active:border-b-white 
-                active:border-r-white 
-                active:shadow-inner
-            ">
-                เพิ่มสินค้าใหม่
-            </a>
-        </div>
-    </div>
 
-    <!-- Keep the scripts unchanged -->
+    </div>
     <script>
+        const checkboxes = document.querySelectorAll('.filter-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                let selectedTypes = [];
+                let selectedBrands = [];
+
+                // Collect selected types and brands
+                document.querySelectorAll('input[name="product_type[]"]:checked').forEach(typeCheckbox => {
+                    selectedTypes.push(typeCheckbox.value);
+                });
+                document.querySelectorAll('input[name="product_brand[]"]:checked').forEach(
+                    brandCheckbox => {
+                        selectedBrands.push(brandCheckbox.value);
+                    });
+
+                // Update the URL with selected filters
+                let url = new URL(window.location.href);
+                url.searchParams.set('product_type', selectedTypes.join(','));
+                url.searchParams.set('product_brand', selectedBrands.join(','));
+
+                // Reload the page with updated filters
+                window.location.href = url.toString();
+            });
+        });
+
+
+
         function searchTable() {
             const input = document.getElementById("searchInput");
             const filter = input.value.toLowerCase();
@@ -510,7 +673,7 @@ try {
             // Always keep the header visible
             thead.style.display = "";
 
-            // Always keep the input row visible 
+            // Always keep the input row visible
             tr[0].style.display = "";
 
             // Search through data rows (start from index 2 to skip header and input row)
@@ -555,7 +718,7 @@ try {
     </script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
@@ -573,6 +736,103 @@ try {
                 }, 2000);
             }
         });
+    </script>
+
+
+    <script>
+        // ฟังก์ชันสำหรับอัพเดต URL เมื่อมีการเปลี่ยนแปลง checkbox
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('input[name="product_type[]"], input[name="product_brand[]"]');
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateFilters();
+                });
+            });
+
+            // อัพเดต search input ถ้ามี
+            const searchInput = document.getElementById("searchInput");
+            if (searchInput) {
+                searchInput.focus();
+            }
+        });
+
+        function updateFilters() {
+            const selectedTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked'))
+                .map(cb => cb.value);
+            const selectedBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked'))
+                .map(cb => cb.value);
+
+            // สร้าง URL ใหม่
+            let url = new URL(window.location.href);
+            let params = new URLSearchParams(url.search);
+
+            // รักษาค่า mode ถ้ามี
+            if (params.has('mode')) {
+                url.searchParams.set('mode', params.get('mode'));
+            }
+
+            // รักษาค่า page_num ถ้ามี
+            if (params.has('page_num')) {
+                url.searchParams.set('page_num', params.get('page_num'));
+            }
+
+            // อัพเดต parameters
+            if (selectedTypes.length > 0) {
+                url.searchParams.set('product_type', selectedTypes.join(','));
+            } else {
+                url.searchParams.delete('product_type');
+            }
+
+            if (selectedBrands.length > 0) {
+                url.searchParams.set('product_brand', selectedBrands.join(','));
+            } else {
+                url.searchParams.delete('product_brand');
+            }
+
+            // รีเฟรชหน้า
+            window.location.href = url.toString();
+        }
+
+        // ฟังก์ชันค้นหาแบบเดิม
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById("dataTable");
+            const tr = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName("td");
+                let rowMatchesSearch = false;
+
+                for (let j = 0; j < td.length; j++) {
+                    const txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowMatchesSearch = true;
+                        break;
+                    }
+                }
+                tr[i].style.display = rowMatchesSearch ? "" : "none";
+            }
+        }
+
+        // การจัดการ notification
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('edit_success')) {
+                showNotification('notification-edit');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('notification-delete');
+            }
+        });
+
+        function showNotification(id) {
+            const notification = document.getElementById(id);
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        }
     </script>
 </body>
 

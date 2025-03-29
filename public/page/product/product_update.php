@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+$id = $_GET['id'];
+
 $queryTypes = "SELECT product_type_id, product_type_name FROM product_type";
 $typeResults = $pdo->query($queryTypes);
 
@@ -28,19 +30,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             product_brand_id = ? 
         WHERE product_id = ?
     ");
-    $stmt->execute([ $name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
+    $stmt->execute([$name, $price1, $price2, $price3, $price4, $capital, $type, $brand, $id]);
 
-    header("Location: /?page=product_detail&tabel=product&id=$id");
+    header("Location: /?page=product_update&tabel=product&id=$id");
     exit;
 }
 
 
-$id = $_GET['id'];
 $stmt = $pdo->prepare("SELECT * FROM product WHERE product_id = ?");
 $stmt->execute([$id]);
 $product_update = $stmt->fetch();
 
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action']) && $_POST['action'] === 'add_type') {
+        $newTypeName = trim($_POST['product_type_name'] ?? '');
+        if (!empty($newTypeName)) {
+            $stmt = $pdo->prepare("INSERT INTO product_type (product_type_name) VALUES (?)");
+            $stmt->execute([$newTypeName]);
+            $newTypeId = $pdo->lastInsertId();
+            // รีไดเรกต์พร้อมส่ง ID ใหม่กลับไป
+            header("Location: ?page=product_update&tabel=product&id={$id}&new_type_id={$newTypeId}");
+            exit;
+        }
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'add_brand') {
+        $newBrandName = trim($_POST['product_brand_name'] ?? '');
+        if (!empty($newBrandName)) {
+            $stmt = $pdo->prepare("INSERT INTO product_brand (product_brand_name) VALUES (?)");
+            $stmt->execute([$newBrandName]);
+            $newBrandId = $pdo->lastInsertId();
+            // รีไดเรกต์พร้อมส่ง ID ใหม่กลับไป
+            header("Location: ?page=product_update&tabel=product&id={$id}&new_brand_id={$newBrandId}");
+            exit;
+        }
+    } elseif (isset($_POST['product_id'])) {
+        updateProductData($pdo);
+    }
+}
 
 ?>
 <!DOCTYPE html>
@@ -146,7 +171,9 @@ $product_update = $stmt->fetch();
 <body>
     <div class="bg-[#F0F0F0] font-[Tahoma]">
         <div class="mx-[40rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
-            <h2 class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">แก้ไขข้อมูลสินค้า</h2>
+            <h2
+                class="bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 text-white text-lg px-3 py-2 border border-blue-700 shadow  font-bold p-5">
+                แก้ไขข้อมูลสินค้า</h2>
 
             <form class="p-5  space-y-2" action="../../page/product/product_update.php" method="POST">
                 <input type="hidden" name="product_id" value="<?php echo ($product_update['product_id']) ?>">
@@ -154,36 +181,49 @@ $product_update = $stmt->fetch();
 
                 <div class="flex items-center">
                     <label for="product_id" class="w-[150px] text-base mr-4">รหัสสินค้า:</label>
-                    <input type="text" name="product_id" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_id']) ?>">
+                    <input type="text" name="product_id"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                        value="<?php echo ($product_update['product_id']) ?>">
                 </div>
 
                 <div class="flex items-center">
                     <label for="name" class="w-[150px] text-base mr-4">ชื่อสินค้า:</label>
-                    <input type="text" name="name"  class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_name']) ?>">
+                    <input type="text" name="name" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                        value="<?php echo ($product_update['product_name']) ?>">
 
                 </div>
                 <div class="flex items-center">
                     <label for="price_1" class="w-[150px] text-base mr-4">ราคาที่1:</label>
-                    <input type="text" name="price_1" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_price1']) ?>">
+                    <input type="text" name="price_1"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                        value="<?php echo ($product_update['product_price1']) ?>">
                 </div>
                 <div class="flex items-center">
                     <label for="price_2" class="w-[150px] text-base mr-4">ราคาที่2:</label>
-                    <input type="text" name="price_2" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_price2']) ?>">
+                    <input type="text" name="price_2"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                        value="<?php echo ($product_update['product_price2']) ?>">
 
                 </div>
                 <div class="flex items-center">
                     <label for="price_3" class="w-[150px] text-base mr-4">ราคาที่3:</label>
-                    <input type="text" name="price_3" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_price3']) ?>">
+                    <input type="text" name="price_3"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                        value="<?php echo ($product_update['product_price3']) ?>">
 
                 </div>
                 <div class="flex items-center">
                     <label for="price_4" class="w-[150px] text-base mr-4">ราคาที่4:</label>
-                    <input type="text" name="price_4" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_price4']) ?>">
+                    <input type="text" name="price_4"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                        value="<?php echo ($product_update['product_price4']) ?>">
 
                 </div>
                 <div class="flex items-center">
                     <label for="capital" class="w-[150px] text-base mr-4">ราคาทุน:</label>
-                    <input type="text" name="capital" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" value="<?php echo ($product_update['product_capital']) ?>">
+                    <input type="text" name="capital"
+                        class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
+                        value="<?php echo ($product_update['product_capital']) ?>">
                 </div>
 
                 <?php if ($typeResults->rowCount() > 0) { ?>
@@ -191,11 +231,15 @@ $product_update = $stmt->fetch();
                         <label for="typename" class="w-[150px] text-base mr-4">ประเภทสินค้า:</label>
                         <select name="typename" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                             <?php while ($product_update = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                                <option value="<?php echo ($product_update['product_type_id']); ?>" <?= ($product_update['product_type_id'] == $product_update['product_type_id']) ? 'selected' : ''; ?>>
+                                <option value="<?php echo ($product_update['product_type_id']); ?>"
+                                    <?= ($product_update['product_type_id'] == $product_update['product_type_id']) ? 'selected' : ''; ?>>
                                     <?php echo ($product_update['product_type_name']); ?>
                                 </option>
                             <?php } ?>
                         </select>
+                        <button type="button"
+                            class="w-[100px] bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-3 rounded transition duration-200"
+                            onclick="document.getElementById('typeModal').style.display='flex'">เพิ่มใหม่</button>
                     </div>
                 <?php } else { ?>
                     <p>ไม่พบข้อมูลประเภทสินค้า</p>
@@ -204,14 +248,18 @@ $product_update = $stmt->fetch();
 
                 <?php if ($brandResults->rowCount() > 0) { ?>
                     <div class="flex items-center">
-                        <label for="typebrandname" class="w-[150px] text-base mr-4">ประเภทแบรนด์สินค้า:</label>
+                        <label for="typebrandname" class="w-[150px] text-base mr-4">แบรนด์สินค้า:</label>
                         <select name="typebrandname" class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner">
                             <?php while ($product_update = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                                <option value="<?php echo ($product_update['product_brand_id']); ?>" <?= ($product_update['product_brand_id'] == $product_update['product_brand_id']) ? 'selected' : ''; ?>>
+                                <option value="<?php echo ($product_update['product_brand_id']); ?>"
+                                    <?= ($product_update['product_brand_id'] == $product_update['product_brand_id']) ? 'selected' : ''; ?>>
                                     <?php echo ($product_update['product_brand_name']); ?>
                                 </option>
                             <?php } ?>
                         </select>
+                        <button type="button"
+                            class="w-[100px] bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-3 rounded transition duration-200"
+                            onclick="document.getElementById('typeModal').style.display='flex'">เพิ่มใหม่</button>
                     </div>
                 <?php } ?>
 
@@ -250,8 +298,78 @@ $product_update = $stmt->fetch();
             </form>
         </div>
     </div>
-   
 
+    <!-- Modal for Adding New Product Type -->
+    <div id="typeModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="relative p-6">
+                <button type="button"
+                    class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold"
+                    onclick="document.getElementById('typeModal').style.display='none'">×</button>
+                <h3 class="text-xl font-bold mb-4 text-gray-800">เพิ่มประเภทสินค้าใหม่</h3>
+                <form action="" method="POST">
+                    <input type="hidden" name="action" value="add_type">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="product_type_name"
+                                class="block mb-2 font-medium text-gray-700">ชื่อประเภทสินค้า:</label>
+                            <input type="text" id="product_type_name" name="product_type_name"
+                                class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required>
+                        </div>
+                        <div class="flex justify-end pt-2">
+                            <button type="button"
+                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2 transition duration-200"
+                                onclick="document.getElementById('typeModal').style.display='none'">ยกเลิก</button>
+                            <button type="submit"
+                                class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-200">เพิ่ม</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Adding New Product Brand -->
+    <div id="brandModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="relative p-6">
+                <button type="button"
+                    class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold"
+                    onclick="document.getElementById('brandModal').style.display='none'">×</button>
+                <h3 class="text-xl font-bold mb-4 text-gray-800">เพิ่มแบรนด์สินค้าใหม่</h3>
+                <form action="" method="POST">
+                    <input type="hidden" name="action" value="add_brand">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="product_brand_name"
+                                class="block mb-2 font-medium text-gray-700">ชื่อแบรนด์สินค้า:</label>
+                            <input type="text" id="product_brand_name" name="product_brand_name"
+                                class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required>
+                        </div>
+                        <div class="flex justify-end pt-2">
+                            <button type="button"
+                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2 transition duration-200"
+                                onclick="document.getElementById('brandModal').style.display='none'">ยกเลิก</button>
+                            <button type="submit"
+                                class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-200">เพิ่ม</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
+<script>
+    window.onclick = function (event) {
+        if (event.target == document.getElementById('typeModal')) {
+            document.getElementById('typeModal').style.display = 'none';
+        }
+        if (event.target == document.getElementById('brandModal')) {
+            document.getElementById('brandModal').style.display = 'none';
+        }
+    };
+</script>
 
 </html>
