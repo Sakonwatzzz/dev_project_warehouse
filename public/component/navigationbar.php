@@ -102,7 +102,10 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'lot_listdetail',
             'lot_listinsertcopy',
             'warehouse_lot',
-            'supplier_lot'
+            'supplier_lot',
+            'lot_insertout',
+            'lot_insertdetailout',
+            'lot_warehouseinout'
 
         ];
         $member_pages = [

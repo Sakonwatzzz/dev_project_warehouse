@@ -131,12 +131,12 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                         <p>คลัง</p>
                     </button>
                 </a>
-                <!-- <a href="?page=lot_listinsert" class="button-link">
-                    <button class="<?php echo ($current_page == 'lot_listinsert') ? 'active' : ''; ?>">
+                <a href="?page=lot_insertout" class="button-link">
+                    <button class="<?php echo ($current_page == 'lot_insertout') ? 'active' : ''; ?>">
                         <img src="../image/warehouse.png" alt="">
-                        <p>เพิ่ม Lot รายการรับสินค้า</p>
+                        <p>จ่ายออกสินค้า/ย้ายคลัง</p>
                     </button>
-                </a> -->
+                </a>
                 <a href="?page=lot_listinsert" class="button-link">
                     <button class="<?php echo ($current_page == 'lot_listinsert') ? 'active' : ''; ?>">
                         <img src="../image/warehouse.png" alt="">
@@ -149,13 +149,13 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                         <p>รายการรับสินค้า</p>
                     </button>
                 </a>
-                <!--<a href="?page=lot_productlist" class="button-link">
-                    <button class="<?php echo ($current_page == 'lot_productlist') ? 'active' : ''; ?>">
+                <a href="?page=lot_warehouseinout" class="button-link">
+                    <button class="<?php echo ($current_page == 'lot_warehouseinout') ? 'active' : ''; ?>">
                         <img src="../image/warehouse.png" alt="">
-                        <p>รับรายการสินค้า</p>
+                        <p>รายการย้ายคลัง</p>
                     </button>
                 </a>
-                -->
+               
 
             </div>
             <div class="flex justify-center font-bold bg-[#c2d9f1] rounded-bl-lg rounded-br-lg">
