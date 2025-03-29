@@ -322,7 +322,7 @@ ob_end_flush();
                                 </div>
                             </div>
                             <input type="hidden" name="lot_status_id" value="<?= $selected_status_id ?>">
-                        </div>
+                        </div> 
 
                         <div class="form-group">
                             <label for="warehouse_inout"
