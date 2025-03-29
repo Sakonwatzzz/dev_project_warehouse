@@ -200,7 +200,8 @@ ob_end_flush();
                             <i class="fas fa-truck-loading mr-2"></i>รับจากภายนอก (supplier)
                         </h3>
 
-                        <input type="hidden" name="lot_id" id="lot_id" value="<?php echo isset($lot_id) ? $lot_id : ''; ?>">
+                        <input type="hidden" name="lot_id" id="lot_id"
+                            value="<?php echo isset($lot_id) ? $lot_id : ''; ?>">
 
                         <div class="form-group">
                             <label for="lot_name" class="block text-gray-700 font-medium mb-2">
@@ -217,7 +218,8 @@ ob_end_flush();
                         </div>
 
                         <div class="form-group">
-                            <label for="lot_detail" class="block text-gray-700 font-medium mb-2">รายละเอียดการรับ</label>
+                            <label for="lot_detail"
+                                class="block text-gray-700 font-medium mb-2">รายละเอียดการรับ</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                     <i class="fas fa-info-circle text-gray-400"></i>
@@ -258,7 +260,8 @@ ob_end_flush();
                         </h3>
 
                         <div class="form-group">
-                            <label for="supplier_id" class="block text-gray-700 font-medium mb-2">รับมาจากผู้ส่งมอบ</label>
+                            <label for="supplier_id"
+                                class="block text-gray-700 font-medium mb-2">รับมาจากผู้ส่งมอบ</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                     <i class="fas fa-users text-gray-400"></i>
@@ -278,7 +281,8 @@ ob_end_flush();
                         </div>
 
                         <div class="form-group">
-                            <label for="warehouse_from_id" class="block text-gray-700 font-medium mb-2">นำมาจากคลัง</label>
+                            <label for="warehouse_from_id"
+                                class="block text-gray-700 font-medium mb-2">นำมาจากคลัง</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                     <i class="fas fa-dolly text-gray-400"></i>
@@ -297,14 +301,15 @@ ob_end_flush();
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" hidden>
                             <label for="lot_status_name" class="block text-gray-700 font-medium mb-2">สถานะ</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                     <i class="fas fa-flag text-gray-400"></i>
                                 </div>
                                 <select name="lot_status_id" id="lot_status_name"
-                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none bg-gray-100 cursor-not-allowed" disabled>
+                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none bg-gray-100 cursor-not-allowed"
+                                    disabled>
                                     <?php foreach ($status_lot as $status): ?>
                                         <option value="<?= htmlspecialchars($status['lot_status_id']) ?>"
                                             <?= ($status['lot_status_id'] == $selected_status_id) ? 'selected' : '' ?>>
@@ -320,20 +325,22 @@ ob_end_flush();
                         </div>
 
                         <div class="form-group">
-                            <label for="warehouse_inout" class="block text-gray-700 font-medium mb-2">สถานะการรับ-จ่าย</label>
+                            <label for="warehouse_inout"
+                                class="block text-gray-700 font-medium mb-2">สถานะการรับ-จ่าย</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                     <i class="fas fa-exchange-alt text-gray-400"></i>
                                 </div>
-                                <select name="warehouse_inout" id="warehouse_inout"
-                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <select id="warehouse_inout"
+                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none bg-gray-100 cursor-not-allowed"
+                                    disabled>
                                     <option value="1" selected>รับเข้า (1)</option>
-                                    <option value="2">จ่ายออก (2)</option>
                                 </select>
                                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                    <i class="fas fa-chevron-down text-gray-400"></i>
+                                    <i class="fas fa-lock text-gray-400"></i>
                                 </div>
                             </div>
+                            <input type="hidden" name="warehouse_inout" value="1">
                         </div>
 
                         <input type="hidden" name="lot_date" value="<?= $currentDateTime ?>">
@@ -448,7 +455,8 @@ ob_end_flush();
 
         <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" id="warehouseLotsModal">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
+                <div
+                    class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-2xl font-semibold text-gray-800">
                         <i class="fas fa-warehouse mr-2"></i>Lots ในคลัง: <?= htmlspecialchars($warehouse_name) ?>
                     </h2>
@@ -470,7 +478,8 @@ ob_end_flush();
                                     onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
                                     <div class="flex justify-between items-center">
                                         <h3 class="text-lg font-medium text-blue-600"><?= htmlspecialchars($lot['lot_name']) ?></h3>
-                                        <span class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>
+                                        <span
+                                            class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>
                                     </div>
 
                                     <p class="text-gray-600 mt-2">
@@ -502,7 +511,8 @@ ob_end_flush();
                 </div>
 
                 <div class="bg-gray-50 px-6 py-3 border-t text-right">
-                    <button onclick="window.history.back()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">
+                    <button onclick="window.history.back()"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">
                         <i class="fas fa-arrow-left mr-2"></i>กลับ
                     </button>
                 </div>
@@ -513,13 +523,13 @@ ob_end_flush();
     <!-- JavaScript functions -->
     <script>
         // Alert handling
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const alert = document.getElementById('success-alert');
             if (alert) {
-                setTimeout(function() {
+                setTimeout(function () {
                     alert.style.transition = 'opacity 0.5s';
                     alert.style.opacity = '0';
-                    setTimeout(function() {
+                    setTimeout(function () {
                         alert.remove();
                     }, 500);
                 }, 2000);
