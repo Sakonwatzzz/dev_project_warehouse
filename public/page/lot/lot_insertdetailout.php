@@ -504,7 +504,11 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 </div>
 
                 <div class="mb-4">
-                    <label class="block mb-2">จำนวน:</label>
+                    <label class="block mb-2">จำนวนสินค้าคงเหลือในคลัง:</label>
+                    <input type="number" class="w-full p-2 border rounded" id="qty" name="qty" required min="1">
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2">จำนวนสินค้าออกจากคลัง:</label>
                     <input type="number" class="w-full p-2 border rounded" id="qty" name="qty" required min="1">
                 </div>
 
