@@ -419,7 +419,7 @@ ob_end_flush();
                                     <img src="../../image/signal.png" alt="chech-icon" class="w-[35px]">
                                 </div>
                                 <p class="text-2xl font-medium text-green-600">
-                                    <?php if ($warehouse_data['warehouse_status'] == 'เปิดใช้งาน'): ?>
+                                    <?php if ($warehouse_data['warehouse_status'] == 'พร้อมใช้งาน'): ?>
                                         <span class="text-green-600"><i
                                                 class="fas fa-check-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
                                     <?php else: ?>
