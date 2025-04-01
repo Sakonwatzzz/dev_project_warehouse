@@ -203,8 +203,10 @@ ob_end_flush();
                     <?php echo $count; ?>
                 </div>
             </div>
-            <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสมาชิก...">
+            <div class="mt-4 md:mt-0">
+                <input type="text" id="searchInput" onkeyup="searchTable()"
+                    placeholder="ค้นหาสมาชิก..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -229,14 +231,14 @@ ob_end_flush();
             </thead>
             <tbody>
                 <?php while ($member_list = $resultsmember->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr>
-                        <td class="pl-4 text-start "><?php echo ($member_list['member_id']) ?></td>
-                        <td class="pl-4 text-start" onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'"><?php echo ($member_list['member_name']) ?></td>
-                        <td class="pl-4 text-start" onclick="window.location.href='?page=member_group&tabel=member&id=<?php echo ($member_list['member_id']) ?>&type=<?php echo urlencode($member_list['member_type_name']) ?>'">
+                    <tr class="bg-white hover:bg-gray-100 cursor-pointer">
+                        <td class="py-2 px-4 border border-gray-300"><?php echo ($member_list['member_id']) ?></td>
+                        <td class="py-2 px-4 border border-gray-300" onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo ($member_list['member_id']) ?>'"><?php echo ($member_list['member_name']) ?></td>
+                        <td class="py-2 px-4 border border-gray-300 hover:bg-gray-200 cursor-pointer" onclick="window.location.href='?page=member_group&tabel=member&id=<?php echo ($member_list['member_id']) ?>&type=<?php echo urlencode($member_list['member_type_name']) ?>'">
                             <?php echo ($member_list['member_type_name']) ?>
                         </td>
-                        <td class="pl-4 text-start"><?php echo ($member_list['member_register_date']) ?></td>
-                        <td>
+                        <td class="py-2 px-4 border border-gray-300"><?php echo ($member_list['member_register_date']) ?></td>
+                        <td class="text-center py-2 px-4 border border-gray-300">
                             <a href="?page=member_update&id=<?php echo ($member_list['member_id']) ?>" class="
                             bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 

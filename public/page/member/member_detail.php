@@ -1,34 +1,37 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+// Validate required GET parameters
 if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
     die("ระบุประเภทหรือ ID ไม่ถูกต้อง");
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+// Handle POST request for redirection
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $member_id = $_POST['member_id'];
     header("Location: member_detail.php?tabel=member&id=" . $member_id);
     exit();
 }
 
+// Retrieve GET parameters
 $tabel = $_GET['tabel'];
 $id = $_GET['id'];
-$is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false;
+$is_update = isset($_GET['is_update']) ? (bool)$_GET['is_update'] : false;
 
+// Prepare SQL query based on table type
 switch ($tabel) {
     case 'member':
         $stmt = $pdo->prepare("
-    SELECT member.*, 
-    member_type.member_type_name
-    FROM member
-    LEFT JOIN member_type ON member.member_type_id = member_type.member_type_id
-    WHERE member.member_id = ?
-");
-
+            SELECT member.*, member_type.member_type_name
+            FROM member
+            LEFT JOIN member_type ON member.member_type_id = member_type.member_type_id
+            WHERE member.member_id = ?
+        ");
         break;
     default:
         die("ระบุประเภทไม่ถูกต้อง");
 }
+
 $stmt->execute([$id]);
 $member = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$member) {
@@ -36,10 +39,9 @@ if (!$member) {
     exit();
 }
 
-// ดึงข้อมูลประเภทสมาชิก
+// Fetch member types for dropdown
 $queryTypes = "SELECT member_type_id, member_type_name FROM member_type";
 $member_type_results = $pdo->query($queryTypes);
-
 ?>
 
 <!DOCTYPE html>
@@ -48,123 +50,118 @@ $member_type_results = $pdo->query($queryTypes);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/detail.css">
     <link href="../../output.css" rel="stylesheet">
-    <title>รายละเอียด</title>
+    <title>รายละเอียดสมาชิก</title>
 </head>
 
-<body>
-    <div class="detail-body  xl:mx-[20rem]">
+<body class="bg-gray-100 font-sans antialiased">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 <?php echo $is_update ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'; ?>">
+                <h2 class="text-xl font-semibold text-white">
+                    <?php echo $is_update ? 'แก้ไขข้อมูลสมาชิก' : 'รายละเอียดสมาชิก'; ?>
+                </h2>
+            </div>
 
-        <div class="bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
-            <!-- เปลี่ยนสีหัวข้อเมื่ออยู่ในโหมดแก้ไข -->
-            <h2 class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700<?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
-                <?php echo $is_update ? 'กำลังแก้ไขสมาชิก' : 'รายละเอียดสมาชิก'; ?>
-            </h2>
+            <!-- Form -->
+            <form action="../../page/member/member_update.php" method="POST" class="p-6 space-y-6">
+                <input type="hidden" name="member_id" value="<?php echo htmlspecialchars($member['member_id']); ?>">
 
-            <form class="detail-form" action="../../page/member/member_update.php" method="POST">
+                <!-- Member Details -->
+                <div class="space-y-4">
+                    <!-- Member ID -->
+                    <div class="flex items-center  border-b border-gray-200 pb-2">
+                        <span class="font-medium text-gray-700">รหัสสมาชิก:</span>
+                        <span class="text-gray-900 text-start">
+                            <?php if ($is_update): ?>
+                                <input type="hidden" name="id" value="<?php echo htmlspecialchars($member['member_id']); ?>">
+                            <?php endif; ?>
+                            <?php echo htmlspecialchars($member['member_id']); ?>
+                        </span>
+                    </div>
 
-                <input type="hidden" name="member_id" value="<?php echo $member['member_id']; ?>">
-
-                <!-- ตารางแสดงรายละเอียดสมาชิก -->
-                <table class="detail-table">
-                    <?php if ($tabel === 'member'): ?>
-                        <!-- ตรวจสอบว่าประเภทข้อมูลเป็น 'member' เพื่อแสดงรายละเอียดสมาชิกเท่านั้น -->
-
-                        <tr>
-                            <th>รหัสสมาชิก:</th>
-                            <!-- แสดงรหัสสมาชิก -->
-                            <td>
-                                <?php if ($is_update): ?>
-                                    <input type="hidden" name="id" value="<?php echo $member['member_id']; ?>">
-                                <?php else: ?>
-                                    <?php echo $member['member_id']; ?>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>ชื่อสกุลสมาชิก:</th>
-                            <td>
-                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                    <input type="text" name="name" id="member-name" class="w-full border rounded px-2 focus:outline-yellow-500" value="<?php echo $member['member_name']; ?>">
-                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                    <?php echo $member['member_name']; ?>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>ประเภทสมาชิก:</th>
-                            <td>
-                                <?php if ($is_update): ?>
-                                    <select name="typename">
-                                        <?php while ($typeRow = $member_type_results->fetch(PDO::FETCH_ASSOC)): ?>
-                                            <option value="<?php echo $typeRow['member_type_id']; ?>"
-                                                <?php echo ($typeRow['member_type_id'] == $member['member_type_id']) ? 'selected' : ''; ?>>
-                                                <?php echo $typeRow['member_type_name']; ?>
-                                            </option>
-                                        <?php endwhile; ?>
-                                    </select>
-                                <?php else: ?>
-                                    <?php echo ($member['member_type_name']); ?>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>ที่อยู่สมาชิก:</th>
-                            <td>
-                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                    <input type="text" name="address" class="w-full border rounded px-2 focus:outline-yellow-500" value="<?php echo $member['member_address']; ?>">
-                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                    <?php echo $member['member_address']; ?>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>เบอร์สมาชิก:</th>
-                            <td>
-                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                    <input type="text" name="phone" value="<?php echo $member['member_phone']; ?>">
-                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                    <?php echo $member['member_phone']; ?>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>วันที่สมัครเป็นสมาชิก:</th>
-                            <td>
-                                <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                    <input type="date" name="registerdate" value="<?php echo date('Y-m-d'); ?>" readonly>
-                                <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                    <?php echo $member['member_register_date']; ?>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-
-                    <?php endif; ?>
-                </table>
-
-                <!-- ปุ่มต่างๆ -->
-                <div class="detail-action flex gap-2  justify-end<?php echo $is_update ? '' : ''; ?> mx-3 mb-4">
-                    <?php if ($is_update): ?>
-                        <div class="flex gap-2 mt-4 justify-end">
-                            <a href="/?page=member_detail&tabel=member&id=<?php echo $member['member_id']; ?>"
-                                class="w-full p-2 px-5 text-center bg-red-500 text-white border rounded-lg shadow-lg hover:bg-red-600">
-                                ยกเลิก
-                            </a>
-                            <button type="submit"
-                                class="w-full p-2 px-5 bg-green-500 text-white border rounded-lg shadow-lg hover:bg-green-600">
-                                บันทึก
-                            </button>
+                    <!-- Member Name -->
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-medium text-gray-700">ชื่อ-สกุล:</span>
+                        <div class="flex-1 ml-4">
+                            <?php if ($is_update): ?>
+                                <input type="text" name="name" id="member-name" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500" value="<?php echo htmlspecialchars($member['member_name']); ?>">
+                            <?php else: ?>
+                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_name']); ?></span>
+                            <?php endif; ?>
                         </div>
+                    </div>
+
+                    <!-- Member Type -->
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-medium text-gray-700">ประเภทสมาชิก:</span>
+                        <div class="flex-1 ml-4">
+                            <?php if ($is_update): ?>
+                                <select name="typename" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                    <?php while ($typeRow = $member_type_results->fetch(PDO::FETCH_ASSOC)): ?>
+                                        <option value="<?php echo htmlspecialchars($typeRow['member_type_id']); ?>" <?php echo $typeRow['member_type_id'] == $member['member_type_id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($typeRow['member_type_name']); ?>
+                                        </option>
+                                    <?php endwhile; ?>
+                                </select>
+                            <?php else: ?>
+                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_type_name']); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Member Address -->
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-medium text-gray-700">ที่อยู่:</span>
+                        <div class="flex-1 ml-4">
+                            <?php if ($is_update): ?>
+                                <input type="text" name="address" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500" value="<?php echo htmlspecialchars($member['member_address']); ?>">
+                            <?php else: ?>
+                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_address']); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Member Phone -->
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-medium text-gray-700">เบอร์โทร:</span>
+                        <div class="flex-1 ml-4">
+                            <?php if ($is_update): ?>
+                                <input type="text" name="phone" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500" value="<?php echo htmlspecialchars($member['member_phone']); ?>">
+                            <?php else: ?>
+                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_phone']); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Registration Date -->
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-medium text-gray-700">วันที่สมัคร:</span>
+                        <div class="flex-1 ml-4">
+                            <?php if ($is_update): ?>
+                                <input type="date" name="registerdate" class="w-full p-2 border border-gray-300 rounded bg-gray-100" value="<?php echo date('Y-m-d', strtotime($member['member_register_date'])); ?>" readonly>
+                            <?php else: ?>
+                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_register_date']); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end gap-4 mt-6">
+                    <?php if ($is_update): ?>
+                        <a href="/?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>" class="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition duration-200">
+                            ยกเลิก
+                        </a>
+                        <button type="submit" class="px-6 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition duration-200">
+                            บันทึก
+                        </button>
                     <?php else: ?>
-                        <a href="/?page=member_list"
-                            class="mt-4 p-2 px-6 bg-gray-700 text-white border rounded-lg shadow-lg mr-2 hover:bg-gray-800">
+                        <a href="/?page=member_list" class="px-6 py-2 bg-gray-700 text-white rounded-lg shadow hover:bg-gray-800 transition duration-200">
                             ย้อนกลับ
                         </a>
-                        <a href="?page=member_detail&tabel=member&id=<?php echo $member['member_id']; ?>&is_update=1"
-                            class="mt-4 p-2 px-6 bg-blue-700 text-white border rounded-lg shadow-lg hover:bg-blue-800">
+                        <a href="?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>&is_update=1" class="px-6 py-2 bg-blue-700 text-white rounded-lg shadow hover:bg-blue-800 transition duration-200">
                             ต้องการแก้ไข
                         </a>
                     <?php endif; ?>
@@ -172,6 +169,8 @@ $member_type_results = $pdo->query($queryTypes);
             </form>
         </div>
     </div>
+
+    <!-- Focus on name field when editing -->
     <?php if ($is_update): ?>
         <script>
             document.addEventListener('DOMContentLoaded', function() {

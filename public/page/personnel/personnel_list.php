@@ -208,8 +208,11 @@ try {
                     <?php echo $count; ?>
                 </div>
             </div>
-            <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาบุคลากร...">
+
+            <div class="mt-4 md:mt-0">
+                <input type="text" id="searchInput" onkeyup="searchTable()"
+                    placeholder="ค้นหาบุคลากร..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
         </div>
@@ -238,18 +241,18 @@ try {
             </thead>
             <tbody>
                 <?php while ($personnel_list = $resultspersonnel->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr>
-                        <td><?php echo ($personnel_list['personnel_id']) ?></td>
-                        <td onclick="window.location.href='?page=personnel_detail&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'" class="text-start"><?php echo ($personnel_list['personnel_name']) ?></td>
+                    <tr class="bg-white hover:bg-gray-100 cursor-pointer">
+                        <td class="py-2 px-4 border border-gray-300"><?php echo ($personnel_list['personnel_id']) ?></td>
+                        <td onclick="window.location.href='?page=personnel_detail&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>'" class="py-2 px-4 border border-gray-300"><?php echo ($personnel_list['personnel_name']) ?></td>
 
-                        <td onclick="window.location.href='?page=personnel_group&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>&type=<?php echo urlencode($personnel_list['personnel_type_name']) ?>'" class=" text-start">
+                        <td onclick="window.location.href='?page=personnel_group&tabel=personnel&id=<?php echo ($personnel_list['personnel_id']) ?>&type=<?php echo urlencode($personnel_list['personnel_type_name']) ?>'" class="py-2 px-4 border border-gray-300">
                             <?php echo ($personnel_list['personnel_type_name']) ?>
                         </td>
 
                         <!-- <td><?php echo ($personnel_list['personnel_address']) ?></td>
                         <td><?php echo ($personnel_list['personnel_phone']) ?></td> -->
-                        <td class="text-start"><?php echo ($personnel_list['personnel_username']) ?></td>
-                        <td>
+                        <td class="py-2 px-4 border border-gray-300"><?php echo ($personnel_list['personnel_username']) ?></td>
+                        <td class="text-center py-2 px-4 border border-gray-300">
                             <a href="?page=personnel_update&id=<?php echo ($personnel_list['personnel_id']) ?>" class="
                             bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 

@@ -163,11 +163,11 @@ try {
                 <!--ลูปข้อมูลตาม type ของประเภท-->
                 <tbody>
                     <?php foreach ($memberData as $member): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($member['member_name']); ?></td>
-                            <td><?php echo htmlspecialchars($member['member_type_name']); ?></td>
-                            <td><?php echo htmlspecialchars($member['member_phone']); ?></td>
-                            <td>
+                        <tr class="bg-white hover:bg-gray-100 cursor-pointer"> 
+                            <td class="py-2 px-4 border border-gray-300"><?php echo htmlspecialchars($member['member_name']); ?></td>
+                            <td class="py-2 px-4 border border-gray-300"><?php echo htmlspecialchars($member['member_type_name']); ?></td>
+                            <td class="py-2 px-4 border border-gray-300"><?php echo htmlspecialchars($member['member_phone']); ?></td>
+                            <td class="text-centerpy-2 px-4 border border-gray-300">
                                 <a href="?page=member_update&id=<?php echo $member['member_id']; ?>" class="
                             bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 

@@ -186,8 +186,9 @@ try {
                 </div>
             </div>
             <div class="w-full flex justify-end ">
-                <input type="text" id="searchInput" class="pl-2 w-[250px] h-[40px] outline-none border border-gray-300  rounded-lg text-base text-gray-500 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-gray-500 sm:text-sm/6 " onkeyup="searchTable()" tabindex="1" placeholder="ค้นหา...">
+                <input type="text" id="searchInput" class="pl-2 w-[250px] h-[40px] outline-none border border-blue-300  rounded-lg text-base text-blue-500 placeholder:text-blue-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-blue-500 sm:text-sm/6 " onkeyup="searchTable()" tabindex="1" placeholder="ค้นหา...">
             </div>
+
         </div>
 
 
@@ -195,13 +196,13 @@ try {
             <tr>
                 <form action="" method="POST">
 
-                    <td class="bg-white">
+                    <td class="p-2 bg-white">
                         <input type="text" id="personnel_type" name="personnel_type" placeholder="ชื่อบุคลากร" required
-                            class=" w-[92%] p-1 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
+                            class=" w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </td>
-                    <td class="bg-white">
+                    <td class="p-2 bg-white border border-gray-300 text-center">
                         <button type="submit"
-                            class=" px-11 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                            class=" w-32 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
                             เพิ่ม
                         </button>
                     </td>
@@ -216,10 +217,9 @@ try {
             </thead>
             <tbody id="tableBody">
                 <?php foreach ($personnel_types as $personneltype): ?>
-                    <tr data-id="<?php echo $personneltype['personnel_type_id']; ?>">
-
-                        <td class="type-name bg-white pl-8 text-start"><?php echo ($personneltype['personnel_type_name']); ?></td>
-                        <td class="bg-white">
+                    <tr data-id="<?php echo $personneltype['personnel_type_id']; ?>" class="bg-white hover:bg-gray-100 cursor-pointer">
+                        <td class="type-name py-2 px-4 border border-gray-300"><?php echo ($personneltype['personnel_type_name']); ?></td>
+                        <td class="text-center py-2 px-4 border border-gray-300">
                             <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
                             text-white 
                             text-lg 

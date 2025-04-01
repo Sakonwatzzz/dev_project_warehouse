@@ -85,7 +85,7 @@ try {
     }
 
     // Pagination setup
-    $records_per_page = 10;
+    $records_per_page = 20;
     $page = isset($_GET['page_num']) ? max(1, (int) $_GET['page_num']) : 1;
     $offset = ($page - 1) * $records_per_page;
 
