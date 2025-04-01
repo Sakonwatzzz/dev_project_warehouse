@@ -155,7 +155,7 @@ try {
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">
-                    รายการสินค้าตามประเภท:
+                    ประเภท:
                     <?php
                     if (!empty($productData)) {
                         echo htmlspecialchars($productData[0]['product_type_name']);
@@ -170,8 +170,11 @@ try {
                     <?php echo $count; ?>
                 </div>
             </div>
-            <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสินค้า...">
+
+            <div class="mt-4 md:mt-0">
+                <input type="text" id="searchInput" onkeyup="searchTable()"
+                    placeholder="ค้นหาประเภทสินค้า..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 

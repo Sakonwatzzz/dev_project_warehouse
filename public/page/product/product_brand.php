@@ -1,71 +1,75 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+// Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['brandname'])) {
-        $brandname = $_POST['brandname'] ?? '';
-        try {
+    try {
+        if (isset($_POST['brandname']) && !empty(trim($_POST['brandname']))) {
+            $brandname = trim($_POST['brandname']);
             $stmt = $pdo->prepare('INSERT INTO product_brand (product_brand_name) VALUES (?)');
             $stmt->execute([$brandname]);
-            header('Location: /index.php?page=product_brand');
+            header('Location: ?page=product_brand&add_success=1');
             exit;
-        } catch (PDOException $e) {
-            echo 'Database error: ' . $e->getMessage();
+        } elseif (isset($_POST['update_brandname']) && isset($_POST['id'])) {
+            $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+            $newBrandName = trim($_POST['update_brandname']);
+            if ($id && !empty($newBrandName)) {
+                $stmt = $pdo->prepare("UPDATE product_brand SET product_brand_name = ? WHERE product_brand_id = ?");
+                $stmt->execute([$newBrandName, $id]);
+                header('Location: ?page=product_brand&edit_success=1');
+                exit;
+            }
         }
-    } elseif (isset($_POST['update_brandname'])) {
-        $id = $_POST['id'];
-        $newBrandName = $_POST['update_brandname'];
-        try {
-            $stmt = $pdo->prepare("UPDATE product_brand SET product_brand_name = ? WHERE product_brand_id = ?");
-            $stmt->execute([$newBrandName, $id]);
-            header('Location: /index.php?page=product_brand');
-            exit;
-        } catch (PDOException $e) {
-            echo 'Database error: ' . $e->getMessage();
-        }
-    }
-}
-
-// เงื่อนไขการลบข้อมูล (เช็คเฉพาะเมื่อมี 'id' ใน $_GET)
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    try {
-        $stmt = $pdo->prepare("DELETE FROM product_brand WHERE product_brand_id = ?");
-        $stmt->execute([$id]);
-        header("Location: ?page=product_brand");
-        exit;
     } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
+        echo 'Database error: ' . htmlspecialchars($e->getMessage());
+        exit;
     }
 }
 
-// จำนวนข้อมูลทั้งหมดในตาราง
-$query = "SELECT COUNT(*) as total_count FROM product_brand";
-$stmt = $pdo->query($query);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$count = $row['total_count'];
+// Handle DELETE request
+if (isset($_GET['id']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    try {
+        $id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+        if ($id) {
+            $stmt = $pdo->prepare("DELETE FROM product_brand WHERE product_brand_id = ?");
+            $stmt->execute([$id]);
+            header("Location: ?page=product_brand&delete_success=1");
+            exit;
+        }
+    } catch (PDOException $e) {
+        echo "Delete error: " . htmlspecialchars($e->getMessage());
+        exit;
+    }
+}
 
-// การแบ่งหน้า
+// Total count
+try {
+    $stmt = $pdo->query("SELECT COUNT(*) as total_count FROM product_brand");
+    $count = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
+} catch (PDOException $e) {
+    $count = 0;
+    echo "Count error: " . htmlspecialchars($e->getMessage());
+}
+
+// Pagination
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
+$page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
-// นับจำนวนรายการทั้งหมด
 try {
-    $total_query = "SELECT COUNT(*) FROM product_brand"; // 
-    $total_result = $pdo->query($total_query);
-    $total_records = $total_result->fetchColumn();
+    $total_records = $pdo->query("SELECT COUNT(*) FROM product_brand")->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    $total_pages = 1;
+    echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// Fetch data for the current page with product count
-try{
+// Fetch data
+try {
     $query = "SELECT 
         pt.product_brand_id,
         pt.product_brand_name,
-        COALESCE(COUNT(p.product_id),0) as product_count
+        COALESCE(COUNT(p.product_id), 0) as product_count
         FROM product_brand pt
         LEFT JOIN product p ON pt.product_brand_id = p.product_brand_id
         GROUP BY pt.product_brand_id, pt.product_brand_name 
@@ -74,377 +78,242 @@ try{
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $productbrand = $stmt;
-} catch (PDOException $e){
-    echo "Error :" . $e->getMessage();
+    $productbrand = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $productbrand = [];
+    echo "Fetch error: " . htmlspecialchars($e->getMessage());
 }
-
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/personnel_list.css">
-    <link href="../../output.css" rel="stylesheet">
-    <style>
-        .title {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-
-        }
-
-        .count {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-
-        }
-
-        .listcount {
-            font-size: 16px;
-            text-align: right;
-            color: #000;
-            padding: 4px 10px 4px 10px;
-            border: 1px solid gray;
-            border-radius: 5px;
-            background-color: #fff;
-            display: inline-block;
-            margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: 70px;
-        }
-
-
-        .notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            color: #000;
-            border: 2px solid #A0A0A0;
-            border-radius: 5px;
-            font-family: "Tahoma", "Verdana", sans-serif;
-            width: 400px;
-            height: 120px;
-            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            display: none;
-        }
-
-        .notification-header {
-            background-color: cyan;
-            color: #000;
-            padding: 10px;
-            font-weight: bold;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-        }
-
-        .notification-body {
-            padding: 20px;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .pagination {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .pagination a {
-            display: inline-block;
-            padding: 8px 16px;
-            text-decoration: none;
-            background-color: #aec5e366;
-            color: black;
-            border-radius: 5px;
-            margin: 0 4px;
-        }
-
-        .pagination a.active {
-            background-color: #333;
-            ;
-            color: white;
-        }
-
-        .pagination a:hover:not(.active) {
-            background-color: #ddd;
-        }
-    </style>
-    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>จัดการแบรนด์สินค้า</title>
 </head>
 
-<body>
-    <div class="font-[Tahoma] mx-[25rem] mt-11">
-        <div class=" title">
-        <div class="count">
-            <h2 class="text-2xl font-bold">ข้อมูลแบรนด์สินค้า</h2>
-            <div class="listcount">
-                <?php echo $count; ?>
+<body class="bg-gray-100">
+    <div class="font-sans mx-96 mt-11">
+        <!-- Title and Search -->
+        <div class="grid grid-cols-2 gap-2 mb-5">
+            <div class="flex items-center space-x-6">
+                <h2 class="text-2xl font-bold text-gray-800">ข้อมูลแบรนด์สินค้า</h2>
+                <span class="text-base text-center text-gray-800 px-3 py-1 border border-gray-400 rounded-md bg-white shadow-md w-20"><?php echo $count; ?></span>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <input type="text" id="searchInput" onkeyup="searchTable()"
+                    placeholder="ค้นหาแบรนด์สินค้า..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
-        <div class="search">
-            <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาประเภทสินค้า...">
-        </div>
 
-    </div>
-    <table class=" mt-5 mb-8 w-[100%]  border-2 border-[#A0A0A0] shadow-lg " id="dataTable">
-        <tr>
-            <form action="" method="POST">
-                <td class=" bg-white ">
-                    <input type="text" id="brandname" name="brandname" placeholder="ชื่อแบรนด์" 
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 " />
-                </td>
-                <td class=" bg-white "></td>
-                <td class=" bg-white ">
-                    <button type="submit"
-                        class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
-                        เพิ่ม
-                    </button>
-                </td>
-            </form>
-        </tr>
-        <thead>
+        <!-- Table -->
+        <table class="w-full mt-5 mb-8 border-2 border-gray-400 shadow-lg" id="dataTable">
+            <!-- Add Form -->
             <tr>
-                <th class="w-[40%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อแบรนด์สินค้า</th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                <th class="w-[20%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้า</th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                <th class="w-[10%] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            <?php foreach ($productbrand as $brand): ?>
-                <tr class=" bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?php echo $brand['product_brand_id']; ?>">
-                    <td class="brand-name text-start pl-4"><?php echo ($brand['product_brand_name']); ?></td>
-
-                    <td class="text-center hover:bg-gray-100 cursor-pointer"
-                        onclick="window.location.href='?page=product_brandgroup&tabel=product_brand&id=<?php echo $brand['product_brand_id']; ?>&product_brand_name=<?php echo urlencode($brand['product_brand_name']); ?>'">
-                        <?php echo number_format($brand['product_count']); ?> รายการ
+                <form action="" method="POST">
+                    <td class="p-2 bg-white">
+                        <input type="text" id="brandname" name="brandname"
+                            placeholder="ชื่อแบรนด์"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required />
                     </td>
-
-                    <td>
-                        <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
-                            text-white 
-                            text-lg 
-                            border border-yellow-700 
-                            border-t-white 
-                            border-l-white 
-                            px-2 
-                            py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#FFF9C4] 
-                            active:border-[#FFF176] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner">แก้ไข</button>
-
-                        <button class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                            border-t-white 
-                            border-l-white 
-                            px-4 
-                            py-1 
-                            rounded 
-                                            shadow-md 
-                            hover:bg-[#FFEBEE] 
-                            active:border-[#EF9A9A] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner">
-                            <a href="?page=product_brand&id=<?php echo $brand['product_brand_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button ">ลบ</a>
+                    <td class="p-2 bg-white border border-gray-300 text-center text-lg italic text-gray-600">อัตโนมัติ</td>
+                    <td class="p-2 bg-white border border-gray-300 text-center">
+                        <button type="submit"
+                            class="w-32 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            เพิ่ม
                         </button>
-
                     </td>
+                </form>
+            </tr>
+
+            <!-- Header -->
+            <thead>
+                <tr class="bg-gradient-to-b from-blue-200 to-blue-100 text-gray-800 text-lg">
+                    <th class="w-2/5 px-3 py-2 border border-gray-500">ชื่อแบรนด์สินค้า</th>
+                    <th class="w-2/5 px-3 py-2 border border-gray-500">จำนวนสินค้า</th>
+                    <th class="w-1/5 px-3 py-2 border border-gray-500">การจัดการ</th>
                 </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+            </thead>
 
-    <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
-    <div class="pagination">
+            <!-- Body -->
+            <tbody id="tableBody">
+                <?php foreach ($productbrand as $brand): ?>
+                    <tr class="bg-white hover:bg-gray-100 cursor-pointer" data-id="<?php echo $brand['product_brand_id']; ?>">
+                        <td class="brand-name py-2 px-4 border border-gray-300"><?php echo htmlspecialchars($brand['product_brand_name']); ?></td>
+                        <td class="py-2 px-4 border border-gray-300 text-center hover:bg-gray-200 cursor-pointer"
+                            onclick="window.location.href='?page=product_brandgroup&tabel=product_brand&id=<?php echo $brand['product_brand_id']; ?>&product_brand_name=<?php echo urlencode($brand['product_brand_name']); ?>'">
+                            <?php echo number_format($brand['product_count']); ?> รายการ
+                        </td>
+                        <td class="py-2 px-4 border border-gray-300 text-center">
+                            <div class="space-x-2">
+                                <button onclick="enableEdit(this)"
+                                    class="edit-btn bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg px-4 py-1 rounded shadow-md hover:from-yellow-200 hover:via-yellow-400 hover:to-yellow-600 transition duration-200">
+                                    แก้ไข
+                                </button>
+                                <a href="?page=product_brand&id=<?php echo $brand['product_brand_id']; ?>"
+                                    onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                    class="delete-btn inline-block bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg px-4 py-1 rounded shadow-md hover:from-red-200 hover:via-red-400 hover:to-red-600 transition duration-200">
+                                    ลบ
+                                </a>
+                                <button class="save-btn hidden bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg px-4 py-1 rounded shadow-md hover:from-green-200 hover:via-green-400 hover:to-green-600 transition duration-200"
+                                    onclick="saveEdit(this)">
+                                    บันทึก
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
         <?php if ($total_pages > 1): ?>
-            <?php if ($page > 1): ?>
-                <a href="?page=product_brand&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
-            <?php endif; ?>
-
-            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                <?php if ($i == $page): ?>
-                    <a href="#" class="active"><?php echo $i; ?></a>
-                <?php else: ?>
-                    <a href="?page=product_brand&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+            <div class="text-center space-x-2">
+                <?php if ($page > 1): ?>
+                    <a href="?page=product_brand&page_num=<?php echo ($page - 1); ?>"
+                        class="inline-block px-4 py-2 bg-blue-100 hover:bg-blue-200 text-black rounded-md transition duration-200">
+                        « ก่อนหน้า
+                    </a>
                 <?php endif; ?>
-            <?php endfor; ?>
 
-            <?php if ($page < $total_pages): ?>
-                <a href="?page=product_brand&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
-            <?php endif; ?>
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <a href="?page=product_brand&page_num=<?php echo $i; ?>"
+                        class="inline-block px-4 py-2 rounded-md transition duration-200 <?php echo $i === $page ? 'bg-gray-800 text-white' : 'bg-blue-100 hover:bg-blue-200 text-black'; ?>">
+                        <?php echo $i; ?>
+                    </a>
+                <?php endfor; ?>
+
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=product_brand&page_num=<?php echo ($page + 1); ?>"
+                        class="inline-block px-4 py-2 bg-blue-100 hover:bg-blue-200 text-black rounded-md transition duration-200">
+                        ถัดไป »
+                    </a>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
     </div>
+
+    <!-- Notification -->
+    <div id="notification" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-gray-400 rounded-md shadow-lg w-96 h-32 z-50">
+        <div id="notification-header" class="p-2 rounded-t-md font-bold"></div>
+        <div id="notification-body" class="p-5 text-center text-lg"></div>
     </div>
 
     <script>
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-            const thead = table.querySelector("thead");
-            let foundAny = false;
-
-            // Always keep the header visible
-            thead.style.display = "";
-
-            // Always keep the input row visible 
-            tr[0].style.display = "";
-
-            // Search through data rows (start from index 2 to skip header and input row)
-            for (let i = 2; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
-
-                // Check every cell in the row
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
-
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) {
-                    foundAny = true;
-                }
-            }
-
-            // Handle "No data" message
-            let noDataMessage = document.getElementById("noDataMessage");
-            if (!foundAny) {
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement("p");
-                    noDataMessage.id = "noDataMessage";
-                    noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.style.color = "red";
-                    noDataMessage.style.fontWeight = "bold";
-                    noDataMessage.style.textAlign = "center";
-                    noDataMessage.style.marginTop = "10px";
-                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                }
-            } else {
-                if (noDataMessage) {
-                    noDataMessage.remove();
-                }
-            }
-        }
-
-
         function enableEdit(button) {
             const row = button.closest('tr');
             const brandNameCell = row.querySelector('.brand-name');
-            const brandId = row.getAttribute('data-id');
-            const originalBrandName = brandNameCell.innerText;
+            const originalName = brandNameCell.textContent.trim();
 
-            if (button.innerText === 'แก้ไข') {
-                // เปลี่ยนเป็นโหมดแก้ไข
-                brandNameCell.innerHTML = `<input type="text" class="edit-input" style="border: 1px solid #333;" value="${originalBrandName}" />`;
-
-                button.innerText = 'บันทึก';
-                const deleteButton = row.querySelector('.delete-button');
-                const editButton = row.querySelector('.edit-button');
-                deleteButton.style.display = 'none';
-                editButton.style.display = 'none';
-
-                const saveButton = document.createElement('button');
-                saveButton.innerText = 'บันทึก';
-                saveButton.classList.add('save-button',
-                    'bg-gradient-to-b',
-                    'from-green-300',
-                    'via-green-500',
-                    'to-green-700',
-                    'text-white',
-                    'text-lg',
-                    'border',
-                    'border-green-700',
-                    'border-t-white',
-                    'border-l-white',
-                    'px-2',
-                    'py-1',
-                    'rounded',
-                    'shadow-md',
-                    'hover:bg-[#E8F5E9]',
-                    'active:border-[#A5D6A7]',
-                    'active:border-b-white',
-                    'active:border-r-white',
-                    'active:shadow-inner'
-                );
-                saveButton.onclick = function() {
-                    // Save changes
-                    const newbrandName = brandNameCell.querySelector('.edit-input').value;
-
-                    // Update the warehouse in the database
-                    fetch('', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `id=${brandId}&update_brandname=${encodeURIComponent(newbrandName)}`
-                    }).then(() => {
-                        // Update the table with new values after saving
-                        brandNameCell.innerHTML = newbrandName;
-                        // Reset to edit mode
-                        button.innerText = 'แก้ไข';
-                        deleteButton.style.display = 'inline-block';
-                        editButton.style.display = 'inline-block';
-                        saveButton.remove(); // Remove the save button
-                    }).catch(error => {
-                        console.error('Error:', error);
-                        alert('ไม่สามารถบันทึกการเปลี่ยนแปลงได้');
-                    });
-                };
-                row.querySelector('td:last-child').appendChild(saveButton);
-            }
-
+            brandNameCell.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${originalName}" />`;
+            button.classList.add('hidden');
+            row.querySelector('.delete-btn').classList.add('hidden');
+            row.querySelector('.save-btn').classList.remove('hidden');
         }
-    </script>
 
-    <script>
-        // เมื่อคลิกปุ่มแก้ไข ให้ซ่อนปุ่มแก้ไขและลบ และแสดงปุ่มบันทึก
-        document.querySelectorAll('.edit-button').forEach(button => {
-            button.addEventListener('click', function() {
-                // หยุดการกระทำของลิงก์
-                event.preventDefault();
-                // ซ่อนปุ่มแก้ไขและลบ
-                this.parentElement.querySelector('.edit-delete-buttons').style.display = 'none';
-                // แสดงปุ่มบันทึก
-                this.parentElement.querySelector('.save-button').style.display = 'block';
-            });
-        });
-    </script>
+        function saveEdit(button) {
+            const row = button.closest('tr');
+            const brandId = row.getAttribute('data-id');
+            const newName = row.querySelector('.edit-input').value.trim();
+            const brandNameCell = row.querySelector('.brand-name');
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
-            if (urlParams.has('edit_success')) {
-                const notificationEdit = document.getElementById('notification-edit');
-                notificationEdit.style.display = 'block';
-                setTimeout(() => {
-                    notificationEdit.style.display = 'none';
-                }, 2000);
-            } else if (urlParams.has('delete_success')) {
-                const notificationDelete = document.getElementById('notification-delete');
-                notificationDelete.style.display = 'block';
-                setTimeout(() => {
-                    notificationDelete.style.display = 'none';
-                }, 2000);
+            if (!newName) {
+                alert('กรุณากรอกชื่อแบรนด์');
+                return;
             }
+
+            fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `id=${brandId}&update_brandname=${encodeURIComponent(newName)}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        brandNameCell.textContent = newName;
+                        const editBtn = row.querySelector('.edit-btn');
+                        const deleteBtn = row.querySelector('.delete-btn');
+                        editBtn.classList.remove('hidden');
+                        deleteBtn.classList.remove('hidden');
+                        button.classList.add('hidden');
+                        showNotification('แก้ไขสำเร็จ', 'bg-cyan-200');
+                    } else {
+                        throw new Error('Failed to save');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('เกิดข้อผิดพลาดในการบันทึก', 'bg-red-200');
+                });
+        }
+
+        function searchTable() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('dataTable');
+            const tr = table.getElementsByTagName('tr');
+            let foundAny = false;
+
+            tr[0].style.display = ''; // Keep input row visible
+            table.querySelector('thead').style.display = ''; // Keep header visible
+
+            for (let i = 2; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName('td');
+                let rowMatches = false;
+                for (let j = 0; j < td.length; j++) {
+                    const text = td[j].textContent.toLowerCase();
+                    if (text.includes(filter)) {
+                        rowMatches = true;
+                        break;
+                    }
+                }
+                tr[i].style.display = rowMatches ? '' : 'none';
+                if (rowMatches) foundAny = true;
+            }
+
+            const noData = document.getElementById('noDataMessage');
+            if (!foundAny && !noData) {
+                const msg = document.createElement('p');
+                msg.id = 'noDataMessage';
+                msg.textContent = 'ไม่พบข้อมูล';
+                msg.className = 'text-red-500 font-bold text-center mt-2';
+                table.parentNode.insertBefore(msg, table.nextSibling);
+            } else if (foundAny && noData) {
+                noData.remove();
+            }
+        }
+
+        function showNotification(message, headerClass) {
+            const notification = document.getElementById('notification');
+            const header = document.getElementById('notification-header');
+            const body = document.getElementById('notification-body');
+
+            header.className = `p-2 rounded-t-md font-bold ${headerClass}`;
+            header.textContent = 'แจ้งเตือน';
+            body.textContent = message;
+            notification.classList.remove('hidden');
+
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('add_success')) {
+                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('edit_success')) {
+                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
+            }
+            document.getElementById('searchInput').focus();
         });
     </script>
 </body>

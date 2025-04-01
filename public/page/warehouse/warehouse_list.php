@@ -162,9 +162,10 @@ try {
                     <?php echo $count; ?>
                 </div>
             </div>
-            <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาคลังสินค้า..."
-                    class="w-full p-2 border border-gray-300 rounded-md">
+            <div class=" mt-4 md:mt-0">
+                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
+                    placeholder="ค้นหาคลังสินค้า..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -264,7 +265,7 @@ try {
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-        
+
         <!-- Warehouse Cards Section -->
         <h2 class="text-2xl font-bold text-gray-800 mb-6">คลังสินค้า</h2>
 
@@ -275,7 +276,7 @@ try {
                     <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
                         <h3 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($warehouse['warehouse_name']) ?></h3>
                     </div>
-                   
+
                     <div class="p-6 flex justify-between items-center">
                         <div>
                             <p class="text-gray-600 mb-2"><i class="fas fa-box mr-2"></i>จำนวน Lot ทั้งหมด</p>
