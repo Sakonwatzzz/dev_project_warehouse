@@ -134,7 +134,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                 <a href="?page=lot_listinsert" class="button-link">
                     <button class="<?php echo ($current_page == 'lot_listinsert') ? 'active' : ''; ?>">
                         <img src="../image/warehouse.png" alt="">
-                        <p>บันทึกรายการรับสินค้า</p>
+                        <p>บันทึกรายการรับสินค้าใหม่</p>
                     </button>
                 </a>
                 <a href="?page=lot_list" class="button-link">
