@@ -458,7 +458,7 @@ ob_end_flush();
                         </div>
                     </div>
                 </div>
-                <div class="charts-container">
+                <!-- <div class="charts-container">
                     <div class="chart-card">
                         <div class="chart-header">
                             <div class="chart-title">หมวดหมู่รายการล็อตสินค้า</div>
@@ -472,7 +472,7 @@ ob_end_flush();
                             <canvas id="categoryChart"></canvas>
                         </div>
                     </div>
-                </div>
+                </div> -->
                 
                 <!-- Products in Warehouse -->
                 <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">

@@ -107,7 +107,7 @@ ob_end_flush();
 
             <div class=" mt-4 md:mt-0">
                 <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
-                    placeholder="ค้นหารายการรับสินค้า..."
+                    placeholder="ค้นหารายการย้ายคลัง..."
                     class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
@@ -132,9 +132,6 @@ ob_end_flush();
                             คลังสินค้า</th>
                         <th
                             class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                            ผู้ส่งมอบ</th>
-                        <th
-                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                             สถานะล็อต</th>
                         <th
                             class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
@@ -156,10 +153,6 @@ ob_end_flush();
                                 <td class="zoom-in px-4 py-3 border border-gray-200 hover:bg-gray-200  cursor-pointer"
                                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list['warehouse_id']); ?>'">
                                     <span><?php echo htmlspecialchars($lot_list['warehouse_name']); ?></span>
-                                </td>
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer"
-                                    onclick="window.location.href='?page=supplier_lot&supplier_id=<?php echo htmlspecialchars($lot_list['supplier_id']); ?>'">
-                                    <?php echo htmlspecialchars($lot_list['supplier_name']); ?>
                                 </td>
 
                                 <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer "
@@ -276,7 +269,7 @@ ob_end_flush();
         }
 
         // Notification handler
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
