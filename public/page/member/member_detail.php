@@ -6,10 +6,23 @@ if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
     die("ระบุประเภทหรือ ID ไม่ถูกต้อง");
 }
 
-// Handle POST request for redirection
+// Handle POST request for updating member
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $member_id = $_POST['member_id'];
-    header("Location: member_detail.php?tabel=member&id=" . $member_id);
+    $name = $_POST['name'];
+    $address = $_POST['address'];
+    $phone = $_POST['phone'];
+    $registerdate = $_POST['registerdate'];
+    $typename = $_POST['typename'];
+
+    $stmt = $pdo->prepare("
+        UPDATE member 
+        SET member_name = ?, member_address = ?, member_phone = ?, member_register_date = ?, member_type_id = ?
+        WHERE member_id = ?
+    ");
+    $stmt->execute([$name, $address, $phone, $registerdate, $typename, $member_id]);
+
+    header("Location: /?page=member_detail&tabel=member&id=" . $member_id);
     exit();
 }
 
@@ -51,129 +64,110 @@ $member_type_results = $pdo->query($queryTypes);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../../output.css" rel="stylesheet">
-    <title>รายละเอียดสมาชิก</title>
+    <title><?php echo $is_update ? 'แก้ไขข้อมูลสมาชิก' : 'รายละเอียดสมาชิก'; ?></title>
 </head>
 
-<body class="bg-gray-100 font-sans antialiased">
-    <div class="container mx-auto px-4 py-8 max-w-3xl">
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <!-- Header -->
-            <div class="p-4 <?php echo $is_update ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'; ?>">
-                <h2 class="text-xl font-semibold text-white">
-                    <?php echo $is_update ? 'แก้ไขข้อมูลสมาชิก' : 'รายละเอียดสมาชิก'; ?>
-                </h2>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto xl:max-w-4xl p-4">
+        <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">
+            <?php echo $is_update ? 'กำลังแก้ไขข้อมูลสมาชิก' : 'รายละเอียดสมาชิก'; ?>
+        </h2>
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Member Details Section -->
+            <div class="w-full">
+                <div class="bg-gray-50 border-2 border-gray-300 shadow-md rounded-lg">
+                    <h3 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-xl font-bold p-4 border-b-2 border-gray-400 rounded-t-lg">
+                        ข้อมูลสมาชิก
+                    </h3>
+                    <form class="p-6 space-y-1" action="" method="POST">
+                        <input type="hidden" name="member_id" value="<?php echo htmlspecialchars($member['member_id']); ?>">
+
+                        <!-- Member Fields -->
+                        <?php
+                        $fields = [
+                            ['label' => 'รหัสสมาชิก', 'name' => 'member_id', 'value' => $member['member_id'], 'readonly' => true],
+                            ['label' => 'ชื่อ-สกุล', 'name' => 'name', 'value' => $member['member_name'], 'id' => 'member-name', 'required' => true],
+                            ['label' => 'ที่อยู่', 'name' => 'address', 'value' => $member['member_address']],
+                            ['label' => 'เบอร์โทร', 'name' => 'phone', 'value' => $member['member_phone']],
+                            ['label' => 'วันที่สมัคร', 'name' => 'registerdate', 'value' => date('Y-m-d', strtotime($member['member_register_date'])), 'readonly' => true, 'type' => 'date'],
+                        ];
+                        foreach ($fields as $field): ?>
+                            <div class="flex items-center gap-4">
+                                <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700"><?php echo $field['label']; ?>:</label>
+                                <div class="w-7/12 lg:w-8/12">
+                                    <?php if ($is_update && !($field['readonly'] ?? false)): ?>
+                                        <input type="<?php echo $field['type'] ?? 'text'; ?>"
+                                            name="<?php echo $field['name']; ?>"
+                                            id="<?php echo $field['id'] ?? ''; ?>"
+                                            value="<?php echo htmlspecialchars($field['value']); ?>"
+                                            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                            <?php echo ($field['required'] ?? false) ? 'required' : ''; ?>>
+                                    <?php elseif ($is_update && ($field['readonly'] ?? false)): ?>
+                                        <input type="<?php echo $field['type'] ?? 'text'; ?>"
+                                            name="<?php echo $field['name']; ?>"
+                                            value="<?php echo htmlspecialchars($field['value']); ?>"
+                                            class="w-full p-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600"
+                                            readonly>
+                                    <?php else: ?>
+                                        <span class="block w-full p-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600"><?php echo htmlspecialchars($field['value']); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+
+                        <!-- Member Type -->
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
+                                <a href="?page=member_type" class="text-blue-600 hover:underline">ประเภทสมาชิก:</a>
+                            </label>
+                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
+                                <?php if ($is_update): ?>
+                                    <select name="typename" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                        <?php while ($typeRow = $member_type_results->fetch(PDO::FETCH_ASSOC)): ?>
+                                            <option value="<?php echo htmlspecialchars($typeRow['member_type_id']); ?>"
+                                                <?php echo $typeRow['member_type_id'] == $member['member_type_id'] ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($typeRow['member_type_name']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <span class="block w-full p-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600"><?php echo htmlspecialchars($member['member_type_name']); ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="flex justify-end gap-4 mt-6">
+                            <?php if ($is_update): ?>
+                                <a href="/?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>"
+                                    class="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-200">
+                                    ยกเลิก
+                                </a>
+                                <button type="submit"
+                                    class="mt-4 bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition duration-200">
+                                    บันทึก
+                                </button>
+                            <?php else: ?>
+                                <a href="/?page=member_list"
+                                    class="mt-4 bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition duration-200">
+                                    ย้อนกลับ
+                                </a>
+                                <a href="?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>&is_update=1"
+                                    class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">
+                                    ต้องการแก้ไข
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-            <!-- Form -->
-            <form action="../../page/member/member_update.php" method="POST" class="p-6 space-y-6">
-                <input type="hidden" name="member_id" value="<?php echo htmlspecialchars($member['member_id']); ?>">
-
-                <!-- Member Details -->
-                <div class="space-y-4">
-                    <!-- Member ID -->
-                    <div class="flex items-center  border-b border-gray-200 pb-2">
-                        <span class="font-medium text-gray-700">รหัสสมาชิก:</span>
-                        <span class="text-gray-900 text-start">
-                            <?php if ($is_update): ?>
-                                <input type="hidden" name="id" value="<?php echo htmlspecialchars($member['member_id']); ?>">
-                            <?php endif; ?>
-                            <?php echo htmlspecialchars($member['member_id']); ?>
-                        </span>
-                    </div>
-
-                    <!-- Member Name -->
-                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <span class="font-medium text-gray-700">ชื่อ-สกุล:</span>
-                        <div class="flex-1 ml-4">
-                            <?php if ($is_update): ?>
-                                <input type="text" name="name" id="member-name" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500" value="<?php echo htmlspecialchars($member['member_name']); ?>">
-                            <?php else: ?>
-                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_name']); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Member Type -->
-                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <span class="font-medium text-gray-700">ประเภทสมาชิก:</span>
-                        <div class="flex-1 ml-4">
-                            <?php if ($is_update): ?>
-                                <select name="typename" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                                    <?php while ($typeRow = $member_type_results->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo htmlspecialchars($typeRow['member_type_id']); ?>" <?php echo $typeRow['member_type_id'] == $member['member_type_id'] ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($typeRow['member_type_name']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            <?php else: ?>
-                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_type_name']); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Member Address -->
-                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <span class="font-medium text-gray-700">ที่อยู่:</span>
-                        <div class="flex-1 ml-4">
-                            <?php if ($is_update): ?>
-                                <input type="text" name="address" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500" value="<?php echo htmlspecialchars($member['member_address']); ?>">
-                            <?php else: ?>
-                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_address']); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Member Phone -->
-                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <span class="font-medium text-gray-700">เบอร์โทร:</span>
-                        <div class="flex-1 ml-4">
-                            <?php if ($is_update): ?>
-                                <input type="text" name="phone" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500" value="<?php echo htmlspecialchars($member['member_phone']); ?>">
-                            <?php else: ?>
-                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_phone']); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Registration Date -->
-                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <span class="font-medium text-gray-700">วันที่สมัคร:</span>
-                        <div class="flex-1 ml-4">
-                            <?php if ($is_update): ?>
-                                <input type="date" name="registerdate" class="w-full p-2 border border-gray-300 rounded bg-gray-100" value="<?php echo date('Y-m-d', strtotime($member['member_register_date'])); ?>" readonly>
-                            <?php else: ?>
-                                <span class="text-gray-900"><?php echo htmlspecialchars($member['member_register_date']); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="flex justify-end gap-4 mt-6">
-                    <?php if ($is_update): ?>
-                        <a href="/?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>" class="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition duration-200">
-                            ยกเลิก
-                        </a>
-                        <button type="submit" class="px-6 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition duration-200">
-                            บันทึก
-                        </button>
-                    <?php else: ?>
-                        <a href="/?page=member_list" class="px-6 py-2 bg-gray-700 text-white rounded-lg shadow hover:bg-gray-800 transition duration-200">
-                            ย้อนกลับ
-                        </a>
-                        <a href="?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>&is_update=1" class="px-6 py-2 bg-blue-700 text-white rounded-lg shadow hover:bg-blue-800 transition duration-200">
-                            ต้องการแก้ไข
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </form>
         </div>
     </div>
 
     <!-- Focus on name field when editing -->
     <?php if ($is_update): ?>
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('member-name').focus();
             });
         </script>

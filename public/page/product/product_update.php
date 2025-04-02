@@ -94,7 +94,7 @@ $newBrandId = isset($_GET['new_brand_id']) ? $_GET['new_brand_id'] : null;
 <body class="bg-gray-100 font-sans">
     <div class="container mx-auto xl:max-w-4xl p-4">
         <div class="bg-gray-50 border-2 border-gray-400 shadow-lg rounded-md">
-            <h2 class="bg-gradient-to-b from-blue-200 to-blue-300 text-gray-800 text-2xl font-bold p-4 border-b border-blue-300 rounded-t-md">
+            <h2 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-2xl font-bold p-4 border-b border-gray-300 rounded-t-md">
                 แก้ไขข้อมูลสินค้า
             </h2>
             <form class="p-4 space-y-2" action="" method="POST">

@@ -1,7 +1,8 @@
 <?php
+ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
 
-
+// Initial query to fetch supplier data
 $query = "SELECT
     supplier.supplier_id, 
     supplier.supplier_name, 
@@ -16,12 +17,13 @@ try {
     exit();
 }
 
-// จำนวนข้อมูลทั้งหมดในตาราง
+// Total supplier count
 $query = "SELECT COUNT(*) as total_count FROM supplier";
 $stmt = $pdo->query($query);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $count = $row['total_count'];
 
+// Handle DELETE request
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM supplier WHERE supplier_id = ?");
@@ -30,13 +32,12 @@ if (isset($_GET['id'])) {
     exit;
 }
 
-// การแบ่งหน้า
+// Pagination
 $records_per_page = 5;
 $page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
 $offset = ($page - 1) * $records_per_page;
-$total_pages = ceil($count / $records_per_page);
 
-// นับจำนวนรายการทั้งหมด
+// Count total records for pagination
 try {
     $total_query = "SELECT COUNT(*) FROM supplier";
     $total_result = $pdo->query($total_query);
@@ -44,24 +45,31 @@ try {
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
+    exit();
 }
 
+// Fetch paginated supplier data
 try {
-    $query = "SELECT supplier_id, supplier_name, supplier_address, supplier_phone, supplier_detail 
+    $query = "SELECT 
+                supplier_id, 
+                supplier_name, 
+                supplier_address, 
+                supplier_phone, 
+                supplier_detail 
               FROM supplier 
-              LIMIT ?, ?";
-
+              LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
-    $stmt->bindValue(1, $offset, PDO::PARAM_INT);
-    $stmt->bindValue(2, $records_per_page, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
     $supplierResults = $stmt;
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
     exit();
 }
-
+ob_end_flush();
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 
@@ -70,6 +78,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../style/personnel_list.css">
     <link href="../../output.css" rel="stylesheet">
+    <title>Supplier List</title>
     <style>
         .title {
             display: grid;
@@ -77,14 +86,12 @@ try {
             align-items: center;
             justify-content: center;
             gap: 5px;
-
         }
 
         .count {
             display: flex;
             gap: 1.5rem;
             align-items: center;
-
         }
 
         .listcount {
@@ -101,7 +108,6 @@ try {
             width: 70px;
         }
 
-        /* CSS สำหรับการแจ้งเตือน */
         .notification {
             position: fixed;
             top: 50%;
@@ -158,22 +164,20 @@ try {
             background-color: #ddd;
         }
     </style>
-    <title>หน้าผู้ส่งมอบ</title>
 </head>
 
 <body>
-
     <div class="font-[Tahoma] mx-[23rem] mt-11">
-
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">ข้อมูลผู้ส่งมอบ</h2>
-                <div class="listcount">
+                <div class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md ">
                     <?php echo $count; ?>
                 </div>
             </div>
-            <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสมาชิก...">
+            <div class="mt-4 md:mt-0">
+                <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาผู้ส่งมอบ..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -186,65 +190,48 @@ try {
             <div class="notification-body">ลบสำเร็จ!</div>
         </div>
 
-        <table class="data-table mt-5 mb-8 w-[100%]  border shadow-lg" id="dataTable">
+        <table class="data-table mt-5 mb-8 w-[100%] border shadow-lg" id="dataTable">
             <thead>
                 <tr>
-                    <!-- <th>รหัส</th> -->
-                    <th class="w-[150px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อ</th>
-                    <th class="w-[150px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ที่อยู่</th>
-                    <th class="w-[150px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">เบอร์โทรศัพท์</th>
-                    <th class="w-[150px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รายละเอียด</th>
-                    <th class="w-[150px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
+                    <th class="w-[100px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสผู้ส่งมอบ</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อ</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ที่อยู่</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">เบอร์โทรศัพท์</th>
+                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while ($supplier_list = $supplierResults->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr>
-                        <td class="text-start pl-4"><?php echo ($supplier_list['supplier_name']) ?></td>
-                        <td class="text-start pl-4"><?php echo ($supplier_list['supplier_address']) ?></td>
-                        <td class="text-start pl-4"><?php echo ($supplier_list['supplier_phone']) ?></td>
-                        <td class="text-start pl-4"><?php echo ($supplier_list['supplier_detail']) ?></td>
-                        <td>
-                            <a href="?page=supplier_update&id=<?php echo ($supplier_list['supplier_id']) ?>" class="
-                            bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
-                            text-white 
-                            text-lg 
-                            border border-yellow-700 
-                            border-t-white 
-                            border-l-white 
-                            px-2 
-                            py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#FFF9C4] 
-                            active:border-[#FFF176] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner
-                            ">แก้ไข</a>
-                            <a href="?page=supplier_list&id=<?php echo ($supplier_list['supplier_id']) ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class=" bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                            border-t-white 
-                            border-l-white 
-                            px-4 
-                            py-1 
-                            rounded 
-                                            shadow-md 
-                            hover:bg-[#FFEBEE] 
-                            active:border-[#EF9A9A] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner">ลบ</a>
+                    <tr class="bg-white hover:bg-gray-100 cursor-pointer">
+                        <td class="py-2 px-4 border border-gray-300"><?php echo ($supplier_list['supplier_id']) ?></td>
+                        <td class="py-2 px-4 text-blue-500 border border-gray-300 hover:bg-gray-300 cursor-pointer" onclick="window.location.href='?page=supplier_detail&tabel=supplier&id=<?php echo ($supplier_list['supplier_id']) ?>'"><?php echo ($supplier_list['supplier_name']) ?></td>
+                        <td class="py-2 px-4 border border-gray-300"><?php echo ($supplier_list['supplier_address']) ?></td>
+                        <td class="py-2 px-4 border border-gray-300"><?php echo ($supplier_list['supplier_phone']) ?></td>
+                        <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
+                            <a href="?page=supplier_update&id=<?php echo ($supplier_list['supplier_id']) ?>"
+                                class="inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                แก้ไข
+                            </a>
+                            <a href="?page=supplier_list&id=<?php echo $supplier_list['supplier_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')"
+                                class="inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
+                                </svg>
+                                ลบ
+                            </a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
 
-        <!--โค้ดนี้ใช้ในการแบ่งหน้าในตาราง-->
         <div class="pagination">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
-                    <a href="?page=supplier_list&page_num=<?php echo ($page - 1); ?>">&laquo; ก่อนหน้า</a>
+                    <a href="?page=supplier_list&page_num=<?php echo ($page - 1); ?>">« ก่อนหน้า</a>
                 <?php endif; ?>
 
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
@@ -256,7 +243,7 @@ try {
                 <?php endfor; ?>
 
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=supplier_list&page_num=<?php echo ($page + 1); ?>">ถัดไป &raquo;</a>
+                    <a href="?page=supplier_list&page_num=<?php echo ($page + 1); ?>">ถัดไป »</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
@@ -274,10 +261,7 @@ try {
             // Always keep the header visible
             thead.style.display = "";
 
-            // Always keep the input row visible 
-            tr[0].style.display = "";
-
-            // Search through data rows (start from index 2 to skip header and input row)
+            // Search through data rows (start from index 1 to skip header)
             for (let i = 1; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
                 let rowMatchesSearch = false;

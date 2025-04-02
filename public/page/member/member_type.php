@@ -2,40 +2,44 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['member_type'])) {
-        $member_type = $_POST['member_type'] ?? '';
+    if (isset($_POST['member_type']) && !empty(trim($_POST['member_type']))) {
+        $member_type = trim($_POST['member_type']);
         try {
             $stmt = $pdo->prepare('INSERT INTO member_type (member_type_name) VALUES (?)');
             $stmt->execute([$member_type]);
-            header('Location: /index.php?page=member_type');
+            header('Location: /index.php?page=member_type&add_success=1');
             exit;
         } catch (PDOException $e) {
             echo 'Database error: ' . $e->getMessage();
         }
-    } elseif (isset($_POST['update_member_type'])) {
-        $id = $_POST['id'];
-        $new_member_type = $_POST['update_member_type'];
-        try {
-            $stmt = $pdo->prepare("UPDATE member_type SET member_type_name = ? WHERE member_type_id = ?");
-            $stmt->execute([$new_member_type, $id]);
-            header('Location: /index.php?page=member_type');
-            exit;
-        } catch (PDOException $e) {
-            echo 'Database error: ' . $e->getMessage();
+    } elseif (isset($_POST['update_member_type']) && isset($_POST['id'])) {
+        $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+        $new_member_type = trim($_POST['update_member_type']);
+        if ($id && !empty($new_member_type)) {
+            try {
+                $stmt = $pdo->prepare("UPDATE member_type SET member_type_name = ? WHERE member_type_id = ?");
+                $stmt->execute([$new_member_type, $id]);
+                header('Location: /index.php?page=member_type&edit_success=1');
+                exit;
+            } catch (PDOException $e) {
+                echo 'Database error: ' . $e->getMessage();
+            }
         }
     }
 }
 
 // Check if there is an 'id' in the GET request to delete a member type
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    try {
-        $stmt = $pdo->prepare("DELETE FROM member_type WHERE member_type_id = ?");
-        $stmt->execute([$id]);
-        header("Location: ?page=member_type");
-        exit;
-    } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
+if (isset($_GET['id']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    $id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+    if ($id) {
+        try {
+            $stmt = $pdo->prepare("DELETE FROM member_type WHERE member_type_id = ?");
+            $stmt->execute([$id]);
+            header("Location: ?page=member_type&delete_success=1");
+            exit;
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+        }
     }
 }
 
@@ -46,13 +50,13 @@ $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $count = $row['total_count'];
 
 // Pagination logic
-$records_per_page = 5;
-$page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
+$records_per_page = 6;
+$page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
 // Count the total records
 try {
-    $total_query = "SELECT COUNT(*) FROM member_type"; // Changed from personnel_type to member_type
+    $total_query = "SELECT COUNT(*) FROM member_type";
     $total_result = $pdo->query($total_query);
     $total_records = $total_result->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
@@ -60,16 +64,24 @@ try {
     echo "Error: " . $e->getMessage();
 }
 
-// Fetch data for the table with pagination
+// Fetch data
 try {
-    $query = "SELECT member_type_id, member_type_name FROM member_type LIMIT :offset, :records_per_page";
+    $query = "SELECT 
+        mb.member_type_id,
+        mb.member_type_name,
+        COALESCE(COUNT(m.member_id), 0) as member_count
+        FROM member_type mb
+        LEFT JOIN member m ON mb.member_type_id = m.member_type_id
+        GROUP BY mb.member_type_id, mb.member_type_name 
+        LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $member_types = $stmt;
+    $member_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    $member_types = [];
+    echo "Fetch error: " . htmlspecialchars($e->getMessage());
 }
 ?>
 
@@ -138,76 +150,77 @@ try {
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[35rem] mt-11">
-        <div class="title">
+    <div class="font-[Tahoma] mx-[30rem] mt-11">
+        <div class="flex">
             <div class="flex justify-center items-center">
                 <h2 class="w-[190px] text-2xl font-bold">ประเภทสมาชิก</h2>
-                <div class="listcount">
+                <div class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md">
                     <?php echo $count; ?>
                 </div>
             </div>
+
             <div class="w-full flex justify-end">
-                <input type="text" id="searchInput" class="pl-2 w-[250px] h-[40px] outline-none border border-gray-300  rounded-lg text-base text-gray-500 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-gray-500 sm:text-sm/6 " onkeyup="searchTable()" tabindex="1" placeholder="ค้นหา...">
+                <input type="text" id="searchInput" onkeyup="searchTable()"
+                    placeholder="ค้นหา..."
+                    class="w-2/3 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
-        <table class="mt-5 mb-8 w-[100%] shadow-lg" id="dataTable">
+        <table class="w-full mt-5 mb-8 border-2 border-gray-400 shadow-lg" id="dataTable">
             <tr>
                 <form action="" method="POST">
-                    <td class="bg-white">
+                    <td class="bg-white p-2">
                         <input type="text" id="member_type" name="member_type" placeholder="ชื่อประเภทสมาชิก" required
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400" />
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </td>
-                    <td class="bg-white">
+                    <td class="bg-white border border-gray-300 text-center text-lg italic text-gray-600">อัตโนมัติ</td>
+                    <td class="bg-white text-center border border-gray-300">
                         <button type="submit"
-                            class="save-button w-[120px] px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
+                            class="w-32 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
                             เพิ่ม
                         </button>
                     </td>
                 </form>
             </tr>
             <thead>
-                <tr>
-                    <th class="w-[300px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow  font-bold p-5">ชื่อประเภท</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow  font-bold p-5">การจัดการ</th>
+                <tr class="">
+                    <th class="w-[40%]  bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ประเภทสมาชิก</th>
+                    <th class="w-[40%]  bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวน</th>
+                    <th class="w-[20%]  bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <?php foreach ($member_types as $membertype): ?>
-                    <tr data-id="<?php echo $membertype['member_type_id']; ?>">
-                        <td class="type-name bg-white pl-8 text-start"><?php echo ($membertype['member_type_name']); ?></td>
-                        <td class="bg-white">
-                            <button onclick="enableEdit(this)" class="edit-button bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
-                            text-white 
-                            text-lg 
-                            border border-yellow-700 
-                            border-t-white 
-                            border-l-white 
-                            px-2 
-                            py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#FFF9C4] 
-                            active:border-[#FFF176] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner
-                            ">แก้ไข</button>
-                            <button class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                            border-t-white 
-                            border-l-white 
-                            px-4 
-                            py-1 
-                            rounded 
-                                            shadow-md 
-                            hover:bg-[#FFEBEE] 
-                            active:border-[#EF9A9A] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner">
-                                <a href="?page=member_type&id=<?php echo $membertype['member_type_id']; ?>" onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button ">ลบ</a>
+                    <tr data-id="<?php echo $membertype['member_type_id']; ?>" class="bg-white hover:bg-gray-100 cursor-pointer">
+                        <td class="type-name py-2 px-4 border border-gray-300"><?php echo htmlspecialchars($membertype['member_type_name']); ?></td>
+                        <td class="py-2 px-4 text-orange-600 border border-gray-300 text-center" onclick="window.location.href='?page=member_group&type=<?php echo urlencode($membertype['member_type_name']); ?>'">
+                            <?php echo number_format($membertype['member_count']); ?> รายการ
+                        </td>
+                        <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
+                            <button onclick="enableEdit(this)"
+                                class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                แก้ไข
                             </button>
-
+                            <a href="?page=member_type&id=<?php echo $membertype['member_type_id']; ?>"
+                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                class="delete-btn inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
+                                </svg>
+                                ลบ
+                            </a>
+                            <button class="save-btn hidden items-center px-3 py-1 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 transition"
+                                onclick="saveEdit(this)">
+                                <div class="flex">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    บันทึก
+                                </div>
+                            </button>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -233,6 +246,12 @@ try {
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-gray-400 rounded-md shadow-lg w-96 h-32 z-50">
+        <div id="notification-header" class="p-2 rounded-t-md font-bold"></div>
+        <div id="notification-body" class="p-5 text-center text-lg"></div>
     </div>
 
     <script>
@@ -293,83 +312,81 @@ try {
         function enableEdit(button) {
             const row = button.closest('tr');
             const typeNameCell = row.querySelector('.type-name');
-            const typeId = row.getAttribute('data-id');
-            const originaltypeName = typeNameCell.innerText;
+            const originalName = typeNameCell.textContent.trim();
 
-            if (button.innerText === 'แก้ไข') {
-                // เปลี่ยนเป็นโหมดแก้ไข
-                typeNameCell.innerHTML = `<input type="text" class="edit-input" style="border: 1px solid #333;" value="${originaltypeName}" />`;
+            // Replace cell content with input field
+            typeNameCell.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${originalName}" />`;
 
-                button.innerText = 'บันทึก';
-                const deleteButton = row.querySelector('.delete-button');
-                const editButton = row.querySelector('.edit-button');
-                deleteButton.style.display = 'none';
-                editButton.style.display = 'none';
-
-                const saveButton = document.createElement('button');
-                saveButton.innerText = 'บันทึก';
-                saveButton.classList.add('save-button', 'text-green-500', 'hover:text-green-700');
-                saveButton.onclick = function() {
-                    // Save changes
-                    const newtypeName = typeNameCell.querySelector('.edit-input').value;
-
-                    // Update the warehouse in the database
-                    fetch('', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `id=${typeId}&update_member_type=${encodeURIComponent(newtypeName)}`
-                    }).then(() => {
-                        // Update the table with new values after saving
-                        typeNameCell.innerHTML = newtypeName;
-                        // Reset to edit mode
-                        button.innerText = 'แก้ไข';
-                        deleteButton.style.display = 'inline-block';
-                        editButton.style.display = 'inline-block';
-                        saveButton.remove(); // Remove the save button
-                    }).catch(error => {
-                        console.error('Error:', error);
-                        alert('ไม่สามารถบันทึกการเปลี่ยนแปลงได้');
-                    });
-                };
-                row.querySelector('td:last-child').appendChild(saveButton);
-            }
-
+            // Hide edit and delete buttons, show save button
+            button.classList.add('hidden');
+            row.querySelector('.delete-btn').classList.add('hidden');
+            row.querySelector('.save-btn').classList.remove('hidden');
         }
-    </script>
 
-    <script>
-        // เมื่อคลิกปุ่มแก้ไข ให้ซ่อนปุ่มแก้ไขและลบ และแสดงปุ่มบันทึก
-        document.querySelectorAll('.edit-button').forEach(button => {
-            button.addEventListener('click', function() {
-                // หยุดการกระทำของลิงก์
-                event.preventDefault();
-                // ซ่อนปุ่มแก้ไขและลบ
-                this.parentElement.querySelector('.edit-delete-buttons').style.display = 'none';
-                // แสดงปุ่มบันทึก
-                this.parentElement.querySelector('.save-button').style.display = 'block';
-            });
-        });
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
-            if (urlParams.has('edit_success')) {
-                const notificationEdit = document.getElementById('notification-edit');
-                notificationEdit.style.display = 'block';
-                setTimeout(() => {
-                    notificationEdit.style.display = 'none';
-                }, 2000);
-            } else if (urlParams.has('delete_success')) {
-                const notificationDelete = document.getElementById('notification-delete');
-                notificationDelete.style.display = 'block';
-                setTimeout(() => {
-                    notificationDelete.style.display = 'none';
-                }, 2000);
+        function saveEdit(button) {
+            const row = button.closest('tr');
+            const typeId = row.getAttribute('data-id');
+            const newName = row.querySelector('.edit-input').value.trim();
+            const typeNameCell = row.querySelector('.type-name');
+
+            if (!newName) {
+                alert('กรุณากรอกชื่อประเภทสมาชิก');
+                return;
             }
+
+            // Send update request
+            fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `id=${typeId}&update_member_type=${encodeURIComponent(newName)}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Update UI
+                        typeNameCell.textContent = newName;
+                        const editBtn = row.querySelector('.edit-btn');
+                        const deleteBtn = row.querySelector('.delete-btn');
+                        editBtn.classList.remove('hidden');
+                        deleteBtn.classList.remove('hidden');
+                        button.classList.add('hidden');
+                        showNotification('แก้ไขสำเร็จ', 'bg-cyan-200');
+                    } else {
+                        throw new Error('Failed to save');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('เกิดข้อผิดพลาดในการบันทึก', 'bg-red-200');
+                });
+        }
+
+        function showNotification(message, headerClass) {
+            const notification = document.getElementById('notification');
+            const header = document.getElementById('notification-header');
+            const body = document.getElementById('notification-body');
+
+            header.className = `p-2 rounded-t-md font-bold ${headerClass}`;
+            header.textContent = 'แจ้งเตือน';
+            body.textContent = message;
+            notification.classList.remove('hidden');
+
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('add_success')) {
+                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('edit_success')) {
+                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
+            }
+            document.getElementById('searchInput').focus();
         });
     </script>
 </body>

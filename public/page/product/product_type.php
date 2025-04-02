@@ -52,7 +52,7 @@ try {
 }
 
 // Pagination
-$records_per_page = 10;
+$records_per_page = 6;
 $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
@@ -101,7 +101,7 @@ try {
         <div class="grid grid-cols-2 gap-2 mb-5">
             <div class="flex items-center space-x-6">
                 <h2 class="text-2xl font-bold text-gray-800">ข้อมูลประเภทสินค้า</h2>
-                <span class="text-base text-center text-gray-800 px-3 py-1 border border-gray-400 rounded-md bg-white shadow-md w-20"><?php echo $count; ?></span>
+                <span class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md"><?php echo $count; ?></span>
             </div>
             <div class="mt-4 md:mt-0">
                 <input type="text" id="searchInput" onkeyup="searchTable()"
@@ -111,7 +111,7 @@ try {
         </div>
 
         <!-- Table -->
-        <table class="w-full mt-5 mb-8 border-2 border-gray-400 shadow-lg" id="dataTable">
+        <table class="w-full mt-5 mb-8 border border-gray-400 shadow-lg" id="dataTable">
             <!-- Add Form -->
             <tr>
                 <form action="" method="POST">
@@ -133,7 +133,7 @@ try {
 
             <!-- Header -->
             <thead>
-                <tr class="bg-gradient-to-b from-blue-200 to-blue-100 text-gray-800 text-lg">
+                <tr class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800">
                     <th class="w-2/5 px-3 py-2 border border-gray-500">ชื่อประเภทสินค้า</th>
                     <th class="w-2/5 px-3 py-2 border border-gray-500">จำนวนสินค้า</th>
                     <th class="w-1/5 px-3 py-2 border border-gray-500">การจัดการ</th>
@@ -145,26 +145,35 @@ try {
                 <?php foreach ($producttypes as $type): ?>
                     <tr class="bg-white hover:bg-gray-100 cursor-pointer" data-id="<?php echo $type['product_type_id']; ?>">
                         <td class="type-name py-2 px-4 border border-gray-300"><?php echo htmlspecialchars($type['product_type_name']); ?></td>
-                        <td class="py-2 px-4 border border-gray-300 text-center hover:bg-gray-200 cursor-pointer"
+                        <td class="py-2 px-4 text-orange-600 border border-gray-300 text-center hover:bg-gray-200 cursor-pointer"
                             onclick="window.location.href='?page=product_typegroup&tabel=product_type&id=<?php echo $type['product_type_id']; ?>&product_type_name=<?php echo urlencode($type['product_type_name']); ?>'">
                             <?php echo number_format($type['product_count']); ?> รายการ
                         </td>
-                        <td class="py-2 px-4 border border-gray-300 text-center">
-                            <div class="space-x-2">
-                                <button onclick="enableEdit(this)"
-                                    class="edit-btn bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg px-4 py-1 rounded shadow-md hover:from-yellow-200 hover:via-yellow-400 hover:to-yellow-600 transition duration-200">
-                                    แก้ไข
-                                </button>
-                                <a href="?page=product_type&id=<?php echo $type['product_type_id']; ?>"
-                                    onclick="return confirm('ยืนยันการลบข้อมูล?')"
-                                    class="delete-btn inline-block bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg px-4 py-1 rounded shadow-md hover:from-red-200 hover:via-red-400 hover:to-red-600 transition duration-200">
-                                    ลบ
-                                </a>
-                                <button class="save-btn hidden bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg px-4 py-1 rounded shadow-md hover:from-green-200 hover:via-green-400 hover:to-green-600 transition duration-200"
-                                    onclick="saveEdit(this)">
+                        <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
+                            <button onclick="enableEdit(this)"
+                                class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                แก้ไข
+                            </button>
+                            <a href="?page=product_type&id=<?php echo $type['product_type_id']; ?>"
+                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                class="delete-btn inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
+                                </svg>
+                                ลบ
+                            </a>
+                            <button class="save-btn hidden items-center px-3 py-1 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 transition"
+                                onclick="saveEdit(this)">
+                                <div class="flex">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
                                     บันทึก
-                                </button>
-                            </div>
+                                </div>
+                            </button>
                         </td>
                     </tr>
                 <?php endforeach; ?>

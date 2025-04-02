@@ -100,15 +100,15 @@ ob_end_flush();
                     <?php echo $count; ?>
                 </div>
                 <a href="/?page=lot_listinsert"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow transition-colors duration-200">
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors duration-200">
                     <i class="fas fa-plus mr-2"></i>เพิ่มการย้ายสินค้า
                 </a>
             </div>
 
-            <div class=" mt-4 md:mt-0">
+            <div class="text-end">
                 <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
-                    placeholder="ค้นหารายการย้ายคลัง..."
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    placeholder="ค้นหารายการรับสินค้า..."
+                    class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -121,7 +121,7 @@ ob_end_flush();
 
         <!-- Table -->
         <div class="overflow-x-auto">
-            <table class="mt-4 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
+            <table class="mt-2 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
                 <thead>
                     <tr>
                         <th
@@ -269,7 +269,7 @@ ob_end_flush();
         }
 
         // Notification handler
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();

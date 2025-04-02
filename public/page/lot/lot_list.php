@@ -93,22 +93,22 @@ ob_end_flush();
 
 <body class="bg-gray-50">
     <div class="font-[Tahoma] mx-auto max-w-6xl px-4 py-8 mt-8 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
+        <div class=" grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
             <div class="flex items-center gap-6">
                 <h2 class="text-2xl font-bold text-gray-800">จำนวนรายการรับสินค้ามี:</h2>
                 <div class="px-4 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[50px]">
                     <?php echo $count; ?>
                 </div>
                 <a href="/?page=lot_insertout"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow transition-colors duration-200">
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors duration-200">
                     <i class="fas fa-plus mr-2"></i>เพิ่มการรับสินค้า
                 </a>
             </div>
 
-            <div class="mt-4 md:mt-0">
+            <div class="text-end">
                 <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
                     placeholder="ค้นหารายการรับสินค้า..."
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -121,7 +121,7 @@ ob_end_flush();
 
         <!-- Table -->
         <div class="overflow-x-auto">
-            <table class="mt-4 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
+            <table class="mt-1 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
                 <thead>
                     <tr>
                         <th

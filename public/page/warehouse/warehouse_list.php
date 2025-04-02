@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare('INSERT INTO warehouse (warehouse_name, warehouse_status) VALUES (?, ?)');
             $stmt->execute([$warehousename, $warehousestatus]);
-            header('Location: /index.php?page=warehouse_list');
+            header('Location: /index.php?page=warehouse_list&add_success=1');
             exit;
         } catch (PDOException $e) {
             echo 'Database error: ' . htmlspecialchars($e->getMessage());
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("UPDATE warehouse SET warehouse_name = ?, warehouse_status = ? WHERE warehouse_id = ?");
             $stmt->execute([$newWarehouseName, $newwarehousestatus, $id]);
-            header('Location: /index.php?page=warehouse_list');
+            header('Location: /index.php?page=warehouse_list&edit_success=1');
             exit;
         } catch (PDOException $e) {
             echo 'Database error: ' . htmlspecialchars($e->getMessage());
@@ -46,7 +46,7 @@ if (isset($_GET['id'])) {
     try {
         $stmt = $pdo->prepare("DELETE FROM warehouse WHERE warehouse_id = ?");
         $stmt->execute([$id]);
-        header("Location: ?page=warehouse_list");
+        header("Location: ?page=warehouse_list&delete_success=1");
         exit;
     } catch (PDOException $e) {
         echo "Error: " . htmlspecialchars($e->getMessage());
@@ -159,18 +159,20 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../../output.css" rel="stylesheet">
     <title>Warehouse List</title>
 </head>
+
 <body class="font-[Tahoma]">
     <div class="mx-[15rem] mt-11">
         <div class="grid grid-cols-2 items-center justify-center gap-[5px]">
             <div class="flex gap-6 items-center">
                 <h2 class="text-2xl font-bold">จำนวนคลังสินค้า</h2>
-                <div class="text-base text-right text-black py-1 px-[10px] border border-gray-500 rounded-md bg-white inline-block mt-[10px] shadow-sm w-[70px]">
+                <div class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md">
                     <?= $count ?>
                 </div>
             </div>
@@ -212,22 +214,30 @@ try {
                     <tr class="bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?= htmlspecialchars($warehouse['warehouse_id']) ?>">
                         <td class="warehouse-name border p-2"><?= htmlspecialchars($warehouse['warehouse_name']) ?></td>
                         <td class="warehouse-status border p-2 text-center"><?= htmlspecialchars($warehouse['warehouse_status']) ?></td>
-                        <td class="border p-2 flex gap-2 justify-center items-center">
-                            <button onclick="enableEdit(this)" class="edit-button 
-                                bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 
-                                text-white text-lg border border-yellow-700 border-t-white border-l-white 
-                                px-2 py-1 rounded shadow-md hover:bg-yellow-100 
-                                active:border-yellow-300 active:border-b-white active:border-r-white active:shadow-inner">
+                        <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
+                            <button onclick="enableEdit(this)"
+                                class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
                                 แก้ไข
                             </button>
-                            <button class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 
-                                text-white text-lg border border-red-700 border-t-white border-l-white 
-                                px-4 py-1 rounded shadow-md hover:bg-red-100
-                                active:border-red-300 active:border-b-white active:border-r-white active:shadow-inner">
-                                <a href="?page=warehouse_list&id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>" 
-                                   onclick="return confirm('ยืนยันการลบข้อมูล?')" class="delete-button text-white no-underline">
-                                    ลบ
-                                </a>
+                            <a href="?page=warehouse_list&id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>"
+                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                class="delete-btn inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
+                                </svg>
+                                ลบ
+                            </a>
+                            <button class="save-btn hidden items-center px-3 py-1 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 transition"
+                                onclick="saveEdit(this)">
+                                <div class="flex">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    บันทึก
+                                </div>
                             </button>
                         </td>
                     </tr>
@@ -241,7 +251,7 @@ try {
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
                     <a href="?page=warehouse_list&page_num=<?= $page - 1 ?>"
-                       class="px-3 py-1 bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                        class="px-3 py-1 bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         « ก่อนหน้า
                     </a>
                 <?php endif; ?>
@@ -252,7 +262,7 @@ try {
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
                     <a href="?page=warehouse_list&page_num=1"
-                       class="px-3 py-1 bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                        class="px-3 py-1 bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         1
                     </a>
                     <?php if ($start_page > 2): ?>
@@ -262,7 +272,7 @@ try {
 
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
                     <a href="?page=warehouse_list&page_num=<?= $i ?>"
-                       class="px-3 py-1 rounded-md transition-colors <?= $i == $page ? 'bg-gray-800 text-white' : 'bg-[#aec5e366] text-black hover:bg-gray-300' ?>">
+                        class="px-3 py-1 rounded-md transition-colors <?= $i == $page ? 'bg-gray-800 text-white' : 'bg-[#aec5e366] text-black hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
@@ -272,7 +282,7 @@ try {
                         <span class="px-3 py-1 text-gray-500">...</span>
                     <?php endif; ?>
                     <a href="?page=warehouse_list&page_num=<?= $total_pages ?>"
-                       class="px-3 py-1 bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                        class="px-3 py-1 bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
@@ -280,7 +290,7 @@ try {
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
                     <a href="?page=warehouse_list&page_num=<?= $page + 1 ?>"
-                       class="px-3 py-1 bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                        class="px-3 py-1 bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         ถัดไป »
                     </a>
                 <?php endif; ?>
@@ -292,7 +302,7 @@ try {
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
             <?php foreach ($warehouses as $warehouse): ?>
                 <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>'">
+                    onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>'">
                     <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
                         <h3 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($warehouse['warehouse_name']) ?></h3>
                     </div>
@@ -311,6 +321,12 @@ try {
                 </div>
             <?php endforeach; ?>
         </div>
+    </div>
+    
+    <!-- Notification -->
+    <div id="notification" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-gray-400 rounded-md shadow-lg w-96 h-32 z-50">
+        <div id="notification-header" class="p-2 rounded-t-md font-bold"></div>
+        <div id="notification-body" class="p-5 text-center text-lg"></div>
     </div>
 
     <script>
@@ -355,72 +371,91 @@ try {
             }
         }
 
+
         function enableEdit(button) {
             const row = button.closest('tr');
             const warehouseNameCell = row.querySelector('.warehouse-name');
-            const warehouseStatusCell = row.querySelector('.warehouse-status');
             const warehouseId = row.getAttribute('data-id');
 
-            const originalWarehouseName = warehouseNameCell.innerText;
-            const originalWarehouseStatus = warehouseStatusCell.innerText;
+            const originalWarehouseName = warehouseNameCell.textContent.trim();
 
-            if (button.innerText === 'แก้ไข') {
-                warehouseNameCell.innerHTML = `<input type="text" class="edit-input w-full border border-gray-500" style="border: 1px solid #333;" value="${originalWarehouseName}" />`;
-                warehouseStatusCell.innerHTML = `<input type="text" class="edit-input w-full border border-gray-500" style="border: 1px solid #333;" value="${originalWarehouseStatus}" />`;
+            // Replace cell content with input field
 
-                button.innerText = 'บันทึก';
-                const deleteButton = row.querySelector('.delete-button');
-                const editButton = row.querySelector('.edit-button');
-                deleteButton.style.display = 'none';
-                editButton.style.display = 'none';
+            warehouseNameCell.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${originalWarehouseName}" />`;
 
-                const saveButton = document.createElement('button');
-                saveButton.innerText = 'บันทึก';
-                saveButton.className = 'save-button bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 border-t-white border-l-white px-2 py-1 rounded shadow-md hover:bg-green-100 active:border-green-300 active:border-b-white active:border-r-white active:shadow-inner';
-                saveButton.onclick = function() {
-                    const newWarehouseName = warehouseNameCell.querySelector('.edit-input').value;
-                    const newWarehouseStatus = warehouseStatusCell.querySelector('.edit-input').value;
 
-                    fetch('', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `id=${warehouseId}&update_warehousename=${encodeURIComponent(newWarehouseName)}&update_warehousestatus=${encodeURIComponent(newWarehouseStatus)}`
-                    }).then(() => {
-                        warehouseNameCell.innerHTML = newWarehouseName;
-                        warehouseStatusCell.innerHTML = newWarehouseStatus;
-                        button.innerText = 'แก้ไข';
-                        deleteButton.style.display = 'inline-block';
-                        editButton.style.display = 'inline-block';
-                        saveButton.remove();
-                    }).catch(error => {
-                        console.error('Error:', error);
-                        alert('ไม่สามารถบันทึกการเปลี่ยนแปลงได้');
-                    });
-                };
-                row.querySelector('td:last-child').appendChild(saveButton);
-            }
+            // Hide edit and delete buttons, show save button
+            button.classList.add('hidden');
+            row.querySelector('.delete-btn').classList.add('hidden');
+            row.querySelector('.save-btn').classList.remove('hidden');
         }
 
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
-            if (urlParams.has('edit_success')) {
-                const notificationEdit = document.getElementById('notification-edit');
-                if (notificationEdit) {
-                    notificationEdit.style.display = 'block';
-                    setTimeout(() => notificationEdit.style.display = 'none', 2000);
-                }
-            } else if (urlParams.has('delete_success')) {
-                const notificationDelete = document.getElementById('notification-delete');
-                if (notificationDelete) {
-                    notificationDelete.style.display = 'block';
-                    setTimeout(() => notificationDelete.style.display = 'none', 2000);
-                }
+        function saveEdit(button) {
+            const row = button.closest('tr');
+            const warehouseId = row.getAttribute('data-id');
+            const newName = row.querySelector('.edit-input').value.trim();
+            const warehouseNameCell = row.querySelector('.warehouse-name');
+
+            if (!newName) {
+                alert('กรุณากรอกชื่อประเภทสมาชิก');
+                return;
             }
+
+            // Send update request
+            fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `id=${warehouseId}&update_member_type=${encodeURIComponent(newName)}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Update UI
+                        warehouseNameCell.textContent = newName;
+                        const editBtn = row.querySelector('.edit-btn');
+                        const deleteBtn = row.querySelector('.delete-btn');
+                        editBtn.classList.remove('hidden');
+                        deleteBtn.classList.remove('hidden');
+                        button.classList.add('hidden');
+                        showNotification('แก้ไขสำเร็จ', 'bg-cyan-200');
+                    } else {
+                        throw new Error('Failed to save');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('เกิดข้อผิดพลาดในการบันทึก', 'bg-red-200');
+                });
+        }
+
+        function showNotification(message, headerClass) {
+            const notification = document.getElementById('notification');
+            const header = document.getElementById('notification-header');
+            const body = document.getElementById('notification-body');
+
+            header.className = `p-2 rounded-t-md font-bold ${headerClass}`;
+            header.textContent = 'แจ้งเตือน';
+            body.textContent = message;
+            notification.classList.remove('hidden');
+
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('add_success')) {
+                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('edit_success')) {
+                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
+            }
+            document.getElementById('searchInput').focus();
         });
     </script>
 </body>
+
 </html>

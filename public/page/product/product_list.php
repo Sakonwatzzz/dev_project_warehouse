@@ -226,37 +226,43 @@ try {
             <div class="flex items-center gap-6 pb-8">
                 <?php if ($incomplete_mode): ?>
                     <h2 class="text-2xl font-bold">จำนวนสินค้าที่ไม่สมบูรณ์</h2>
-                    <div class="text-white text-right text-base px-2.5 py-1 border border-red-600 rounded-md bg-red-400 shadow-md w-20">
+                    <div class="w-[120px] p-2 bg-red-200 font-bold text-end border border-red-500 rounded-md ">
                         <?php echo isset($incomplete_count) ? $incomplete_count : '0'; ?>
                     </div>
                 <?php else: ?>
                     <h2 class="text-2xl font-bold">จำนวนสินค้า</h2>
-                    <div class="text-black text-right text-base px-2.5 py-1 border border-gray-500 rounded-md bg-white shadow-md w-20">
+                    <div class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md ">
                         <?php echo $count; ?>
                     </div>
                 <?php endif; ?>
             </div>
             <div class="flex items-center space-x-4">
-                <div class="flex space-x-4">
-                    <a href="?page=product_list"
-                        class="px-4 py-2 rounded-md font-bold transition-all <?php echo !$incomplete_mode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 border border-gray-300'; ?>">
-                        แสดงทั้งหมด
-                    </a>
-                    <a href="?page=product_list&mode=incomplete"
-                        class="px-4 py-2 rounded-md font-bold transition-all <?php echo $incomplete_mode ? 'bg-red-600 text-white' : 'bg-red-100 text-red-600 border border-red-300'; ?>">
-                        แสดงข้อมูลไม่ครบ
-                    </a>
+                <div class="w-[80%] flex items-center space-x-4">
+                    <div class="flex space-x-4">
+                        <a href="?page=product_list"
+                            class="px-4 py-2 rounded-md font-bold transition-all <?php echo !$incomplete_mode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 border border-gray-300'; ?>">
+                            แสดงทั้งหมด
+                        </a>
+                        <a href="?page=product_list&mode=incomplete"
+                            class="px-4 py-2 rounded-md font-bold transition-all <?php echo $incomplete_mode ? 'bg-red-600 text-white' : 'bg-red-100 text-red-600 border border-red-300'; ?>">
+                            แสดงข้อมูลไม่ครบ
+                        </a>
+                    </div>
+                    <div class="flex justify-center">
+                        <a href="?page=product_insert"
+                            class="flex items-center gap-2 bg-gradient-to-b from-green-500 to-green-700 text-white text-lg px-5 py-2 rounded-lg shadow-lg border border-green-700 transition duration-300 hover:bg-green-600 hover:shadow-xl">
+                            <i class="fas fa-plus-circle"></i>
+                            เพิ่มสินค้าใหม่
+                        </a>
+                    </div>
                 </div>
-                <div>
-                    <a href="?page=product_insert"
-                        class="bg-gradient-to-b from-blue-300 to-blue-700 text-white text-lg px-4 py-2 rounded-md shadow-md border border-blue-700 hover:bg-blue-100">
-                        เพิ่มสินค้าใหม่
-                    </a>
-                </div>
-                <div class="ml-auto">
-                    <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
-                        placeholder="ค้นหาสินค้า..."
-                        class="w-[500px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                <div class=" w-full">
+                    <div class="text-end">
+                        <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
+                            placeholder="ค้นหาสินค้า..."
+                            class="w-[500px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
             </div>
         </div>
@@ -360,15 +366,15 @@ try {
                 <div id="product-list-container"></div>
                 <table class="mb-8 w-full border-2 border-gray-300 shadow-lg" id="dataTable">
                     <thead>
-                        <tr class="bg-gradient-to-b from-blue-200 to-blue-300 text-gray-800 text-lg">
-                            <th class="px-3 py-2 border border-gray-400">รหัสสินค้า</th>
-                            <th class="px-3 py-2 border border-gray-400">ชื่อสินค้า</th>
-                            <th class="px-3 py-2 border border-gray-400">ราคาทุน</th>
-                            <th class="px-3 py-2 border border-gray-400">ราคาขาย</th>
-                            <th class="px-3 py-2 border border-gray-400">ประเภทสินค้า</th>
-                            <th class="px-3 py-2 border border-gray-400">แบรนด์สินค้า</th>
-                            <th class="px-3 py-2 border border-gray-400">สถานะข้อมูล</th>
-                            <th class="px-3 py-2 border border-gray-400">การจัดการ</th>
+                        <tr class="">
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">รหัสสินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ชื่อสินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ราคาทุน</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ราคาขาย</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ประเภทสินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">แบรนด์สินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">สถานะข้อมูล</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -384,9 +390,9 @@ try {
                                 empty($product_list['product_type_id']) || // product_type_id ถ้า 0 ไม่นับว่าครบ
                                 empty($product_list['product_brand_id']); // product_brand_id ถ้า 0 ไม่นับว่าครบ
                             ?>
-                            <tr class="<?php echo $is_incomplete ? 'bg-red-50' : 'bg-white'; ?>">
+                            <tr class="hover:bg-gray-200 cursor-pointer <?php echo $is_incomplete ? 'bg-red-100' : 'bg-white'; ?>">
                                 <td class="text-start px-2 border border-gray-300 bg-amber-200"><?php echo ($product_list['product_id']); ?></td>
-                                <td class="text-start px-2 border border-gray-300 hover:bg-blue-100 cursor-pointer <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
+                                <td class="text-start px-2 text-blue-600  border border-gray-300 hover:bg-blue-100 cursor-pointer  hover:text-blue-800 hover:underline  <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
                                     onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
                                     <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : $product_list['product_name']; ?>
                                 </td>
@@ -409,14 +415,20 @@ try {
                                         <span class="text-green-600 font-bold">ข้อมูลครบถ้วน</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-center px-2 py-1 border border-gray-300 flex gap-2 justify-center">
+                                <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
                                     <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>"
-                                        class=" bg-gradient-to-b from-yellow-300 to-yellow-600 text-white px-2 py-1 rounded-md shadow-md border border-yellow-600 hover:bg-yellow-100">
+                                        class="inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
                                         แก้ไข
                                     </a>
                                     <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
                                         onclick="return confirm('ลบหรือไม่ลบ สรุป?')"
-                                        class="bg-gradient-to-b from-red-300 to-red-700 text-white px-4 py-1 rounded-md shadow-md border border-red-700 hover:bg-red-100">
+                                        class="inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
+                                        </svg>
                                         ลบ
                                     </a>
                                 </td>

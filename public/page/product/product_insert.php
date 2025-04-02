@@ -3,7 +3,7 @@ require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
 // Function to check for duplicate product_ids
-function checkproduct_idExists($pdo, $product_id)
+function checkProductIdExists($pdo, $product_id)
 {
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE product_id = ?");
     $stmt->execute([$product_id]);
@@ -14,15 +14,16 @@ function checkproduct_idExists($pdo, $product_id)
 if (isset($_GET['action']) && $_GET['action'] === 'check_product_id') {
     header('Content-Type: application/json');
     $product_id = $_GET['product_id'] ?? '';
-    $exists = checkproduct_idExists($pdo, $product_id);
+    $exists = checkProductIdExists($pdo, $product_id);
     echo json_encode(['exists' => $exists]);
     exit;
 }
 
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $product_id = $_POST['product_id'];
 
-    if (checkproduct_idExists($pdo, $product_id)) {
+    if (checkProductIdExists($pdo, $product_id)) {
         echo "<script>
                 alert('รหัสบาร์โค้ดนี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่');
                 window.history.back();
@@ -44,8 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([$product_id, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
-
-        // ใช้ $product_id ที่รับมาจากฟอร์มโดยตรง
         header("Location: /?page=product_detail&tabel=product&id=" . urlencode($product_id));
         exit();
     } catch (PDOException $e) {
@@ -54,421 +53,286 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ob_end_flush();
 
-// Query สำหรับข้อมูลสินค้า
-$query = "SELECT
-    product.product_id, 
-    product.product_name, 
-    product.product_price1, 
-    product.product_price2, 
-    product.product_price3, 
-    product.product_price4, 
-    product.product_capital, 
-    product.product_type_id, 
-    product.product_brand_id,
-    product_brand.product_brand_name, 
-    product_type.product_type_name
-FROM
-    product
-INNER JOIN
-    product_brand ON product.product_brand_id = product_brand.product_brand_id
-INNER JOIN
-    product_type ON product.product_type_id = product_type.product_type_id";
-
-$productResults = $pdo->query($query);
-
 // Query สำหรับประเภทสินค้า
-$queryTypes = "SELECT
-    product_type.product_type_id, 
-    product_type.product_type_name
-FROM product_type";
+$queryTypes = "SELECT 
+    product_type_id, 
+    product_type_name 
+FROM product_type 
+ORDER BY product_type_name";
 $typeResults = $pdo->query($queryTypes);
 
 if (!$typeResults) {
-    die("Query failed: " . $pdo->errorInfo());
+    die("Query failed: " . $pdo->errorInfo()[2]);
 }
 
 // Query สำหรับประเภทแบรนด์สินค้า
-$querybrandTypes = "SELECT
-    product_brand.product_brand_id, 
-    product_brand.product_brand_name
-FROM product_brand";
-$brandResults = $pdo->query($querybrandTypes);
+$queryBrandTypes = "SELECT 
+    product_brand_id, 
+    product_brand_name 
+FROM product_brand 
+ORDER BY product_brand_name";
+$brandResults = $pdo->query($queryBrandTypes);
 
 if (!$brandResults) {
-    die("Query failed: " . $pdo->errorInfo());
+    die("Query failed: " . $pdo->errorInfo()[2]);
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../../output.css" rel="stylesheet">
-    <title>product_insert</title>
-
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            text-align: center;
-            width: 300px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .modal-message {
-            margin: 15px 0;
-            color: #666;
-        }
-
-        .modal-button {
-            margin-top: 15px;
-            padding: 8px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .modal-button:hover {
-            background-color: #45a049;
-        }
-
-        .modal-button.warning {
-            background-color: #f44336;
-        }
-
-        .modal-button.warning:hover {
-            background-color: #da190b;
-        }
-
-        .error-input {
-            border-color: #FF0000 !important;
-            background-color: #FFEBEE !important;
-        }
-
-        .notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            color: #000;
-            border: 2px solid #A0A0A0;
-            border-radius: 5px;
-            font-family: "Tahoma", "Verdana", sans-serif;
-            width: 400px;
-            height: 120px;
-            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            display: none;
-        }
-
-        .notification-header {
-            background-color: #A0C4FF;
-            color: #000;
-            padding: 10px;
-            font-weight: bold;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-        }
-
-        .notification-header.error {
-            background-color: #FF9494;
-        }
-
-        .notification-body {
-            padding: 20px;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .product_id-focus {
-            background-color: #e8f4ff !important;
-            border-color: #2196F3 !important;
-        }
-
-        .error-input {
-            border-color: #FF0000 !important;
-            background-color: #FFEBEE !important;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #2196F3;
-            box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
-        }
-    </style>
+    <title>เพิ่มสินค้า</title>
 </head>
 
-<body>
-    <!-- Modal for duplicate product_id -->
-    <div id="duplicateModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-title">แจ้งเตือน</div>
-            <div class="modal-message">รหัสบาร์โค้ดนี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่</div>
-            <button class="modal-button warning" onclick="closeModal('duplicateModal')">ตกลง</button>
-        </div>
-    </div>
-
-    <!-- Modal for empty product_id -->
-    <div id="emptyproduct_idModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-title">แจ้งเตือน</div>
-            <div class="modal-message">กรุณากรอกรหัสบาร์โค้ด</div>
-            <button class="modal-button" onclick="closeModal('emptyproduct_idModal')">ตกลง</button>
-        </div>
-    </div>
-    <div class="bg-[#F0F0F0] font-[Tahoma] ">
-        <div class="mx-[40rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
-            <div id="notification" class="notification">
-                <div id="notification-header" class="notification-header">การแจ้งเตือน</div>
-                <div id="notification-body" class="notification-body">เพิ่มสินค้าสำเร็จ!</div>
-            </div>
-
-            <h2 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border  border-[#8f959b] shadow  font-bold p-5">เพิ่มสินค้า</h2>
-
-            <!-- Form for adding products -->
-            <form class="p-5  space-y-2" action="" method="POST" id="productForm">
-                <div class="flex items-center ">
-                    <label class="w-[110px] text-base mr-4" for="product_id">รหัสสินค้า:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner"
-                        type="text"
-                        name="product_id"
-                        id="product_id"
-                        autocomplete="off"
-                        required
-                        autofocus>
-                </div>
-                <div class="flex items-center ">
-                    <label class="w-[110px] text-base mr-4" for="name">ชื่อสินค้า:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="name" id="name" required>
-                </div>
-
-                <div class="flex items-center ">
-                    <label class="w-[110px] text-base mr-4" for="price_1">ราคาที่1:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_1" id="price_1" required>
-                </div>
-
-                <div class="flex items-center ">
-                    <label class="w-[110px] text-base mr-4" for="price_2">ราคาที่2:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_2" id="price_2" required>
-                </div>
-
-                <div class="flex items-center ">
-                    <label class="w-[110px] text-base mr-4" for="price_3">ราคาที่3:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_3" id="price_3" required>
-                </div>
-
-                <div class="flex items-center ">
-                    <label class="w-[110px] text-base mr-4" for="price_4">ราคาที่4:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="price_4" id="price_4" required>
-                </div>
-
-                <div class="flex items-center ">
-                    <label class="w-[110px] text-base mr-4" for="capital">ราคาทุน:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" name="capital" id="capital" required>
-                </div>
-
-                <?php if ($typeResults->rowCount() > 0) { ?>
-                    <div class="flex items-center ">
-                        <label class="w-[110px] text-base mr-4" for="typename">ประเภท:</label>
-                        <div class="flex-1">
-                            <div class="flex gap-2 items-center">
-                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typename" id="typename">
-                                    <?php if ($typeResults->rowCount() > 0) {
-                                        while ($row = $typeResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                                            <option value="<?php echo htmlspecialchars($row['product_type_id']); ?>">
-                                                <?php echo htmlspecialchars($row['product_type_name']); ?>
-                                            </option>
-                                        <?php }
-                                    } else { ?>
-                                        <option value="">ไม่มีประเภทสินค้า</option>
-                                    <?php } ?>
-                                </select>
-                                <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded add-product-type">
-                                    เพิ่ม
-                                </button>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto xl:max-w-4xl p-4">
+        <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">เพิ่มสินค้า</h2>
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Product Insert Section -->
+            <div class="w-full">
+                <div class="bg-gray-50 border-2 border-gray-300 shadow-md rounded-lg">
+                    <h3 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-xl font-bold p-4 border-b-2 border-gray-400 rounded-t-lg">
+                        กรอกข้อมูลสินค้า
+                    </h3>
+                    <form class="p-6 space-y-1" action="" method="POST" id="productForm">
+                        <!-- Product Fields -->
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">รหัสสินค้า:</label>
+                            <div class="w-7/12 lg:w-8/12">
+                                <input type="text" 
+                                    name="product_id" 
+                                    id="product_id" 
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                    required 
+                                    autocomplete="off" 
+                                    autofocus>
                             </div>
                         </div>
-                    </div>
-                <?php } else { ?>
-                    <p>ไม่พบข้อมูลประเภทสินค้า</p>
-                <?php } ?>
 
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อสินค้า:</label>
+                            <div class="w-7/12 lg:w-8/12">
+                                <input type="text" 
+                                    name="name" 
+                                    id="name" 
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                    required>
+                            </div>
+                        </div>
 
-                <?php if ($brandResults->rowCount() > 0) { ?>
-                    <div class="flex items-center ">
-                        <label class="w-[110px] text-base mr-4" for="typebrandname">แบรนด์สินค้า:</label>
-                        <div class="flex-1">
-                            <div class="flex gap-2 items-center">
-                                <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="typebrandname" id="typebrandname" required>
-                                    <?php while ($row = $brandResults->fetch(PDO::FETCH_ASSOC)) { ?>
-                                        <option value="<?php echo ($row['product_brand_id']); ?>">
-                                            <?php echo ($row['product_brand_name']); ?>
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 1:</label>
+                            <div class="w-7/12 lg:w-8/12">
+                                <input type="number" 
+                                    name="price_1" 
+                                    id="price_1" 
+                                    step="0.01" 
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 2:</label>
+                            <div class="w-7/12 lg:w-8/12">
+                                <input type="number" 
+                                    name="price_2" 
+                                    id="price_2" 
+                                    step="0.01" 
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 3:</label>
+                            <div class="w-7/12 lg:w-8/12">
+                                <input type="number" 
+                                    name="price_3" 
+                                    id="price_3" 
+                                    step="0.01" 
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 4:</label>
+                            <div class="w-7/12 lg:w-8/12">
+                                <input type="number" 
+                                    name="price_4" 
+                                    id="price_4" 
+                                    step="0.01" 
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาทุน:</label>
+                            <div class="w-7/12 lg:w-8/12">
+                                <input type="number" 
+                                    name="capital" 
+                                    id="capital" 
+                                    step="0.01" 
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                    required>
+                            </div>
+                        </div>
+
+                        <!-- Product Type -->
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
+                                <a href="?page=product_type" class="text-blue-600 hover:underline">ประเภทสินค้า:</a>
+                            </label>
+                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
+                                <select name="typename" id="typename" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                    <?php while ($typeRow = $typeResults->fetch(PDO::FETCH_ASSOC)): ?>
+                                        <option value="<?php echo htmlspecialchars($typeRow['product_type_id']); ?>">
+                                            <?php echo htmlspecialchars($typeRow['product_type_name']); ?>
                                         </option>
-                                    <?php } ?>
+                                    <?php endwhile; ?>
                                 </select>
-                                <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded add-product-type">
+                                <a href="?page=product_type_add" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">
                                     เพิ่ม
-                                </button>
+                                </a>
                             </div>
                         </div>
-                    </div>
-                <?php } else { ?>
-                    <p>ไม่พบข้อมูลประเภทแบรนด์สินค้า</p>
-                <?php } ?>
 
+                        <!-- Product Brand -->
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
+                                <a href="?page=product_brand" class="text-blue-600 hover:underline">แบรนด์สินค้า:</a>
+                            </label>
+                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
+                                <select name="typebrandname" id="typebrandname" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                    <?php while ($brandRow = $brandResults->fetch(PDO::FETCH_ASSOC)): ?>
+                                        <option value="<?php echo htmlspecialchars($brandRow['product_brand_id']); ?>">
+                                            <?php echo htmlspecialchars($brandRow['product_brand_name']); ?>
+                                        </option>
+                                    <?php endwhile; ?>
+                                </select>
+                                <a href="?page=product_brand_add" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">
+                                    เพิ่ม
+                                </a>
+                            </div>
+                        </div>
 
-
-                <div class="flex justify-end mt-5 gap-2">
-                    <a href="/?page=product_list" class="
-                        bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                        border-t-white 
-                        border-l-white 
-                        px-4 
-                        py-1 
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#FFEBEE] 
-                        active:border-[#EF9A9A] 
-                        active:border-b-white 
-                        active:border-r-white 
-                        active:shadow-inner
-                    ">ยกเลิก</a>
-
-                    <button
-                        type="submit"
-                        class="
-                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
-                            border-t-white 
-                            border-l-white 
-                            px-4 
-                            py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#E8F5E9] 
-                            active:border-[#A5D6A7] 
-                            active:border-b-white 
-                            active:border-r-white 
-                            active:shadow-inner
-                        ">
-                        บันทึก
-                    </button>
+                        <!-- Buttons -->
+                        <div class="flex justify-end gap-4 mt-6">
+                            <a href="/?page=product_list" 
+                                class="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-200">
+                                ยกเลิก
+                            </a>
+                            <button type="submit"
+                                class="mt-4 bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition duration-200">
+                                บันทึก
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for validation messages -->
+    <div id="modalContainer" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md mx-auto">
+            <div class="text-lg font-bold mb-4" id="modalTitle">แจ้งเตือน</div>
+            <div class="mb-6" id="modalMessage">ข้อความแจ้งเตือน</div>
+            <div class="flex justify-end">
+                <button id="modalButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200">
+                    ตกลง
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('productForm');
-            const product_idInput = document.getElementById('product_id');
+            const productIdInput = document.getElementById('product_id');
+            const modalContainer = document.getElementById('modalContainer');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalButton = document.getElementById('modalButton');
 
-            // Function to show modal
-            function showModal(modalId) {
-                document.getElementById(modalId).style.display = 'block';
-                if (modalId === 'duplicateModal') {
-                    product_idInput.classList.add('error-input');
-                }
+            // Show modal with message
+            function showModal(title, message, isError = false) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                modalButton.className = isError 
+                    ? 'bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-200'
+                    : 'bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200';
+                modalContainer.classList.remove('hidden');
             }
 
-            // Function to close modal
-            window.closeModal = function(modalId) {
-                document.getElementById(modalId).style.display = 'none';
-                product_idInput.focus();
-                if (modalId === 'duplicateModal') {
-                    product_idInput.select();
-                }
+            // Close modal
+            function closeModal() {
+                modalContainer.classList.add('hidden');
+                productIdInput.focus();
             }
 
-            // Close modals when clicking outside
-            window.onclick = function(event) {
-                if (event.target.classList.contains('modal')) {
-                    event.target.style.display = 'none';
-                    product_idInput.focus();
-                }
-            }
+            // Set up modal button handler
+            modalButton.addEventListener('click', closeModal);
 
-            // Close modals with Escape key
+            // Close modal with Escape key
             document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape') {
-                    const modals = document.getElementsByClassName('modal');
-                    for (let modal of modals) {
-                        if (modal.style.display === 'block') {
-                            modal.style.display = 'none';
-                            product_idInput.focus();
-                        }
-                    }
+                if (event.key === 'Escape' && !modalContainer.classList.contains('hidden')) {
+                    closeModal();
                 }
             });
 
-            async function checkproduct_id(product_id) {
+            // Check if product ID exists
+            async function checkProductId(productId) {
                 try {
-                    const response = await fetch(`?action=check_product_id&product_id=${encodeURIComponent(product_id)}`);
+                    const response = await fetch(`?action=check_product_id&product_id=${encodeURIComponent(productId)}`);
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
                     const data = await response.json();
                     return data.exists;
                 } catch (error) {
-                    console.error('Error checking product_id:', error);
+                    console.error('Error checking product ID:', error);
                     return false;
                 }
             }
 
+            // Form submission handler
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
-                const product_id = product_idInput.value.trim();
-                if (!product_id) {
-                    showModal('emptyproduct_idModal');
+                const productId = productIdInput.value.trim();
+                
+                if (!productId) {
+                    showModal('แจ้งเตือน', 'กรุณากรอกรหัสสินค้า', true);
+                    productIdInput.classList.add('border-red-500', 'bg-red-50');
                     return;
                 }
 
-                const exists = await checkproduct_id(product_id);
+                const exists = await checkProductId(productId);
+                
                 if (exists) {
-                    showModal('duplicateModal');
+                    showModal('แจ้งเตือน', 'รหัสสินค้านี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่', true);
+                    productIdInput.classList.add('border-red-500', 'bg-red-50');
+                    productIdInput.select();
                 } else {
-                    product_idInput.classList.remove('error-input');
                     form.submit();
                 }
             });
 
-            // Remove error styling when product_id input changes
-            product_idInput.addEventListener('input', function() {
-                this.classList.remove('error-input');
+            // Clear error styling when product ID input changes
+            productIdInput.addEventListener('input', function() {
+                this.classList.remove('border-red-500', 'bg-red-50');
             });
+
+            // Focus on product ID field on page load
+            productIdInput.focus();
         });
     </script>
-
-
 </body>
-
 </html>
