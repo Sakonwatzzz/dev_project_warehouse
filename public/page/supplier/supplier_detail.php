@@ -1,145 +1,79 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
-    die("ระบุประเภทหรือ ID ไม่ถูกต้อง");
+// Validate required GET parameters
+if (!isset($_GET['id'])) {
+    die("ระบุ ID ไม่ถูกต้อง");
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $supplier_id = $_POST['supplier_id'];
-    header("Location: supplier_detail.php?tabel=supplier&id=" . $supplier_id);
-    exit();
+// Retrieve and validate 'tabel' parameter (optional, depending on your app logic)
+$tabel = isset($_GET['tabel']) ? $_GET['tabel'] : 'supplier'; // Default to 'supplier' if not provided
+if ($tabel !== 'supplier') {
+    die("ระบุประเภทไม่ถูกต้อง"); // "Invalid type specified"
 }
 
-
-switch ($tabel) {
-    case 'supplier':
-        $stmt = $pdo->prepare("SELECT supplier.* FROM supplier WHERE supplier_id = ?");
-        break;
-    default:
-        die("ระบุประเภทไม่ถูกต้อง");
-}
-
+// Retrieve supplier data
+$id = $_GET['id'];
+$stmt = $pdo->prepare("SELECT * FROM supplier WHERE supplier_id = ?");
 $stmt->execute([$id]);
 $supplier = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$supplier) {
     echo "ไม่พบข้อมูล";
-    exit();
+    exit;
 }
-
 ?>
 
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/detail.css">
-    <title>รายละเอียด</title>
-
+    <link href="../../output.css" rel="stylesheet">
+    <title>รายละเอียดผู้ส่งมอบ</title>
 </head>
-
-<body>
-    <div class="detail-body">
-        <h1 class="detail-title">รายละเอียดผู้ส่งมอบ</h1>
-
-
-        <form class="detail-form" action="../../page/supplier/supplier_update.php" method="POST">
-            <!-- กำหนดค่า supplier_id เป็น input ซ่อน (hidden) เพื่อใช้ส่ง ID ของผู้ส่งมอบนี้ในฟอร์ม -->
-            <input type="hidden" name="supplier_id" value="<?php echo $supplier['supplier_id']; ?>">
-
-            <!-- ตารางแสดงรายละเอียดผู้ส่งมอบ -->
-            <table class="detail-table">
-                <?php if ($tabel === 'supplier'): ?>
-                    <!-- ตรวจสอบว่าประเภทข้อมูลเป็น 'supplier' เพื่อแสดงรายละเอียดผู้ส่งมอบเท่านั้น -->
-
-                    <tr>
-                        <th>รหัสผู้ส่งมอบ:</th>
-                        <!-- แสดงรหัสสมาชิก -->
-                        <td>
-                            <?php if ($is_update): ?>
-                                <input type="hidden" name="id" value="<?php echo $supplier['supplier_id']; ?>">
-                            <?php else: ?>
-                                <?php echo $supplier['supplier_id']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>ชื่อผู้ส่งมอบ:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="name" value="<?php echo $supplier['supplier_name']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $supplier['supplier_name']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>ที่อยู่ผู้ส่งมอบ:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="address" value="<?php echo $supplier['supplier_address']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $supplier['supplier_address']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th>เบอร์ผู้ส่งมอบ:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="phone" value="<?php echo $supplier['supplier_phone']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $supplier['supplier_phone']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th>รายละเอียดผู้ส่งมอบ:</th>
-                        <td>
-                            <?php if ($is_update): ?> <!-- ถ้าเป็นโหมดแก้ไข ($is_update = true) ให้แสดง input text -->
-                                <input type="text" name="detail" value="<?php echo $supplier['supplier_detail']; ?>">
-                            <?php else: ?> <!-- ถ้าไม่ใช่โหมดแก้ไข ให้แสดงเป็นข้อความปกติ -->
-                                <?php echo $supplier['supplier_detail']; ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-
-                <?php endif; ?>
-            </table>
-
-            <!-- แสดงปุ่ม "บันทึก" เฉพาะในโหมดแก้ไขเท่านั้น -->
-            <?php if ($is_update): ?>
-                <button class="submit-button" type="submit"
-                    style=" border-radius: 6px;
-                        width: 120px;
-                        height: 40px;
-                        padding: 10px;
-                        margin-top:10px;
-                        /*border: 1px solid rgb(29, 188, 55);*/
-                        background-color: #333;
-                        text-decoration: none;
-                        color: #fff; ">
-                    บันทึก</button>
-            <?php endif; ?>
-        </form>
-
-        <div class="detail-action">
-            <a href="/?page=bar_supplier">ย้อนกลับหน้า List_<?php echo ($tabel); ?></a>
-
-            <?php if ($is_update): ?>
-                <a href="?page=supplier_detail&tabel=<?php echo $tabel; ?>&id=<?php echo $supplier['supplier_id']; ?>" style="margin-right: 6px;">ย้อนกลับไปที่ Detail
-                </a>
-            <?php endif; ?>
-
-            <a href="?page=supplier_detail&tabel=supplier&id=<?php echo $supplier['supplier_id']; ?>&is_update=1">
-                ไปหน้าแก้ไข <?php echo $tabel; ?>
-            </a>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto xl:max-w-4xl p-4">
+        <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">รายละเอียดผู้ส่งมอบ</h2>
+        <div class="flex flex-col lg:flex-row gap-6">
+            <div class="w-full">
+                <div class="bg-gray-50 border-2 border-gray-300 shadow-md rounded-lg">
+                    <h3 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-xl font-bold p-4 border-b-2 border-gray-400 rounded-t-lg">
+                        ข้อมูลผู้ส่งมอบ
+                    </h3>
+                    <div class="p-6 space-y-1">
+                        <?php
+                        $fields = [
+                            ['label' => 'รหัสผู้ส่งมอบ', 'value' => $supplier['supplier_id']],
+                            ['label' => 'ชื่อผู้ส่งมอบ', 'value' => $supplier['supplier_name']],
+                            ['label' => 'ที่อยู่', 'value' => $supplier['supplier_address']],
+                            ['label' => 'เบอร์โทร', 'value' => $supplier['supplier_phone']],
+                            ['label' => 'รายละเอียด', 'value' => $supplier['supplier_detail']],
+                        ];
+                        foreach ($fields as $field): ?>
+                            <div class="flex items-center gap-4">
+                                <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700"><?php echo $field['label']; ?>:</label>
+                                <div class="w-7/12 lg:w-8/12">
+                                    <input type="text"
+                                           value="<?php echo htmlspecialchars($field['value']); ?>"
+                                           class="w-full p-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600"
+                                           readonly>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                        <div class="flex justify-end gap-4 mt-6">
+                            <a href="/?page=supplier_list"
+                               class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">
+                                กลับไปที่รายการ
+                            </a>
+                            <a href="/?page=supplier_update&id=<?php echo htmlspecialchars($supplier['supplier_id']); ?>"
+                               class="mt-4 bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition duration-200">
+                                แก้ไข
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </body>
-
 </html>

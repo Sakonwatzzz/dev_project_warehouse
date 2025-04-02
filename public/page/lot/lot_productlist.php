@@ -80,13 +80,14 @@ ob_end_flush();
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/personnel_list.css">
     <link href="../../output.css" rel="stylesheet">
     <title>รายการรับสินค้า<?php echo $lot_id ? " - Lot: $lot_name" : ""; ?></title>
 </head>
+
 <body>
     <div class="font-[Tahoma] mx-[10rem] mt-11 rounded-md">
         <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
@@ -118,32 +119,32 @@ ob_end_flush();
                 <?php if ($result_lotproduct_list->rowCount() > 0): ?>
                     <?php while ($lot_product_list = $result_lotproduct_list->fetch(PDO::FETCH_ASSOC)): ?>
                         <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer">
-                            <td><?php echo ($lot_product_list['product_id']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_name']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_product_capital']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_product_qty']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_product_remain']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_product_status']); ?></td>
-                            <td><?php echo ($lot_product_list['lot_product_date']); ?></td>
+                            <td class="border border-gray-400 text-start p-2"><?php echo ($lot_product_list['product_id']); ?></td>
+                            <td class="border border-gray-400 text-center"><?php echo ($lot_product_list['lot_name']); ?></td>
+                            <td class="border border-gray-400 text-end p-2"><?php echo ($lot_product_list['lot_product_capital']); ?></td>
+                            <td class="border border-gray-400 text-end p-2"><?php echo ($lot_product_list['lot_product_qty']); ?></td>
+                            <td class="border border-gray-400 text-end p-2"><?php echo ($lot_product_list['lot_product_remain']); ?></td>
+                            <td class="border border-gray-400 text-center"><?php echo ($lot_product_list['lot_product_status']); ?></td>
+                            <td class="border border-gray-400 text-center"><?php echo ($lot_product_list['lot_product_date']); ?></td>
                             <!--<td>
                                 <a href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>" class="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg border border-yellow-700 border-t-white border-l-white px-2 py-1 rounded shadow-md hover:bg-[#FFF9C4] active:border-[#FFF176] active:border-b-white active:border-r-white active:shadow-inner">แก้ไข</a>
                                 <a href="?page=lot_productlist&id=<?php echo ($lot_product_list['lot_product_id']); ?>&lot_id=<?php echo $lot_id; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')" class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 border-t-white border-l-white px-4 py-1 rounded shadow-md hover:bg-[#FFEBEE] active:border-[#EF9A9A] active:border-b-white active:border-r-white active:shadow-inner">ลบ</a>
                             </td>
                         </tr>-->
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="8">ไม่พบข้อมูล</td>
-                    </tr>
-                <?php endif; ?>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="8">ไม่พบข้อมูล</td>
+                        </tr>
+                    <?php endif; ?>
             </tbody>
         </table>
 
         <div class="box mt-[5rem]">
 
             <a href="index.php?page=lot_list" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
-                    <i class="fas fa-arrow-left mr-2"></i>กลับ
-                </a>
+                <i class="fas fa-arrow-left mr-2"></i>กลับ
+            </a>
         </div>
 
         <div class="flex justify-center mt-6 space-x-2">
@@ -215,4 +216,5 @@ ob_end_flush();
         });
     </script>
 </body>
+
 </html>

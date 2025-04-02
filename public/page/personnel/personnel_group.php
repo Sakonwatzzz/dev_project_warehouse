@@ -207,9 +207,15 @@ try {
             <p>ไม่มีบุคลากรในตำแหน่งนี้</p>
         <?php endif; ?>
 
-        <!--ย้อนกลับไปหน้าเดิม-->
-        <div class="detail-action">
-            <a href="/?page=bar_personnel">ย้อนกลับ</a>
+        <div class="flex space-x-2">
+            <!--ย้อนกลับไปหน้ารายการ-->
+            <div class="detail-action">
+                <a href="/?page=personnel_list">หน้ารายการ</a>
+            </div>
+            <!--ย้อนกลับไปหน้าประเภท-->
+            <div class="detail-action">
+                <a href="/?page=personnel_type">หน้าประเภท</a>
+            </div>
         </div>
     </div>
 
@@ -268,7 +274,7 @@ try {
             }
         }
     </script>
-     <script>
+    <script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");

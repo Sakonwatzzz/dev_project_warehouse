@@ -155,7 +155,7 @@ try {
         <div class="title">
             <div class="count">
                 <h2 class="text-2xl font-bold">
-                    รายการสินค้าตามประเภท:
+                    ประเภท:
                     <?php
                     if (!empty($productData)) {
                         echo htmlspecialchars($productData[0]['product_type_name']);
@@ -170,8 +170,11 @@ try {
                     <?php echo $count; ?>
                 </div>
             </div>
-            <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสินค้า...">
+
+            <div class="mt-4 md:mt-0">
+                <input type="text" id="searchInput" onkeyup="searchTable()"
+                    placeholder="ค้นหาประเภทสินค้า..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -189,13 +192,24 @@ try {
                 <!--ลูปข้อมูลตามประเภทสินค้า-->
                 <tbody>
                     <?php foreach ($productData as $product): ?>
-                        <tr>
+                        <tr class="bg-white hover:bg-gray-100 cursor-pointer">
                             <td><?php echo htmlspecialchars($product['product_id']); ?></td>
                             <td><?php echo htmlspecialchars($product['product_name']); ?></td>
-
-                            <td class="text-center">
-                                <a href="?page=product_update&id=<?php echo $product['product_id']; ?>" class="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg border border-yellow-700 px-2 py-1 rounded shadow-md hover:bg-[#FFF9C4]">แก้ไข</a>
-                                <a href="?page=product_delete&id=<?php echo $product['product_id']; ?>" onclick="return confirm('ต้องการลบสินค้า?')" class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 px-4 py-1 rounded shadow-md hover:bg-[#FFEBEE]">ลบ</a>
+                            <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
+                                <a href="?page=product_update&id=<?php echo $product['product_id']; ?>"
+                                    class="inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    แก้ไข
+                                </a>
+                                <a href="?page=product_delete&id=<?php echo $product['product_id']; ?>" onclick="return confirm('ต้องการลบสินค้า?')"
+                                    class="inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
+                                    </svg>
+                                    ลบ
+                                </a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

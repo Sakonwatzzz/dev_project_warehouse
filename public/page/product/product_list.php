@@ -72,11 +72,11 @@ try {
             $stmt->execute([$id]);
 
             // Reset AUTO_INCREMENT if table is empty
-            $stmt = $pdo->query("SELECT COUNT(*) FROM product"); // แก้จาก lot เป็น product
+            $stmt = $pdo->query("SELECT COUNT(*) FROM product");
             $count = $stmt->fetchColumn();
 
             if ($count == 0) {
-                $pdo->query("ALTER TABLE product AUTO_INCREMENT = 1"); // แก้จาก lot เป็น product
+                $pdo->query("ALTER TABLE product AUTO_INCREMENT = 1");
             }
 
             header("Location: /?page=product_list&delete_success");
@@ -85,7 +85,7 @@ try {
     }
 
     // Pagination setup
-    $records_per_page = 10;
+    $records_per_page = 20;
     $page = isset($_GET['page_num']) ? max(1, (int) $_GET['page_num']) : 1;
     $offset = ($page - 1) * $records_per_page;
 
@@ -152,6 +152,23 @@ try {
     $stmt->execute();
     $resultsproduct = $stmt;
 
+    // คำนวณจำนวนสินค้าที่ไม่สมบูรณ์เมื่ออยู่ใน incomplete_mode
+    if ($incomplete_mode) {
+        $incomplete_query = "SELECT COUNT(*) FROM product WHERE 
+            product_name IS NULL OR TRIM(product_name) = '' OR 
+            (product_price1 IS NULL OR product_price1 = '' OR product_price1 = 0) OR 
+            (product_price2 IS NULL OR product_price2 = '' OR product_price2 = 0) OR 
+            (product_price3 IS NULL OR product_price3 = '' OR product_price3 = 0) OR 
+            (product_price4 IS NULL OR product_price4 = '' OR product_price4 = 0) OR 
+            (product_capital IS NULL OR product_capital = '' OR product_capital = 0) OR 
+            product_type_id IS NULL OR product_type_id = 0 OR 
+            product_brand_id IS NULL OR product_brand_id = 0";
+
+        $incomplete_stmt = $pdo->prepare($incomplete_query);
+        $incomplete_stmt->execute();
+        $incomplete_count = $incomplete_stmt->fetchColumn();
+    }
+
     // Count total records for pagination
     $count_query = "SELECT COUNT(*) FROM product $where_clause";
     $count_stmt = $pdo->prepare($count_query);
@@ -191,243 +208,85 @@ try {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/personnel_list.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="../../output.css" rel="stylesheet">
-    <style>
-        .title {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-
-        .count {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-        }
-
-        .listcount {
-            font-size: 16px;
-            text-align: right;
-            color: #000;
-            padding: 4px 10px 4px 10px;
-            border: 1px solid gray;
-            border-radius: 5px;
-            background-color: #fff;
-            display: inline-block;
-            margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: 70px;
-        }
-
-        .incompletecount {
-            font-size: 16px;
-            text-align: right;
-            color: #fff;
-            padding: 4px 10px 4px 10px;
-            border: 1px solid #c53030;
-            border-radius: 5px;
-            background-color: #f56565;
-            display: inline-block;
-            margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: 70px;
-        }
-
-        .notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            color: #000;
-            border: 2px solid #A0A0A0;
-            border-radius: 5px;
-            font-family: "Tahoma", "Verdana", sans-serif;
-            width: 400px;
-            height: 120px;
-            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            display: none;
-        }
-
-        .notification-header {
-            background-color: #ffdfa0;
-            color: #000;
-            padding: 10px;
-            font-weight: bold;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-        }
-
-        .notification-body {
-            padding: 20px;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .pagination {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .pagination a {
-            display: inline-block;
-            padding: 8px 16px;
-            text-decoration: none;
-            background-color: #aec5e366;
-            color: black;
-            border-radius: 5px;
-            margin: 0 4px;
-        }
-
-        .pagination a.active {
-            background-color: #333;
-            color: white;
-        }
-
-        .pagination a:hover:not(.active) {
-            background-color: #ddd;
-        }
-
-        .mode-toggle {
-            display: flex;
-            justify-content: center;
-            margin-top: 15px;
-            margin-bottom: 15px;
-        }
-
-        .mode-button {
-            padding: 8px 16px;
-            margin: 0 5px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        .normal-mode {
-            background-color: #e2e8f0;
-            color: #2d3748;
-            border: 1px solid #cbd5e0;
-        }
-
-        .normal-mode.active {
-            background-color: #2d3748;
-            color: #fff;
-        }
-
-        .incomplete-mode {
-            background-color: #fed7d7;
-            color: #c53030;
-            border: 1px solid #feb2b2;
-        }
-
-        .incomplete-mode.active {
-            background-color: #c53030;
-            color: #fff;
-        }
-
-        .incomplete-data {
-            background-color: #fff5f5 !important;
-        }
-
-        .missing-field {
-            color: #c53030;
-            font-weight: bold;
-        }
-    </style>
     <title>Product list</title>
 </head>
 
-<body>
-    <div class="font-[Tahoma] mx-[15rem] mt-11 w-auto">
-        <!-- Keep title, count, search, mode-toggle and notifications unchanged -->
-        <div class="title">
-            <div class="count">
+<body class="font-sans mx-20 mt-11">
+    <div class="my-[4rem] mx-[5rem]">
+
+        <!-- Mode Toggle and Add Product Button -->
+        <div class="mt-6 pl-[20%]">
+            <div class="flex items-center gap-6 pb-8">
                 <?php if ($incomplete_mode): ?>
-                    <h2 class="text-2xl font-bold">จำนวนรายการสินค้าที่กรอกข้อมูลไม่ครบ</h2>
-                    <div class="incompletecount">
+                    <h2 class="text-2xl font-bold">จำนวนสินค้าที่ไม่สมบูรณ์</h2>
+                    <div class="w-[120px] p-2 bg-red-200 font-bold text-end border border-red-500 rounded-md ">
                         <?php echo isset($incomplete_count) ? $incomplete_count : '0'; ?>
                     </div>
                 <?php else: ?>
-                    <h2 class="text-2xl font-bold">จำนวนรายการสินค้าทั้งหมด</h2>
-
-                    <div class="listcount">
+                    <h2 class="text-2xl font-bold">จำนวนสินค้า</h2>
+                    <div class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md ">
                         <?php echo $count; ?>
                     </div>
                 <?php endif; ?>
             </div>
-            <div class="search">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1" placeholder="ค้นหาสินค้า...">
-            </div>
-        </div>
-
-        <div class="mt-6 pl-[20%]">
             <div class="flex items-center space-x-4">
-                <div class="mode-toggle flex space-x-4">
-                    <a href="?page=product_list"
-                        class="mode-button normal-mode <?php echo !$incomplete_mode ? 'active' : ''; ?>">
-                        แสดงทั้งหมด
-                    </a>
-                    <a href="?page=product_list&mode=incomplete"
-                        class="mode-button incomplete-mode <?php echo $incomplete_mode ? 'active' : ''; ?>">
-                        แสดงข้อมูลไม่ครบ
-                    </a>
+                <div class="w-[80%] flex items-center space-x-4">
+                    <div class="flex space-x-4">
+                        <a href="?page=product_list"
+                            class="px-4 py-2 rounded-md font-bold transition-all <?php echo !$incomplete_mode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 border border-gray-300'; ?>">
+                            แสดงทั้งหมด
+                        </a>
+                        <a href="?page=product_list&mode=incomplete"
+                            class="px-4 py-2 rounded-md font-bold transition-all <?php echo $incomplete_mode ? 'bg-red-600 text-white' : 'bg-red-100 text-red-600 border border-red-300'; ?>">
+                            แสดงข้อมูลไม่ครบ
+                        </a>
+                    </div>
+                    <div class="flex justify-center">
+                        <a href="?page=product_insert"
+                            class="flex items-center gap-2 bg-gradient-to-b from-green-500 to-green-700 text-white text-lg px-5 py-2 rounded-lg shadow-lg border border-green-700 transition duration-300 hover:bg-green-600 hover:shadow-xl">
+                            <i class="fas fa-plus-circle"></i>
+                            เพิ่มสินค้าใหม่
+                        </a>
+                    </div>
                 </div>
-                <div>
-                    <a href="?page=product_insert" class="
-                        bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 
-                        text-white 
-                        text-lg 
-                        border border-blue-700 
-                        border-t-white 
-                        border-l-white 
-                        px-4 
-                        py-2 
-                        rounded 
-                        shadow-md 
-                        hover:bg-[#E3F2FD] 
-                        active:border-[#90CAF9] 
-                        active:border-b-white 
-                        active:border-r-white 
-                        active:shadow-inner
-                    ">
-                        เพิ่มสินค้าใหม่
-                    </a>
+
+                <div class=" w-full">
+                    <div class="text-end">
+                        <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
+                            placeholder="ค้นหาสินค้า..."
+                            class="w-[500px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
             </div>
-
         </div>
 
-        <div id="notification-edit" class="notification">
-            <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขบุคลากรสำเร็จ!</div>
+        <!-- Notifications -->
+        <div id="notification-edit" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white text-black border-2 border-gray-400 rounded-md w-96 h-32 shadow-lg z-50 hidden">
+            <div class="bg-yellow-200 text-black font-bold p-2 rounded-t-md">การแจ้งเตือน</div>
+            <div class="p-5 text-center text-lg">แก้ไขบุคลากรสำเร็จ!</div>
         </div>
-        <div id="notification-delete" class="notification">
-            <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">ลบสำเร็จ!</div>
+        <div id="notification-delete" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white text-black border-2 border-gray-400 rounded-md w-96 h-32 shadow-lg z-50 hidden">
+            <div class="bg-yellow-200 text-black font-bold p-2 rounded-t-md">การแจ้งเตือน</div>
+            <div class="p-5 text-center text-lg">ลบสำเร็จ!</div>
         </div>
 
-
+        <!-- Main Content -->
         <div class="flex">
-            <div class="w-[20%] px-6 ">
+            <!-- Filters -->
+            <div class="w-1/5 px-6">
                 <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-4">
                     <i class="fa-solid fa-filter text-blue-500"></i>
                     <span>ค้นหาแบบละเอียด</span>
                 </h1>
 
-                <!-- ค้นหาตามหมวดหมู่ -->
+                <!-- Product Type Filter -->
                 <div class="pt-2 pb-4 border-b border-gray-400">
                     <h2 class="text-lg font-semibold text-gray-700 mb-3">ค้นหาตามหมวดหมู่</h2>
                     <div class="flex flex-col gap-3">
@@ -464,7 +323,7 @@ try {
                     </div>
                 </div>
 
-                <!-- ค้นหาตามแบรนด์ -->
+                <!-- Product Brand Filter -->
                 <div class="pt-2 pb-4">
                     <h2 class="text-lg font-semibold text-gray-700 mb-3">ค้นหาตามแบรนด์</h2>
                     <div class="flex flex-col gap-3">
@@ -502,89 +361,74 @@ try {
                 </div>
             </div>
 
-
-            <div class="w-[80%] md:flex-row gap-4 ">
+            <!-- Product Table -->
+            <div class="w-4/5 flex flex-col gap-4">
                 <div id="product-list-container"></div>
-                <table class=" mb-8 w-[100%] border-2 border-[#b7c4d5] shadow-lg" id="dataTable">
+                <table class="mb-8 w-full border-2 border-gray-300 shadow-lg" id="dataTable">
                     <thead>
-                        <tr>
-                            <th
-                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                รหัสสินค้า</th>
-                            <th
-                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                ชื่อสินค้า</th>
-                            <th
-                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                ราคาทุน</th>
-                            <th
-                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                ราคาขาย</th>
-                            <th
-                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                ประเภทสินค้า</th>
-                            <th
-                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                แบรนด์สินค้า</th>
-                            <th
-                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                สถานะข้อมูล</th>
-                            <th
-                                class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                                การจัดการ</th>
+                        <tr class="">
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">รหัสสินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ชื่อสินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ราคาทุน</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ราคาขาย</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ประเภทสินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">แบรนด์สินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">สถานะข้อมูล</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($resultsproduct as $product_list): ?>
                             <?php
-                            $is_incomplete = empty($product_list['product_name']) ||
-                                empty($product_list['product_price1']) ||
-                                empty($product_list['product_price2']) ||
-                                empty($product_list['product_price3']) ||
-                                empty($product_list['product_price4']) ||
-                                empty($product_list['product_capital']) ||
-                                empty($product_list['product_type_id']) ||
-                                empty($product_list['product_brand_id']);
+                            // ปรับเงื่อนไขให้รวมค่า 0 เป็นข้อมูลไม่ครบด้วย
+                            $is_incomplete = empty(trim($product_list['product_name'])) || // ชื่อสินค้าต้องไม่ว่าง
+                                ($product_list['product_price1'] === null || $product_list['product_price1'] === '' || $product_list['product_price1'] == 0) ||
+                                ($product_list['product_price2'] === null || $product_list['product_price2'] === '' || $product_list['product_price2'] == 0) ||
+                                ($product_list['product_price3'] === null || $product_list['product_price3'] === '' || $product_list['product_price3'] == 0) ||
+                                ($product_list['product_price4'] === null || $product_list['product_price4'] === '' || $product_list['product_price4'] == 0) ||
+                                ($product_list['product_capital'] === null || $product_list['product_capital'] === '' || $product_list['product_capital'] == 0) ||
+                                empty($product_list['product_type_id']) || // product_type_id ถ้า 0 ไม่นับว่าครบ
+                                empty($product_list['product_brand_id']); // product_brand_id ถ้า 0 ไม่นับว่าครบ
                             ?>
-                            <tr class="<?php echo $is_incomplete ? 'incomplete-data' : 'bg-white'; ?>">
-                                <td class="text-start bg-amber-200"><?php echo ($product_list['product_id']); ?></td>
-                                <td class="text-start hover:bg-[#aec5e366] cursor-pointer<?php echo empty($product_list['product_name']) ? 'missing-field' : ''; ?>"
+                            <tr class="hover:bg-gray-200 cursor-pointer <?php echo $is_incomplete ? 'bg-red-100' : 'bg-white'; ?>">
+                                <td class="text-start px-2 border border-gray-300 bg-amber-200"><?php echo ($product_list['product_id']); ?></td>
+                                <td class="text-start px-2 text-blue-600  border border-gray-300 hover:bg-blue-100 cursor-pointer  hover:text-blue-800 hover:underline  <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
                                     onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
                                     <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : $product_list['product_name']; ?>
                                 </td>
-                                <td
-                                    class="text-start <?php echo empty($product_list['product_capital']) ? 'missing-field' : ''; ?>">
+                                <td class="text-end px-2 border border-gray-300 <?php echo empty($product_list['product_capital']) ? 'text-red-600 font-bold' : ''; ?>">
                                     <?php echo empty($product_list['product_capital']) ? 'ไม่มีข้อมูล' : $product_list['product_capital']; ?>
                                 </td>
-                                <td
-                                    class="text-start <?php echo empty($product_list['product_price4']) ? 'missing-field' : ''; ?>">
+                                <td class="text-end px-2 border border-gray-300 <?php echo empty($product_list['product_price4']) ? 'text-red-600 font-bold' : ''; ?>">
                                     <?php echo empty($product_list['product_price4']) ? 'ไม่มีข้อมูล' : $product_list['product_price4']; ?>
                                 </td>
-                                <td
-                                    class="text-start <?php echo empty($product_list['product_type_id']) ? 'missing-field' : ''; ?>">
+                                <td class="text-start px-2 border border-gray-300 <?php echo empty($product_list['product_type_id']) ? 'text-red-600 font-bold' : ''; ?>">
                                     <?php echo !empty($product_list['product_type_name']) ? $product_list['product_type_name'] : 'ไม่มีข้อมูล'; ?>
                                 </td>
-                                <td
-                                    class="text-start <?php echo empty($product_list['product_brand_id']) ? 'missing-field' : ''; ?>">
+                                <td class="text-start px-2 border border-gray-300 <?php echo empty($product_list['product_brand_id']) ? 'text-red-600 font-bold' : ''; ?>">
                                     <?php echo !empty($product_list['product_brand_name']) ? $product_list['product_brand_name'] : 'ไม่มีข้อมูล'; ?>
                                 </td>
-
-                                <td class="text-start">
+                                <td class="text-center px-2 border border-gray-300">
                                     <?php if ($is_incomplete): ?>
                                         <span class="text-red-600 font-bold">ข้อมูลไม่ครบ</span>
                                     <?php else: ?>
                                         <span class="text-green-600 font-bold">ข้อมูลครบถ้วน</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
                                     <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>"
-                                        class="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg border border-yellow-700 border-t-white border-l-white px-2 py-1 rounded shadow-md hover:bg-[#FFF9C4] active:border-[#FFF176] active:border-b-white active:border-r-white active:shadow-inner">
+                                        class="inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
                                         แก้ไข
                                     </a>
-
                                     <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
                                         onclick="return confirm('ลบหรือไม่ลบ สรุป?')"
-                                        class="bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 border-t-white border-l-white px-4 py-1 rounded shadow-md hover:bg-[#FFEBEE] active:border-[#EF9A9A] active:border-b-white active:border-r-white active:shadow-inner">
+                                        class="inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
+                                        </svg>
                                         ลบ
                                     </a>
                                 </td>
@@ -594,7 +438,8 @@ try {
                 </table>
             </div>
         </div>
-        <!-- ถ้าไม่มีข้อมูลให้แสดงข้อความ -->
+
+        <!-- No Data Message -->
         <?php if ($total_records == 0): ?>
             <div class="text-center py-4 text-red-600 font-bold">
                 <?php if ($incomplete_mode): ?>
@@ -605,83 +450,77 @@ try {
             </div>
         <?php endif; ?>
 
-        <!-- Keep the pagination and add product button unchanged -->
-        <div class="pagination">
+        <!-- Pagination -->
+        <div class="mt-5 text-center">
             <?php if ($total_pages > 1): ?>
-
                 <?php if ($page > 1): ?>
-                    <a
-                        href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page - 1); ?>">&laquo;
-                        ก่อนหน้า</a>
+                    <a href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page - 1); ?>"
+                        class="inline-block px-4 py-2 bg-blue-100 text-black rounded-md mx-1 hover:bg-gray-200">« ก่อนหน้า</a>
                 <?php endif; ?>
 
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                     <?php if ($i == $page): ?>
-                        <a href="#" class="active"><?php echo $i; ?></a>
+                        <a href="#" class="inline-block px-4 py-2 bg-gray-700 text-white rounded-md mx-1"><?php echo $i; ?></a>
                     <?php else: ?>
-                        <a
-                            href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                        <a href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo $i; ?>"
+                            class="inline-block px-4 py-2 bg-blue-100 text-black rounded-md mx-1 hover:bg-gray-200"><?php echo $i; ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
 
                 <?php if ($page < $total_pages): ?>
-                    <a
-                        href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page + 1); ?>">ถัดไป
-                        &raquo;</a>
+                    <a href="?page=product_list<?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>&page_num=<?php echo ($page + 1); ?>"
+                        class="inline-block px-4 py-2 bg-blue-100 text-black rounded-md mx-1 hover:bg-gray-200">ถัดไป »</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-
-
     </div>
+
+    <!-- JavaScript -->
     <script>
-        const checkboxes = document.querySelectorAll('.filter-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                let selectedTypes = [];
-                let selectedBrands = [];
-
-                // Collect selected types and brands
-                document.querySelectorAll('input[name="product_type[]"]:checked').forEach(typeCheckbox => {
-                    selectedTypes.push(typeCheckbox.value);
-                });
-                document.querySelectorAll('input[name="product_brand[]"]:checked').forEach(
-                    brandCheckbox => {
-                        selectedBrands.push(brandCheckbox.value);
-                    });
-
-                // Update the URL with selected filters
-                let url = new URL(window.location.href);
-                url.searchParams.set('product_type', selectedTypes.join(','));
-                url.searchParams.set('product_brand', selectedBrands.join(','));
-
-                // Reload the page with updated filters
-                window.location.href = url.toString();
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('input[name="product_type[]"], input[name="product_brand[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateFilters);
             });
+
+            const searchInput = document.getElementById("searchInput");
+            if (searchInput) searchInput.focus();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('edit_success')) showNotification('notification-edit');
+            else if (urlParams.has('delete_success')) showNotification('notification-delete');
         });
 
+        function updateFilters() {
+            const selectedTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
+            const selectedBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
 
+            let url = new URL(window.location.href);
+            let params = new URLSearchParams(url.search);
+
+            if (params.has('mode')) url.searchParams.set('mode', params.get('mode'));
+            if (params.has('page_num')) url.searchParams.set('page_num', params.get('page_num'));
+
+            if (selectedTypes.length > 0) url.searchParams.set('product_type', selectedTypes.join(','));
+            else url.searchParams.delete('product_type');
+
+            if (selectedBrands.length > 0) url.searchParams.set('product_brand', selectedBrands.join(','));
+            else url.searchParams.delete('product_brand');
+
+            window.location.href = url.toString();
+        }
 
         function searchTable() {
             const input = document.getElementById("searchInput");
             const filter = input.value.toLowerCase();
             const table = document.getElementById("dataTable");
             const tr = table.getElementsByTagName("tr");
-            const thead = table.querySelector("thead");
             let foundAny = false;
 
-            // Always keep the header visible
-            thead.style.display = "";
-
-            // Always keep the input row visible
-            tr[0].style.display = "";
-
-            // Search through data rows (start from index 2 to skip header and input row)
             for (let i = 1; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName("td");
                 let rowMatchesSearch = false;
 
-                // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
                     const txtValue = td[j].textContent || td[j].innerText;
                     if (txtValue.toLowerCase().indexOf(filter) > -1) {
@@ -689,149 +528,28 @@ try {
                         break;
                     }
                 }
-
                 tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) {
-                    foundAny = true;
-                }
+                if (rowMatchesSearch) foundAny = true;
             }
 
-            // Handle "No data" message
             let noDataMessage = document.getElementById("noDataMessage");
             if (!foundAny) {
                 if (!noDataMessage) {
                     noDataMessage = document.createElement("p");
                     noDataMessage.id = "noDataMessage";
                     noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.style.color = "red";
-                    noDataMessage.style.fontWeight = "bold";
-                    noDataMessage.style.textAlign = "center";
-                    noDataMessage.style.marginTop = "10px";
+                    noDataMessage.className = "text-center text-red-600 font-bold mt-2";
                     table.parentNode.insertBefore(noDataMessage, table.nextSibling);
                 }
-            } else {
-                if (noDataMessage) {
-                    noDataMessage.remove();
-                }
+            } else if (noDataMessage) {
+                noDataMessage.remove();
             }
         }
-    </script>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
-            if (urlParams.has('edit_success')) {
-                const notificationEdit = document.getElementById('notification-edit');
-                notificationEdit.style.display = 'block';
-                setTimeout(() => {
-                    notificationEdit.style.display = 'none';
-                }, 2000);
-            } else if (urlParams.has('delete_success')) {
-                const notificationDelete = document.getElementById('notification-delete');
-                notificationDelete.style.display = 'block';
-                setTimeout(() => {
-                    notificationDelete.style.display = 'none';
-                }, 2000);
-            }
-        });
-    </script>
-
-
-    <script>
-        // ฟังก์ชันสำหรับอัพเดต URL เมื่อมีการเปลี่ยนแปลง checkbox
-        document.addEventListener('DOMContentLoaded', function() {
-            const checkboxes = document.querySelectorAll('input[name="product_type[]"], input[name="product_brand[]"]');
-
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    updateFilters();
-                });
-            });
-
-            // อัพเดต search input ถ้ามี
-            const searchInput = document.getElementById("searchInput");
-            if (searchInput) {
-                searchInput.focus();
-            }
-        });
-
-        function updateFilters() {
-            const selectedTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked'))
-                .map(cb => cb.value);
-            const selectedBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked'))
-                .map(cb => cb.value);
-
-            // สร้าง URL ใหม่
-            let url = new URL(window.location.href);
-            let params = new URLSearchParams(url.search);
-
-            // รักษาค่า mode ถ้ามี
-            if (params.has('mode')) {
-                url.searchParams.set('mode', params.get('mode'));
-            }
-
-            // รักษาค่า page_num ถ้ามี
-            if (params.has('page_num')) {
-                url.searchParams.set('page_num', params.get('page_num'));
-            }
-
-            // อัพเดต parameters
-            if (selectedTypes.length > 0) {
-                url.searchParams.set('product_type', selectedTypes.join(','));
-            } else {
-                url.searchParams.delete('product_type');
-            }
-
-            if (selectedBrands.length > 0) {
-                url.searchParams.set('product_brand', selectedBrands.join(','));
-            } else {
-                url.searchParams.delete('product_brand');
-            }
-
-            // รีเฟรชหน้า
-            window.location.href = url.toString();
-        }
-
-        // ฟังก์ชันค้นหาแบบเดิม
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
-
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-            }
-        }
-
-        // การจัดการ notification
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('edit_success')) {
-                showNotification('notification-edit');
-            } else if (urlParams.has('delete_success')) {
-                showNotification('notification-delete');
-            }
-        });
 
         function showNotification(id) {
             const notification = document.getElementById(id);
-            notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 2000);
+            notification.classList.remove('hidden');
+            setTimeout(() => notification.classList.add('hidden'), 2000);
         }
     </script>
 </body>

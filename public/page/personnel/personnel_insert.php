@@ -1,25 +1,28 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
+
+// Handle POST request for inserting a new personnel
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $personnel_name = $_POST['personnel_name'];
-    $personnel_type_name = $_POST['personnel_type_name'];
+    $personnel_type_name = $_POST['personnel_type_name']; // This is actually personnel_type_id
     $personnel_address = $_POST['personnel_address'];
     $personnel_phone = $_POST['personnel_phone'];
     $personnel_username = $_POST['personnel_username'];
     $personnel_password = $_POST['personnel_password'];
 
-    $stmt = $pdo->prepare('INSERT INTO personnel (personnel_name,  personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password) 
-                           VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt = $pdo->prepare('
+        INSERT INTO personnel (personnel_name, personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password) 
+        VALUES (?, ?, ?, ?, ?, ?)
+    ');
     $stmt->execute([$personnel_name, $personnel_type_name, $personnel_address, $personnel_phone, $personnel_username, $personnel_password]);
 
-
     $personnel_id = $pdo->lastInsertId();
-    header("Location: index.php?page=personnel_detail&tabel=personnel&id=$personnel_id");
+    header("Location: /?page=personnel_detail&tabel=personnel&id=$personnel_id");
     exit;
 }
 
-// ดึงประเภทบุคลากรมาแสดงผล
+// Fetch personnel types for dropdown
 $query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
@@ -28,162 +31,91 @@ $personnelTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ob_end_flush();
 ?>
 
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/insert.css">
     <link href="../../output.css" rel="stylesheet">
-    <title>Document</title>
-
-    <style>
-        .notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            color: #000;
-            border: 2px solid #A0A0A0;
-            border-radius: 5px;
-            font-family: "Tahoma", "Verdana", sans-serif;
-            width: 400px;
-            height: 120px;
-            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            display: none;
-        }
-
-        .notification-header {
-            background-color: #A0C4FF;
-            color: #000;
-            padding: 10px;
-            font-weight: bold;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-        }
-
-        .notification-body {
-            padding: 20px;
-            font-size: 16px;
-            text-align: center;
-        }
-    </style>
+    <title>เพิ่มบุคลากร</title>
 </head>
 
-<body>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto xl:max-w-4xl p-4">
+        <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">เพิ่มบุคลากรใหม่</h2>
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Personnel Insert Section -->
+            <div class="w-full">
+                <div class="bg-gray-50 border-2 border-gray-300 shadow-md rounded-lg">
+                    <h3 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-xl font-bold p-4 border-b-2 border-gray-400 rounded-t-lg">
+                        ข้อมูลบุคลากร
+                    </h3>
+                    <form class="p-6 space-y-1" action="" method="POST">
+                        <!-- Personnel Fields -->
+                        <?php
+                        $fields = [
+                            ['label' => 'ชื่อ-สกุล', 'name' => 'personnel_name', 'value' => '', 'id' => 'personnel-name', 'required' => true],
+                            ['label' => 'ที่อยู่', 'name' => 'personnel_address', 'value' => ''],
+                            ['label' => 'เบอร์โทร', 'name' => 'personnel_phone', 'value' => ''],
+                            ['label' => 'ชื่อผู้ใช้', 'name' => 'personnel_username', 'value' => ''],
+                            ['label' => 'รหัสผ่าน', 'name' => 'personnel_password', 'value' => ''],
+                        ];
+                        foreach ($fields as $field): ?>
+                            <div class="flex items-center gap-4">
+                                <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700"><?php echo $field['label']; ?>:</label>
+                                <div class="w-7/12 lg:w-8/12">
+                                    <input type="<?php echo $field['type'] ?? 'text'; ?>"
+                                           name="<?php echo $field['name']; ?>"
+                                           id="<?php echo $field['id'] ?? ''; ?>"
+                                           value="<?php echo htmlspecialchars($field['value']); ?>"
+                                           class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                           <?php echo ($field['required'] ?? false) ? 'required' : ''; ?>>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
 
-    <div class="bg-[#F0F0F0] font-[Tahoma]">
-        <div class="mx-[20rem] mt-8 bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md">
-            <div id="notification" class="notification">
-                <div class="notification-header">การแจ้งเตือน</div>
-                <div class="notification-body">เพิ่มบุคลากรสำเร็จ!</div>
+                        <!-- Personnel Type -->
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
+                                <a href="?page=personnel_type" class="text-blue-600 hover:underline">ประเภทบุคลากร:</a>
+                            </label>
+                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
+                                <?php if (count($personnelTypes) > 0): ?>
+                                    <select name="personnel_type_name" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                        <?php foreach ($personnelTypes as $type): ?>
+                                            <option value="<?php echo htmlspecialchars($type['personnel_type_id']); ?>">
+                                                <?php echo htmlspecialchars($type['personnel_type_name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <span class="text-gray-600">ไม่พบข้อมูลประเภทบุคลากร</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="flex justify-end gap-4 mt-6">
+                            <a href="/?page=personnel_list"
+                               class="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-200">
+                                ยกเลิก
+                            </a>
+                            <button type="submit"
+                                    class="mt-4 bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition duration-200">
+                                บันทึก
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-
-            <h2 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">เพิ่มสมาชิก</h2>
-
-            <form class="p-5  space-y-2  border-0" action="" method="POST"> <!-- เปลี่ยน action ไปที่ไฟล์ปัจจุบัน -->
-                <div class="flex items-center ">
-                    <label for="personnel_name" class="w-[150px] text-base mr-4">ชื่อ นามสกุลบุคลากร:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_name" name="personnel_name">
-                </div>
-
-                <!-- loop -->
-                <?php
-                if (count($personnelTypes) > 0) {
-                ?>
-                    <div class="flex items-center ">
-                        <label for="personnel_type_name" class="w-[150px] text-base mr-4">ประเภทบุคลากร:</label>
-                        <select class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" name="personnel_type_name" id="personnel_type_name">
-                            <?php foreach ($personnelTypes as $personnel_insert) { ?> <!-- เปลี่ยนเป็น foreach -->
-                                <option value="<?php echo ($personnel_insert['personnel_type_id']); ?>">
-                                    <?php echo ($personnel_insert['personnel_type_name']); ?>
-                                </option>
-                            <?php } ?>
-                        </select><br>
-                    </div>
-
-                <?php
-                } else {
-                    echo "No personnel types available.";
-                }
-                ?>
-                <!--  -->
-                <div class="flex items-center ">
-                    <label for="personnel_address" class="w-[150px] text-base mr-4">ที่อยู่บุคลากร:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_address" name="personnel_address">
-                </div>
-                <div class="flex items-center ">
-                    <label for="personnel_phone" class="w-[150px] text-base mr-4">เบอร์โทรศัพท์:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_phone" name="personnel_phone">
-                </div>
-
-                <div class="flex items-center ">
-                    <label for="personnel_username" class="w-[150px] text-base mr-4">ชื่อผู้ใช้:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="text" id="personnel_username" name="personnel_username">
-                </div>
-
-                <div class="flex items-center ">
-                    <label for="personnel_password" class="w-[150px] text-base mr-4">รหัสผ่าน:</label>
-                    <input class="flex-1 h-9 px-2 border border-[#7F9DB9] bg-white shadow-inner" type="password" id="personnel_password" name="personnel_password">
-                </div>
-
-                <div class="flex justify-end mt-5 gap-2">
-                    <a href="/?page=personnel_list" class="
-                        bg-gradient-to-b from-red-300 via-red-500 to-red-700 text-white text-lg border border-red-700 
-                     border-t-white 
-                     border-l-white 
-                     px-4 
-                     py-1 
-                     rounded 
-                                    shadow-md 
-                    hover:bg-[#FFEBEE] 
-                    active:border-[#EF9A9A] 
-                    active:border-b-white 
-                    active:border-r-white 
-                    active:shadow-inner
-                    ">ยกเลิก</a>
-
-                    <button
-                        type="submit"
-                        class="
-                            bg-gradient-to-b from-green-300 via-green-500 to-green-700 text-white text-lg border border-green-700 
-                            border-t-white 
-                            border-l-white 
-                            px-4 
-                            py-1 
-                            rounded 
-                            shadow-md 
-                            hover:bg-[#E8F5E9] 
-                            active:border-[#A5D6A7] 
-                            active:border-b-white 
-                            active:border-r-white 
-                                active:shadow-inner
-                            ">
-                        บันทึก
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 
-
+    <!-- Focus on name field when page loads -->
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.style.display = 'block'; // แสดงการแจ้งเตือน
-
-                // ลบการแจ้งเตือนหลัง 2 วินาที
-                setTimeout(() => {
-                    notification.style.display = 'none'; // ซ่อนการแจ้งเตือน
-                }, 2000);
-            }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('personnel-name').focus();
         });
     </script>
 </body>

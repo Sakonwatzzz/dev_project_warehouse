@@ -41,7 +41,8 @@ try {
         lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
         LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
-        LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id";
+        LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
+        WHERE lot.warehouse_inout = 1";
     $result_lot_list = fetchData($pdo, $query);
 
     // Store result for later use in warehouse cards

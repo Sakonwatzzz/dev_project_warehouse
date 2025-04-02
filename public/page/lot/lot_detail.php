@@ -108,42 +108,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="detail-body mx-[25rem]  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
+    <div class="detail-body mx-[40rem] my-11  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
         <!-- เปลี่ยนสีหัวข้อเมื่ออยู่ในโหมดแก้ไข -->
         <h2
             class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 <?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
             <?php echo $is_update ? 'กำลังแก้ไขล็อตสินค้า' : 'รายละเอียดล็อตสินค้า'; ?>
         </h2>
-        <form class="detail-form" action="../../page/lot/lot_update.php" method="POST">
+        <form class="detail-form p-2" action="../../page/lot/lot_update.php" method="POST">
             <input type="hidden" name="lot_id" value="<?php echo $lot['lot_id']; ?>">
             <table class="detail-table">
                 <?php if ($tabel === 'lot'): ?>
                     <tr>
-                        <th class="">รหัสล็อต :</th>
-                        <td>
+                        <th class="text-start px-7 py-2 w-[30%]">รหัสล็อต :</th>
+                        <td class="border border-gray-300  w-[70%]">
                             <?php if ($is_update): ?>
-                                <input type="id" name="lot_id" value="<?php echo ($lot['lot_id']); ?> " readonly>
+                                <input type="text" name="lot_id" value="<?php echo htmlspecialchars($lot['lot_id']); ?>" class="w-full p-2 border border-gray-400  bg-gray-100" readonly>
                             <?php else: ?>
-                                <?php echo ($lot['lot_id']); ?>
+                                <span class="p-2 block"><?php echo htmlspecialchars($lot['lot_id']); ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>
 
                     <tr>
-                        <th>รายละเอียดล็อต :</th>
-                        <td class="shadow-lg">
+                        <th class="text-start px-7 py-2 w-[30%]">รายละเอียดล็อต :</th>
+                        <td class="border border-gray-300 w-[70%]">
                             <?php if ($is_update): ?>
-                                <input type="text" name="lot_detail" id="lot-name" value="<?php echo ($lot['lot_detail']); ?>">
+                                <input type="text" name="lot_detail" id="lot-name" value="<?php echo ($lot['lot_detail']); ?>" class="w-full p-2 border border-gray-400  bg-gray-100">
                             <?php else: ?>
                                 <?php echo ($lot['lot_detail']); ?>
                             <?php endif; ?>
                         </td>
                     </tr>
                     <tr>
-                        <th>วันที่ล็อต :</th>
-                        <td>
+                        <th class="text-start px-7 py-2 w-[30%]">วันที่ล็อต :</th>
+                        <td class="border border-gray-300 w-[70%]">
                             <?php if ($is_update): ?>
-                                <input type="date" name="lot_date" value="<?= date('Y-m-d') ?>">
+                                <input type="date" name="lot_date" value="<?= date('Y-m-d') ?>" class="w-full p-2 border border-gray-400  bg-gray-100">
                             <?php else: ?>
                                 <?php echo ($lot['lot_date']); ?>
                             <?php endif; ?>
@@ -151,10 +151,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
 
                     <tr>
-                        <th>สถานะล็อต :</th>
-                        <td>
+                        <th class="text-start px-7 py-2 w-[30%]">สถานะล็อต :</th>
+                        <td class="border border-gray-300 w-[70%]">
                             <?php if ($is_update): ?>
-                                <select name="lot_status_id">
+                                <select name="lot_status_id"  class="w-full p-2 border border-gray-400  bg-gray-100">
                                     <option value="<?php echo ($lot['lot_status_id']); ?>" selected>
                                         <?php echo ($lot['lot_status_name']); ?>
                                     </option>
@@ -170,10 +170,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </td>
                     </tr>
                     <tr>
-                        <th>คลังสินค้า :</th>
-                        <td>
+                        <th class="text-start px-7 py-2 w-[30%]">คลังสินค้า :</th>
+                        <td class="border border-gray-300 w-[70%]">
                             <?php if ($is_update): ?>
-                                <select name="warehouse_id">
+                                <select name="warehouse_id" class="w-full p-2 border border-gray-400  bg-gray-100">
                                     <option value="<?php echo ($lot['warehouse_id']); ?>" selected>
                                         <?php echo ($lot['warehouse_name']); ?>
                                     </option>
@@ -190,10 +190,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
                     <tr>
                     <tr>
-                        <th>ผู้ส่งมอบ :</th>
-                        <td>
+                        <th class="text-start px-7 py-2 w-[30%]">ผู้ส่งมอบ :</th>
+                        <td class="border border-gray-300 w-[70%]">
                             <?php if ($is_update): ?>
-                                <select name="supplier_id">
+                                <select name="supplier_id" class="w-full p-2 border border-gray-400  bg-gray-100">
                                     <option value="<?php echo ($lot['supplier_id']); ?>" selected>
                                         <?php echo ($lot['supplier_name']); ?>
                                     </option>
