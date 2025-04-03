@@ -1,5 +1,3 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
-
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
@@ -139,6 +137,7 @@ ob_end_flush();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายละเอียดคลังสินค้า - ระบบจัดการคลังสินค้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -473,7 +472,6 @@ ob_end_flush();
                         </div>
                     </div>
                 </div> -->
-                
                 <!-- Products in Warehouse -->
                 <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                     <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
@@ -530,8 +528,8 @@ ob_end_flush();
             </div>
 
 
-            <!-- Lot Details with Products 
-            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+            <!-- Lot Details with Products  -->
+            <!-- <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
                         <i class="fas fa-box-open mr-2"></i>CheckOut รายการ Lot และสินค้าในคลัง
@@ -595,12 +593,10 @@ ob_end_flush();
                         </div>
                     <?php endif; ?>
                 </div>
-            </div>
-            -->
+            </div> -->
 
-            <!--
-            <!-- Lots List (Card View) 
-            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+            <!-- Lots List (Card View)  -->
+            <!-- <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
                         <i class="fas fa-box-open mr-2"></i>รายการ Lot ทั้งหมดในคลัง
@@ -659,8 +655,7 @@ ob_end_flush();
                         </div>
                     <?php endif; ?>
                 </div>
-            </div>
-             -->
+            </div> -->
 
             <!-- Action Buttons -->
             <div class="flex justify-between">
@@ -669,7 +664,7 @@ ob_end_flush();
                     <i class="fas fa-arrow-left mr-2"></i>กลับ
                 </a>
 
-                <a href="index.php?page=report_warehouse&warehouse_id=<?= htmlspecialchars($warehouse_id) ?>"
+                <a href="?page=report_warehouse&warehouse_id=<?= htmlspecialchars($warehouse_id) ?>"
                     class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
                     <i class="fas fa-file-alt mr-2"></i>รายงานสรุป
                 </a>

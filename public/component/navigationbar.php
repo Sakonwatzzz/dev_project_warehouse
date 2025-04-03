@@ -23,6 +23,9 @@ $product_section_pages = [
     'lot_productlist',
     'lot_productinsert'
 ];
+$report_section_pages = [
+    'report_warehouse'
+];
 
 // Check if we're in dashboard section (for highlighting both home and dashboard)
 $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
@@ -46,16 +49,19 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         <div class="navbar">
             <div class="link">
                 <ul>
-                    <li><a href="?page=bar_index"
-                            class="<?php echo $is_dashboard ? 'active' : ''; ?>">หน้าแรก</a></li>
+                    <li><a href="?page=bar_index" class="<?php echo $is_dashboard ? 'active' : ''; ?>">หน้าแรก</a></li>
                     <li><a href="?page=bar_product"
-                            class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a></li>
+                            class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a>
+                    </li>
                     <li><a href="?page=bar_personnel"
-                            class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
+                            class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a>
+                    </li>
                     <li><a href="?page=bar_member"
-                            class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
+                            class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a>
+                    </li>
                     <li><a href="?page=bar_supplier"
-                            class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
+                            class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a>
+                    </li>
                     <li><a href="?page=navigationbar_sale"
                             class="<?php echo $current_page == 'navigationbar_sale' ? 'active' : ''; ?>">ขาย</a></li>
                 </ul>
@@ -135,13 +141,14 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'supplier_insert',
             'supplier_detail',
         ];
+        $report_pages = ['report_warehouse'];
 
         if ($page) {
 
             $parts = explode('_', $page);
             $prefix = $parts[0] ?? null;  // 'bar' หรือ 'member'
             $module = $parts[1] ?? null;  // 'product', 'supplier', 'list', 'insert', etc.
-
+        
             // If no page is specified or it's the homepage/bar_index, show dashboard
             if ($page == 'dashboard' || $page == 'bar_index') {
                 // Load bar_index.php first
@@ -313,6 +320,17 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 
                     if (isset($_GET['id'])) {
                         $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'report' && in_array($page, $report_pages)) {
+                    // โหลด bar_product.php ก่อน (สมมติว่า report อยู่ในหมวดสินค้า ถ้าต้องการเปลี่ยนให้บอกมา)
+                    $barfile = __DIR__ . "/bar_product.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'warehouse';
+                    $filepath = "$basePath/report/report_{$action}.php";
+                    if (isset($_GET['warehouse_id'])) {
+                        $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
                     }
                 }
 

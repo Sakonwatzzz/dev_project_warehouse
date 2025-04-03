@@ -299,7 +299,7 @@ try {
 
         <!-- Warehouse Cards Section -->
         <h2 class="text-2xl font-bold text-gray-800 mb-6">คลังสินค้า</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8 cursor-pointer ">
             <?php foreach ($warehouses as $warehouse): ?>
                 <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>'">

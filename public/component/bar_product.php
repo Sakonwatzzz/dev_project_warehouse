@@ -123,12 +123,17 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
         </div>
 
         <div class="border-2 border-[#a6c4de] rounded-lg bg-gradient-to-r bg-[#cbdbee] shadow-xl">
-
             <div class="flex gap-1 p-2 ">
                 <a href="?page=warehouse_list" class="button-link">
                     <button class="<?php echo ($current_page == 'warehouse_list') ? 'active' : ''; ?>">
                         <img src="../image/warehouse.png" alt="">
                         <p>คลัง</p>
+                    </button>
+                </a>
+                <a href="?page=report_warehouse" class="button-link">
+                    <button class="<?php echo ($current_page == 'report_warehouse') ? 'active' : ''; ?>">
+                        <img src="../image/warehouse.png" alt="">
+                        <p>รายงานคลัง</p>
                     </button>
                 </a>
                 <a href="?page=lot_listinsert" class="button-link">
