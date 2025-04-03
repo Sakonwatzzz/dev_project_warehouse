@@ -84,31 +84,73 @@ ob_end_flush();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../../output.css" rel="stylesheet">
     <title>ระบบจัดการล็อตสินค้า</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .zoom-in {
             cursor: zoom-in;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 1200px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        @media print {
+
+
+            .modal .no-print {
+                display: none;
+            }
+
+            .modal-content {
+                margin: 0;
+                width: 100%;
+                border: none;
+                box-shadow: none;
+            }
         }
     </style>
 </head>
 
 <body class="bg-gray-50">
-    <div class="font-[Tahoma] mx-auto max-w-6xl px-4 py-8 mt-8 sm:px-6 lg:px-8">
-        <div class=" grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
+    <div class="container font-[Tahoma] mx-auto max-w-6xl px-4 py-8 mt-8 sm:px-6 lg:px-8">
+        <div class=" grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-6 mb-6">
             <div class="flex items-center gap-6">
                 <h2 class="text-2xl font-bold text-gray-800">จำนวนรายการรับสินค้ามี:</h2>
                 <div class="px-4 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[50px]">
                     <?php echo $count; ?>
                 </div>
                 <a href="/?page=lot_insertout"
-                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors duration-200">
+                    class="no-print bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors duration-200">
                     <i class="fas fa-plus mr-2"></i>เพิ่มการรับสินค้า
                 </a>
             </div>
-
-            <div class="text-end">
+            <div class="no-print text-end">
                 <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
                     placeholder="ค้นหารายการรับสินค้า..."
                     class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="printButton" onclick="openModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
+                    <i class="fas fa-print mr-2"></i>พิมพ์
+                </button>
             </div>
         </div>
 
@@ -223,8 +265,46 @@ ob_end_flush();
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-    </div>
+        <!-- Modal -->
+        <div id="printModal" class="modal">
+            <div class="modal-content">
+                <div id="modalBody"></div>
+                <div class="flex justify-end gap-4 mt-6 no-print">
+                    <button onclick="closeModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+                        <i class="fas fa-times mr-2"></i>cancel
+                    </button>
+                    <button onclick="window.print()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
+                        <i class="fas fa-print mr-2"></i>print
+                    </button>
 
+                </div>
+                <div class="text-center p-4 border-t mt-4">
+                    <p class="text-gray-500">© <?= date('Y') ?> สำเพ็งบุรีรัมย์สินค้าราคาปลีกและส่ง</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function openModal() {
+            const modal = document.getElementById('printModal');
+            const modalBody = document.getElementById('modalBody');
+            const tableContent = document.querySelector('.overflow-x-auto').innerHTML; // คัดลอกเฉพาะตาราง
+            modalBody.innerHTML = tableContent; // วางเนื้อหาใน Modal
+            modal.style.display = 'block'; // แสดง Modal
+        }
+
+        function closeModal() {
+            document.getElementById('printModal').style.display = 'none'; // ซ่อน Modal
+        }
+
+        // ปิด Modal เมื่อคลิกนอก Modal
+        window.onclick = function(event) {
+            const modal = document.getElementById('printModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
     <script>
         // Search function
         function searchTable() {

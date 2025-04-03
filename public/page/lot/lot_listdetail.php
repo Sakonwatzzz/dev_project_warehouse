@@ -68,16 +68,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
                         LEFT JOIN product p ON p.product_id = lp.product_id
                         WHERE lp.lot_id = ? 
                         AND (p.product_name IS NULL OR p.product_name = 'ยังไม่ระบุ' OR lp.lot_product_capital = 0)";
-        
+
         $check_stmt = $pdo->prepare($check_query);
         $check_stmt->execute([$_POST['lot_id']]);
         $invalid_products = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         if (count($invalid_products) > 0) {
             // There are products with missing information
             throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน กรุณาตรวจสอบและแก้ไขก่อนยืนยันรายการ");
         }
-        
+
         // Update product names if needed
         if (isset($_POST['product_name']) && isset($_POST['barcode'])) {
             $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
             exit();
         }
-        
+
         // For regular form submissions, redirect with error
         header('Location: index.php?page=lot_view&id=' . $_POST['lot_id'] . '&error=' . urlencode($e->getMessage()));
         exit();
@@ -297,12 +297,56 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
             background-color: white;
             color: black;
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 1200px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        @media print {
+
+
+            .no-print {
+                display: none;
+            }
+
+            .modal-content {
+                margin: 0;
+                width: 100%;
+                border: none;
+                box-shadow: none;
+            }
+        }
     </style>
 </head>
 
 <body class="bg-gray-100">
     <div class="container mx-auto p-8 mb-11">
-        <h1 class="text-4xl font-bold mb-8">รายละเอียดล็อตสินค้า</h1>
+        <div class="flex justify-between">
+            <h1 class="text-4xl font-bold mb-8">รายละเอียดล็อตสินค้า</h1>
+            <button id="printButton" onclick="openModal()" class="no-print  bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow ">
+                <i class="fas fa-print mr-2"></i>พิมพ์
+            </button>
+        </div>
         <?php if ($lot_data): ?>
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <div class="grid grid-cols-2 gap-6">
@@ -482,6 +526,23 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 </table>
             </div>
         </div>
+        <!-- Modal -->
+        <div id="printModal" class="modal">
+            <div class="modal-content">
+                <div id="modalBody"></div>
+                <div class="flex justify-end gap-4 mt-6 no-print">
+                    <button onclick="closeModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+                        <i class="fas fa-times mr-2"></i>cancel
+                    </button>
+                    <button onclick="window.print()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
+                        <i class="fas fa-print mr-2"></i>print
+                    </button>
+                </div>
+                <div class="text-center p-4 border-t mt-4">
+                    <p class="text-gray-500">© <?= date('Y') ?> สำเพ็งบุรีรัมย์สินค้าราคาปลีกและส่ง</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Edit Modal -->
@@ -521,7 +582,30 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 </div>
             </form>
         </div>
+
     </div>
+    <script>
+        function openModal() {
+            const modal = document.getElementById('printModal');
+            const modalBody = document.getElementById('modalBody');
+            const pageContent = document.querySelector('.container').innerHTML; // คัดลอกเฉพาะตาราง
+
+            modalBody.innerHTML = pageContent; // วางเนื้อหาใน Modal
+            modal.style.display = 'block'; // แสดง Modal
+        }
+
+        function closeModal() {
+            document.getElementById('printModal').style.display = 'none'; // ซ่อน Modal
+        }
+
+        // ปิด Modal เมื่อคลิกนอก Modal
+        window.onclick = function(event) {
+            const modal = document.getElementById('printModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
     <script>
         function validateForm(event) {
             event.preventDefault(); // Prevent form submission before validation
