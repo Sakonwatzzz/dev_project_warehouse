@@ -112,12 +112,7 @@ ob_end_flush();
             </div>
         </div>
 
-        <!-- Notification -->
-        <div id="notification"
-            class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
-            <div class="bg-green-500 text-white px-4 py-2 font-bold">การแจ้งเตือน</div>
-            <div class="px-4 py-3">แก้ไขสมาชิกสำเร็จ!</div>
-        </div>
+
 
         <!-- Table -->
         <div class="overflow-x-auto">
@@ -189,7 +184,7 @@ ob_end_flush();
         <div class="flex justify-center mt-6 space-x-2">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
-                    <a href="?page=lot_list&page_num=<?php echo ($page - 1); ?>"
+                    <a href="?page=lot_warehouseinout&page_num=<?php echo ($page - 1); ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
                         &laquo; ก่อนหน้า
                     </a>
@@ -201,7 +196,7 @@ ob_end_flush();
                             <?php echo $i; ?>
                         </a>
                     <?php else: ?>
-                        <a href="?page=lot_list&page_num=<?php echo $i; ?>"
+                        <a href="?page=lot_warehouseinout&page_num=<?php echo $i; ?>"
                             class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
                             <?php echo $i; ?>
                         </a>
@@ -209,7 +204,7 @@ ob_end_flush();
                 <?php endfor; ?>
 
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=lot_list&page_num=<?php echo ($page + 1); ?>"
+                    <a href="?page=lot_warehouseinout&page_num=<?php echo ($page + 1); ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
                         ถัดไป &raquo;
                     </a>
@@ -273,15 +268,6 @@ ob_end_flush();
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
-
-            if (urlParams.has('success')) {
-                const notification = document.getElementById('notification');
-                notification.classList.remove('hidden');
-
-                setTimeout(() => {
-                    notification.classList.add('hidden');
-                }, 2000);
-            }
         });
     </script>
 </body>
