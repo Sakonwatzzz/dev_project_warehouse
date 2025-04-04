@@ -21,7 +21,7 @@ $product_section_pages = [
     'lot_listinsert',
     'lot_list',
     'lot_productlist',
-    'lot_productinsert'
+    'lot_productinsert',
 ];
 
 // Check if we're in dashboard section (for highlighting both home and dashboard)
@@ -57,7 +57,9 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     <li><a href="?page=bar_supplier"
                             class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
                     <li><a href="?page=navigationbar_sale"
-                            class="<?php echo $current_page == 'navigationbar_sale' ? 'active' : ''; ?>">ขาย</a></li>
+                            class="<?php echo ($main_section == 'sale' || $current_page == 'navigationbar_sale') ? 'active' : ''; ?>">ขายTEST</a></li>
+                    <!-- <li><a href="?page=navigationbar_sale"
+                            class="<?php echo $current_page == 'navigationbar_sale' ? 'active' : ''; ?>">ขาย</a></li> -->
                 </ul>
             </div>
         </div>
@@ -134,6 +136,12 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'supplier_update',
             'supplier_insert',
             'supplier_detail',
+        ];
+        $sale_pages = [
+            'sale_list',
+            'sale_update',
+            'sale_insert',
+            'sale_detail',
         ];
 
         if ($page) {
@@ -310,6 +318,18 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     }
                     $action = $parts[1] ?? 'list';
                     $filepath = "$basePath/supplier/supplier_{$action}.php";
+
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'sale' && in_array($page, $sale_pages)) {
+                    // โหลด bar_supplier.php ก่อน
+                    $barfile = __DIR__ . "/navigationbar_sale.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'list';
+                    $filepath = "$basePath/sale/sale_{$action}.php";
 
                     if (isset($_GET['id'])) {
                         $_REQUEST['id'] = $_GET['id'];
