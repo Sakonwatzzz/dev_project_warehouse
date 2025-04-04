@@ -2,28 +2,28 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
-// Function to check for duplicate product_ids
-function checkProductIdExists($pdo, $product_id)
+// Function to check for duplicate product_codes
+function checkProductCodeExists($pdo, $product_code)
 {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE product_id = ?");
-    $stmt->execute([$product_id]);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE product_code = ?");
+    $stmt->execute([$product_code]);
     return $stmt->fetchColumn() > 0;
 }
 
 // แยก endpoint สำหรับ AJAX request
-if (isset($_GET['action']) && $_GET['action'] === 'check_product_id') {
+if (isset($_GET['action']) && $_GET['action'] === 'check_product_code') {
     header('Content-Type: application/json');
-    $product_id = $_GET['product_id'] ?? '';
-    $exists = checkProductIdExists($pdo, $product_id);
+    $product_code = $_GET['product_code'] ?? '';
+    $exists = checkProductCodeExists($pdo, $product_code);
     echo json_encode(['exists' => $exists]);
     exit;
 }
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $product_id = $_POST['product_id'];
+    $product_code = $_POST['product_code'];
 
-    if (checkProductIdExists($pdo, $product_id)) {
+    if (checkProductCodeExists($pdo, $product_code)) {
         echo "<script>
                 alert('รหัสบาร์โค้ดนี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่');
                 window.history.back();
@@ -41,11 +41,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $typebrandname = $_POST['typebrandname'];
 
     try {
-        $stmt = $pdo->prepare('INSERT INTO product (product_id, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id)
+        // ลบ product_id ออกจากการ INSERT เพราะเป็น AUTO_INCREMENT
+        $stmt = $pdo->prepare('INSERT INTO product (product_code, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id, product_brand_id)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$product_id, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
+        $stmt->execute([$product_code, $name, $price_1, $price_2, $price_3, $price_4, $capital, $typename, $typebrandname]);
 
-        header("Location: /?page=product_detail&tabel=product&id=" . urlencode($product_id));
+        // ดึง product_id ที่เพิ่งเพิ่มเพื่อใช้ใน URL (ถ้าจำเป็น)
+        $stmt = $pdo->prepare("SELECT product_id FROM product WHERE product_code = ?");
+        $stmt->execute([$product_code]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $new_product_id = $row['product_id'];
+
+        header("Location: /?page=product_detail&tabel=product&code=" . urlencode($product_code));
         exit();
     } catch (PDOException $e) {
         die('Error: ' . $e->getMessage());
@@ -103,12 +110,12 @@ if (!$brandResults) {
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">รหัสสินค้า:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="text" 
-                                    name="product_id" 
-                                    id="product_id" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                                    required 
-                                    autocomplete="off" 
+                                <input type="text"
+                                    name="product_code"
+                                    id="product_code"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    required
+                                    autocomplete="off"
                                     autofocus>
                             </div>
                         </div>
@@ -116,10 +123,10 @@ if (!$brandResults) {
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อสินค้า:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="text" 
-                                    name="name" 
-                                    id="name" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                <input type="text"
+                                    name="name"
+                                    id="name"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                     required>
                             </div>
                         </div>
@@ -127,11 +134,11 @@ if (!$brandResults) {
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 1:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="number" 
-                                    name="price_1" 
-                                    id="price_1" 
-                                    step="0.01" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                <input type="number"
+                                    name="price_1"
+                                    id="price_1"
+                                    step="0.01"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                     required>
                             </div>
                         </div>
@@ -139,11 +146,11 @@ if (!$brandResults) {
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 2:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="number" 
-                                    name="price_2" 
-                                    id="price_2" 
-                                    step="0.01" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                <input type="number"
+                                    name="price_2"
+                                    id="price_2"
+                                    step="0.01"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                     required>
                             </div>
                         </div>
@@ -151,11 +158,11 @@ if (!$brandResults) {
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 3:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="number" 
-                                    name="price_3" 
-                                    id="price_3" 
-                                    step="0.01" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                <input type="number"
+                                    name="price_3"
+                                    id="price_3"
+                                    step="0.01"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                     required>
                             </div>
                         </div>
@@ -163,11 +170,11 @@ if (!$brandResults) {
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 4:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="number" 
-                                    name="price_4" 
-                                    id="price_4" 
-                                    step="0.01" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                <input type="number"
+                                    name="price_4"
+                                    id="price_4"
+                                    step="0.01"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                     required>
                             </div>
                         </div>
@@ -175,11 +182,11 @@ if (!$brandResults) {
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาทุน:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="number" 
-                                    name="capital" 
-                                    id="capital" 
-                                    step="0.01" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                <input type="number"
+                                    name="capital"
+                                    id="capital"
+                                    step="0.01"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                     required>
                             </div>
                         </div>
@@ -224,7 +231,7 @@ if (!$brandResults) {
 
                         <!-- Buttons -->
                         <div class="flex justify-end gap-4 mt-6">
-                            <a href="/?page=product_list" 
+                            <a href="/?page=product_list"
                                 class="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-200">
                                 ยกเลิก
                             </a>
@@ -255,7 +262,7 @@ if (!$brandResults) {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('productForm');
-            const productIdInput = document.getElementById('product_id');
+            const productCodeInput = document.getElementById('product_code'); // เปลี่ยนจาก product_id เป็น product_code
             const modalContainer = document.getElementById('modalContainer');
             const modalTitle = document.getElementById('modalTitle');
             const modalMessage = document.getElementById('modalMessage');
@@ -265,16 +272,16 @@ if (!$brandResults) {
             function showModal(title, message, isError = false) {
                 modalTitle.textContent = title;
                 modalMessage.textContent = message;
-                modalButton.className = isError 
-                    ? 'bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-200'
-                    : 'bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200';
+                modalButton.className = isError ?
+                    'bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-200' :
+                    'bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200';
                 modalContainer.classList.remove('hidden');
             }
 
             // Close modal
             function closeModal() {
                 modalContainer.classList.add('hidden');
-                productIdInput.focus();
+                productCodeInput.focus();
             }
 
             // Set up modal button handler
@@ -287,17 +294,17 @@ if (!$brandResults) {
                 }
             });
 
-            // Check if product ID exists
-            async function checkProductId(productId) {
+            // Check if product code exists
+            async function checkProductCode(productCode) {
                 try {
-                    const response = await fetch(`?action=check_product_id&product_id=${encodeURIComponent(productId)}`);
+                    const response = await fetch(`?action=check_product_code&product_code=${encodeURIComponent(productCode)}`);
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
                     const data = await response.json();
                     return data.exists;
                 } catch (error) {
-                    console.error('Error checking product ID:', error);
+                    console.error('Error checking product code:', error);
                     return false;
                 }
             }
@@ -306,33 +313,34 @@ if (!$brandResults) {
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
-                const productId = productIdInput.value.trim();
-                
-                if (!productId) {
+                const productCode = productCodeInput.value.trim();
+
+                if (!productCode) {
                     showModal('แจ้งเตือน', 'กรุณากรอกรหัสสินค้า', true);
-                    productIdInput.classList.add('border-red-500', 'bg-red-50');
+                    productCodeInput.classList.add('border-red-500', 'bg-red-50');
                     return;
                 }
 
-                const exists = await checkProductId(productId);
-                
+                const exists = await checkProductCode(productCode);
+
                 if (exists) {
                     showModal('แจ้งเตือน', 'รหัสสินค้านี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบและแก้ไขใหม่', true);
-                    productIdInput.classList.add('border-red-500', 'bg-red-50');
-                    productIdInput.select();
+                    productCodeInput.classList.add('border-red-500', 'bg-red-50');
+                    productCodeInput.select();
                 } else {
                     form.submit();
                 }
             });
 
-            // Clear error styling when product ID input changes
-            productIdInput.addEventListener('input', function() {
+            // Clear error styling when product code input changes
+            productCodeInput.addEventListener('input', function() {
                 this.classList.remove('border-red-500', 'bg-red-50');
             });
 
-            // Focus on product ID field on page load
-            productIdInput.focus();
+            // Focus on product code field on page load
+            productCodeInput.focus();
         });
     </script>
 </body>
+
 </html>

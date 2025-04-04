@@ -21,7 +21,7 @@ try {
 
     // Handle POST request for updating product
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
+        $product_code = filter_input(INPUT_POST, 'product_code', FILTER_SANITIZE_STRING); // เปลี่ยนจาก product_id เป็น product_code
         $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
         $prices = [
             'price1' => filter_input(INPUT_POST, 'price_1', FILTER_VALIDATE_FLOAT),
@@ -33,7 +33,8 @@ try {
         $type = filter_input(INPUT_POST, 'typename', FILTER_VALIDATE_INT);
         $brand = filter_input(INPUT_POST, 'typebrandname', FILTER_VALIDATE_INT);
 
-        if ($id && $name && $type && $brand) {
+        if ($product_code && $name && $type && $brand) {
+            // อัปเดตโดยใช้ product_code ในการระบุสินค้า
             $stmt = $pdo->prepare("
                 UPDATE product 
                 SET product_name = ?, 
@@ -44,7 +45,7 @@ try {
                     product_capital = ?, 
                     product_type_id = ?, 
                     product_brand_id = ? 
-                WHERE product_id = ?
+                WHERE product_code = ?
             ");
             $stmt->execute([
                 $name,
@@ -55,21 +56,27 @@ try {
                 $capital,
                 $type,
                 $brand,
-                $id
+                $product_code
             ]);
 
-            header("Location: /?page=product_detail&tabel=product&id=$id");
+            // ดึง product_id เพื่อใช้ใน URL (ถ้าจำเป็น)
+            $stmt = $pdo->prepare("SELECT product_id FROM product WHERE product_code = ?");
+            $stmt->execute([$product_code]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $id = $row['product_id'];
+
+            header("Location: /?page=product_detail&tabel=product&code=$product_code"); // เปลี่ยนจาก id เป็น code
             exit;
         }
     }
 
     // Handle deletion request
-    if (isset($_GET['id'])) {
-        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+    if (isset($_GET['code'])) { // เปลี่ยนจาก id เป็น code
+        $product_code = filter_input(INPUT_GET, 'code', FILTER_SANITIZE_STRING);
 
-        if ($id) {
-            $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
-            $stmt->execute([$id]);
+        if ($product_code) {
+            $stmt = $pdo->prepare("DELETE FROM product WHERE product_code = ?");
+            $stmt->execute([$product_code]);
 
             // Reset AUTO_INCREMENT if table is empty
             $stmt = $pdo->query("SELECT COUNT(*) FROM product");
@@ -122,9 +129,10 @@ try {
         ? 'WHERE ' . implode(' AND ', $where_conditions)
         : '';
 
-    // Main query to fetch products
+    // Main query to fetch products (เพิ่ม product_code)
     $query = "SELECT 
         product.product_id, 
+        product.product_code, 
         product.product_name, 
         product.product_price1, 
         product.product_price2, 
@@ -257,7 +265,7 @@ try {
                     </div>
                 </div>
 
-                <div class=" w-full">
+                <div class="w-full">
                     <div class="text-end">
                         <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
                             placeholder="ค้นหาสินค้า..."
@@ -391,22 +399,22 @@ try {
                                 empty($product_list['product_brand_id']); // product_brand_id ถ้า 0 ไม่นับว่าครบ
                             ?>
                             <tr class="hover:bg-gray-200 cursor-pointer <?php echo $is_incomplete ? 'bg-red-100' : 'bg-white'; ?>">
-                                <td class="text-start px-2 border border-gray-300 bg-amber-200"><?php echo ($product_list['product_id']); ?></td>
-                                <td class="text-start px-2 text-blue-600  border border-gray-300 hover:bg-blue-100 cursor-pointer  hover:text-blue-800 hover:underline  <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
-                                    onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
-                                    <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : $product_list['product_name']; ?>
+                                <td class="text-start px-2 border border-gray-300 bg-amber-200"><?php echo htmlspecialchars($product_list['product_code']); ?></td>
+                                <td class="text-start px-2 text-blue-600 border border-gray-300 hover:bg-blue-100 cursor-pointer hover:text-blue-800 hover:underline <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
+                                    onclick="window.location.href='?page=product_detail&tabel=product&code=<?php echo urlencode($product_list['product_code']); ?>'">
+                                    <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_name']); ?>
                                 </td>
                                 <td class="text-end px-2 border border-gray-300 <?php echo empty($product_list['product_capital']) ? 'text-red-600 font-bold' : ''; ?>">
-                                    <?php echo empty($product_list['product_capital']) ? 'ไม่มีข้อมูล' : $product_list['product_capital']; ?>
+                                    <?php echo empty($product_list['product_capital']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_capital']); ?>
                                 </td>
                                 <td class="text-end px-2 border border-gray-300 <?php echo empty($product_list['product_price4']) ? 'text-red-600 font-bold' : ''; ?>">
-                                    <?php echo empty($product_list['product_price4']) ? 'ไม่มีข้อมูล' : $product_list['product_price4']; ?>
+                                    <?php echo empty($product_list['product_price4']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_price4']); ?>
                                 </td>
                                 <td class="text-start px-2 border border-gray-300 <?php echo empty($product_list['product_type_id']) ? 'text-red-600 font-bold' : ''; ?>">
-                                    <?php echo !empty($product_list['product_type_name']) ? $product_list['product_type_name'] : 'ไม่มีข้อมูล'; ?>
+                                    <?php echo !empty($product_list['product_type_name']) ? htmlspecialchars($product_list['product_type_name']) : 'ไม่มีข้อมูล'; ?>
                                 </td>
                                 <td class="text-start px-2 border border-gray-300 <?php echo empty($product_list['product_brand_id']) ? 'text-red-600 font-bold' : ''; ?>">
-                                    <?php echo !empty($product_list['product_brand_name']) ? $product_list['product_brand_name'] : 'ไม่มีข้อมูล'; ?>
+                                    <?php echo !empty($product_list['product_brand_name']) ? htmlspecialchars($product_list['product_brand_name']) : 'ไม่มีข้อมูล'; ?>
                                 </td>
                                 <td class="text-center px-2 border border-gray-300">
                                     <?php if ($is_incomplete): ?>
@@ -416,14 +424,14 @@ try {
                                     <?php endif; ?>
                                 </td>
                                 <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
-                                    <a href="?page=product_update&id=<?php echo ($product_list['product_id']) ?>"
+                                    <a href="?page=product_update&code=<?php echo urlencode($product_list['product_code']); ?>"
                                         class="inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
                                         แก้ไข
                                     </a>
-                                    <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
+                                    <a href="?page=product_list&code=<?php echo urlencode($product_list['product_code']); ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
                                         onclick="return confirm('ลบหรือไม่ลบ สรุป?')"
                                         class="inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -521,6 +529,7 @@ try {
                 const td = tr[i].getElementsByTagName("td");
                 let rowMatchesSearch = false;
 
+                // ค้นหาในทุกคอลัมน์ รวมถึง product_code
                 for (let j = 0; j < td.length; j++) {
                     const txtValue = td[j].textContent || td[j].innerText;
                     if (txtValue.toLowerCase().indexOf(filter) > -1) {
