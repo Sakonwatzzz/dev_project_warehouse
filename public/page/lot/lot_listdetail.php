@@ -618,12 +618,12 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
         // ฟังก์ชันสำหรับการเปลี่ยนสีพื้นหลังตามการกดปุ่ม
         function changeInputBackground(event) {
-            if (event.keyCode === 8 || event.keyCode === 46) { // 8 = Backspace, 46 = Delete
+            if (event.keyCode === 46) { // 8 = Backspace, 46 = Delete
                 inputField.classList.remove('input-normal');
                 inputField.classList.add('input-delete'); // เพิ่มคลาสสำหรับการลบข้อมูล
             }
 
-            if (event.keyCode === 13) { // 13 = Enter
+            if (event.keyCode === 45) { // 13 = Enter // 45 = insert
                 inputField.classList.remove('input-normal');
                 inputField.classList.add('input-add'); // เพิ่มคลาสสำหรับการเพิ่มข้อมูล
             }
