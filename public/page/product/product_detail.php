@@ -1,16 +1,20 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
+if (!isset($_GET['tabel']) || (!isset($_GET['id']) && !isset($_GET['code']))) {
     die("ระบุประเภทหรือ ID ไม่ถูกต้อง");
 }
 
 $tabel = $_GET['tabel'];
-$id = $_GET['id'];
+$id = isset($_GET['id']) ? $_GET['id'] : null;
+$code = isset($_GET['code']) ? $_GET['code'] : null;
 $is_update = isset($_GET['is_update']) ? $_GET['is_update'] : false;
 $newTypeId = isset($_GET['new_type_id']) ? $_GET['new_type_id'] : null;
 $newBrandId = isset($_GET['new_brand_id']) ? $_GET['new_brand_id'] : null;
 
+if (!$id && !$code) {
+    die("ระบุประเภทหรือ ID ไม่ถูกต้อง");
+}
 // Fetch product data
 function fetchProductData($pdo, $tabel, $id)
 {
@@ -59,10 +63,10 @@ function calculateTotalProductQuantity($pdo, $id)
 }
 
 $product = fetchProductData($pdo, $tabel, $id);
-if (!$product) {
-    echo "ไม่พบข้อมูล";
-    exit;
-}
+// if (!$product) {
+//     echo "ไม่พบข้อมูล";
+//     exit;
+// }
 
 $warehouses = fetchProductWarehouses($pdo, $id);
 $totalProductQty = calculateTotalProductQuantity($pdo, $id);
@@ -93,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (isset($_POST['product_id'])) {
         $id = $_POST['product_id'];
+        $code = $_POST['product_code'];
         $name = $_POST['name'] ?? '';
         $price1 = $_POST['price_1'] ?? 0;
         $price2 = $_POST['price_2'] ?? 0;
@@ -188,7 +193,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <!-- Product Fields -->
                         <?php
                         $fields = [
-                            ['label' => 'รหัสสินค้า', 'name' => 'product_id', 'value' => $product['product_id'], 'readonly' => true],
+                            ['label' => 'รหัสตารางสินค้า', 'name' => 'product_id', 'value' => $product['product_id'], 'readonly' => true],
+                            ['label' => 'รหัสบาร์โค้ดสินค้า', 'code' => 'code', 'value' => $product['product_code'], 'id' => 'product-code', 'required' => true],
                             ['label' => 'ชื่อสินค้า', 'name' => 'name', 'value' => $product['product_name'], 'id' => 'product-name', 'required' => true],
                             ['label' => 'ราคาขายที่ 1', 'name' => 'price_1', 'value' => $product['product_price1']],
                             ['label' => 'ราคาขายที่ 2', 'name' => 'price_2', 'value' => $product['product_price2']],

@@ -10,7 +10,7 @@ $query = "SELECT
     personnel_type.personnel_type_name
 FROM
     personnel
-INNER JOIN
+LEFT JOIN
     personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id";
 
 try {
@@ -84,7 +84,7 @@ try {
                 personnel.personnel_type_id, 
                 personnel_type.personnel_type_name 
               FROM personnel
-              INNER JOIN personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id
+              LEFT JOIN personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id
               LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);

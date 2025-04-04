@@ -1,7 +1,6 @@
 <?php
 ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
-
 $query = "SELECT    
     member.member_id,
     member.member_name, 
@@ -80,7 +79,7 @@ try {
                 member.member_type_id, 
                 member_type.member_type_name 
               FROM member
-              INNER JOIN member_type ON member.member_type_id = member_type.member_type_id
+              LEFT JOIN member_type ON member.member_type_id = member_type.member_type_id
               LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);
@@ -324,7 +323,6 @@ ob_end_flush();
             }
         }
     </script>
-
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);

@@ -36,7 +36,8 @@ try {
         if ($id && $name && $type && $brand) {
             $stmt = $pdo->prepare("
                 UPDATE product 
-                SET product_name = ?, 
+                SET product_code = ?, 
+                    product_name = ?, 
                     product_price1 = ?, 
                     product_price2 = ?, 
                     product_price3 = ?, 
@@ -95,6 +96,7 @@ try {
 
     if ($incomplete_mode) {
         $where_conditions[] = "(
+            product.product_code = '' OR product.product_code IS NULL OR 
             product.product_name = '' OR product.product_name IS NULL OR 
             product.product_price1 = '' OR product.product_price1 IS NULL OR 
             product.product_price2 = '' OR product.product_price2 IS NULL OR 
@@ -125,6 +127,7 @@ try {
     // Main query to fetch products
     $query = "SELECT 
         product.product_id, 
+        product.product_code, 
         product.product_name, 
         product.product_price1, 
         product.product_price2, 
@@ -155,6 +158,7 @@ try {
     // คำนวณจำนวนสินค้าที่ไม่สมบูรณ์เมื่ออยู่ใน incomplete_mode
     if ($incomplete_mode) {
         $incomplete_query = "SELECT COUNT(*) FROM product WHERE 
+            product_code IS NULL OR TRIM(product_code) = '' OR 
             product_name IS NULL OR TRIM(product_name) = '' OR 
             (product_price1 IS NULL OR product_price1 = '' OR product_price1 = 0) OR 
             (product_price2 IS NULL OR product_price2 = '' OR product_price2 = 0) OR 
@@ -367,7 +371,7 @@ try {
                 <table class="mb-8 w-full border-2 border-gray-300 shadow-lg" id="dataTable">
                     <thead>
                         <tr class="">
-                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">รหัสสินค้า</th>
+                            <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">รหัสบาร์โค้ดสินค้า</th>
                             <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ชื่อสินค้า</th>
                             <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ราคาทุน</th>
                             <th class="px-3 py-2 bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 border border-[#8f959b] shadow">ราคาขาย</th>
@@ -391,7 +395,8 @@ try {
                                 empty($product_list['product_brand_id']); // product_brand_id ถ้า 0 ไม่นับว่าครบ
                             ?>
                             <tr class="hover:bg-gray-200 cursor-pointer <?php echo $is_incomplete ? 'bg-red-100' : 'bg-white'; ?>">
-                                <td class="text-start px-2 border border-gray-300 bg-amber-200"><?php echo ($product_list['product_id']); ?></td>
+                                <td class="text-start px-2 border border-gray-300 bg-amber-200" hidden><?php echo ($product_list['product_id']); ?></td>
+                                <td class="text-start px-2 border border-gray-300 bg-amber-200"><?php echo ($product_list['product_code']); ?></td>
                                 <td class="text-start px-2 text-blue-600  border border-gray-300 hover:bg-blue-100 cursor-pointer  hover:text-blue-800 hover:underline  <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
                                     onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo ($product_list['product_id']) ?>'">
                                     <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : $product_list['product_name']; ?>
@@ -424,7 +429,7 @@ try {
                                         แก้ไข
                                     </a>
                                     <a href="?page=product_list&id=<?php echo $product_list['product_id']; ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
-                                        onclick="return confirm('ลบหรือไม่ลบ สรุป?')"
+                                        onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบข้อมูล')"
                                         class="inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>

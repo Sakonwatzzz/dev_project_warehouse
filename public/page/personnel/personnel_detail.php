@@ -39,7 +39,7 @@ switch ($tabel) {
         $stmt = $pdo->prepare("
             SELECT personnel.*, personnel_type.personnel_type_name
             FROM personnel
-            INNER JOIN personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id
+            LEFT JOIN personnel_type ON personnel.personnel_type_id = personnel_type.personnel_type_id
             WHERE personnel.personnel_id = ?
         ");
         break;
