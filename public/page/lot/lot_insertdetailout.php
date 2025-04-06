@@ -431,7 +431,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                                 </td>
                                 <td class="text-right py-2 border"><?php echo number_format($item_total, 2); ?></td>
                                 <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
-
                                     <td class="text-right py-2 border">
                                         <?php echo htmlspecialchars($lot_data['lot_status_name']); ?>
                                     </td>
