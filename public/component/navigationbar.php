@@ -139,9 +139,11 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         ];
         $sale_pages = [
             'sale_list',
-            'sale_update',
+            'sale_bill',
             'sale_insert',
             'sale_detail',
+            'sale_status',
+            'sale_billtest'
         ];
 
         if ($page) {

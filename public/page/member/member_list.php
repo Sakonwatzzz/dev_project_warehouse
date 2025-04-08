@@ -80,7 +80,7 @@ try {
                 member.member_type_id, 
                 member_type.member_type_name 
               FROM member
-              INNER JOIN member_type ON member.member_type_id = member_type.member_type_id
+              LEFT JOIN member_type ON member.member_type_id = member_type.member_type_id
               LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);

@@ -100,19 +100,25 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             <a href="?page=sale_bill" class="button-link">
                 <button class="<?php echo ($current_page == 'sale_bill') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
-                    <p>ข้อมูลบิลการขาย</p>
+                    <p>หน้าการขายสินค้า(ทดลอง1)</p>
                 </button>
             </a>
             <a href="?page=sale_list" class="button-link">
                 <button class="<?php echo ($current_page == 'sale_list') ? 'active' : ''; ?>">
                     <img src="../image/add-product.png" alt="">
-                    <p>ข้อมูลการขายสินค้า</p>
+                    <p>หน้าการขายสินค้า(ทดลอง2)</p>
                 </button>
             </a>
             <a href="?page=sale_status" class="button-link">
                 <button class="<?php echo ($current_page == 'sale_status') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
-                    <p>ข้อมูลสถานะสินค้า</p>
+                    <p>หน้าการขายสินค้า(ทดลอง3)</p>
+                </button>
+            </a>
+            <a href="?page=sale_billtest" class="button-link">
+                <button class="<?php echo ($current_page == 'sale_status') ? 'active' : ''; ?>">
+                    <img src="../image/box.png" alt="">
+                    <p>หน้าการขายสินค้า(ทดลอง4)</p>
                 </button>
             </a>
 
