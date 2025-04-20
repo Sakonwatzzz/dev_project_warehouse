@@ -17,11 +17,35 @@ $supplier_lot = fetchDataFromTable($pdo, "SELECT supplier_id, supplier_name FROM
 
 // Handle delete operation
 if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM lot WHERE lot_id = ?");
-    $stmt->execute([$id]);
-    header("Location: index.php?page=lot_list");
-    exit;
+    $id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+    if ($id === false) {
+        echo "Invalid lot ID";
+        exit;
+    }
+
+    try {
+        // Start a transaction
+        $pdo->beginTransaction();
+
+        // Delete related records in lot_product
+        $stmt = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ?");
+        $stmt->execute([$id]);
+
+        // Delete the lot record
+        $stmt = $pdo->prepare("DELETE FROM lot WHERE lot_id = ?");
+        $stmt->execute([$id]);
+
+        // Commit the transaction
+        $pdo->commit();
+
+        header("Location: http://localhost:8000/index.php?page=lot_warehouseinout");
+        exit;
+    } catch (PDOException $e) {
+        // Rollback the transaction on error
+        $pdo->rollBack();
+        echo "Error: " . $e->getMessage();
+        exit;
+    }
 }
 
 // Pagination setup
@@ -112,8 +136,6 @@ ob_end_flush();
             </div>
         </div>
 
-
-
         <!-- Table -->
         <div class="overflow-x-auto">
             <table class="mt-2 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
@@ -135,33 +157,32 @@ ob_end_flush();
                 </thead>
                 <tbody>
                     <?php if ($result_lot_list->rowCount() > 0): ?>
-                        <?php while ($lot_list = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
+                        <?php while ($lot_list_move = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
                             <tr class="bg-white hover:bg-gray-100 cursor-pointer">
-                                <td hidden><?php echo htmlspecialchars($lot_list['lot_id']); ?></td>
-                                <td hidden><?php echo htmlspecialchars($lot_list['lot_detail']); ?></td>
+                                <td hidden><?php echo htmlspecialchars($lot_list_move['lot_id']); ?></td>
+                                <td hidden><?php echo htmlspecialchars($lot_list_move['lot_detail']); ?></td>
                                 <td class="px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer">
-                                    <a href="?page=warehouse_move&lot_id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
-                                        class="text-blue-600 hover:text-blue-800 hover:underline  ">
-                                        <?php echo htmlspecialchars($lot_list['lot_date']); ?>
+                                    <a href="?page=warehouse_move&lot_id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
+                                        class="text-blue-600 hover:text-blue-800 hover:underline">
+                                        <?php echo htmlspecialchars($lot_list_move['lot_date']); ?>
                                     </a>
                                 </td>
-                                <td class="zoom-in px-4 py-3 border border-gray-200 hover:bg-gray-200  cursor-pointer"
-                                    onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list['warehouse_id']); ?>'">
-                                    <span><?php echo htmlspecialchars($lot_list['warehouse_name']); ?></span>
+                                <td class="zoom-in px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer"
+                                    onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list_move['warehouse_id']); ?>'">
+                                    <span><?php echo htmlspecialchars($lot_list_move['warehouse_name']); ?></span>
                                 </td>
-
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer "
-                                    onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>'">
-                                    <?php echo htmlspecialchars($lot_list['lot_status_name']); ?>
+                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer"
+                                    onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>'">
+                                    <?php echo htmlspecialchars($lot_list_move['lot_status_name']); ?>
                                 </td>
-                                <td class="px-4 py-3 border border-gray-200 ">
-                                    <?php if ($lot_list['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list['lot_status_id'] != 2): ?>
+                                <td class="px-4 py-3 border border-gray-200">
+                                    <?php if ($lot_list_move['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list_move['lot_status_id'] != 2): ?>
                                         <div class="flex space-x-2">
-                                            <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
+                                            <a href="?page=lot_insertdetailout&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
                                                 class="inline-block px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow transition-colors duration-150">
                                                 แก้ไข
                                             </a>
-                                            <a href="?page=lot_list&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
+                                            <a href="?page=lot_warehouseinout&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
                                                 onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')"
                                                 class="inline-block px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow transition-colors duration-150">
                                                 ลบ
@@ -186,7 +207,7 @@ ob_end_flush();
                 <?php if ($page > 1): ?>
                     <a href="?page=lot_warehouseinout&page_num=<?php echo ($page - 1); ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
-                        &laquo; ก่อนหน้า
+                        « ก่อนหน้า
                     </a>
                 <?php endif; ?>
 
@@ -206,7 +227,7 @@ ob_end_flush();
                 <?php if ($page < $total_pages): ?>
                     <a href="?page=lot_warehouseinout&page_num=<?php echo ($page + 1); ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
-                        ถัดไป &raquo;
+                        ถัดไป »
                     </a>
                 <?php endif; ?>
             <?php endif; ?>
@@ -234,7 +255,7 @@ ob_end_flush();
                 // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
                     const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                    if (txtValue.toLower.indexOf(filter) > -1) {
                         rowMatchesSearch = true;
                         break;
                     }

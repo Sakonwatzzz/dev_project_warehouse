@@ -91,33 +91,45 @@ try {
         $total_inventory_qty += $product['total_qty'];
     }
 
-    // Fetch detailed product data with lot information
-    $query = "SELECT
-        lot.lot_id, 
-        lot.lot_name,
-        p.product_id,
-        p.product_name,
-        lp.lot_product_qty,
-        lot.warehouse_id,
-        w.warehouse_name
-    FROM
-        lot_product lp
-        JOIN lot ON lp.lot_id = lot.lot_id
-        JOIN product p ON lp.product_id = p.product_id
-        JOIN warehouse w ON lot.warehouse_id = w.warehouse_id
-    WHERE
-        lot.warehouse_id = ?
-    ORDER BY 
-        lot.lot_name, p.product_id";
+    // Fetch all products in this warehouse with quantities
+    $query = "SELECT 
+    p.product_id,
+    p.product_name,
+    COALESCE(SUM(lp.lot_product_qty), 0) as total_qty,
+    COUNT(DISTINCT lot.lot_id) as lot_count,
+    COALESCE((
+        SELECT SUM(lp2.lot_product_remain)
+        FROM lot_product lp2
+        JOIN lot l2 ON lp2.lot_id = l2.lot_id
+        WHERE lp2.product_id = p.product_id
+        AND l2.warehouse_id = ?
+        AND l2.lot_status_id = 2  -- Only count confirmed lots
+    ), 0) - COALESCE((
+        SELECT SUM(lp3.lot_product_qty)
+        FROM lot_product lp3
+        JOIN lot l3 ON lp3.lot_id = l3.lot_id
+        WHERE lp3.product_id = p.product_id
+        AND l3.warehouse_id = ?
+        AND l3.lot_status_id = 1  -- Subtract pending lots
+    ), 0) as remaining_qty
+FROM 
+    lot_product lp
+    JOIN lot ON lp.lot_id = lot.lot_id
+    JOIN product p ON lp.product_id = p.product_id
+WHERE 
+    lot.warehouse_id = ?
+GROUP BY 
+    p.product_id, p.product_name
+ORDER BY 
+    p.product_id";
 
-    $product_lots = fetchData($pdo, $query, [$warehouse_id])->fetchAll(PDO::FETCH_ASSOC);
+    $warehouse_products = fetchData($pdo, $query, [$warehouse_id, $warehouse_id, $warehouse_id])->fetchAll(PDO::FETCH_ASSOC);
+    $total_product_count = count($warehouse_products);
 
-    // Fetch warehouse data for "from" warehouses
-    $query = "SELECT warehouse_id, warehouse_name FROM warehouse";
-    $all_warehouses = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
-    $warehouses_map = [];
-    foreach ($all_warehouses as $wh) {
-        $warehouses_map[$wh['warehouse_id']] = $wh['warehouse_name'];
+    // Calculate total inventory quantity
+    $total_inventory_qty = 0;
+    foreach ($warehouse_products as $product) {
+        $total_inventory_qty += $product['remaining_qty'];
     }
 } catch (Exception $e) {
     $error = "เกิดข้อผิดพลาด: " . $e->getMessage();
