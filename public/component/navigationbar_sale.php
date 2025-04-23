@@ -97,8 +97,8 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
 <body>
     <div class="button-bb">
         <div class="flex gap-1 p-2 border border--500 rounded-lg bg-gradient-to-r bg-[#cbdbee] shadow-xl">
-            <a href="?page=sale_bill" class="button-link">
-                <button class="<?php echo ($current_page == 'sale_bill') ? 'active' : ''; ?>">
+            <a href="?page=sale_insert" class="button-link">
+                <button class="<?php echo ($current_page == 'sale_insert') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
                     <p>หน้าการขายสินค้า(ทดลอง1)</p>
                 </button>

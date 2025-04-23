@@ -1,115 +1,109 @@
 <?php
-require_once __DIR__ . '../../../../config/database_server.php';
+ob_start();
+require_once __DIR__ . '/../../../config/database_server.php';
 // ต้องกำหนด $sale_id (สมมติว่าได้จาก GET หรือ POST)
-// $sale_id = isset($_GET['sale_id']) ? $_GET['sale_id'] : (isset($_POST['sale_id']) ? $_POST['sale_id'] : null);
-// if (!$sale_id) {
-//     die("Error: sale_id is required.");
-// }
-// $sale_id = $_POST['sale_id'] ?? null;
-// if (!$sale_id) {
-//     throw new Exception("ไม่พบรหัสการขาย (sale_id)");
-// }
-
-// if (!isset($sale_id)) {
-//     // ดึงจาก session หรือส่งมาจาก client
-//     $sale_id = $_SESSION['sale_id'] ?? $_POST['sale_id'] ?? null;
-
-//     if (!$sale_id) {
-//         echo json_encode(['success' => false, 'error' => 'ไม่พบรหัสการขาย (sale_id)']);
-//         exit;
-//     }
-// }
-
-session_start();
 $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['sale_id'] ?? null;
 
-if (!$sale_id) {
-    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-        echo json_encode(['success' => false, 'error' => 'ไม่พบรหัสการขาย (sale_id)']);
-    } else {
+if (!isset($_GET['page']) || $_GET['page'] !== 'sale_list') {
+    $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['sale_id'] ?? null;
+
+    if (!$sale_id) {
         die("Error: sale_id is required.");
     }
-    exit;
 }
-
-
 
 // Handle product update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     try {
-        if (!isset($_POST['barcode']) || !isset($_POST['product_name']) || !isset($_POST['qty']) || !isset($_POST['price']) || !isset($_POST['capital']) || !isset($_POST['sale_product_id'])) {
+        if (
+            !isset($_POST['barcode']) || !isset($_POST['product_name']) || !isset($_POST['qty']) ||
+            !isset($_POST['price']) || !isset($_POST['capital']) || !isset($_POST['sale_product_id'])
+        ) {
             throw new Exception('ข้อมูลไม่ครบถ้วน');
         }
 
-        // Start transaction for consistent data
         $pdo->beginTransaction();
 
         // Update product name in product table
         $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
-        $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
+        $productStmt->execute([trim($_POST['product_name']), trim($_POST['barcode'])]);
 
         // Update quantity and price in sale_product table
         $stmt = $pdo->prepare("UPDATE sale_product SET 
-            sale_product_qty = ?, 
-            sale_product_price = ?,
-            sale_product_capital = ?
+            sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ?
             WHERE sale_product_id = ? AND sale_id = ?");
         $stmt->execute([
-            $_POST['qty'],
-            $_POST['price'],
-            $_POST['capital'],
-            $_POST['sale_product_id'],
+            (int)$_POST['qty'],
+            (float)$_POST['price'],
+            (float)$_POST['capital'],
+            (int)$_POST['sale_product_id'],
             $sale_id
         ]);
 
-        // Commit transaction
         $pdo->commit();
-
-        header('Content-Type: application/json');
         echo json_encode(['success' => true]);
-        exit();
     } catch (Exception $e) {
-        // Rollback on error
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-
-        header('Content-Type: application/json');
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-        exit();
     }
+    exit();
 }
 
-// Handle sale confirmation
+// แก้ไขในส่วนของฟังก์ชัน handle sale confirmation
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['sale_id']) && isset($_POST['action']) && $_POST['action'] === 'confirm_sale') {
     try {
         $pdo->beginTransaction();
 
-        // Check if there are any products with missing information
+        // เพิ่มการตรวจสอบว่า sale_id มีอยู่จริง
+        $check_sale = $pdo->prepare("SELECT * FROM sale WHERE sale_id = ?");
+        $check_sale->execute([$_POST['sale_id']]);
+        if (!$check_sale->fetch()) {
+            throw new Exception("ไม่พบข้อมูลการขาย");
+        }
+
+        // ตรวจสอบว่ามีสินค้าในรายการขายหรือไม่
+        $check_products = $pdo->prepare("SELECT COUNT(*) FROM sale_product WHERE sale_id = ?");
+        $check_products->execute([$_POST['sale_id']]);
+        if ($check_products->fetchColumn() == 0) {
+            throw new Exception("ไม่พบสินค้าในรายการขาย กรุณาเพิ่มสินค้าก่อนยืนยันการขาย");
+        }
+
+        // ตรวจสอบสินค้าที่มีข้อมูลไม่ครบถ้วน
         $check_query = "SELECT sp.product_id, COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name, 
-                        sp.sale_product_price, sp.sale_product_capital 
-                        FROM sale_product sp
-                        LEFT JOIN product p ON p.product_id = sp.product_id
-                        WHERE sp.sale_id = ? 
-                        AND (p.product_name IS NULL OR p.product_name = 'ยังไม่ระบุ' OR sp.sale_product_price = 0 OR sp.sale_product_capital = 0)";
+                      sp.sale_product_price, sp.sale_product_capital 
+                      FROM sale_product sp
+                      LEFT JOIN product p ON p.product_id = sp.product_id
+                      WHERE sp.sale_id = ? 
+                      AND (p.product_name IS NULL OR p.product_name = 'ยังไม่ระบุ' OR sp.sale_product_price = 0 OR sp.sale_product_capital = 0)";
 
         $check_stmt = $pdo->prepare($check_query);
         $check_stmt->execute([$_POST['sale_id']]);
         $invalid_products = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (count($invalid_products) > 0) {
-            throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน กรุณาตรวจสอบและแก้ไขก่อนยืนยันการขาย");
-        }
-
-        // Update product names if needed
-        if (isset($_POST['product_name']) && isset($_POST['barcode'])) {
-            $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
-            $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
+            $invalid_list = '';
+            foreach ($invalid_products as $product) {
+                $invalid_list .= "- รหัส: {$product['product_id']} ชื่อ: {$product['product_name']}\n";
+            }
+            throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน:\n" . $invalid_list);
         }
 
         // Update sale status to confirmed (sale_status_id = 2)
         $updateSale = $pdo->prepare("UPDATE sale SET sale_status_id = 2 WHERE sale_id = ?");
         $updateSale->execute([$_POST['sale_id']]);
+
+        // อัพเดทข้อมูลสมาชิกและพนักงาน (ถ้ามีการเลือก)
+        if (isset($_POST['member_id'])) {
+            $updateMember = $pdo->prepare("UPDATE sale SET member_id = ? WHERE sale_id = ?");
+            $updateMember->execute([$_POST['member_id'], $_POST['sale_id']]);
+        }
+
+        if (isset($_POST['personnel_id'])) {
+            $updatePersonnel = $pdo->prepare("UPDATE sale SET personnel_id = ? WHERE sale_id = ?");
+            $updatePersonnel->execute([$_POST['personnel_id'], $_POST['sale_id']]);
+        }
 
         $pdo->commit();
 
@@ -138,19 +132,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['sale_id']) && isset($_
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
     header('Content-Type: application/json');
     try {
-        $barcode = $_POST['barcode'];
+        $barcode = trim($_POST['barcode']); // ตัดช่องว่าง
         $isDeleteMode = isset($_POST['deleteMode']) && $_POST['deleteMode'] === 'true';
-        $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int) $_POST['qty'] : 1;
-        $price = isset($_POST['price']) && is_numeric($_POST['price']) ? (float) $_POST['price'] : 0;
-        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : 0;
+        $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int)$_POST['qty'] : 1;
+        $price = isset($_POST['price']) && is_numeric($_POST['price']) ? (float)$_POST['price'] : 0;
+        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float)$_POST['capital'] : 0;
 
-        // Check if product exists in sale
+        if (empty($barcode)) {
+            throw new Exception("กรุณาป้อนรหัสสินค้า");
+        }
+
+        // เริ่ม transaction เพื่อความสอดคล้องของข้อมูล
+        $pdo->beginTransaction();
+
+        // ตรวจสอบว่า product_id มีอยู่ใน sale_product
         $stmt = $pdo->prepare("SELECT sp.*, p.product_name, p.product_price4, p.product_capital 
                               FROM sale_product sp 
                               LEFT JOIN product p ON p.product_id = sp.product_id 
                               WHERE sp.sale_id = ? AND sp.product_id = ?");
         $stmt->execute([$sale_id, $barcode]);
-        $existing_product = $stmt->fetch();
+        $existing_product = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($existing_product) {
             if ($isDeleteMode) {
@@ -160,9 +161,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     $delete->execute([$sale_id, $barcode]);
                 } else {
                     $update = $pdo->prepare("UPDATE sale_product SET 
-                        sale_product_qty = ?,
-                        sale_product_price = ?,
-                        sale_product_capital = ?
+                        sale_product_qty = ?, 
+                        sale_product_price = ?, 
+                        sale_product_capital = ? 
                         WHERE sale_id = ? AND product_id = ?");
                     $update->execute([$newQty, $existing_product['sale_product_price'], $existing_product['sale_product_capital'], $sale_id, $barcode]);
                 }
@@ -172,54 +173,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                 $newCapital = $capital > 0 ? $capital : ($existing_product['product_capital'] ?? $existing_product['sale_product_capital']);
 
                 $update = $pdo->prepare("UPDATE sale_product SET 
-                    sale_product_qty = ?,
-                    sale_product_price = ?,
-                    sale_product_capital = ?
+                    sale_product_qty = ?, 
+                    sale_product_price = ?, 
+                    sale_product_capital = ? 
                     WHERE sale_id = ? AND product_id = ?");
                 $update->execute([$newQty, $newPrice, $newCapital, $sale_id, $barcode]);
             }
         } else {
             if (!$isDeleteMode) {
-                $stmt_product = $pdo->prepare("SELECT product_name, product_price4, product_capital FROM product WHERE product_id = ?");
+                // ตรวจสอบว่า product_id มีอยู่ในตาราง product
+                $stmt_product = $pdo->prepare("SELECT product_name, product_price4, product_capital, stock 
+                                              FROM product WHERE product_id = ?");
                 $stmt_product->execute([$barcode]);
-                $product_exists = $stmt_product->fetch();
+                $product_exists = $stmt_product->fetch(PDO::FETCH_ASSOC);
 
                 if (!$product_exists) {
+                    // เพิ่มสินค้าใหม่ในตาราง product
+                    $product_name = isset($_POST['product_name']) ? trim($_POST['product_name']) : "ยังไม่ระบุ";
                     $insert_product = $pdo->prepare("INSERT INTO product (
-                        product_id, 
-                        product_name,
-                        product_price1,
-                        product_price2,
-                        product_price3,
-                        product_price4,
-                        product_capital,
-                        product_type_id,
-                        product_brand_id
-                    ) VALUES (?, ?, 0, 0, 0, ?, ?, NULL, NULL)");
-                    $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
+                        product_id, product_name, product_price1, product_price2, 
+                        product_price3, product_price4, product_capital, 
+                        product_type_id, product_brand_id, stock
+                    ) VALUES (?, ?, 0, 0, 0, ?, ?, NULL, NULL, 0)");
                     $insert_product->execute([$barcode, $product_name, $price, $capital]);
                 } else {
                     $price = $price > 0 ? $price : $product_exists['product_price4'];
                     $capital = $capital > 0 ? $capital : $product_exists['product_capital'];
                 }
 
+                // เพิ่มใน sale_product
                 $insert = $pdo->prepare("INSERT INTO sale_product (
-                    sale_id, 
-                    product_id, 
-                    sale_product_qty, 
-                    sale_product_price, 
-                    sale_product_capital, 
-                    sale_product_booking, 
-                    sale_product_status
+                    sale_id, product_id, sale_product_qty, sale_product_price, 
+                    sale_product_capital, sale_product_booking, sale_product_status
                 ) VALUES (?, ?, ?, ?, ?, 0, 1)");
                 $insert->execute([$sale_id, $barcode, $quantity, $price, $capital]);
             }
         }
 
-        // Update stock in product table (if applicable)
+        // อัปเดตสต็อก
         $stmt_product = $pdo->prepare("SELECT stock FROM product WHERE product_id = ?");
         $stmt_product->execute([$barcode]);
-        $product = $stmt_product->fetch();
+        $product = $stmt_product->fetch(PDO::FETCH_ASSOC);
         if ($product && isset($product['stock'])) {
             $newStock = $isDeleteMode ? $product['stock'] + $quantity : $product['stock'] - $quantity;
             if ($newStock < 0) {
@@ -229,70 +223,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
             $updateStock->execute([$newStock, $barcode]);
         }
 
+        $pdo->commit();
         echo json_encode(['success' => true]);
     } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     exit();
 }
-
+// Handle product search for suggestions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'search') {
+    error_log('Search Request: ' . print_r($_POST, true)); // บันทึก request
+    header('Content-Type: application/json');
+    try {
+        $query = trim($_POST['query'] ?? '');
+        error_log('Query: ' . $query); // บันทึก query
+        if (empty($query)) {
+            echo json_encode([]);
+            exit();
+        }
+        $stmt = $pdo->prepare("SELECT product_id, product_name 
+                              FROM product 
+                              WHERE product_id LIKE ? OR product_name LIKE ? 
+                              LIMIT 10");
+        $stmt->execute(["%$query%", "%$query%"]);
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        error_log('Products: ' . print_r($products, true)); // บันทึกผลลัพธ์
+        echo json_encode($products);
+    } catch (Exception $e) {
+        error_log('Search Error: ' . $e->getMessage()); // บันทึก error
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit();
+}
 // Query sale details
-$query = "SELECT
-    s.sale_id,
-    s.sale_date,
-    s.member_id,
-    m.member_name,
-    m.member_phone,
-    m.member_register_date,
-    m.member_type_id,
-    s.personnel_id,
-    p.personnel_name,
-    p.personnel_phone,
-    p.personnel_type_id,
-    s.sale_status_id,
-    ss.sale_status_name
-FROM
-    sale s
+try {
+    $query = "SELECT
+        s.sale_id, s.sale_date, s.member_id, m.member_name, m.member_phone,
+        m.member_register_date, m.member_type_id, s.personnel_id, p.personnel_name,
+        p.personnel_phone, p.personnel_type_id, s.sale_status_id, ss.sale_status_name
+    FROM sale s
     LEFT JOIN member m ON s.member_id = m.member_id
     LEFT JOIN personnel p ON s.personnel_id = p.personnel_id
     LEFT JOIN sale_status ss ON s.sale_status_id = ss.sale_status_id
-WHERE s.sale_id = :sale_id";
-
-try {
+    WHERE s.sale_id = ?";
     $stmt = $pdo->prepare($query);
-    // $stmt->execute(['sale_id' => $sale_id]);
+    $stmt->execute([$sale_id]);
     $sale_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Query products in sale
     $product_query = "SELECT
-        sp.sale_product_id,
-        sp.sale_id,
-        sp.product_id,
+        sp.sale_product_id, sp.sale_id, sp.product_id,
         COALESCE(pr.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
-        sp.sale_product_qty,
-        sp.sale_product_price,
-        sp.sale_product_capital,
-        sp.sale_product_booking,
-        sp.sale_product_status,
-        pr.product_price4,
-        pr.product_capital,
+        sp.sale_product_qty, sp.sale_product_price, sp.sale_product_capital,
+        sp.sale_product_booking, sp.sale_product_status,
+        pr.product_price4, pr.product_capital,
         CASE 
-            WHEN pr.product_name IS NULL OR pr.product_name = 'ยังไม่ระบุ' OR sp.sale_product_price = 0 OR sp.sale_product_capital = 0 THEN 1
+            WHEN pr.product_name IS NULL OR pr.product_name = 'ยังไม่ระบุ' 
+            OR sp.sale_product_price = 0 OR sp.sale_product_capital = 0 THEN 1
             ELSE 0
         END as needs_update
-    FROM
-        sale_product sp
-        LEFT JOIN product pr ON pr.product_id = sp.product_id
-    WHERE 
-        sp.sale_id = :sale_id
-    ORDER BY 
-        needs_update DESC,  
-        sp.sale_product_id DESC";
-
+    FROM sale_product sp
+    LEFT JOIN product pr ON pr.product_id = sp.product_id
+    WHERE sp.sale_id = ?
+    ORDER BY needs_update DESC, sp.sale_product_id DESC";
     $stmt = $pdo->prepare($product_query);
-    // $stmt->execute(['sale_id' => $sale_id]);
+    $stmt->execute([$sale_id]);
     $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
     // Calculate total amount
     $total_amount = 0;
     foreach ($sale_products as $product) {
@@ -301,6 +300,7 @@ try {
 } catch (PDOException $e) {
     die("การเชื่อมต่อฐานข้อมูลผิดพลาด: " . $e->getMessage());
 }
+
 
 // ดึงข้อมูลID จากตาราง product
 $product_query = $pdo->query("SELECT product_id FROM product");
@@ -328,6 +328,40 @@ $sale_status_result = $pdo->query("SELECT sale_status_id, sale_status_name FROM 
 date_default_timezone_set('Asia/Bangkok');
 $currentDateTime = date("Y-m-d H:i:s");
 $displayDateTime = date("d/m/Y H:i:s");
+
+$sale_id_display = htmlspecialchars($sale_data['sale_id'] ?? 'N/A');
+$sale_date = htmlspecialchars($sale_data['sale_date'] ?? 'N/A');
+$personnel_name = htmlspecialchars($sale_data['personnel_name'] ?? 'N/A');
+$product_rows = '';
+foreach ($sale_products as $product) {
+    $product_rows .= "<tr>" .
+        "<td>" . htmlspecialchars($product['product_name']) . "</td>" .
+        "<td class='text-right'>" . htmlspecialchars($product['sale_product_qty']) . "</td>" .
+        "<td class='text-right'>" . number_format($product['sale_product_price'], 2) . "</td>" .
+        "<td class='text-right'>" . number_format($product['sale_product_qty'] * $product['sale_product_price'], 2) . "</td>" .
+        "</tr>";
+}
+// ประมวลผลข้อมูล PHP ล่วงหน้า
+$sale_id = isset($_GET['sale_id']) ? $_GET['sale_id'] : '';
+$sale_data = isset($sale_data) ? $sale_data : [];
+$sale_products = isset($sale_products) ? $sale_products : [];
+$total_amount = isset($total_amount) ? $total_amount : 0;
+
+// ประมวลผลข้อมูล PHP
+$sale_id_display = json_encode($sale_data['sale_id'] ?? 'N/A');
+$sale_date = json_encode($sale_data['sale_date'] ?? 'N/A');
+$personnel_name = json_encode($sale_data['personnel_name'] ?? 'N/A');
+$product_rows = '';
+foreach ($sale_products as $product) {
+    $product_rows .= "<tr>" .
+        "<td>" . json_encode($product['product_name']) . "</td>" .
+        "<td class='text-right'>" . json_encode($product['sale_product_qty']) . "</td>" .
+        "<td class='text-right'>" . json_encode(number_format($product['sale_product_price'], 2)) . "</td>" .
+        "<td class='text-right'>" . json_encode(number_format($product['sale_product_qty'] * $product['sale_product_price'], 2)) . "</td>" .
+        "</tr>";
+}
+$product_count = json_encode(count($sale_products));
+$total_amount_display = json_encode(number_format($total_amount, 2));
 ?>
 
 <!DOCTYPE html>
@@ -340,6 +374,43 @@ $displayDateTime = date("d/m/Y H:i:s");
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        #suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: block;
+        }
+
+        #suggestions div {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        #suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+    ```php
+<?php
+ob_start();
+require_once __DIR__ . '/../../../../config/database_server.php';
+$sale_id = isset($_GET['sale_id']) ? $_GET['sale_id'] : '';
+$sale_data = isset($sale_data) ? $sale_data : [];
+$sale_products = isset($sale_products) ? $sale_products : [];
+$total_amount = isset($total_amount) ? $total_amount : 0;
+
+// ดีบักข้อมูล PHP
+error_log('Sale Data: ' . print_r($sale_data, true));
+error_log('Sale Products: ' . print_r($sale_products, true));
+?>
 </head>
 
 <body class="bg-gray-100 font-sans">
@@ -360,23 +431,26 @@ $displayDateTime = date("d/m/Y H:i:s");
             <!-- คอลัมน์ซ้าย (2/3) สำหรับรายการสินค้า -->
             <div class="lg:col-span-2 space-y-6">
                 <!-- ฟอร์มสแกนบาร์โค้ด -->
-         <form action="" id="barcode-form" method="POST">
-             <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-lg font-semibold mb-4 text-gray-800 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                        สแกนบาร์โค้ดสินค้า
-                    </h2>
-                    <div class="flex space-x-4 mb-4 ">
-                        <input type="text" id="barcode"
-                            class="p-3 w-full h-8 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            placeholder="สแกนหรือป้อนรหัสสินค้า" autofocus>
+                <form action="" id="barcode-form" method="POST">
+                    <div class="relative flex space-x-4 mb-4">
+                        <div class="relative w-full">
+                            <input type="text" id="barcode" class="p-3 w-full h-8 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="สแกนหรือป้อนรหัสสินค้า" autofocus>
+                            <div id="suggestions" class="absolute bg-white w-full border border-gray-200 z-10 rounded-sm mt-1"></div>
+                        </div>
+                        <button id="scan_product" type="button" class="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
                     </div>
-                </div>
-         </form>
+                </form>
+
+                <!-- <div class="relative">
+                    <input type="text" id="barcode"
+                        class="p-3 w-full h-8 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="สแกนหรือป้อนรหัสสินค้า" autofocus>
+                    <div id="suggestions" class="absolute bg-white w-full border border-gray-200 z-10 rounded-sm mt-1"></div>
+                </div> -->
 
                 <!-- รายการสินค้า -->
                 <div class="bg-white rounded-lg shadow-md p-6">
@@ -487,8 +561,7 @@ $displayDateTime = date("d/m/Y H:i:s");
                     </h2>
                     <div class="space-y-4">
                         <input type="hidden" name="sale_id"
-                            value="<?php echo htmlspecialchars($sale_data['sale_id']); ?>">
-
+                            value="<?php echo isset($sale_data['sale_id']) ? htmlspecialchars($sale_data['sale_id']) : ''; ?>">
                         <div class="grid grid-cols-1 gap-2">
                             <label class="text-base font-medium text-gray-700">วันที่ทำการขาย:</label>
                             <input name="sale_date" value="<?= $displayDateTime ?>" readonly
@@ -496,7 +569,7 @@ $displayDateTime = date("d/m/Y H:i:s");
                         </div>
 
                         <div class="grid grid-cols-1 gap-2">
-                            <label class="text-base font-medium text-gray-700" >สถานะการขาย:</label>
+                            <label class="text-base font-medium text-gray-700">สถานะการขาย:</label>
                             <select name="sale_status_id" class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <?php while ($sale_status = $sale_status_result->fetch(PDO::FETCH_ASSOC)): ?>
                                     <option value="<?php echo $sale_status['sale_status_id']; ?>"
@@ -521,7 +594,7 @@ $displayDateTime = date("d/m/Y H:i:s");
                             <div class="grid grid-cols-1 gap-2">
                                 <label class="text-base font-medium text-gray-700">พนักงานขาย:</label>
                                 <select name="personnel_id" id="personnel_id"
-                                    class="p-2 border text-sm border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" readonly> 
+                                    class="p-2 border text-sm border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
                                     <?php while ($personnel_result = $personnels->fetch(PDO::FETCH_ASSOC)): ?>
                                         <option value="<?php echo $personnel_result['personnel_id']; ?>">
                                             <?php echo htmlspecialchars($personnel_result['personnel_name']); ?>
@@ -595,15 +668,14 @@ $displayDateTime = date("d/m/Y H:i:s");
                             พิมพ์ใบเสร็จ
                         </button>
 
-                        <form method="POST" action="confrim_sale">
+                        <form method="POST" action="" id="confirm-sale-form">
                             <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
                             <input type="hidden" name="action" value="confirm_sale">
-                            <button type="submit"
-                                class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M5 13l4 4L19 7" />
+                            <input type="hidden" name="member_id" id="selected-member-id" value="">
+                            <input type="hidden" name="personnel_id" id="selected-personnel-id" value="">
+                            <button type="submit" class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
                                 ยืนยันการขาย
                             </button>
@@ -651,6 +723,10 @@ $displayDateTime = date("d/m/Y H:i:s");
                         <input type="number" id="edit-price" class="w-full p-2 border border-gray-300 rounded"
                             step="0.01">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ต้นทุน</label>
+                        <input type="number" id="edit-capital" class="w-full p-2 border border-gray-300 rounded" step="0.01">
+                    </div>
                 </div>
 
                 <div class="mt-6 flex space-x-3">
@@ -665,299 +741,359 @@ $displayDateTime = date("d/m/Y H:i:s");
                 </div>
             </div>
         </div>
+
 </body>
+
 <script>
-    $(document).ready(function () {
-        // สแกนบาร์โค้ด
-        $('#scan_product').click(function () {
-            let barcode = $('#barcode').val().trim();
-            let product_name = $('#product_name').val().trim();
-            let qty = $('#qty').val();
-            let price = $('#price').val();
-            let capital = $('#capital').val();
-            let deleteMode = $('#delete_mode').hasClass('bg-red-700');
-
-            if (!barcode) {
-                alert('กรุณาป้อนรหัสสินค้า');
-                return;
-            }
-
-            $.ajax({
-                url: '<?php echo basename(__FILE__); ?>',
-                type: 'POST',
-                data: {
-                    sale_id: $('#sale_id').val(), //add
-                    barcode: barcode,
-                    product_name: product_name,
-                    qty: qty,
-                    price: price,
-                    capital: capital,
-                    deleteMode: deleteMode
-                },
-                dataType: 'json',
-                success: function (response) {
-                    if (response.success) {
-                        location.reload(); // รีเฟรชหน้าเพื่ออัปเดตตาราง
-                    } else {
-                        alert('ข้อผิดพลาด: ' + response.error);
+    $(document).ready(function() {
+                // Suggestion เมื่อพิมพ์
+                $('#barcode').on('input', function() {
+                    const query = $(this).val().trim();
+                    const suggestionBox = $('#suggestions');
+                    if (query.length < 1) {
+                        suggestionBox.empty().hide();
+                        return;
                     }
-                },
-                error: function (xhr, status, error) {
-                    console.error('AJAX Error:', status, error);
-                    alert('เกิดข้อผิดพลาดในการสแกน');
-                }
-            });
-        });
-
-        // สลับโหมดลบ
-        $('#delete_mode').click(function () {
-            $(this).toggleClass('bg-red-500 bg-red-700');
-            let text = $(this).hasClass('bg-red-700') ? 'ยกเลิกโหมดลบ' : 'ลบ';
-            $(this).text(text);
-        });
-
-        // แก้ไขสินค้า
-        $('.edit-product').click(function () {
-            let id = $(this).data('id');
-            let barcode = $(this).data('barcode');
-            let name = $(this).data('name');
-            let qty = $(this).data('qty');
-            let price = $(this).data('price');
-            let capital = $(this).data('capital');
-
-            $('#barcode').val(barcode);
-            $('#product_name').val(name);
-            $('#qty').val(qty);
-            $('#price').val(price);
-            $('#capital').val(capital);
-
-            $('#scan_product').off('click').click(function () {
-                $.ajax({
-                    url: '<?php echo basename(__FILE__); ?>',
-                    type: 'POST',
-                    data: {
-                        action: 'update',
-                        sale_product_id: id,
-                        barcode: $('#barcode').val(),
-                        product_name: $('#product_name').val(),
-                        qty: $('#qty').val(),
-                        price: $('#price').val(),
-                        capital: $('#capital').val()
-                    },
-                    dataType: 'json',
-                    success: function (response) {
-                        if (response.success) {
-                            location.reload();
-                        } else {
-                            alert('ข้อผิดพลาด: ' + response.error);
+                    $.ajax({
+                        url: window.location.href,
+                        type: 'POST',
+                        data: {
+                            action: 'search',
+                            query: query
+                        },
+                        dataType: 'json',
+                        success: function(data) {
+                            suggestionBox.empty().show();
+                            if (data.error) {
+                                suggestionBox.html(`<div class="px-2 py-1 text-red-500">${data.error}</div>`);
+                                return;
+                            }
+                            if (!Array.isArray(data) || data.length === 0) {
+                                suggestionBox.html('<div class="px-2 py-1 text-gray-500">ไม่พบข้อมูลสินค้าที่ตรงกับการค้นหา</div>');
+                                return;
+                            }
+                            data.forEach(product => {
+                                const item = $(`<div class="cursor-pointer hover:bg-gray-100 px-2 py-1">${product.product_id} - ${product.product_name}</div>`);
+                                item.click(function() {
+                                    $('#barcode').val(product.product_id);
+                                    suggestionBox.empty().hide();
+                                    scanBarcode();
+                                });
+                                suggestionBox.append(item);
+                            });
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Suggestion Error:', status, error, xhr.responseText);
+                            suggestionBox.html(`<div class="px-2 py-1 text-red-500">เกิดข้อผิดพลาดในการค้นหา: ${status}</div>`).show();
                         }
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('AJAX Error:', status, error);
-                        alert('เกิดข้อผิดพลาดในการอัปเดต');
+                    });
+                });
+
+                // ซ่อน suggestion เมื่อคลิกที่อื่น
+                $(document).on('click', function(e) {
+                    if (!$(e.target).closest('#barcode, #suggestions').length) {
+                        $('#suggestions').empty().hide();
                     }
                 });
-            });
-        });
 
-        // รีเซ็ตฟอร์มหลังสแกน
-        $('#barcode').on('keypress', function (e) {
-            if (e.which == 13) {
-                $('#scan_product').click();
-                $('#barcode').val('');
-                $('#product_name').val('');
-                $('#qty').val('1');
-                $('#price').val('');
-                $('#capital').val('');
-            }
-        });
+                // สแกนบาร์โค้ดเมื่อกด Enter
+                $('#barcode').on('keypress', function(e) {
+                    if (e.which == 13) {
+                        e.preventDefault();
+                        scanBarcode();
+                    }
+                });
 
-        // คำนวณเงินทอน
-        $('#calculate_change').click(function () {
-            let total_amount = parseFloat($('#total_amount').val().replace(/,/g, '')) || 0;
-            let paid_amount = parseFloat($('#paid_amount').val()) || 0;
+                // สแกนบาร์โค้ดเมื่อคลิกปุ่ม
+                $('#scan_product').click(function(e) {
+                    e.preventDefault();
+                    scanBarcode();
+                });
 
-            if (paid_amount < total_amount) {
-                alert('เงินที่ชำระไม่เพียงพอ');
-                $('#change_amount').val('');
-                $('#print_receipt').prop('disabled', true);
-                return;
-            }
+                // ฟังก์ชันสแกนบาร์โค้ด
+                function scanBarcode() {
+                    let barcode = $('#barcode').val().trim();
+                    let deleteMode = $('#delete_mode').hasClass('bg-red-700');
+                    let sale_id = '<?php echo $sale_id; ?>';
+                    if (!barcode) {
+                        alert('กรุณาป้อนรหัสสินค้า');
+                        return;
+                    }
+                    if (!sale_id) {
+                        alert('ไม่พบรหัสใบขาย');
+                        return;
+                    }
+                    $('#suggestions').empty().hide();
+                    $.ajax({
+                        url: window.location.href,
+                        type: 'POST',
+                        data: {
+                            sale_id: sale_id,
+                            barcode: barcode,
+                            qty: 1,
+                            deleteMode: deleteMode
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            console.log('Scan Response:', response);
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                alert('ข้อผิดพลาด: ' + response.error);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('AJAX Error:', status, error, xhr.responseText);
+                            alert('เกิดข้อผิดพลาดในการสแกน: ' + error);
+                        },
+                        complete: function() {
+                            $('#barcode').val('').focus();
+                        }
+                    });
+                }
 
-            let change = paid_amount - total_amount;
-            $('#change_amount').val(change.toFixed(2));
-            $('#print_receipt').prop('disabled', false);
-        });
+                // สลับโหมดลบ
+                $('#delete_mode').click(function() {
+                    $(this).toggleClass('bg-red-500 bg-red-700');
+                    if ($(this).hasClass('bg-red-700')) {
+                        $(this).html('<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> โหมดลบ (เปิดใช้งาน)');
+                    } else {
+                        $(this).html('<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> โหมดลบ');
+                    }
+                });
 
-        // พิมพ์ใบเสร็จ
-        $('#print_receipt').click(function () {
-            let total_amount = parseFloat($('#total_amount').val().replace(/,/g, '')) || 0;
-            let paid_amount = parseFloat($('#paid_amount').val()) || 0;
-            let change_amount = parseFloat($('#change_amount').val()) || 0;
+                // ลบสินค้า
+                $('.delete-product').click(function() {
+                    if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
+                        let id = $(this).data('id');
+                        let barcode = $(this).closest('tr').find('td:eq(0)').text().trim();
+                        $.ajax({
+                            url: window.location.href,
+                            type: 'POST',
+                            data: {
+                                sale_id: '<?php echo $sale_id; ?>',
+                                barcode: barcode,
+                                qty: 1,
+                                deleteMode: true
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.success) {
+                                    location.reload();
+                                } else {
+                                    alert('ข้อผิดพลาด: ' + response.error);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('AJAX Error:', status, error, xhr.responseText);
+                                alert('เกิดข้อผิดพลาดในการลบสินค้า');
+                            }
+                        });
+                    }
+                });
 
-            // สร้างใบเสร็จด้วยการออกแบบที่ดีขึ้น
-            let receiptWindow = window.open('', '_blank');
-            receiptWindow.document.write(`
-            <html>
-            <head>
-                <title>ใบเสร็จการขาย</title>
-                <style>
-                    @page { size: 80mm 200mm; margin: 0; }
-                    body { 
-                        font-family: 'Arial', sans-serif; 
-                        margin: 0;
-                        padding: 8mm;
-                        font-size: 12px;
+                // แก้ไขสินค้า
+                $('.edit-product').click(function() {
+                    let id = $(this).data('id');
+                    let row = $(this).closest('tr');
+                    let barcode = row.find('td:eq(0)').text().trim();
+                    let name = row.find('td:eq(1)').text().trim();
+                    let qty = row.find('td:eq(2)').text().trim();
+                    let price = row.find('td:eq(3)').text().trim().replace(/,/g, '');
+                    $('#edit-product-id').val(id);
+                    $('#edit-barcode').val(barcode);
+                    $('#edit-product-name').val(name);
+                    $('#edit-qty').val(qty);
+                    $('#edit-price').val(price);
+                    $('#edit-product-modal').removeClass('hidden');
+                });
+
+                $('#close-modal, #cancel-edit').click(function() {
+                    $('#edit-product-modal').addClass('hidden');
+                });
+
+                $('#update-product').click(function() {
+                    $.ajax({
+                        url: window.location.href,
+                        type: 'POST',
+                        data: {
+                            action: 'update',
+                            sale_product_id: $('#edit-product-id').val(),
+                            barcode: $('#edit-barcode').val(),
+                            product_name: $('#edit-product-name').val(),
+                            qty: $('#edit-qty').val(),
+                            price: $('#edit-price').val(),
+                            capital: $('#edit-capital').val() || 0
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                alert('ข้อผิดพลาด: ' + response.error);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('AJAX Error:', status, error, xhr.responseText);
+                            alert('เกิดข้อผิดพลาดในการอัปเดต');
+                        }
+                    });
+                });
+
+                // รีเซ็ตฟอร์มหลังสแกน
+                $('#barcode').on('keypress', function(e) {
+                    if (e.which == 13) {
+                        $('#scan_product').click();
+                        $('#barcode').val('');
+                        $('#product_name').val('');
+                        $('#qty').val('1');
+                        $('#price').val('');
+                        $('#capital').val('');
                     }
-                    .receipt { 
-                        width: 76mm; 
-                        margin: auto; 
+                });
+
+                // คำนวณเงินทอน
+                $('#calculate_change').click(function() {
+                    let total_amount = <?php echo $total_amount; ?>;
+                    let paid_amount = parseFloat($('#paid_amount').val()) || 0;
+                    if (paid_amount < total_amount) {
+                        alert('เงินที่ชำระไม่เพียงพอ');
+                        $('#change_amount').val('');
+                        $('#print_receipt').prop('disabled', true);
+                        return;
                     }
-                    .header {
-                        text-align: center;
-                        margin-bottom: 15px;
-                        border-bottom: 1px dashed #000;
-                        padding-bottom: 10px;
-                    }
-                    .store-name {
-                        font-size: 18px;
-                        font-weight: bold;
-                        margin-bottom: 5px;
-                    }
-                    .info {
-                        display: flex;
-                        justify-content: space-between;
-                        margin-bottom: 10px;
-                        font-size: 11px;
-                    }
-                    table { 
-                        width: 100%; 
-                        border-collapse: collapse; 
-                        margin: 10px 0; 
-                        font-size: 11px;
-                    }
-                    th, td { 
-                        text-align: left; 
-                        padding: 3px 0; 
-                    }
-                    th { 
-                        border-bottom: 1px solid #ddd; 
-                    }
-                    .total-section {
-                        margin-top: 10px;
-                        border-top: 1px dashed #000;
-                        padding-top: 10px;
-                    }
-                    .totals {
-                        display: flex;
-                        justify-content: space-between;
-                        margin: 5px 0;
-                    }
-                    .grand-total {
-                        font-weight: bold;
-                        font-size: 14px;
-                        margin: 10px 0;
-                        display: flex;
-                        justify-content: space-between;
-                    }
-                    .payment-info {
-                        margin: 10px 0;
-                        border-top: 1px dashed #000;
-                        padding-top: 10px;
-                    }
-                    .footer {
-                        text-align: center;
-                        margin-top: 20px;
-                        font-size: 11px;
-                        border-top: 1px dashed #000;
-                        padding-top: 10px;
-                    }
-                    .text-right { text-align: right; }
-                    .text-center { text-align: center; }
-                </style>
-            </head>
-            <body>
-                <div class="receipt">
-                    <div class="header">
-                        <div class="store-name">POS SYSTEM</div>
-                        <div>123 ถนนสุขุมวิท เขตวัฒนา กรุงเทพฯ</div>
-                        <div>โทร: 02-123-4567</div>
-                    </div>
-                    
-                    <div class="info">
-                        <span>เลขที่: <?php echo htmlspecialchars($sale_data['sale_id'] ?? 'N/A'); ?></span>
-                        <span>วันที่: <?php echo htmlspecialchars($sale_data['sale_date'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div class="info">
-                        <span>พนักงาน: <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
-                    </div>
-                    
-                    <table>
-                        <thead>
+                    let change = paid_amount - total_amount;
+                    $('#change_amount').val(change.toFixed(2));
+                    $('#print_receipt').prop('disabled', false);
+                });
+
+                // พิมพ์ใบเสร็จ
+                $('#print_receipt').click(function() {
+                            let total_amount = parseFloat($('#total_amount').val().replace(/,/g, '')) || 0;
+                            let paid_amount = parseFloat($('#paid_amount').val()) || 0;
+                            let change_amount = parseFloat($('#change_amount').val()) || 0;
+                            let receiptWindow = window.open('', '_blank');
+                            let html = `
+        <html>
+        <head>
+            <title>ใบเสร็จการขาย</title>
+            <style>
+                @page { size: 80mm 200mm; margin: 0; }
+                body { font-family: 'Arial', sans-serif; margin: 0; padding: 8mm; font-size: 12px; }
+                .receipt { width: 76mm; margin: auto; }
+                .header { text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+                .store-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+                .info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 11px; }
+                table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 11px; }
+                th, td { text-align: left; padding: 3px 0; }
+                th { border-bottom: 1px solid #ddd; }
+                .total-section { margin-top: 10px; border-top: 1px dashed #000; padding-top: 10px; }
+                .totals { display: flex; justify-content: space-between; margin: 5px 0; }
+                .grand-total { font-weight: bold; font-size: 14px; margin: 10px 0; display: flex; justify-content: space-between; }
+                .payment-info { margin: 10px 0; border-top: 1px dashed #000; padding-top: 10px; }
+                .footer { text-align: center; margin-top: 20px; font-size: 11px; border-top: 1px dashed #000; padding-top: 10px; }
+                .text-right { text-align: right; }
+            </style>
+        </head>
+        <body>
+            <div class="receipt">
+                <div class="header">
+                    <div class="store-name">POS SYSTEM</div>
+                    <div>123 ถนนสุขุมวิท เขตวัฒนา กรุงเทพฯ</div>
+                    <div>โทร: 02-123-4567</div>
+                </div>
+                <div class="info">
+                    <span>เลขที่: <?php echo htmlspecialchars($sale_data['sale_id'] ?? 'N/A'); ?></span>
+                    <span>วันที่: <?php echo htmlspecialchars($sale_data['sale_date'] ?? 'N/A'); ?></span>
+                </div>
+                <div class="info">
+                    <span>พนักงาน: <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>รายการ</th>
+                            <th class="text-right">จำนวน</th>
+                            <th class="text-right">ราคา</th>
+                            <th class="text-right">รวม</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($sale_products as $product) { ?>
                             <tr>
-                                <th>รายการ</th>
-                                <th class="text-right">จำนวน</th>
-                                <th class="text-right">ราคา</th>
-                                <th class="text-right">รวม</th>
+                                <td><?php echo htmlspecialchars($product['product_name'] ?? ''); ?></td>
+                                <td class="text-right"><?php echo htmlspecialchars($product['sale_product_qty'] ?? 0); ?></td>
+                                <td class="text-right"><?php echo htmlspecialchars(number_format($product['sale_product_price'] ?? 0, 2)); ?></td>
+                                <td class="text-right"><?php echo htmlspecialchars(number_format(($product['sale_product_qty'] ?? 0) * ($product['sale_product_price'] ?? 0), 2)); ?></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($sale_products as $product): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($product['product_name']); ?></td>
-                                    <td class="text-right"><?php echo htmlspecialchars($product['sale_product_qty']); ?></td>
-                                    <td class="text-right"><?php echo number_format($product['sale_product_price'], 2); ?></td>
-                                    <td class="text-right"><?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                    
-                    <div class="total-section">
-                        <div class="totals">
-                            <span>จำนวนสินค้า:</span>
-                            <span><?php echo count($sale_products); ?> รายการ</span>
-                        </div>
-                        <div class="grand-total">
-                            <span>ยอดรวมทั้งสิ้น:</span>
-                            <span><?php echo number_format($total_amount, 2); ?> บาท</span>
-                        </div>
+                        <?php } ?>
+                    </tbody>
+                </table>
+                <div class="total-section">
+                    <div class="totals">
+                        <span>จำนวนสินค้า:</span>
+                        <span><?php echo count($sale_products); ?> รายการ</span>
                     </div>
-                    
-                    <div class="payment-info">
-                        <div class="totals">
-                            <span>เงินที่รับ:</span>
-                            <span>${paid_amount.toFixed(2)} บาท</span>
-                        </div>
-                        <div class="totals">
-                            <span>เงินทอน:</span>
-                            <span>${change_amount.toFixed(2)} บาท</span>
-                        </div>
-                    </div>
-                    
-                    <div class="footer">
-                        <div>ขอบคุณที่ใช้บริการ</div>
-                        <div>THANK YOU FOR YOUR BUSINESS</div>
+                    <div class="grand-total">
+                        <span>ยอดรวมทั้งสิ้น:</span>
+                        <span><?php echo number_format($total_amount, 2); ?> บาท</span>
                     </div>
                 </div>
-                <script>
-                    window.onload = function() {
-                        window.print();
-                    }
+                <div class="payment-info">
+                    <div class="totals">
+                        <span>เงินที่รับ:</span>
+                        <span>${paid_amount.toFixed(2)} บาท</span>
+                    </div>
+                    <div class="totals">
+                        <span>เงินทอน:</span>
+                        <span>${change_amount.toFixed(2)} บาท</span>
+                    </div>
+                </div>
+                <div class="footer">
+                    <div>ขอบคุณที่ใช้บริการ</div>
+                    <div>THANK YOU FOR YOUR BUSINESS</div>
+                </div>
+            </div>
+            <script>
+                window.onload = function() {
+                    window.print();
+                }
 </script>
 </body>
 
 </html>
-`);
+`;
+console.log('Receipt HTML:', html);
+try {
+receiptWindow.document.write(html);
 receiptWindow.document.close();
+} catch (e) {
+console.error('Write Error:', e);
+}
 });
+
 // คำนวณเงินทอนเมื่อกด Enter ในช่องเงินที่ชำระ
 $('#paid_amount').on('keypress', function(e) {
 if (e.which == 13) {
 $('#calculate_change').click();
 }
 });
+
+// เพิ่ม event สำหรับการเลือกสมาชิกและพนักงาน
+$('select[name="member_id"]').change(function() {
+$('#selected-member-id').val($(this).val());
 });
+$('select[name="personnel_id"]').change(function() {
+$('#selected-personnel-id').val($(this).val());
+});
+
+// ตั้งค่าเริ่มต้น
+$('#selected-member-id').val($('select[name="member_id"]').val());
+$('#selected-personnel-id').val($('select[name="personnel_id"]').val());
+});
+console.log('JavaScript loaded successfully');
 </script>
 
+
 </html>
+<?php ob_end_flush(); ?>
