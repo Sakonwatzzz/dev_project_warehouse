@@ -19,13 +19,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // Start transaction for consistent data
         $pdo->beginTransaction();
 
-        // Update product name in product table
+        // Update product name and capital in product table
         $productStmt = $pdo->prepare("UPDATE product SET 
-            product_name = ?
+            product_name = ?,
+            product_capital = ?
             WHERE product_id = ?");
-        $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
+        $productStmt->execute([$_POST['product_name'], $_POST['capital'], $_POST['barcode']]);
 
-        // Update quantity and price in lot_product table - FIX: correct parameter order
+        // Update quantity and price in lot_product table
         $stmt = $pdo->prepare("UPDATE lot_product SET 
             lot_product_qty = ?, 
             lot_product_remain = ?,
@@ -118,10 +119,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
         $barcode = $_POST['barcode'];
         $isDeleteMode = isset($_POST['deleteMode']) && $_POST['deleteMode'] === 'true';
         $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int) $_POST['qty'] : 1;
-        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : 0;
+        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : null;
+
+        // Start transaction
+        $pdo->beginTransaction();
 
         // Check if product exists in lot
-        $stmt = $pdo->prepare("SELECT lp.*, p.product_name FROM lot_product lp 
+        $stmt = $pdo->prepare("SELECT lp.*, p.product_name, p.product_capital 
+                              FROM lot_product lp 
                               LEFT JOIN product p ON p.product_id = lp.product_id 
                               WHERE lp.lot_id = ? AND lp.product_id = ?");
         $stmt->execute([$lot_id, $barcode]);
@@ -142,7 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                 }
             } else {
                 $newQty = $existing_product['lot_product_qty'] + $quantity;
-                $newCapital = $capital > 0 ? $capital : $existing_product['lot_product_capital'];
+                // Use provided capital, or fall back to existing lot_product_capital
+                $newCapital = $capital !== null ? $capital : $existing_product['lot_product_capital'];
 
                 $update = $pdo->prepare("UPDATE lot_product SET 
                     lot_product_qty = ?,
@@ -150,10 +156,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     lot_product_capital = ?
                     WHERE lot_id = ? AND product_id = ?");
                 $update->execute([$newQty, $newQty, $newCapital, $lot_id, $barcode]);
+
+                // Update product table with new capital if provided
+                if ($capital !== null) {
+                    $updateProduct = $pdo->prepare("UPDATE product SET product_capital = ? WHERE product_id = ?");
+                    $updateProduct->execute([$capital, $barcode]);
+                }
             }
         } else {
             if (!$isDeleteMode) {
-                $stmt_product = $pdo->prepare("SELECT * FROM product WHERE product_id = ?");
+                $stmt_product = $pdo->prepare("SELECT product_id, product_name, product_capital 
+                                              FROM product WHERE product_id = ?");
                 $stmt_product->execute([$barcode]);
                 $product_exists = $stmt_product->fetch();
 
@@ -171,8 +184,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
 
                     $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
-                    $insert_product->execute([$barcode, $product_name, $capital]);
+                    $insert_product->execute([$barcode, $product_name, $capital ?? 0]);
+                } else {
+                    // If product exists and capital is provided, update product_capital
+                    if ($capital !== null) {
+                        $updateProduct = $pdo->prepare("UPDATE product SET product_capital = ? WHERE product_id = ?");
+                        $updateProduct->execute([$capital, $barcode]);
+                    }
                 }
+
+                // Use provided capital, or fall back to product_capital if exists, or 0
+                $finalCapital = $capital ?? ($product_exists['product_capital'] ?? 0);
 
                 $insert = $pdo->prepare("INSERT INTO lot_product (
                     lot_id, 
@@ -184,12 +206,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     lot_product_status
                 ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
 
-                $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
+                $insert->execute([$lot_id, $barcode, $quantity, $quantity, $finalCapital]);
             }
         }
 
+        $pdo->commit();
         echo json_encode(['success' => true]);
     } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     exit();
@@ -217,7 +243,6 @@ FROM
     INNER JOIN lot_status ls ON l.lot_status_id = ls.lot_status_id
 WHERE l.lot_id = :lot_id";
 
-
 try {
     $stmt = $pdo->prepare($query);
     $stmt->execute(['lot_id' => $lot_id]);
@@ -229,27 +254,28 @@ try {
 
     // Query products in lot
     $product_query = "SELECT
-    lp.lot_id,
-    lp.lot_product_id,
-    lp.product_id,
-    COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
-    lp.lot_product_qty,
-    lp.lot_product_remain,
-    lp.lot_product_capital,
-    lp.lot_product_date,
-    lp.lot_product_status,
-    CASE 
-        WHEN p.product_id IS NULL THEN 1
-        ELSE 0
-    END as needs_update
-FROM
-    lot_product lp
-    LEFT JOIN product p ON p.product_id = lp.product_id
-WHERE 
-    lp.lot_id = :lot_id
-ORDER BY 
-    needs_update DESC,  
-    lp.lot_product_date DESC";
+        lp.lot_id,
+        lp.lot_product_id,
+        lp.product_id,
+        COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
+        lp.lot_product_qty,
+        lp.lot_product_remain,
+        lp.lot_product_capital,
+        p.product_capital,
+        lp.lot_product_date,
+        lp.lot_product_status,
+        CASE 
+            WHEN p.product_id IS NULL THEN 1
+            ELSE 0
+        END as needs_update
+    FROM
+        lot_product lp
+        LEFT JOIN product p ON p.product_id = lp.product_id
+    WHERE 
+        lp.lot_id = :lot_id
+    ORDER BY 
+        needs_update DESC,  
+        lp.lot_product_date DESC";
 
     $stmt = $pdo->prepare($product_query);
     $stmt->execute(['lot_id' => $lot_id]);
@@ -265,7 +291,6 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $lot_status_id = $lot_data['lot_status_id'] ?? null;
 $lot_status_name = $lot_data['lot_status_name'] ?? null;
-
 ?>
 
 <!DOCTYPE html>
@@ -404,7 +429,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                             <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
                                 <th class="px-6 py-3 border text-right">การจัดการ</th>
                             <?php endif; ?>
-
                         </tr>
                     </thead>
                     <tbody>
@@ -435,7 +459,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                                         <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
                                             data-id="<?php echo htmlspecialchars($item['lot_product_id']); ?>"
                                             data-qty="<?php echo htmlspecialchars($item['lot_product_qty']); ?>"
-                                            data-capital="<?php echo htmlspecialchars($item['lot_product_capital']); ?>"
+                                            data-capital="<?php echo htmlspecialchars($item['product_capital'] ?? $item['lot_product_capital']); ?>"
                                             data-name="<?php echo htmlspecialchars($item['product_name']); ?>"
                                             data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
                                             แก้ไข
@@ -450,8 +474,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         <?php endforeach; ?>
                         <?php if (count($lot_products) > 0): ?>
                             <!-- Summary row with improved styling -->
-                            <tr
-                                class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400">
+                            <tr class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400">
                                 <td colspan="2" class="text-end pe-4 align-middle">ยอดรวมสินค้า:</td>
                                 <td class="text-center py-4 font-bold"><?php echo number_format($total_quantity); ?></td>
                                 <td></td>
@@ -464,7 +487,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                             <?php if (count($lot_products) > 0 && $lot_data['lot_status_id'] == 1): ?>
                                 <!-- แสดงปุ่มยืนยันเฉพาะเมื่อสถานะเป็น "รอการอนุมัติ" -->
                                 <form id="confirm-form" method="POST" action="" onsubmit="return validateForm(event)">
-                                    <!-- ใส่ path ของไฟล์ PHP ที่ประมวลผลการอัปเดต -->
                                     <tr class="h-16">
                                         <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
                                             <button type="submit"
@@ -472,7 +494,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                                                 <i class="fas fa-check-circle me-2"></i>ยืนยันรายการ
                                             </button>
                                             <input type="hidden" name="lot_id" value="<?php echo $lot_data['lot_id']; ?>">
-                                            <!-- ส่ง lot_id ไปในฟอร์ม -->
                                         </td>
                                     </tr>
                                 </form>
@@ -614,16 +635,20 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
     </script>
 
     <script>
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
         const inputField = document.getElementById('inputField');
 
         // ฟังก์ชันสำหรับการเปลี่ยนสีพื้นหลังตามการกดปุ่ม
         function changeInputBackground(event) {
-            if (event.keyCode === 46) { // 8 = Backspace, 46 = Delete
+            if (event.keyCode === 46) { // 46 = Delete
                 inputField.classList.remove('input-normal');
                 inputField.classList.add('input-delete'); // เพิ่มคลาสสำหรับการลบข้อมูล
             }
 
-            if (event.keyCode === 45) { // 13 = Enter // 45 = insert
+            if (event.keyCode === 45) { // 45 = Insert
                 inputField.classList.remove('input-normal');
                 inputField.classList.add('input-add'); // เพิ่มคลาสสำหรับการเพิ่มข้อมูล
             }
@@ -645,12 +670,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
         inputField.addEventListener('focus', function() {
             resetInputBackground(); // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
         });
-    </script>
-
-    <script>
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('hidden');
-        }
 
         $(document).ready(function() {
             // Shared state
@@ -861,7 +880,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         url: window.location.href,
                         method: 'POST',
                         data: formData,
-                        dataType: 'json',
                         success: function(response) {
                             utils.handleServerResponse(response);
                             closeEditModal();
@@ -878,7 +896,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 handleInputValidation: function(e) {
                     const $input = $(e.target);
                     const value = parseFloat($input.val());
-                    const minValue = $input.attr('id') === 'qty' ? 0 : -1;
+                    const minValue = $input.attr( $input.attr('id') === 'qty' ? 0 : -1);
 
                     $input.toggleClass('border-red-500', value <= minValue);
                 }
@@ -926,5 +944,4 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
     </style>
 
 </body>
-
 </html>
