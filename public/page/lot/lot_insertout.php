@@ -7,8 +7,7 @@ $error = null;
 $selected_status_id = '';
 
 // Function to fetch data from database
-function fetchData($pdo, $query, $params = [])
-{
+function fetchData($pdo, $query, $params = []) {
     try {
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
@@ -242,14 +241,13 @@ ob_end_flush();
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังต้นทาง</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังปลายทาง</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
                                 <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($lots)): ?>
                                 <tr>
-                                    <td colspan="7" class="text-center py-4 text-gray-600">ไม่มีรายการย้ายสินค้าคลัง</td>
+                                    <td colspan="6" class="text-center py-4 text-gray-600">ไม่มีรายการย้ายสินค้าคลัง</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($lots as $lot): ?>
@@ -259,7 +257,6 @@ ob_end_flush();
                                         <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_from_name'] ?? 'ไม่ระบุ') ?></td>
                                         <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_name'] ?? 'ไม่ระบุ') ?></td>
                                         <td class="px-6 py-2 border"><?= htmlspecialchars(date('d/m/Y H:i:s', strtotime($lot['lot_date']))) ?></td>
-                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['lot_status_name']) ?></td>
                                         <td class="px-6 py-2 border text-center">
                                             <a href="index.php?page=lot_insertdetailout&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
                                                 class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition">
