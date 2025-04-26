@@ -51,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     try {
         $pdo->beginTransaction();
-
         // Restore stock in lot_product
         $stmt = $pdo->prepare("SELECT product_id, sale_product_qty FROM sale_product WHERE sale_id = ?");
         $stmt->execute([$cancel_sale_id]);
@@ -129,45 +128,62 @@ if (!$sale_id) {
  * @param int $qty
  * @param bool $addMode
  */
-function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = false)
+function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = false, $warehouse_id = null)
 {
     $remainingToProcess = $qty;
-    while ($remainingToProcess > 0) {
-        $stmtLot = $pdo->prepare("
-            SELECT lot_product_id, lot_product_remain 
-            FROM lot_product 
-            WHERE product_id = ? AND lot_product_remain > 0
-            ORDER BY lot_product_date ASC, lot_product_id ASC
-            LIMIT 1
-        ");
-        $stmtLot->execute([$productId]);
-        $lot = $stmtLot->fetch(PDO::FETCH_ASSOC);
+    $lot_ids = [];
+    try {
+        while ($remainingToProcess > 0) {
+            $query = "
+                SELECT lot_product_id, lot_product_remain 
+                FROM lot_product 
+                WHERE product_id = ? AND lot_product_remain > 0
+            ";
+            if ($warehouse_id) {
+                $query .= " AND warehouse_id = ?";
+            }
+            $query .= " ORDER BY lot_product_date ASC, lot_product_id ASC LIMIT 1";
+            $stmtLot = $pdo->prepare($query);
+            $params = [$productId];
+            if ($warehouse_id) {
+                $params[] = $warehouse_id;
+            }
+            $stmtLot->execute($params);
+            $lot = $stmtLot->fetch(PDO::FETCH_ASSOC);
 
-        if (!$lot) {
-            throw new Exception("สต็อกล็อตไม่เพียงพอสำหรับสินค้า $productId");
-        }
+            if (!$lot) {
+                throw new Exception("สต็อกล็อตไม่เพียงพอสำหรับสินค้า $productId");
+            }
 
-        $current = (int) $lot['lot_product_remain'];
-        if ($addMode) {
-            $newRemain = $current + $remainingToProcess;
-            $remainingToProcess = 0;
-        } else {
-            if ($current >= $remainingToProcess) {
-                $newRemain = $current - $remainingToProcess;
+            $current = (int) $lot['lot_product_remain'];
+            if ($addMode) {
+                $newRemain = $current + $remainingToProcess;
                 $remainingToProcess = 0;
             } else {
-                $newRemain = 0;
-                $remainingToProcess -= $current;
+                if ($current >= $remainingToProcess) {
+                    $newRemain = $current - $remainingToProcess;
+                    $lot_ids[] = ['lot_product_id' => $lot['lot_product_id'], 'qty' => $remainingToProcess];
+                    $remainingToProcess = 0;
+                } else {
+                    $newRemain = 0;
+                    $lot_ids[] = ['lot_product_id' => $lot['lot_product_id'], 'qty' => $current];
+                    $remainingToProcess -= $current;
+                }
             }
-        }
 
-        $updateLot = $pdo->prepare("
-            UPDATE lot_product 
-            SET lot_product_remain = ? 
-            WHERE lot_product_id = ?
-        ");
-        $updateLot->execute([$newRemain, $lot['lot_product_id']]);
+            $updateLot = $pdo->prepare("
+                UPDATE lot_product 
+                SET lot_product_remain = ? 
+                WHERE lot_product_id = ?
+            ");
+            $updateLot->execute([$newRemain, $lot['lot_product_id']]);
+        }
+    } catch (Exception $e) {
+        // แม้เกิดข้อผิดพลาด ให้คืนค่า array ว่างเพื่อป้องกัน null
+        error_log("Error in adjustLotRemain: " . $e->getMessage());
+        throw $e; // โยน Exception ต่อเพื่อให้ caller จัดการ
     }
+    return $lot_ids;
 }
 
 // Handle product add
@@ -176,16 +192,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode']) && !isset(
         $barcode = trim($_POST['barcode']);
         $qty = is_numeric($_POST['qty'] ?? null) ? (int) $_POST['qty'] : 1;
         $price = is_numeric($_POST['price'] ?? null) ? (float) $_POST['price'] : 0;
-        $capital = is_numeric($_POST['capital'] ?? null) ? (float) $_POST['capital'] : 0;
+        $warehouse_id = $_POST['warehouse_id'] ?? null;
+        $price_type = $_POST['price_type'] ?? 'price4';
+        $sale_reference = $_POST['sale_reference'] ?? null;
 
         if (empty($barcode)) {
-            $_SESSION['error'] = "กรุณาป้อนรหัสสินค้า";
-            header("Location: ?page=sale_insert&sale_id=$sale_id");
-            exit();
+            throw new Exception("กรุณาป้อนรหัสสินค้า");
+        }
+        if ($qty <= 0) {
+            throw new Exception("จำนวนต้องมากกว่า 0");
         }
 
         $pdo->beginTransaction();
 
+        // ตรวจสอบสินค้า
+        $stmtP = $pdo->prepare("
+            SELECT product_name, product_price1, product_price2, product_price3, product_price4, product_capital 
+            FROM product 
+            WHERE product_id = ?
+        ");
+        $stmtP->execute([$barcode]);
+        $prod = $stmtP->fetch(PDO::FETCH_ASSOC);
+        if (!$prod) {
+            throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
+        }
+
+        // เลือกราคา
+        $unitPrice = $price > 0 ? $price : $prod['product_' . $price_type];
+
+        // ดึงราคาทุนจากล็อต
+        $stmtLot = $pdo->prepare("
+            SELECT lot_product_capital 
+            FROM lot_product 
+            WHERE product_id = ? AND lot_product_remain > 0" . ($warehouse_id ? " AND warehouse_id = ?" : "") . "
+            ORDER BY lot_product_date ASC LIMIT 1
+        ");
+        $params = [$barcode];
+        if ($warehouse_id) {
+            $params[] = $warehouse_id;
+        }
+        $stmtLot->execute($params);
+        $lot = $stmtLot->fetch(PDO::FETCH_ASSOC);
+        $unitCapital = $lot ? $lot['lot_product_capital'] : $prod['product_capital'];
+
+        // ตรวจสอบว่ามีสินค้านี้ในบิลแล้วหรือไม่
         $stmt = $pdo->prepare("
             SELECT sale_product_qty, sale_product_price, sale_product_capital 
             FROM sale_product 
@@ -197,36 +247,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode']) && !isset(
         if ($existing) {
             $newQty = $existing['sale_product_qty'] + $qty;
             $newPrice = $price > 0 ? $price : $existing['sale_product_price'];
-            $newCapital = $capital > 0 ? $capital : $existing['sale_product_capital'];
+            $newCapital = $lot ? $lot['lot_product_capital'] : $existing['sale_product_capital'];
 
             $pdo->prepare("
                 UPDATE sale_product 
-                SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ? 
+                SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ?, warehouse_id = ?
                 WHERE sale_id = ? AND product_id = ?
-            ")->execute([$newQty, $newPrice, $newCapital, $sale_id, $barcode]);
-
-            adjustLotRemain($pdo, $barcode, $qty, false);
+            ")->execute([$newQty, $newPrice, $newCapital,  $warehouse_id, $sale_id, $barcode]);
         } else {
-            $stmtP = $pdo->prepare("
-                SELECT product_name, product_price4, product_capital 
-                FROM product 
-                WHERE product_id = ?
-            ");
-            $stmtP->execute([$barcode]);
-            $prod = $stmtP->fetch(PDO::FETCH_ASSOC);
-            if (!$prod) {
-                throw new Exception("ไม่พบข้อมูลสินค้าหรือไม่มีสินค้า");
-            }
-            $unitPrice = $price > 0 ? $price : $prod['product_price4'];
-            $unitCapital = $capital > 0 ? $capital : $prod['product_capital'];
-
             $pdo->prepare("
                 INSERT INTO sale_product 
-                (sale_id, product_id, sale_product_qty, sale_product_price, sale_product_capital)
-                VALUES (?, ?, ?, ?, ?)
-            ")->execute([$sale_id, $barcode, $qty, $unitPrice, $unitCapital]);
+                (sale_id, product_id, sale_product_qty, sale_product_price, sale_product_capital, , warehouse_id )
+                VALUES (?, ?, ?, ?, ?, ?)
+            ")->execute([$sale_id, $barcode, $qty, $unitPrice, $unitCapital,  $warehouse_id]);
+        }
 
-            adjustLotRemain($pdo, $barcode, $qty, false);
+        // ตัดสต็อก
+        try {
+            $lot_ids = adjustLotRemain($pdo, $barcode, $qty, false, $warehouse_id);
+            if (is_array($lot_ids) && !empty($lot_ids)) {
+                foreach ($lot_ids as $lot) {
+                    $pdo->prepare("
+                        UPDATE sale_product 
+                        SET lot_product_id = ? 
+                        WHERE sale_id = ? AND product_id = ?
+                    ")->execute([$lot['lot_product_id'], $sale_id, $barcode]);
+                }
+            } else {
+                // ไม่มีล็อตที่ตัด อาจตั้ง lot_product_id เป็น null
+                $pdo->prepare("
+                    UPDATE sale_product 
+                    SET lot_product_id = NULL 
+                    WHERE sale_id = ? AND product_id = ?
+                ")->execute([$sale_id, $barcode]);
+            }
+        } catch (Exception $e) {
+            throw new Exception("ไม่สามารถตัดสต็อกได้: " . $e->getMessage());
         }
 
         $pdo->commit();
@@ -423,7 +479,6 @@ try {
     $stmt = $pdo->prepare($query);
     $stmt->execute([$sale_id]);
     $sale_data = $stmt->fetch(PDO::FETCH_ASSOC);
-
     $product_query = "SELECT
         sp.sale_product_id, sp.sale_id, sp.product_id,
         COALESCE(pr.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
@@ -470,6 +525,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -484,12 +540,14 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
         }
     </style>
 </head>
+
 <body class="bg-gray-100 font-sans">
     <header class="bg-gradient-to-r from-blue-600 to-indigo-800 text-white shadow-lg">
         <div class="container mx-auto py-4 px-6 flex justify-between items-center">
             <h1 class="text-2xl font-bold">POS System</h1>
             <div class="flex items-center space-x-4">
-                <span class="text-sm">พนักงาน: <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
+                <span class="text-sm">พนักงาน:
+                    <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
                 <span class="text-sm">วันที่: <?php echo $displayDateTime; ?></span>
             </div>
         </div>
@@ -569,41 +627,72 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 <tr class="bg-gray-50 text-gray-700">
                                     <th class="py-3 px-4 text-left font-medium text-sm">รหัสสินค้า</th>
                                     <th class="py-3 px-4 text-left font-medium text-sm">ชื่อสินค้า</th>
-                                    <th class="py-3 px-4 text-center font-medium text-sm">จำนวน</th>
-                                    <th class="py-3 px-4 text-right font-medium text-sm">ราคาขาย</th>
+                                    <th class="py-3 px-4 text-center font-medium text-sm">จำนวนขาย</th>
+                                    <th class="py-3 px-4 text-right font-medium text-sm">ราคาขาย/หน่วย</th>
                                     <th class="py-3 px-4 text-right font-medium text-sm">ยอดรวม</th>
+                                    <th class="py-3 px-4 text-right font-medium text-sm">คลัง</th>
+                                    <th class="py-3 px-4 text-right font-medium text-sm">จำนวนสินค้าคงเหลือ</th>
                                     <th class="py-3 px-4 text-center font-medium text-sm">การจัดการ</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($sale_products as $product): ?>
                                     <tr class="border-t border-gray-200 hover:bg-gray-50">
-                                        <td class="py-3 px-4 text-sm"><?php echo htmlspecialchars($product['product_id']); ?></td>
-                                        <td class="py-3 px-4 text-sm"><?php echo htmlspecialchars($product['product_name']); ?></td>
-                                        <td class="py-3 px-4 text-center text-sm"><?php echo htmlspecialchars($product['sale_product_qty']); ?></td>
-                                        <td class="py-3 px-4 text-right text-sm"><?php echo number_format($product['sale_product_price'], 2); ?></td>
-                                        <td class="py-3 px-4 text-right font-medium text-sm"><?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?></td>
+                                        <td class="py-3 px-4 text-sm">
+                                            <?php echo htmlspecialchars($product['product_id']); ?>
+                                        </td>
+                                        <td class="py-3 px-4 text-sm">
+                                            <?php echo htmlspecialchars($product['product_name']); ?>
+                                        </td>
+                                        <td class="py-3 px-4 text-center text-sm">
+                                            <?php echo htmlspecialchars($product['sale_product_qty']); ?>
+                                        </td>
+                                        <td class="py-3 px-4 text-right text-sm">
+                                            <?php echo number_format($product['sale_product_price'], 2); ?>
+                                        </td>
+                                        <td class="py-3 px-4 text-right font-medium text-sm">
+                                            <?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?>
+                                        </td>
+                                        <td class="py-3 px4 text-center text-sm">
+                                            <?php
+                                            $stmt = $pdo->prepare("SELECT warehouse_name FROM warehouse WHERE warehouse_id = ?");
+                                            $stmt->execute([$product['warehouse_id']]);
+                                            echo htmlspecialchars($stmt->fetchColumn() ?: '-');
+                                            ?>
+                                        </td>
+                                        <td class="py-3 px-4 text-center text-sm">
+                                            <?php echo htmlspecialchars($product['lot_product_remain'] ?: '-'); ?></td>
                                         <td class="py-3 px-4 text-center">
                                             <div class="flex justify-center space-x-2">
-                                                <button class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
-                                                        data-id="<?php echo htmlspecialchars($product['sale_product_id']); ?>"
-                                                        data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
-                                                        data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
-                                                        data-qty="<?php echo htmlspecialchars($product['sale_product_qty']); ?>"
-                                                        data-price="<?php echo htmlspecialchars($product['sale_product_price']); ?>"
-                                                        data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                <button
+                                                    class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                                                    data-id="<?php echo htmlspecialchars($product['sale_product_id']); ?>"
+                                                    data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
+                                                    data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
+                                                    data-qty="<?php echo htmlspecialchars($product['sale_product_qty']); ?>"
+                                                    data-price="<?php echo htmlspecialchars($product['sale_product_price']); ?>"
+                                                    data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                                     </svg>
                                                 </button>
                                                 <form method="POST" action="" onsubmit="return confirmDelete();">
-                                                    <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
-                                                    <input type="hidden" name="barcode" value="<?php echo htmlspecialchars($product['product_id']); ?>">
+                                                    <input type="hidden" name="sale_id"
+                                                        value="<?php echo htmlspecialchars($sale_id); ?>">
+                                                    <input type="hidden" name="barcode"
+                                                        value="<?php echo htmlspecialchars($product['product_id']); ?>">
                                                     <input type="hidden" name="qty" value="1">
                                                     <input type="hidden" name="action" value="delete">
-                                                    <button type="submit" class="p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    <button type="submit"
+                                                        class="p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
                                                     </button>
                                                 </form>
@@ -616,8 +705,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     </div>
                     <?php if (empty($sale_products)): ?>
                         <div class="text-center py-8 text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                             </svg>
                             <p class="mt-2">ไม่พบสินค้าในการขายนี้</p>
                             <p class="text-sm">กรุณาเพิ่มสินค้า</p>
@@ -629,8 +720,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             <div class="space-y-6">
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                         ข้อมูลการขาย
                     </h2>
@@ -640,7 +733,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         <div class="space-y-4">
                             <div class="grid grid-cols-1 gap-2">
                                 <label class="text-base font-medium text-gray-700">บิลที่ใช้งาน:</label>
-                                <select id="switch_sale" name="switch_sale_id" class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select id="switch_sale" name="switch_sale_id"
+                                    class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <?php foreach ($valid_active_sales as $active_sale_id): ?>
                                         <option value="<?php echo $active_sale_id; ?>" <?php echo $active_sale_id == $sale_id ? 'selected' : ''; ?>>
                                             บิล #<?php echo $active_sale_id; ?>
@@ -695,15 +789,19 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             <div class="space-y-3">
                                 <button id="new_sale" type="button"
                                     class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                     เปิดบิลใหม่
                                 </button>
                                 <button id="cancel_sale" type="button"
                                     class="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                     ยกเลิกบิล
                                 </button>
@@ -714,8 +812,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         การชำระเงิน
                     </h2>
@@ -746,7 +846,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                             </svg>
                             คำนวณเงินทอน
                         </button>
@@ -759,7 +860,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         disabled>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
                         พิมพ์ใบเสร็จ
                     </button>
@@ -775,14 +877,16 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             </div>
         </div>
 
-        <div id="edit-product-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div id="edit-product-modal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
             <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-semibold text-gray-800">แก้ไขสินค้า</h3>
                     <button id="close-modal" class="text-gray-500 hover:text-gray-700">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
@@ -793,28 +897,35 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า</label>
-                            <input type="text" id="edit-barcode-display" class="w-full p-2 border border-gray-300 rounded" readonly>
+                            <input type="text" id="edit-barcode-display"
+                                class="w-full p-2 border border-gray-300 rounded" readonly>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อสินค้า</label>
-                            <input type="text" id="edit-product-name" class="w-full p-2 border border-gray-300 rounded" readonly>
+                            <input type="text" id="edit-product-name" class="w-full p-2 border border-gray-300 rounded"
+                                readonly>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
-                            <input type="number" id="edit-qty" name="qty" class="w-full p-2 border border-gray-300 rounded" min="1">
+                            <input type="number" id="edit-qty" name="qty"
+                                class="w-full p-2 border border-gray-300 rounded" min="1">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
-                            <input type="number" id="edit-price" name="price" class="w-full p-2 border border-gray-300 rounded" step="0.01">
+                            <input type="number" id="edit-price" name="price"
+                                class="w-full p-2 border border-gray-300 rounded" step="0.01">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">ต้นทุน</label>
-                            <input type="number" id="edit-capital" name="capital" class="w-full p-2 border border-gray-300 rounded" step="0.01">
+                            <input type="number" id="edit-capital" name="capital"
+                                class="w-full p-2 border border-gray-300 rounded" step="0.01">
                         </div>
                     </div>
                     <div class="mt-6 flex space-x-3">
-                        <button type="submit" class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">บันทึกการแก้ไข</button>
-                        <button type="button" id="cancel-edit" class="flex-1 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors">ยกเลิก</button>
+                        <button type="submit"
+                            class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">บันทึกการแก้ไข</button>
+                        <button type="button" id="cancel-edit"
+                            class="flex-1 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors">ยกเลิก</button>
                     </div>
                 </form>
             </div>
@@ -898,7 +1009,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                 if (saleIds.length === 0) {
                     $select.append('<option value="" disabled>ไม่มีบิลที่ใช้งาน</option>');
                 } else {
-                    saleIds.forEach(function(saleId) {
+                    saleIds.forEach(function (saleId) {
                         let selected = saleId == newSaleId ? 'selected' : '';
                         $select.append(`<option value="${saleId}" ${selected}>บิล #${saleId}</option>`);
                     });
@@ -1146,5 +1257,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
         });
     </script>
 </body>
+
 </html>
 <?php ob_end_flush(); ?>
