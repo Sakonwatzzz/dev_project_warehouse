@@ -454,7 +454,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         $pdo->commit();
         $_SESSION['success'] = "ยืนยันการขายสำเร็จ";
-        header('Location: ?page=sale_list');
+        header('Location: ?page=sale_insert');
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();

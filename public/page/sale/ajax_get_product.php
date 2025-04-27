@@ -1,5 +1,5 @@
 <?php
-require_once '../../../config/database_server.php';
+require_once __DIR__ . '../../../../config/database_server.php';
 $barcode = isset($_GET['barcode']) ? trim($_GET['barcode']) : '';
 $warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;
 $product = null;

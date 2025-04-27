@@ -109,14 +109,14 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                     <p>รายการขายสินค้า</p>
                 </button>
             </a>
-            <a href="?page=sale_status" class="button-link">
-                <button class="<?php echo ($current_page == 'sale_status') ? 'active' : ''; ?>">
+            <a href="?page=sale_add" class="button-link">
+                <button class="<?php echo ($current_page == 'sale_add') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
                     <p>หน้าการขายสินค้า(ทดลอง3)</p>
                 </button>
             </a>
             <a href="?page=sale_billtest" class="button-link">
-                <button class="<?php echo ($current_page == 'sale_status') ? 'active' : ''; ?>">
+                <button class="<?php echo ($current_page == 'sale_billtest') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
                     <p>หน้าการขายสินค้า(ทดลอง4)</p>
                 </button>

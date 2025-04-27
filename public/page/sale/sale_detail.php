@@ -1,230 +1,121 @@
 <?php
-require_once __DIR__ . '../../../../config/database_server.php'; 
+require_once __DIR__ . '../../../../config/database_server.php';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>หน้ารายละเอียดการขาย</title>
+    <title>รายละเอียดบิลการขาย</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-    
-<!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function () {
-        // Autocomplete สำหรับค้นหาสินค้า
-        $('#barcode_input').on('input', function () {
-            const query = $(this).val();
-            if (query.length < 2) {
-                $('#barcode_suggestions').addClass('hidden').empty();
-                $('#product_info').addClass('hidden').empty();
-                return;
-            }
-            $.ajax({
-                url: 'page/sale/ajax_search_product.php',
-                method: 'GET',
-                data: { query: query },
-                success: function (response) {
-                    const products = JSON.parse(response);
-                    const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
-                    if (products.length === 0) {
-                        suggestions.append('<div class="p-2 text-gray-500">ไม่พบสินค้า</div>');
-                        return;
-                    }
-                    products.forEach(product => {
-                        suggestions.append(`
-                            <div class="p-2 hover:bg-gray-100 cursor-pointer" data-barcode="${product.product_id}">
-                                ${product.product_id} - ${product.product_name} (สต็อก: ${product.total_stock})
-                            </div>
-                        `);
-                    });
-                    // แสดงข้อมูลสินค้าทันทีเมื่อเลือก
-                    suggestions.find('div').on('click', function () {
-                        const barcode = $(this).data('barcode');
-                        $('#barcode_input').val(barcode);
-                        suggestions.addClass('hidden').empty();
-                        fetchProductInfo(barcode);
-                    });
-                },
-                error: function () {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'ข้อผิดพลาด',
-                        text: 'ไม่สามารถค้นหาสินค้าได้'
-                    });
-                }
-            });
-        });
 
-        // แสดงข้อมูลสินค้าเมื่อกรอกบาร์โค้ด
-        $('#barcode_input').on('blur', function () {
-            const barcode = $(this).val();
-            if (barcode) {
-                fetchProductInfo(barcode);
-            }
-        });
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <!-- ส่วนที่ 1: ข้อมูลบิล -->
+        <div class="bg-white shadow-md rounded-lg p-6 mb-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">รายละเอียดบิล</h2>
+                <button class="text-blue-500 hover:text-blue-700">กลับ</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- รหัสการขาย -->
+                <div>
+                    <p class="text-gray-600 font-medium">รหัสการขาย:</p>
+                    <p class="text-gray-800">0011</p>
+                </div>
+                <!-- วันที่ขาย -->
+                <div>
+                    <p class="text-gray-600 font-medium">วันที่ขาย:</p>
+                    <p class="text-gray-800">28/04/2025 03:31:50</p>
+                </div>
+                <!-- รหัสสถานะการขาย -->
+                <div>
+                    <p class="text-gray-600 font-medium">รหัสสถานะการขาย:</p>
+                    <p class="text-gray-800">สำเร็จ</p>
+                </div>
+                <!-- รหัสสมาชิก -->
+                <div>
+                    <p class="text-gray-600 font-medium">รหัสสมาชิก:</p>
+                    <p class="text-gray-800">นายสมชาย ใจดี</p>
+                </div>
+                <!-- พนักงาน -->
+                <div>
+                    <p class="text-gray-600 font-medium">พนักงาน:</p>
+                    <p class="text-gray-800">นายสมชาย ใจดี</p>
+                </div>
+                <!-- POS -->
+                <div>
+                    <p class="text-gray-600 font-medium">POS:</p>
+                    <p class="text-gray-800">POS #1 (Website)</p>
+                </div>
+            </div>
+        </div>
 
-        function fetchProductInfo(barcode) {
-            $.ajax({
-                url: 'page/sale/ajax_get_product.php',
-                method: 'GET',
-                data: { barcode: barcode, warehouse_id: $('select[name="warehouse_id"]').val() },
-                success: function (response) {
-                    const product = JSON.parse(response);
-                    const info = $('#product_info').removeClass('hidden');
-                    if (!product) {
-                        info.html('<span class="text-red-500">ไม่พบสินค้าหรือสต็อกไม่เพียงพอ</span>');
-                        return;
-                    }
-                    info.html(`
-                        <p><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
-                        <p><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
-                        <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
-                    `);
-                },
-                error: function () {
-                    $('#product_info').addClass('hidden').empty();
-                }
-            });
-        }
-
-        // Autocomplete สำหรับค้นหาสมาชิก
-        $('#member_search').on('input', function () {
-            const query = $(this).val();
-            if (query.length < 2) {
-                $('#member_suggestions').addClass('hidden').empty();
-                return;
-            }
-            $.ajax({
-                url: 'page/sale/ajax_search_member.php',
-                method: 'GET',
-                data: { query: query },
-                success: function (response) {
-                    const members = JSON.parse(response);
-                    const suggestions = $('#member_suggestions').removeClass('hidden').empty();
-                    if (members.length === 0) {
-                        suggestions.append('<div class="p-2 text-gray-500">ไม่พบสมาชิก</div>');
-                        return;
-                    }
-                    members.forEach(member => {
-                        suggestions.append(`
-                            <div class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${member.member_id}">
-                                ${member.member_name}
-                            </div>
-                        `);
-                    });
-                    suggestions.find('div').on('click', function () {
-                        const memberId = $(this).data('id');
-                        const memberName = $(this).text();
-                        $('#member_search').val(memberName);
-                        $('#member_id').val(memberId);
-                        suggestions.addClass('hidden').empty();
-                    });
-                },
-                error: function () {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'ข้อผิดพลาด',
-                        text: 'ไม่สามารถค้นหาสมาชิกได้'
-                    });
-                }
-            });
-        });
-
-        // คำนวณเงินทอน
-        $('#calculate_change').on('click', function () {
-            const paid = parseFloat($('#paid_amount').val()) || 0;
-            const total = parseFloat(<?php echo $total_amount; ?>) || 0;
-            const change = paid - total;
-            $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
-            if (change >= 0) {
-                $('#print_receipt').prop('disabled', false);
-            } else {
-                $('#print_receipt').prop('disabled', true);
-            }
-        });
-
-        // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
-        $('#paid_amount').on('input', function () {
-            $('#calculate_change').click();
-        });
-
-        // สลับบิล
-        $('#switch_sale').on('change', function () {
-            window.location.href = '?page=sale_insert&sale_id=' + $(this).val();
-        });
-
-        // เปิดบิลใหม่
-        $('#new_sale').on('click', function () {
-            $.post('', { action: 'new_sale' }, function () {
-                window.location.href = '?page=sale_insert';
-            });
-        });
-
-        // ยกเลิกบิล
-        $('#cancel_sale').on('click', function () {
-            Swal.fire({
-                title: 'ยืนยันการยกเลิกบิล?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'ยกเลิกบิล',
-                cancelButtonText: 'ยกเลิก'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.post('', {
-                        action: 'cancel_sale',
-                        sale_id: '<?php echo $sale_id; ?>'
-                    }, function () {
-                        window.location.href = '?page=sale_insert';
-                    });
-                }
-            });
-        });
-
-        // เปิด/ปิด modal แก้ไขสินค้า
-        $('.edit-product').on('click', function () {
-            $('#edit-barcode').val($(this).data('barcode'));
-            $('#edit-barcode-display').val($(this).data('barcode'));
-            $('#edit-product-name').val($(this).data('name'));
-            $('#edit-qty').val($(this).data('qty'));
-            $('#edit-price').val($(this).data('price'));
-            $('#edit-capital').val($(this).data('capital'));
-            $('#edit-warehouse').val($(this).data('warehouse'));
-            $('#edit-booking').prop('checked', $(this).data('booking') == 1);
-            $('#edit-product-modal').removeClass('hidden');
-        });
-
-        $('#close-modal, #cancel-edit').on('click', function () {
-            $('#edit-product-modal').addClass('hidden');
-        });
-
-        // ยืนยันการลบสินค้า
-        function confirmDelete() {
-            return confirm('ยืนยันการลบสินค้านี้?');
-        }
-
-        // อัปเดตตารางสินค้าแบบเรียลไทม์
-        $('#form_add_product').on('submit', function (e) {
-            e.preventDefault();
-            $.ajax({
-                url: 'page/sale/sale_status.php',
-                method: 'POST',
-                data: $(this).serialize(),
-                success: function (response) {
-                    // รีโหลดหน้าเพื่ออัปเดตตาราง
-                    window.location.reload();
-                },
-                error: function (xhr) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'ข้อผิดพลาด',
-                        text: xhr.responseText || 'ไม่สามารถเพิ่มสินค้าได้'
-                    });
-                }
-            });
-        });
-    });
-</script> -->
+        <!-- ส่วนที่ 2: รายการสินค้าที่ขาย -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">รายการสินค้าที่ขาย</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-200 text-gray-700">
+                            <th class="py-3 px-4 text-left border-b">รหัสสินค้า</th>
+                            <th class="py-3 px-4 text-left border-b">ชื่อสินค้า</th>
+                            <th class="py-3 px-4 text-left border-b">จำนวน</th>
+                            <th class="py-3 px-4 text-left border-b">ราคาขาย</th>
+                            <th class="py-3 px-4 text-left border-b">ราคาทุน</th>
+                            <th class="py-3 px-4 text-left border-b">รวม</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b text-gray-600">0008</td>
+                            <td class="py-3 px-4 border-b text-gray-600">กาแฟร้อนอเมริกาโน่</td>
+                            <td class="py-3 px-4 border-b text-gray-600">1 ชิ้น</td>
+                            <td class="py-3 px-4 border-b text-gray-600">29.00</td>
+                            <td class="py-3 px-4 border-b text-gray-600">-</td>
+                            <td class="py-3 px-4 border-b text-gray-600">29.00</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b text-gray-600">0011</td>
+                            <td class="py-3 px-4 border-b text-gray-600">ชานมไข่มุก</td>
+                            <td class="py-3 px-4 border-b text-gray-600">1 ชิ้น</td>
+                            <td class="py-3 px-4 border-b text-gray-600">69.00</td>
+                            <td class="py-3 px-4 border-b text-gray-600">-</td>
+                            <td class="py-3 px-4 border-b text-gray-600">69.00</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-200 text-gray-700">
+                            <td colspan="5" class="py-3 px-4 text-right border-t font-semibold">รวมทั้งสิ้น</td>
+                            <td class="py-3 px-4 border-t font-semibold">98.00</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="py-3 px-4 text-right text-gray-600">ส่วนลด</td>
+                            <td class="py-3 px-4 text-gray-600">0.00</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="py-3 px-4 text-right text-gray-600">ค่าจัดส่ง</td>
+                            <td class="py-3 px-4 text-gray-600">0.00</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="py-3 px-4 text-right text-gray-600">ส่วนลดโปรโมชั่น</td>
+                            <td class="py-3 px-4 text-gray-600">91.59</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="py-3 px-4 text-right text-gray-600">ภาษี 7 %</td>
+                            <td class="py-3 px-4 text-gray-600">6.41</td>
+                        </tr>
+                        <tr class="border-t">
+                            <td colspan="5" class="py-3 px-4 text-right font-semibold text-gray-800">ยอดรวมสุทธิ</td>
+                            <td class="py-3 px-4 font-semibold text-gray-800">98.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
 </body>
+
 </html>
