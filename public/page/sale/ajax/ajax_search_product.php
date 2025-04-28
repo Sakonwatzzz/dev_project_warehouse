@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '../../../../config/database_server.php';
+require_once __DIR__ . '../../../../../config/database_server.php';
 $query = isset($_GET['query']) ? trim($_GET['query']) : '';
 $products = [];
 if (strlen($query) >= 2) {

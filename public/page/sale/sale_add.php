@@ -6,6 +6,9 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/logs/php_errors.log');
 
+//ใช้ $base_url ที่กำหนดไว้
+// $base_url = '/page/sale';
+
 // Set timezone
 date_default_timezone_set('Asia/Bangkok');
 $currentDateTime = date("Y-m-d H:i:s");
@@ -214,9 +217,22 @@ function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = 
     }
     return $lot_ids;
 }
-
+//เพิ่มการตรวจสอบ X-Requested-With: XMLHttpRequest.
+function isAjaxRequest()
+{
+    $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    error_log("isAjaxRequest: " . ($isAjax ? 'Yes' : 'No') . ", Headers: " . json_encode(getallheaders()));
+    return $isAjax;
+}
 // Handle product add
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_product') {
+
+    if (!isAjaxRequest()) {
+        header('HTTP/1.1 403 Forbidden');
+        echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
+        exit();
+    }
     header('Content-Type: application/json');
     ob_clean();
     try {
@@ -298,9 +314,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit();
 }
 
-// Handle product delete
+// Handle product delete 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-    header('Content-Type: application/json');
+    if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest') {
+        header('HTTP/1.1 403 Forbidden');
+        echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
+        exit();
+    }
+    //ถ้าไม่ใช่ AJAX, ส่ง 403 Forbidden และ JSON error
+    header('Content-Type: application/json; charset=utf-8');
     ob_clean();
     try {
         $barcode = trim($_POST['barcode']);
@@ -685,7 +707,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             <td class="py-3 px-4 text-center text-sm"><?php echo htmlspecialchars($product['sale_product_qty']); ?></td>
                                             <td class="py-3 px-4 text-right text-sm"><?php echo number_format($product['sale_product_price'], 2); ?></td>
                                             <td class="py-3 px-4 text-right font-medium text-sm"><?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?></td>
-                                            <!-- <td class="py-3 px-4 text-center text-sm"></td> -->
                                             <td class="py-3 px-4 text-center">
                                                 <div class="flex justify-center space-x-2">
                                                     <button class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
@@ -694,30 +715,20 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                                         data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
                                                         data-qty="<?php echo htmlspecialchars($product['sale_product_qty']); ?>"
                                                         data-price="<?php echo htmlspecialchars($product['sale_product_price']); ?>"
-                                                        data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>"
-                                                       > 
-                                                     
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                        data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                                         </svg>
                                                     </button>
-                                                    <form method="POST" action="" onsubmit="return confirmDelete();">
-                                                        <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
-                                                        <input type="hidden" name="barcode" value="<?php echo htmlspecialchars($product['product_id']); ?>">
-                                                        <input type="hidden" name="qty" value="1">
-                                                        <input type="hidden" name="action" value="delete">
-                                                        <button class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                                                            data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
-                                                            data-qty="1">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
-                                                    </form>
+                                                    <button class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                                        data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
+                                                        data-qty="1">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -956,52 +967,20 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             </div>
             <script>
                 $(document).ready(function() {
-                    // Autocomplete สำหรับค้นหาสินค้า
-                    // $('#barcode_input').on('input', function() {
-                    //     const query = $(this).val();
-                    //     if (query.length < 2) {
-                    //         $('#barcode_suggestions').addClass('hidden').empty();
-                    //         $('#product_info').addClass('hidden').empty();
-                    //         return;
-                    //     }
-                    //     $.ajax({
-                    //         url: 'page/sale/ajax_search_product.php',
-                    //         method: 'GET',
-                    //         data: {
-                    //             query: query
-                    //         },
-                    //         dataType: 'json',
-                    //         success: function(response) {
-                    //             const products = response;
-                    //             const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
-                    //             if (products.length === 0) {
-                    //                 suggestions.append('<div class="p-2 text-gray-500">ไม่พบสินค้า</div>');
-                    //                 return;
-                    //             }
-                    //             products.forEach(product => {
-                    //                 suggestions.append(`
-                    //                     <div class="p-2 hover:bg-gray-100 cursor-pointer" data-barcode="${product.product_id}">
-                    //                         ${product.product_id} - ${product.product_name} (สต็อก: ${product.total_stock})
-                    //                     </div>
-                    //                 `);
-                    //             });
-                    //             suggestions.find('div').on('click', function() {
-                    //                 const barcode = $(this).data('barcode');
-                    //                 $('#barcode_input').val(barcode);
-                    //                 suggestions.addClass('hidden').empty();
-                    //                 fetchProductInfo(barcode);
-                    //             });
-                    //         },
-                    //         error: function(xhr) {
-                    //             Swal.fire({
-                    //                 icon: 'error',
-                    //                 title: 'ข้อผิดพลาด',
-                    //                 text: xhr.responseText || 'ไม่สามารถค้นหาสินค้าได้'
-                    //             });
-                    //         }
-                    //     });
-                    // });
 
+                    // ตรวจสอบว่า jQuery โหลดสำเร็จ
+                    if (typeof $ === 'undefined') {
+                        console.error('jQuery not loaded');
+                        alert('ไม่สามารถโหลด jQuery ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
+                        return;
+                    }
+
+                    // ตรวจสอบว่า SweetAlert2 โหลดสำเร็จ
+                    if (typeof Swal === 'undefined') {
+                        console.error('SweetAlert2 not loaded');
+                        alert('ไม่สามารถโหลด SweetAlert2 ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
+                        return;
+                    }
                     // Toast instance สำหรับ SweetAlert2
                     const Toast = Swal.mixin({
                         toast: true,
@@ -1174,7 +1153,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             return;
                         }
                         $.ajax({
-                            url: 'page/sale/ajax_search_product.php',
+                            url: 'page/sale/ajax/ajax_search_product.php',
                             method: 'GET',
                             data: {
                                 query: query
@@ -1217,7 +1196,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     // แสดงข้อมูลสินค้า
                     function fetchProductInfo(barcode) {
                         $.ajax({
-                            url: 'page/sale/ajax_get_product.php',
+                            url: 'page/sale/ajax/ajax_get_product.php',
                             method: 'GET',
                             data: {
                                 barcode: barcode
@@ -1252,7 +1231,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     // อัปเดตตารางสินค้าแบบเรียลไทม์
                     function updateProductTable() {
                         $.ajax({
-                            url: 'page/sale/ajax_get_sale_products.php',
+                            url: 'page/sale/ajax/ajax_get_sale_products.php',
                             method: 'GET',
                             data: {
                                 sale_id: '<?php echo htmlspecialchars($sale_id); ?>'
@@ -1300,7 +1279,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             return;
                         }
                         $.ajax({
-                            url: 'page/sale/ajax_search_member.php',
+                            url: 'page/sale/ajax/ajax_search_member.php',
                             method: 'GET',
                             data: {
                                 query: query
@@ -1354,9 +1333,35 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
                     // สลับบิล
                     $('#switch_sale').on('change', function() {
-                        window.location.href = '?page=sale_add&sale_id=' + $(this).val();
+                        const saleId = $(this).val();
+                        $.ajax({
+                            url: '/page/sale/sale_add.php',
+                            method: 'POST',
+                            data: {
+                                action: 'switch_sale',
+                                sale_id: saleId
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    window.location.href = '/?page=sale_add&sale_id=' + saleId;
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'ข้อผิดพลาด',
+                                        text: response.message
+                                    });
+                                }
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: xhr.responseText || 'ไม่สามารถสลับบิลได้'
+                                });
+                            }
+                        });
                     });
-
                     // เปิดบิลใหม่
                     $('#new_sale').on('click', function() {
                         $.ajax({
@@ -1446,7 +1451,11 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     // ลบสินค้า
                     $(document).on('click', '.delete-product', function(e) {
                         e.preventDefault();
-                        if (isProcessing) return;
+                        console.log('Delete button clicked:', $(this).data('barcode')); // Log การคลิก
+                        if (isProcessing) {
+                            console.warn('Processing in progress, ignoring click');
+                            return;
+                        }
                         const barcode = $(this).data('barcode');
                         const qty = parseInt($(this).data('qty')) || 1;
                         Swal.fire({
@@ -1457,6 +1466,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             cancelButtonText: 'ยกเลิก'
                         }).then((result) => {
                             if (result.isConfirmed) {
+                                console.log('Sending AJAX request to delete:', {
+                                    barcode,
+                                    qty
+                                }); // Log ก่อนส่ง
                                 $.ajax({
                                     url: 'page/sale/sale_add.php',
                                     method: 'POST',
@@ -1467,10 +1480,19 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         qty: qty
                                     },
                                     dataType: 'json',
-                                    beforeSend: function() {
+                                    timeout: 2000,
+                                    beforeSend: function(xhr) {
+                                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest'); // ยืนยัน header
                                         isProcessing = true;
+                                        console.log('AJAX request sent:', {
+                                            action: 'delete',
+                                            sale_id: '<?php echo htmlspecialchars($sale_id); ?>',
+                                            barcode,
+                                            qty
+                                        });
                                     },
                                     success: function(response) {
+                                        console.log('AJAX response:', response); // Log response
                                         if (response.status === 'success') {
                                             Toast.fire({
                                                 icon: 'success',
@@ -1495,11 +1517,12 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             $('#barcode_input').focus();
                                         }
                                     },
-                                    error: function(xhr) {
+                                    error: function(xhr, status, error) {
+                                        console.error('AJAX error:', status, error, xhr.responseText); // Log error
                                         Swal.fire({
                                             icon: 'error',
                                             title: 'ข้อผิดพลาด',
-                                            text: xhr.responseText || 'ไม่สามารถลบสินค้าได้',
+                                            text: xhr.responseText || 'ไม่สามารถลบสินค้าได้: ' + error,
                                             didOpen: () => {
                                                 $('.main-body').removeAttr('aria-hidden');
                                             }
@@ -1600,9 +1623,9 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
 
                     // ยืนยันการลบสินค้า
-                    function confirmDelete() {
-                        return confirm('ยืนยันการลบสินค้านี้?');
-                    }
+                    // function confirmDelete() {
+                    //     return confirm('ยืนยันการลบสินค้านี้?');
+                    // }
 
 
                     // Bind event สำหรับปุ่มแก้ไขและลบ

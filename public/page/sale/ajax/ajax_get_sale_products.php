@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '../../../../config/database_server.php';
+require_once __DIR__ . '../../../../../config/database_server.php';
 header('Content-Type: application/json');
 
 try {
@@ -47,7 +47,6 @@ try {
             $html .= '<td class="py-3 px-4 text-center text-sm">' . htmlspecialchars($product['sale_product_qty']) . '</td>';
             $html .= '<td class="py-3 px-4 text-right text-sm">' . number_format($product['sale_product_price'], 2) . '</td>';
             $html .= '<td class="py-3 px-4 text-right font-medium text-sm">' . number_format($product['sale_product_qty'] * $product['sale_product_price'], 2) . '</td>';
-            $html .= '<td class="py-3 px-4 text-center text-sm">' . htmlspecialchars($product['sale_reference'] ?: '-') . '</td>';
             $html .= '<td class="py-3 px-4 text-center">
                         <div class="flex justify-center space-x-2">
                             <button class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
@@ -57,7 +56,6 @@ try {
                                 data-qty="' . htmlspecialchars($product['sale_product_qty']) . '"
                                 data-price="' . htmlspecialchars($product['sale_product_price']) . '"
                                 data-capital="' . htmlspecialchars($product['sale_product_capital']) . '"
-                                data-reference="' . htmlspecialchars($product['sale_reference']) . '">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
