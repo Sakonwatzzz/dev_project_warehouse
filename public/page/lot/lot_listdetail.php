@@ -400,6 +400,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                         pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
                 </div>
+            
                 <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
                 <div class="flex space-x-4">
                     <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
