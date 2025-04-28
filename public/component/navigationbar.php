@@ -57,7 +57,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     <li><a href="?page=bar_supplier"
                             class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
                     <li><a href="?page=navigationbar_sale"
-                            class="<?php echo ($main_section == 'sale' || $current_page == 'navigationbar_sale') ? 'active' : ''; ?>">ขายTEST</a></li>
+                            class="<?php echo ($main_section == 'sale' || $current_page == 'navigationbar_sale') ? 'active' : ''; ?>">ขาย</a></li>
                     <!-- <li><a href="?page=navigationbar_sale"
                             class="<?php echo $current_page == 'navigationbar_sale' ? 'active' : ''; ?>">ขาย</a></li> -->
                 </ul>
