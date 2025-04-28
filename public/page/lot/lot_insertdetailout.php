@@ -33,18 +33,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
             COALESCE((
                 SELECT SUM(lp2.lot_product_remain)
                 FROM lot_product lp2
-                JOIN lot l ON lp2.lot_id = l.lot_id
+                JOIN lot l2 ON lp2.lot_id = l2.lot_id
                 WHERE lp2.product_id = lp.product_id
-                AND l.warehouse_from_id = (
+                AND l2.warehouse_id = (
                     SELECT warehouse_from_id FROM lot WHERE lot_id = :lot_id
                 )
-            ), 0) - lp.lot_product_qty as source_qty_remaining,
-            CASE WHEN p.product_id IS NULL THEN 1 ELSE 0 END as needs_update
+                AND l2.lot_status_id = 2
+            ), 0) as source_qty_remaining
         FROM lot_product lp
         LEFT JOIN product p ON p.product_id = lp.product_id
         WHERE lp.lot_id = :lot_id
         GROUP BY lp.product_id, lp.lot_id
-        ORDER BY needs_update DESC, lp.lot_product_date DESC";
+        ORDER BY lp.lot_product_date DESC";
         $stmt = $pdo->prepare($product_query);
         $stmt->execute(['lot_id' => $lot_id]);
         $lot_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
 // Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ob_clean();
-    header('Content-Type: application/json; charset=utf-8');
+    header(' Website: https://x.com/KaylerFX Content-Type: application/json; charset=utf-8');
 
     // Validate CSRF token
     if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
@@ -123,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Check existing product in lot
             $stmt = $pdo->prepare("SELECT lp.*, p.product_name FROM lot_product lp 
-                                 LEFT JOIN product p ON p.product_id = lp.product_id 
-                                 WHERE lp.lot_id = ? AND lp.product_id = ?");
+                LEFT JOIN product p ON p.product_id = lp.product_id 
+                WHERE lp.lot_id = ? AND lp.product_id = ?");
             $stmt->execute([$lot_id, $barcode]);
             $existing_product = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -135,9 +135,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 SELECT SUM(lp.lot_product_remain) as total_remain
                 FROM lot_product lp
                 JOIN lot l ON lp.lot_id = l.lot_id
-                WHERE lp.product_id = ? AND l.warehouse_from_id = (
+                WHERE lp.product_id = ? 
+                AND l.warehouse_id = (
                     SELECT warehouse_from_id FROM lot WHERE lot_id = ?
-                )");
+                )
+                AND l.lot_status_id = 2
+            ");
             $sourceStockStmt->execute([$barcode, $lot_id]);
             $sourceQty = (int) ($sourceStockStmt->fetchColumn() ?? 0);
 
@@ -146,7 +149,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($existing_product) {
                 if ($isDeleteMode) {
                     $newQty = $existing_product['lot_product_qty'] - $quantity;
-                    if ($newQty <= 0) {
+                    if ($newQty < 0) {
+                        throw new Exception("ไม่สามารถลบได้ เนื่องจากจำนวนที่ต้องการลบเกินจำนวนที่มีในล็อต");
+                    }
+                    if ($newQty == 0) {
                         $delete = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
                         $delete->execute([$lot_id, $barcode]);
                     } else {
@@ -157,26 +163,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $update->execute([$newQty, $newQty, $lot_id, $barcode]);
 
                         // Fetch updated product
-                        $stmt = $pdo->prepare("SELECT lp.*, p.product_name, p.product_capital as default_capital,
-                            COALESCE((
-                                SELECT SUM(lp2.lot_product_remain)
-                                FROM lot_product lp2
-                                JOIN lot l ON lp2.lot_id = l.lot_id
-                                WHERE lp2.product_id = lp.product_id
-                                AND l.warehouse_from_id = (
-                                    SELECT warehouse_from_id FROM lot WHERE lot_id = ?
-                                )
-                            ), 0) - lp.lot_product_qty as source_qty_remaining
+                        $stmt = $pdo->prepare("
+                            SELECT 
+                                lp.*, 
+                                p.product_name, 
+                                p.product_capital as default_capital,
+                                COALESCE((
+                                    SELECT SUM(lp2.lot_product_remain)
+                                    FROM lot_product lp2
+                                    JOIN lot l2 ON lp2.lot_id = l2.lot_id
+                                    WHERE lp2.product_id = lp.product_id
+                                    AND l2.warehouse_id = (
+                                        SELECT warehouse_from_id FROM lot WHERE lot_id = ?
+                                    )
+                                    AND l2.lot_status_id = 2
+                                ), 0) as source_qty_remaining
                             FROM lot_product lp 
                             LEFT JOIN product p ON p.product_id = lp.product_id 
-                            WHERE lp.lot_id = ? AND lp.product_id = ?");
+                            WHERE lp.lot_id = ? AND lp.product_id = ?
+                        ");
                         $stmt->execute([$lot_id, $lot_id, $barcode]);
                         $updated_product = $stmt->fetch(PDO::FETCH_ASSOC);
                     }
                 } else {
                     $newQty = $existing_product['lot_product_qty'] + $quantity;
-                    if ($sourceQty < $newQty) {
-                        throw new Exception("สินค้าในคลังต้นทางไม่เพียงพอ (มี $sourceQty คงเหลือ)");
+                    if ($newQty > $sourceQty) {
+                        throw new Exception("จำนวนที่ต้องการย้าย ($newQty) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง ($sourceQty)");
                     }
 
                     $newCapital = $capital > 0 ? $capital : $existing_product['lot_product_capital'];
@@ -185,22 +197,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         lot_product_remain = ?,
                         lot_product_capital = ?
                         WHERE lot_id = ? AND product_id = ?");
-                    $update->execute([$newQty, $newQty, $captial, $lot_id, $barcode]);
+                    $update->execute([$newQty, $newQty, $newCapital, $lot_id, $barcode]);
 
                     // Fetch updated product
-                    $stmt = $pdo->prepare("SELECT lp.*, p.product_name, p.product_capital as default_capital,
-                        COALESCE((
-                            SELECT SUM(lp2.lot_product_remain)
-                            FROM lot_product lp2
-                            JOIN lot l ON lp2.lot_id = l.lot_id
-                            WHERE lp2.product_id = lp.product_id
-                            AND l.warehouse_from_id = (
-                                SELECT warehouse_from_id FROM lot WHERE lot_id = ?
-                            )
-                        ), 0) - lp.lot_product_qty as source_qty_remaining
+                    $stmt = $pdo->prepare("
+                        SELECT 
+                            lp.*, 
+                            p.product_name, 
+                            p.product_capital as default_capital,
+                            COALESCE((
+                                SELECT SUM(lp2.lot_product_remain)
+                                FROM lot_product lp2
+                                JOIN lot l2 ON lp2.lot_id = l2.lot_id
+                                WHERE lp2.product_id = lp.product_id
+                                AND l2.warehouse_id = (
+                                    SELECT warehouse_from_id FROM lot WHERE lot_id = ?
+                                )
+                                AND l2.lot_status_id = 2
+                            ), 0) as source_qty_remaining
                         FROM lot_product lp 
                         LEFT JOIN product p ON p.product_id = lp.product_id 
-                        WHERE lp.lot_id = ? AND lp.product_id = ?");
+                        WHERE lp.lot_id = ? AND lp.product_id = ?
+                    ");
                     $stmt->execute([$lot_id, $lot_id, $barcode]);
                     $updated_product = $stmt->fetch(PDO::FETCH_ASSOC);
                 }
@@ -209,66 +227,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("ไม่พบสินค้าที่มีรหัสบาร์โค้ด $barcode ในล็อตนี้");
                 }
 
-                if ($sourceQty < $quantity) {
-                    throw new Exception("สินค้าในคลังต้นทางไม่เพียงพอ (มี $sourceQty คงเหลือ)");
+                if ($quantity > $sourceQty) {
+                    throw new Exception("จำนวนที่ต้องการย้าย ($quantity) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง ($sourceQty)");
                 }
 
                 // Insert new product
-                if (!$product) {
-                    $insert_product = $pdo->prepare("INSERT INTO product (
-                        product_id, product_name, product_price1, product_price2,
-                        product_price3, product_price4, product_capital,
-                        product_type_id, product_brand_id
-                    ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
-                    $insert_product->execute([$barcode, $product_name, $capital]);
-                }
-
-
-                //logic
-                // step 1 query product qty lot_product_remain
-                $remain = 0;
-                $sql_ = $db->prepare('
-                            SELECT
-                                lot_product.lot_product_remain
-                            FROM
-                                lot_product
-                            WHERE
-                                lot_product.lot_product_id = ?
-                        ');
-                $result = $sql_->fetch(PDO::FETCH_ASSOC);
-                if ($result) {
-                    $remain = $result['lot_product_remain'];
-                    echo "Remaining lot product: " . $remain;
-                } else {
-                    echo "No product found with that barcode.";
-                }
-                //query จำนวนย้าย 
-
-                // if  จำนวนย้าย < lot_product_remain to insert else to warning 
-              
-
-
-                // // Insert new lot_product
                 $insert = $pdo->prepare("INSERT INTO lot_product (
                     lot_id, product_id, lot_product_qty, lot_product_remain,
                     lot_product_capital, lot_product_date, lot_product_status
-                ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
+                    ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
                 $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
 
                 // Fetch new product
-                $stmt = $pdo->prepare("SELECT lp.*, p.product_name, p.product_capital as default_capital,
-                    COALESCE((
-                        SELECT SUM(lp2.lot_product_remain)
-                        FROM lot_product lp2
-                        JOIN lot l ON lp2.lot_id = l.lot_id
-                        WHERE lp2.product_id = lp.product_id
-                        AND l.warehouse_from_id = (
-                            SELECT warehouse_from_id FROM lot WHERE lot_id = ?
-                        )
-                    ), 0) - lp.lot_product_qty as source_qty_remaining
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        lp.*, 
+                        p.product_name, 
+                        p.product_capital as default_capital,
+                        COALESCE((
+                            SELECT SUM(lp2.lot_product_remain)
+                            FROM lot_product lp2
+                            JOIN lot l2 ON lp2.lot_id = l2.lot_id
+                            WHERE lp2.product_id = lp.product_id
+                            AND l2.warehouse_id = (
+                                SELECT warehouse_from_id FROM lot WHERE lot_id = ?
+                            )
+                            AND l2.lot_status_id = 2
+                        ), 0) as source_qty_remaining
                     FROM lot_product lp 
                     LEFT JOIN product p ON p.product_id = lp.product_id 
-                    WHERE lp.lot_id = ? AND lp.product_id = ?");
+                    WHERE lp.lot_id = ? AND lp.product_id = ?
+                ");
                 $stmt->execute([$lot_id, $lot_id, $barcode]);
                 $updated_product = $stmt->fetch(PDO::FETCH_ASSOC);
             }
@@ -306,9 +295,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Update stock in source and destination warehouses
             $stmt = $pdo->prepare("
-            SELECT lp.product_id, lp.lot_product_qty
-            FROM lot_product lp
-            WHERE lp.lot_id = ?");
+                SELECT lp.product_id, lp.lot_product_qty
+                FROM lot_product lp
+                WHERE lp.lot_id = ?
+            ");
             $stmt->execute([$lot_id]);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -318,22 +308,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Deduct from source warehouse
                 $sourceStmt = $pdo->prepare("
-                UPDATE lot_product lp
-                JOIN lot l ON lp.lot_id = l.lot_id
-                SET lp.lot_product_remain = lp.lot_product_remain - ?
-                WHERE lp.product_id = ? AND l.warehouse_from_id = (
-                    SELECT warehouse_from_id FROM lot WHERE lot_id = ?
-                ) AND lp.lot_product_remain >= ?");
+                    UPDATE lot_product lp
+                    JOIN lot l ON lp.lot_id = l.lot_id
+                    SET lp.lot_product_remain = lp.lot_product_remain - ?
+                    WHERE lp.product_id = ? 
+                    AND l.warehouse_id = (
+                        SELECT warehouse_from_id FROM lot WHERE lot_id = ?
+                    ) 
+                    AND l.lot_status_id = 2
+                    AND lp.lot_product_remain >= ?
+                ");
                 $sourceStmt->execute([$quantity, $product_id, $lot_id, $quantity]);
-
-                // Add to destination warehouse
-                $destStmt = $pdo->prepare("
-                INSERT INTO lot_product (
-                    lot_id, product_id, lot_product_qty, lot_product_remain,
-                    lot_product_capital, lot_product_date, lot_product_status
-                ) SELECT ?, product_id, ?, ?, lot_product_capital, NOW(), 1
-                FROM lot_product WHERE lot_id = ? AND product_id = ?");
-                $destStmt->execute([$lot_id, $quantity, $quantity, $lot_id, $product_id]);
             }
 
             $pdo->commit();
@@ -387,27 +372,27 @@ try {
 
     // Fetch products
     $product_query = "
-    SELECT
-        lp.lot_id, lp.lot_product_id, lp.product_id,
-        COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
-        lp.lot_product_qty, lp.lot_product_remain, lp.lot_product_capital,
-        lp.lot_product_date, lp.lot_product_status,
-        p.product_capital as default_capital,
-        COALESCE((
-            SELECT SUM(lp2.lot_product_remain)
-            FROM lot_product lp2
-            JOIN lot l ON lp2.lot_id = l.lot_id
-            WHERE lp2.product_id = lp.product_id
-            AND l.warehouse_from_id = (
-                SELECT warehouse_from_id FROM lot WHERE lot_id = :lot_id
-            )
-        ), 0) - lp.lot_product_qty as source_qty_remaining,
-        CASE WHEN p.product_id IS NULL THEN 1 ELSE 0 END as needs_update
-    FROM lot_product lp
-    LEFT JOIN product p ON p.product_id = lp.product_id
-    WHERE lp.lot_id = :lot_id
-    GROUP BY lp.product_id, lp.lot_id
-    ORDER BY needs_update DESC, lp.lot_product_date DESC";
+        SELECT
+            lp.lot_id, lp.lot_product_id, lp.product_id,
+            COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
+            lp.lot_product_qty, lp.lot_product_remain, lp.lot_product_capital,
+            lp.lot_product_date, lp.lot_product_status,
+            p.product_capital as default_capital,
+            COALESCE((
+                SELECT SUM(lp2.lot_product_remain)
+                FROM lot_product lp2
+                JOIN lot l2 ON lp2.lot_id = l2.lot_id
+                WHERE lp2.product_id = lp.product_id
+                AND l2.warehouse_id = (
+                    SELECT warehouse_from_id FROM lot WHERE lot_id = :lot_id
+                )
+                AND l2.lot_status_id = 2
+            ), 0) as source_qty_remaining
+        FROM lot_product lp
+        LEFT JOIN product p ON p.product_id = lp.product_id
+        WHERE lp.lot_id = :lot_id
+        GROUP BY lp.product_id, lp.lot_id
+        ORDER BY lp.lot_product_date DESC";
     $stmt = $pdo->prepare($product_query);
     $stmt->execute(['lot_id' => $lot_id]);
     $lot_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -422,9 +407,9 @@ try {
     die("การเชื่อมต่อฐานข้อมูลผิดพลาด");
 }
 
+
 $lot_status_id = $lot_data['lot_status_id'] ?? null;
 $lot_status_name = $lot_data['lot_status_name'] ?? null;
-
 
 ob_end_flush();
 ?>
@@ -501,21 +486,11 @@ ob_end_flush();
         <?php if ($lot_data): ?>
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <div class="grid grid-cols-2 gap-6">
-                    <div><label class="font-semibold mb-2">รหัส Lot
-                            สินค้า:</label><span><?php echo htmlspecialchars($lot_data['lot_id'], ENT_QUOTES, 'UTF-8'); ?></span>
-                    </div>
-                    <div><label class="font-semibold mb-2">ชื่อ Lot
-                            สินค้า:</label><span><?php echo htmlspecialchars($lot_data['lot_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                    </div>
-                    <div><label
-                            class="font-semibold mb-2">วันที่และเวลาย้ายคลังสินค้า:</label><span><?php echo htmlspecialchars($lot_data['lot_date'], ENT_QUOTES, 'UTF-8'); ?></span>
-                    </div>
-                    <div><label
-                            class="font-semibold mb-2">นำมาจากคลัง:</label><span><?php echo htmlspecialchars($lot_data['warehouse_from_name'] ?? 'ยังไม่ระบุ', ENT_QUOTES, 'UTF-8'); ?></span>
-                    </div>
-                    <div><label
-                            class="font-semibold mb-2">ลงคลัง:</label><span><?php echo htmlspecialchars($lot_data['warehouse_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                    </div>
+                    <div><label class="font-semibold mb-2">รหัส Lot สินค้า:</label><span><?php echo htmlspecialchars($lot_data['lot_id'], ENT_QUOTES, 'UTF-8'); ?></span></div>
+                    <div><label class="font-semibold mb-2">ชื่อ Lot สินค้า:</label><span><?php echo htmlspecialchars($lot_data['lot_name'], ENT_QUOTES, 'UTF-8'); ?></span></div>
+                    <div><label class="font-semibold mb-2">วันที่และเวลาย้ายคลังสินค้า:</label><span><?php echo htmlspecialchars($lot_data['lot_date'], ENT_QUOTES, 'UTF-8'); ?></span></div>
+                    <div><label class="font-semibold mb-2">นำมาจากคลัง:</label><span><?php echo htmlspecialchars($lot_data['warehouse_from_name'] ?? 'ยังไม่ระบุ', ENT_QUOTES, 'UTF-8'); ?></span></div>
+                    <div><label class="font-semibold mb-2">ลงคลัง:</label><span><?php echo htmlspecialchars($lot_data['warehouse_name'], ENT_QUOTES, 'UTF-8'); ?></span></div>
                     <div>
                         <?php
                         if (!empty($lot_data['warehouse_inout'])) {
@@ -527,25 +502,18 @@ ob_end_flush();
                         }
                         ?>
                     </div>
-                    <div><label
-                            class="font-semibold mb-2">สถานะ:</label><span><?php echo htmlspecialchars($lot_data['lot_status_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                    </div>
+                    <div><label class="font-semibold mb-2">สถานะ:</label><span><?php echo htmlspecialchars($lot_data['lot_status_name'], ENT_QUOTES, 'UTF-8'); ?></span></div>
                 </div>
             </div>
         <?php endif; ?>
 
         <?php if ($lot_status_id === LOT_STATUS_PENDING): ?>
             <h2 class="text-2xl font-semibold mb-4">สแกนสินค้าเข้าล็อต</h2>
-            <form id="" action="" method="POST">
-                <input type="hidden" name="csrf_token"
-                    value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+            <form id="barcode-form" action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                 <div class="mb-4 flex items-center gap-4">
                     <label class="block mb-2" for="inputField">รหัสบาร์โค้ด:</label>
-                    <input type="text" id="inputField" name="barcode"
-                        class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        pattern="[0-9*\\-]*" placeholder="เช่น 12345 หรือ 2*12345 หรือ 2*150*12345" autofocus required
-                        title="กรุณาป้อนบาร์โค้ด (เช่น 12345, 2*12345, 2*150*12345, -12345, -2*12345)"
-                        aria-describedby="barcode-help">
+                    <input type="text" id="inputField" name="barcode" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400" pattern="[0-9*\\-]*" placeholder="เช่น 12345 หรือ 2*12345 หรือ 2*150*12345" autofocus required title="กรุณาป้อนบาร์โค้ด (เช่น 12345, 2*12345, 2*150*12345, -12345, -2*12345)" aria-describedby="barcode-help">
                 </div>
                 <div class="flex space-x-4">
                     <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
@@ -568,7 +536,7 @@ ob_end_flush();
                         <tr class="bg-gray-50">
                             <th class="px-6 py-3 border text-left">รหัสบาร์โค้ดสินค้า</th>
                             <th class="px-6 py-3 border text-left">ชื่อสินค้า</th>
-                            <th class="px-6 py-3 border text-center">จำนวนสินค้าคงเหลือในคลังหลังโอน</th>
+                            <th class="px-6 py-3 border text-center">จำนวนสินค้าคงเหลือ</th>
                             <th class="px-3 py-3 border text-center">จำนวนที่ต้องการย้าย</th>
                             <th class="px-3 py-3 border text-right">ราคาทุน</th>
                             <th class="px-3 py-3 border text-right">มูลค่ารวม</th>
@@ -587,39 +555,21 @@ ob_end_flush();
                             $total_value += $item_total;
                             $total_quantity += $item['lot_product_qty'];
                             $product_id = htmlspecialchars($item['product_id'], ENT_QUOTES, 'UTF-8');
-                            ?>
-                            <tr class="<?php echo $item['source_qty_remaining'] < 0 ? 'bg-red-100' : ''; ?>"
-                                data-product-id="<?php echo $product_id; ?>">
+                        ?>
+                            <tr class="<?php echo $item['source_qty_remaining'] < 0 ? 'bg-red-100' : ''; ?>" data-product-id="<?php echo $product_id; ?>">
                                 <td class="pl-6 py-2 border"><?php echo $product_id; ?></td>
-                                <td class="pl-6 py-2 border">
-                                    <?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="text-center py-2 border">
-                                    <?php echo htmlspecialchars($item['source_qty_remaining'], ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="text-center py-2 border">
-                                    <?php echo htmlspecialchars($item['lot_product_qty'], ENT_QUOTES, 'UTF-8'); ?>
-                                </td>
-                                <td class="text-right py-2 border">
-                                    <?php echo number_format($item['lot_product_capital'], 2); ?>
-                                </td>
+                                <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="text-center py-2 border"><?php echo htmlspecialchars($item['source_qty_remaining'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="text-center py-2 border"><?php echo htmlspecialchars($item['lot_product_qty'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="text-right py-2 border"><?php echo number_format($item['lot_product_capital'], 2); ?></td>
                                 <td class="text-right py-2 border"><?php echo number_format($item_total, 2); ?></td>
                                 <?php if ($lot_status_id === LOT_STATUS_PENDING): ?>
-                                    <td class="text-right py-2 border">
-                                        <?php echo htmlspecialchars($lot_data['lot_status_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                    </td>
+                                    <td class="text-right py-2 border"><?php echo htmlspecialchars($lot_data['lot_status_name'], ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="text-right py-2 border px-4">
-                                        <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
-                                            data-id="<?php echo htmlspecialchars($item['lot_product_id'], ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-qty="<?php echo htmlspecialchars($item['lot_product_qty'], ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-capital="<?php echo htmlspecialchars($item['lot_product_capital'], ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-default-capital="<?php echo htmlspecialchars($item['default_capital'] ?? 0, ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-barcode="<?php echo $product_id; ?>">
+                                        <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product" data-id="<?php echo htmlspecialchars($item['lot_product_id'], ENT_QUOTES, 'UTF-8'); ?>" data-qty="<?php echo htmlspecialchars($item['lot_product_qty'], ENT_QUOTES, 'UTF-8'); ?>" data-capital="<?php echo htmlspecialchars($item['lot_product_capital'], ENT_QUOTES, 'UTF-8'); ?>" data-default-capital="<?php echo htmlspecialchars($item['default_capital'] ?? 0, ENT_QUOTES, 'UTF-8'); ?>" data-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>" data-barcode="<?php echo $product_id; ?>">
                                             แก้ไข
                                         </button>
-                                        <button type="button" class="bg-red-500 text-white px-4 py-1 rounded toggle-delete-mode"
-                                            data-barcode="<?php echo $product_id; ?>">
+                                        <button type="button" class="bg-red-500 text-white px-4 py-1 rounded toggle-delete-mode" data-barcode="<?php echo $product_id; ?>">
                                             ลบ
                                         </button>
                                     </td>
@@ -627,30 +577,22 @@ ob_end_flush();
                             </tr>
                         <?php endforeach; ?>
                         <?php if (count($lot_products) > 0): ?>
-                            <tr class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400"
-                                id="total-row">
+                            <tr class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400" id="total-row">
                                 <td colspan="2" class="text-end pe-4 align-middle">ยอดรวมสินค้าที่ย้ายคลัง:</td>
-                                <td class="text-center py-4 font-bold" id="total-quantity">
-                                    <?php echo number_format($total_quantity); ?>
-                                </td>
+                                <td class="text-center py-4 font-bold" id="total-quantity"><?php echo number_format($total_quantity); ?></td>
                                 <td colspan="2" class="text-end pe-4 align-middle">มูลค่ารวมทั้งสิ้น:</td>
-                                <td class="text-end py-4 font-bold" id="total-value">
-                                    <?php echo number_format($total_value, 2); ?> บาท
-                                </td>
+                                <td class="text-end py-4 font-bold" id="total-value"><?php echo number_format($total_value, 2); ?> บาท</td>
                                 <?php if ($lot_status_id === LOT_STATUS_PENDING): ?>
                                     <td colspan="2"></td>
                                 <?php endif; ?>
                             </tr>
                             <?php if ($lot_status_id === LOT_STATUS_PENDING): ?>
                                 <tr class="h-16" id="confirm-row">
-                                    <td colspan="<?php echo ($lot_status_id === LOT_STATUS_PENDING) ? 8 : 6; ?>"
-                                        class="text-end pe-4 pt-4 overflow-hidden">
-                                        <button type="button" id="confirm-lot"
-                                            class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                                    <td colspan="<?php echo ($lot_status_id === LOT_STATUS_PENDING) ? 8 : 6; ?>" class="text-end pe-4 pt-4 overflow-hidden">
+                                        <button type="button" id="confirm-lot" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                                             <i class="fas fa-check-circle me-2"></i>ยืนยันการย้ายสินค้า
                                         </button>
-                                        <input type="hidden" id="lot_id"
-                                            value="<?php echo htmlspecialchars($lot_data['lot_id'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        <input type="hidden" id="lot_id" value="<?php echo htmlspecialchars($lot_data['lot_id'], ENT_QUOTES, 'UTF-8'); ?>">
                                     </td>
                                 </tr>
                             <?php endif; ?>
@@ -661,41 +603,33 @@ ob_end_flush();
         </div>
     </div>
 
-    <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden" role="dialog"
-        aria-labelledby="editModalTitle">
+    <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden" role="dialog" aria-labelledby="editModalTitle">
         <div class="modal-content bg-white p-6 rounded-lg shadow-lg w-96 mx-auto mt-20">
             <h3 id="editModalTitle" class="text-xl font-semibold mb-4">แก้ไขข้อมูลสินค้า</h3>
             <form id="edit-form">
-                <input type="hidden" name="csrf_token"
-                    value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" id="lot_product_id" name="lot_product_id">
                 <input type="hidden" name="action" value="updatemental">
                 <input type="hidden" name="barcode" id="product_barcode_hidden">
                 <div class="mb-4">
                     <label class="block mb-2" for="product_barcode">บาร์โค้ด:</label>
-                    <input type="text" class="w-full p-2 border rounded bg-gray-100" id="product_barcode" readonly
-                        aria-describedby="barcode-help">
+                    <input type="text" class="w-full p-2 border rounded bg-gray-100" id="product_barcode" readonly aria-describedby="barcode-help">
                 </div>
                 <div class="mb-4">
                     <label class="block mb-2" for="product_name">ชื่อสินค้า:</label>
-                    <input type="text" class="w-full p-2 border rounded" id="product_name" name="product_name" required
-                        aria-describedby="name-help">
+                    <input type="text" class="w-full p-2 border rounded bg-gray-100" id="product_name" name="product_name" readonly aria-describedby="name-help">
                 </div>
                 <div class="mb-4">
                     <label class="block mb-2" for="qty">จำนวนที่ต้องการย้าย:</label>
-                    <input type="number" class="w-full p-2 border rounded" id="qty" name="qty" required min="1"
-                        aria-describedby="qty-help">
+                    <input type="number" class="w-full p-2 border rounded" id="qty" name="qty" required min="1" aria-describedby="qty-help">
                 </div>
                 <div class="mb-4">
                     <label class="block mb-2" for="capital">ราคาทุน:</label>
-                    <input type="number" class="w-full p-2 border rounded" id="capital" name="capital" required min="0"
-                        step="0.01" aria-describedby="capital-help">
+                    <input type="number" class="w-full p-2 border rounded bg-gray-100" id="capital" name="capital" readonly min="0" step="0.01" aria-describedby="capital-help">
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded"
-                        onclick="closeEditModal()">ยกเลิก</button>
-                    <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded"
-                        id="save-edit">บันทึก</button>
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded" onclick="closeEditModal()">ยกเลิก</button>
+                    <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded" id="save-edit">บันทึก</button>
                 </div>
             </form>
         </div>
@@ -712,12 +646,11 @@ ob_end_flush();
         function changeInputBackground(event) {
             if (event.keyCode === 46) { // 46 = Delete
                 inputField.classList.remove('input-normal');
-                inputField.classList.add('input-delete'); // เพิ่มคลาสสำหรับการลบข้อมูล
+                inputField.classList.add('input-delete');
             }
-
             if (event.keyCode === 45) { // 45 = Insert
                 inputField.classList.remove('input-normal');
-                inputField.classList.add('input-add'); // เพิ่มคลาสสำหรับการเพิ่มข้อมูล
+                inputField.classList.add('input-add');
             }
         }
 
@@ -728,15 +661,8 @@ ob_end_flush();
             inputField.classList.add('input-normal');
         }
 
-        // ฟังการกดปุ่มและการเริ่มกรอกข้อมูล
-        inputField.addEventListener('keydown', function (event) {
-            changeInputBackground(event); // เปลี่ยนพื้นหลังตามการกดปุ่ม
-        });
-
-        // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
-        inputField.addEventListener('focus', function () {
-            resetInputBackground(); // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
-        });
+        inputField.addEventListener('keydown', changeInputBackground);
+        inputField.addEventListener('focus', resetInputBackground);
 
         // State management
         const state = {
@@ -761,7 +687,7 @@ ob_end_flush();
                 }
 
                 let invalidProducts = [];
-                productRows.each(function () {
+                productRows.each(function() {
                     const barcode = $(this).find('td:eq(0)').text().trim();
                     const productName = $(this).find('td:eq(1)').text().trim();
                     const sourceQtyRemaining = parseInt($(this).find('td:eq(2)').text()) || 0;
@@ -775,8 +701,15 @@ ob_end_flush();
                     if (capital <= 0) {
                         issues.push("ราคาทุนต้องมากกว่า 0");
                     }
-                    if (sourceQtyRemaining < 0) {
-                        issues.push(`สินค้าในคลังต้นทางไม่เพียงพอ (คงเหลือ ${sourceQtyRemaining + transferQty} แต่ต้องการย้าย ${transferQty})`);
+                    if (sourceQtyRemaining < transferQty) {
+                        issues.push(`สินค้าในคลังต้นทางไม่เพียงพอ (คงเหลือ ${sourceQtyRemaining} แต่ต้องการย้าย ${transferQty})`);
+                        Swal.fire({
+                            icon: "warning",
+                            title: issues,
+                            text: "กรุณาเพิ่มสินค้าก่อนยืนยันรายการ",
+                            confirmButtonColor: "#3085d6"
+                        });
+                        return false;
                     }
                     if (issues.length > 0) {
                         invalidProducts.push({
@@ -805,6 +738,7 @@ ob_end_flush();
                 }
                 return true;
             },
+
             handleServerResponse(response, successCallback) {
                 if (response.success) {
                     Swal.fire({
@@ -828,22 +762,19 @@ ob_end_flush();
             handleServerError(xhr) {
                 const status = xhr.status;
                 let errorMessage = 'เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์';
-                let successMessage = "สำเร็จ"
-                let icon = 'error'
+                let successMessage = "สำเร็จ";
+                let icon = 'error';
                 if (xhr.responseJSON && xhr.responseJSON.error) {
                     errorMessage = xhr.responseJSON.error;
                 } else if (status === 0) {
                     errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
                 } else if (status === 200) {
-                    icon = 'success'
+                    icon = 'success';
                     successMessage = 'บันทึกสำเร็จ';
-                    location.reload();
-                    document.getElementById("inputField").value = ""
-
+                    setTimeout(() => location.reload(), 500);
                 } else if (status === 400) {
-                    icon = 'warning'
-                    errorMessage = 'คำขอไม่ถูกต้อง ไม่พบสินค้า';
-
+                    icon = 'warning';
+                    errorMessage = 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่';
                 } else if (status === 403) {
                     errorMessage = 'ไม่มีสิทธิ์เข้าถึง หรือ CSRF token ไม่ถูกต้อง';
                 } else if (status === 500) {
@@ -857,24 +788,14 @@ ob_end_flush();
                         showConfirmButton: false,
                         timer: 500
                     });
-                } else if (status !== 200) {
-                    Swal.fire({
-                        icon: icon,
-                        title: `ข้อผิดพลาด` + errorMessage,
-                        text: '',
-                        confirmButtonColor: '#3085d6'
-                    });
                 } else {
                     Swal.fire({
                         icon: icon,
-                        title: `ข้อผิดพลาด` + errorMessage,
+                        title: `ข้อผิดพลาด: ${errorMessage}`,
                         text: '',
                         confirmButtonColor: '#3085d6'
                     });
                 }
-
-
-
                 console.error('AJAX Error:', {
                     status: status,
                     statusText: xhr.statusText,
@@ -954,7 +875,7 @@ ob_end_flush();
                 const item_total = product.lot_product_qty * product.lot_product_capital;
                 const lot_status_id = <?php echo LOT_STATUS_PENDING; ?>;
                 let rowHtml = `
-                    <tr class="${product.source_qty_remaining < 0 ? 'bg-red-100' : ''}" data-product-id="${product_id}">
+                    <tr class="${product.source_qty_remaining < product.lot_product_qty ? 'bg-red-100' : ''}" data-product-id="${product_id}">
                         <td class="pl-6 py-2 border">${product_id}</td>
                         <td class="pl-6 py-2 border">${product.product_name}</td>
                         <td class="text-center py-2 border">${product.source_qty_remaining}</td>
@@ -964,7 +885,9 @@ ob_end_flush();
                 `;
                 if (lot_status_id === <?php echo LOT_STATUS_PENDING; ?>) {
                     rowHtml += `
-                        <td class="text-right py-2 border"><?php echo htmlspecialchars($lot_data['lot_status_name'], ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td
+
+ class="text-right py-2 border"><?php echo htmlspecialchars($lot_data['lot_status_name'], ENT_QUOTES, 'UTF-8'); ?></td>
                         <td class="text-right py-2 border px-4">
                             <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
                                 data-id="${product.lot_product_id}"
@@ -984,17 +907,13 @@ ob_end_flush();
                 }
                 rowHtml += `</tr>`;
 
-                // Check if row exists
                 const $existingRow = $(`#products-table tbody tr[data-product-id="${product_id}"]`);
                 if ($existingRow.length) {
-                    // Update existing row
                     $existingRow.replaceWith(rowHtml);
                 } else {
-                    // Add new row at the top
                     $('#products-table tbody').prepend(rowHtml);
                 }
 
-                // Update totals
                 if (totals) {
                     const total_quantity = totals.total_quantity;
                     const total_value = totals.total_value;
@@ -1022,7 +941,6 @@ ob_end_flush();
                             $('#products-table tbody').append(totalHtml);
                         }
                     } else {
-                        // Remove total and confirm rows if no products
                         $('#total-row, #confirm-row').remove();
                     }
                 }
@@ -1033,7 +951,6 @@ ob_end_flush();
             removeRow(product_id, totals) {
                 $(`#products-table tbody tr[data-product-id="${product_id}"]`).remove();
 
-                // Update totals
                 if (totals) {
                     const total_quantity = totals.total_quantity;
                     const total_value = totals.total_value;
@@ -1088,10 +1005,10 @@ ob_end_flush();
                 $('#inputField').focus();
             },
             handleBarcodeInput(e) {
-                if (e.which !== 13) return; // ทำงานเมื่อกด Enter
+                if (e.which !== 13) return;
                 e.preventDefault();
 
-                if (state.isSubmitting) return; // ป้องกันการส่งซ้ำ
+                if (state.isSubmitting) return;
                 const $input = $('#inputField');
                 const inputValue = $input.val().trim();
                 if (!inputValue) {
@@ -1105,7 +1022,6 @@ ob_end_flush();
                     return;
                 }
 
-                // ตรวจสอบรูปแบบ: 12345, 2*12345, 2*150*12345, -12345, -2*12345
                 if (!/^-?([0-9]+(\*[0-9]+(\.[0-9]+)?)?(\*[0-9]+)?|[0-9]+)$/.test(inputValue)) {
                     Swal.fire({
                         icon: 'warning',
@@ -1119,24 +1035,20 @@ ob_end_flush();
 
                 const parts = inputValue.split('*');
                 let isDeleteMode = inputValue.startsWith('-');
-                let qty = 1; // ค่าเริ่มต้นจำนวน
-                let capital = null; // ค่าเริ่มต้นราคาทุน
+                let qty = 1;
+                let capital = null;
                 let product_id;
 
                 if (isDeleteMode) {
-                    parts[0] = parts[0].substring(1); // ลบเครื่องหมาย -
+                    parts[0] = parts[0].substring(1);
                 }
 
-                // กำหนดส่วนประกอบตามจำนวน parts
                 if (parts.length === 1) {
-                    // รูปแบบ: 12345 หรือ -12345
                     product_id = parts[0];
                 } else if (parts.length === 2) {
-                    // รูปแบบ: 2*12345 หรือ -2*12345
                     qty = parseInt(parts[0]);
                     product_id = parts[1];
                 } else if (parts.length === 3) {
-                    // รูปแบบ: 2*150*12345
                     qty = parseInt(parts[0]);
                     capital = parseFloat(parts[1]);
                     product_id = parts[2];
@@ -1190,13 +1102,10 @@ ob_end_flush();
 
                 utils.sendRequest(requestData, (response) => {
                     if (isDeleteMode && response.product) {
-                        // Update existing row if not deleted
                         utils.updateRow(response.product, response);
                     } else if (isDeleteMode) {
-                        // Remove row if deleted
                         utils.removeRow(product_id, response);
                     } else {
-                        // Add or update row
                         utils.updateRow(response.product, response);
                     }
                     if (isDeleteMode && state.activeDeleteBarcode) {
@@ -1205,11 +1114,9 @@ ob_end_flush();
                         $input.removeClass('bg-pink-100');
                         utils.updateRowHighlighting();
                     }
-                    $input.val(''); // Clear input
+                    $input.val('');
                 });
-
             },
-
             handleEditProduct(e) {
                 const $button = $(e.target);
                 $('#lot_product_id').val($button.data('id'));
@@ -1219,37 +1126,15 @@ ob_end_flush();
                 $('#qty').val($button.data('qty'));
                 $('#capital').val($button.data('capital'));
                 document.getElementById('editModal').classList.remove('hidden');
-                $('#product_name').focus();
+                $('#qty').focus();
+
             },
-            handleSaveEdit() {
-                const qty = parseInt($('#qty').val());
-                const capital = parseFloat($('#capital').val());
-                const productName = $('#product_name').val().trim();
-                const barcode = $('#product_barcode_hidden').val();
-
-                if (!utils.validateFormFields(qty, capital, productName)) {
-                    return;
-                }
-
-                const requestData = {
-                    csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>',
-                    barcode: barcode,
-                    qty: qty,
-                    capital: capital,
-                    product_name: productName
-                };
-
-                utils.sendRequest(requestData, (response) => {
-                    utils.updateRow(response.product, response);
-                    closeEditModal();
-                });
-            },
+            
             handleConfirmLot() {
                 if (!utils.validateForm()) {
                     return;
                 }
 
-                // Disable the confirm button to prevent multiple submissions
                 const $confirmButton = $('#confirm-lot');
                 if ($confirmButton.hasClass('disabled')) {
                     return;
@@ -1283,44 +1168,70 @@ ob_end_flush();
                                 window.location.href = 'index.php?page=lot_insertout';
                             });
                         }, () => {
-                            // Re-enable the button if the request fails
                             $confirmButton.removeClass('disabled loading').prop('disabled', false);
                         });
                     } else {
-                        // Re-enable the button if the user cancels
                         $confirmButton.removeClass('disabled loading').prop('disabled', false);
                     }
                 });
-            }
+            },
+            handleSaveEdit: function(e) {
+                const form = $('#edit-form');
+                const $submitButton = $(e.target);
+
+                if (!form[0].checkValidity()) {
+                    form[0].reportValidity();
+                    return;
+                }
+
+                const qty = parseFloat($('#qty').val());
+
+                // ตรวจสอบแค่จำนวน (qty) เท่านั้น
+                if (isNaN(qty) || qty < 1) {
+                    alert("กรุณากรอกจำนวนที่ถูกต้อง");
+                    return;
+                }
+
+                $submitButton.prop('disabled', true).text('กำลังบันทึก...');
+
+                const formData = form.serialize();
+                console.log('Sending data:', formData);
+
+                $.ajax({
+                    url: window.location.href,
+                    method: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        utils.handleServerResponse(response);
+                        closeEditModal();
+                    },
+                    error: function(xhr) {
+                        utils.handleServerError(xhr);
+                    },
+                    complete: function() {
+                        $submitButton.prop('disabled', false).text('บันทึก');
+                    }
+                });
+            },
+
         };
 
-        // Initialize event listeners
-        $(document).ready(function () {
+        $(document).ready(function() {
             $('#inputField').on('keypress', handlers.handleBarcodeInput);
             $(document).on('click', '.edit-product', handlers.handleEditProduct);
             $(document).on('click', '.toggle-delete-mode', handlers.toggleDeleteMode);
             $('#save-edit').on('click', handlers.handleSaveEdit);
             $(document).on('click', '#confirm-lot', handlers.handleConfirmLot);
 
-            // Auto-focus input field
             $('#inputField').focus();
 
-            // Prevent form submission on enter in edit modal
-            $('#edit-form').on('submit', function (e) {
-                e.preventDefault();
-                handlers.handleSaveEdit();
-            });
 
-            // Validate input field for barcode
-            $('#inputField').on('input', function () {
+
+            $('#inputField').on('input', function() {
                 let value = $(this).val();
-                // Allow only numbers, *, and -
                 value = value.replace(/[^0-9*\-]/g, '');
                 $(this).val(value);
             });
-
-            // Update table on page load
-            utils.refreshTable();
         });
     </script>
 </body>

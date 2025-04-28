@@ -52,6 +52,7 @@ try {
             LEFT JOIN lot ON lot_product.lot_id = lot.lot_id
             LEFT JOIN product ON lot_product.product_id = product.product_id
         " . $where_clause . "
+        GROUP BY lot_product.product_id, product.product_name, lot.lot_name, lot_product.lot_product_status
         LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);
