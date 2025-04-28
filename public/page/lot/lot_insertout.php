@@ -356,6 +356,7 @@ ob_end_flush();
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
                 <h2 class="text-2xl font-semibold text-gray-800">รายการย้ายคลังล่าสุด</h2>
             </div>
+<<<<<<< HEAD
             <div class="overflow-x-auto">
                 <table class="w-full" id="dataTable">
                     <thead>
@@ -386,6 +387,48 @@ ob_end_flush();
                         <?php endwhile; ?>
                     </tbody>
                 </table>
+=======
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัส Lot</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อ Lot</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังต้นทาง</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังปลายทาง</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
+                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($lots)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-gray-600">ไม่มีรายการย้ายสินค้าคลัง</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($lots as $lot): ?>
+                                    <tr class="hover:bg-gray-100">
+                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['lot_id']) ?></td>
+                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['lot_name']) ?></td>
+                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_from_name'] ?? 'ไม่ระบุ') ?></td>
+                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_name'] ?? 'ไม่ระบุ') ?></td>
+                                        <td class="px-6 py-2 border"><?= htmlspecialchars(date('d/m/Y H:i:s', strtotime($lot['lot_date']))) ?></td>
+                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['lot_status_name']) ?></td>
+                                        <td class="px-6 py-2 border text-center">
+                                            <a href="index.php?page=lot_insertdetailout&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
+                                                class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition">
+                                                <i class="fas fa-eye mr-1"></i>ดูรายละเอียด
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+>>>>>>> parent of 68f1189 (remain)
             </div>
         </div>
     </div>

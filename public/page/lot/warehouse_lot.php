@@ -91,6 +91,7 @@ try {
         $total_inventory_qty += $product['total_qty'];
     }
 
+<<<<<<< HEAD
     // Fetch detailed product data with lot information
     $query = "SELECT
         lot.lot_id, 
@@ -118,6 +119,47 @@ try {
     $warehouses_map = [];
     foreach ($all_warehouses as $wh) {
         $warehouses_map[$wh['warehouse_id']] = $wh['warehouse_name'];
+=======
+    // Fetch all products in this warehouse with quantities
+    $query = "SELECT 
+    p.product_id,
+    p.product_name,
+    COALESCE(SUM(lp.lot_product_qty), 0) as total_qty,
+    COUNT(DISTINCT lot.lot_id) as lot_count,
+    COALESCE((
+        SELECT SUM(lp2.lot_product_remain)
+        FROM lot_product lp2
+        JOIN lot l2 ON lp2.lot_id = l2.lot_id
+        WHERE lp2.product_id = p.product_id
+        AND l2.warehouse_id = ?
+        AND l2.lot_status_id = 2  -- Only count confirmed lots
+    ), 0) - COALESCE((
+        SELECT SUM(lp3.lot_product_qty)
+        FROM lot_product lp3
+        JOIN lot l3 ON lp3.lot_id = l3.lot_id
+        WHERE lp3.product_id = p.product_id
+        AND l3.warehouse_id = ?
+        AND l3.lot_status_id = 1  -- Subtract pending lots
+    ), 0) as remaining_qty
+FROM 
+    lot_product lp
+    JOIN lot ON lp.lot_id = lot.lot_id
+    JOIN product p ON lp.product_id = p.product_id
+WHERE 
+    lot.warehouse_id = ?
+GROUP BY 
+    p.product_id, p.product_name
+ORDER BY 
+    p.product_id";
+
+    $warehouse_products = fetchData($pdo, $query, [$warehouse_id, $warehouse_id, $warehouse_id])->fetchAll(PDO::FETCH_ASSOC);
+    $total_product_count = count($warehouse_products);
+
+    // Calculate total inventory quantity
+    $total_inventory_qty = 0;
+    foreach ($warehouse_products as $product) {
+        $total_inventory_qty += $product['remaining_qty'];
+>>>>>>> parent of 68f1189 (remain)
     }
 } catch (Exception $e) {
     $error = "เกิดข้อผิดพลาด: " . $e->getMessage();
@@ -503,6 +545,7 @@ ob_end_flush();
                                     <tbody>
                                         <?php foreach ($warehouse_products as $product): ?>
                                             <tr class="hover:bg-[#aec5e366]">
+<<<<<<< HEAD
                                                 <td class="py-3 px-4 border-b border-gray-200">
                                                     <?= htmlspecialchars($product['product_id']) ?>
                                                 </td>
@@ -519,6 +562,13 @@ ob_end_flush();
                                                 <td class="py-3 px-4 border-b border-gray-200 text-right">
                                                     <?= htmlspecialchars($product['lot_count']) ?>
                                                 </td>
+=======
+                                                <td class="py-3 px-4 border-b border-gray-200"><?= htmlspecialchars($product['product_id']) ?></td>
+                                                <td class="py-3 px-4 border-b border-gray-200 font-medium"><?= htmlspecialchars($product['product_name']) ?></td>
+                                                <td class="py-3 px-4 border-b border-gray-200"><?= !empty($product['product_detail']) ? htmlspecialchars($product['product_detail']) : "-" ?></td>
+                                                <td class="py-3 px-4 border-b border-gray-200 text-right font-medium"><?= number_format($product['total_qty'], 0) ?></td>
+                                                <td class="py-3 px-4 border-b border-gray-200 text-right"><?= htmlspecialchars($product['lot_count']) ?></td>
+>>>>>>> parent of 68f1189 (remain)
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -530,7 +580,11 @@ ob_end_flush();
             </div>
 
 
+<<<<<<< HEAD
             <!-- Lot Details with Products 
+=======
+                <!-- Lot Details with Products 
+>>>>>>> parent of 68f1189 (remain)
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                 <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">
@@ -538,6 +592,139 @@ ob_end_flush();
                     </h2>
                     <a href="index.php?page=lot_listinsertcopy" class="text-blue-600 hover:text-blue-800">
                         <i class="fas fa-plus mr-1"></i>เพิ่ม Lot ใหม่
+<<<<<<< HEAD
+=======
+                    </a>
+                </div>
+                <div class="p-6">
+                <?php if (empty($product_lots)): ?>
+                        <div class="text-center py-8">
+                            <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
+                            <p class="text-gray-500 text-xl">ไม่พบ Lot ในคลังนี้</p>
+                            <div class="mt-4">
+                                <a href="index.php?page=lot_listinsertcopy" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                    เพิ่ม Lot ใหม่
+                                </a>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200 shadow-sm">
+                                <thead>
+                                    <tr class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed]">
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อ Lot</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left" hidden>รหัสสินค้า</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-left">ชื่อสินค้า</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-right">จำนวนสินค้า</th>
+                                        <th class="py-3 px-4 border-b border-[#8f959b] text-center">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $current_lot = null;
+                                    foreach ($product_lots as $index => $item):
+                                        $is_new_lot = $current_lot !== $item['lot_name'];
+                                        if ($is_new_lot) {
+                                            $current_lot = $item['lot_name'];
+                                        }
+                                    ?>
+                                        <tr class="hover:bg-[#aec5e366] <?= $is_new_lot ? 'border-t-2 border-gray-300' : '' ?>">
+                                            <?php if ($is_new_lot): ?>
+                                                <td class="py-3 px-4 border-b border-gray-200 font-medium"><?= htmlspecialchars($item['lot_name']) ?></td>
+                                            <?php else: ?>
+                                                <td class="py-3 px-4 border-b border-gray-200"></td>
+                                            <?php endif; ?>
+                                            <td class="py-3 px-4 border-b border-gray-200" hidden><?= htmlspecialchars($item['product_id']) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200"><?= htmlspecialchars($item['product_name']) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200 text-right"><?= number_format($item['lot_product_qty'], 0) ?></td>
+                                            <td class="py-3 px-4 border-b border-gray-200 text-center">
+                                                <?php if ($is_new_lot): ?>
+                                                    <a href="index.php?page=lot_listdetail&tabel=lot&id=<?= htmlspecialchars($item['lot_id']) ?>" class="text-blue-600 hover:text-blue-800 mr-3">
+                                                        <i class="fas fa-eye"></i> รายละเอียด
+                                                    </a>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            -->
+
+                <!-- Lots List (Card View) 
+            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-box-open mr-2"></i>รายการ Lot ทั้งหมดในคลัง
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <?php if (empty($warehouse_lots)): ?>
+                        <div class="text-center py-8">
+                            <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
+                            <p class="text-gray-500 text-xl">ไม่พบ Lot ในคลังนี้</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <?php foreach ($warehouse_lots as $lot): ?>
+                                <div class="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer"
+                                    onclick="window.location.href='index.php?page=lot_listdetail&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="text-lg font-medium text-blue-600"><?= htmlspecialchars($lot['lot_name']) ?></h3>
+                                        <span class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>
+                                    </div>
+
+                                    <p class="text-gray-600 mt-2">
+                                        <?= !empty($lot['lot_detail']) ? htmlspecialchars($lot['lot_detail']) : "ไม่มีรายละเอียด" ?>
+                                    </p>
+
+                                    <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                            <?= htmlspecialchars($lot['lot_status_name'] ?? 'ไม่ระบุสถานะ') ?>
+                                        </span>
+
+                                        <?php if (!empty($lot['supplier_name'])): ?>
+                                            <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                                                <i class="fas fa-truck mr-1"></i><?= htmlspecialchars($lot['supplier_name']) ?>
+                                            </span>
+                                        <?php endif; ?>
+
+                                        <?php if (!empty($lot['warehouse_from_id']) && isset($warehouses_map[$lot['warehouse_from_id']])): ?>
+                                            <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                                                <i class="fas fa-exchange-alt mr-1"></i>จาก: <?= htmlspecialchars($warehouses_map[$lot['warehouse_from_id']]) ?>
+                                            </span>
+                                        <?php endif; ?>
+
+                                        <span class="bg-<?= $lot['warehouse_inout'] == 1 ? 'green' : 'red' ?>-100 text-<?= $lot['warehouse_inout'] == 1 ? 'green' : 'red' ?>-700 px-2 py-1 rounded">
+                                            <i class="fas fa-<?= $lot['warehouse_inout'] == 1 ? 'sign-in-alt' : 'sign-out-alt' ?> mr-1"></i>
+                                            <?= $lot['warehouse_inout'] == 1 ? 'รับเข้า' : 'จ่ายออก' ?>
+                                        </span>
+                                    </div>
+
+                                    <div class="mt-3 text-right">
+                                        <span class="text-blue-600 hover:text-blue-800">
+                                            <i class="fas fa-eye mr-1"></i>ดูรายละเอียด
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+             -->
+
+                <!-- Action Buttons -->
+                <div class="flex justify-between">
+                    <a href="index.php?page=warehouse_list" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+                        <i class="fas fa-arrow-left mr-2"></i>กลับ
+                    </a>
+                    <a href="index.php?page=report_warehouse&warehouse_id=<?= htmlspecialchars($warehouse_id) ?>" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
+                        <i class="fas fa-file-alt mr-2"></i>รายงานสรุป
+>>>>>>> parent of 68f1189 (remain)
                     </a>
                 </div>
                 <div class="p-6">
@@ -677,7 +864,14 @@ ob_end_flush();
         <?php endif; ?>
     </div>
 </body>
+<<<<<<< HEAD
 <script> src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+=======
+
+<script>
+    src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js" >
+</script>
+>>>>>>> parent of 68f1189 (remain)
 <script>
     // Current date time
     function updateDateTime() {
