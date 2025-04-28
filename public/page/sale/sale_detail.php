@@ -1,5 +1,67 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
+$sale_id = $_GET['sale_id'] ?? $_POST['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
+if (!$sale_id) {
+    $error_message = "ไม่พบรหัสการขาย: ค่า sale_id ว่าง";
+} else {
+    try {
+        $query = "SELECT 
+                sale.sale_id, 
+                sale.sale_date, 
+                sale.sale_status_id, 
+                sale.member_id, 
+                sale.personnel_id, 
+                sale_product.sale_product_id, 
+                sale_product.sale_product_qty, 
+                sale_product.sale_product_price, 
+                sale_product.sale_product_capital, 
+                sale_product.product_id, 
+                sale_product.warehouse_id, 
+                product.product_name, 
+                product.product_price1, 
+                product.product_price2, 
+                product.product_price3, 
+                product.product_price4, 
+                product.product_capital, 
+                member.member_name, 
+                member.member_phone, 
+                member.member_register_date, 
+                member.member_type_id, 
+                member.member_address, 
+                personnel.personnel_name, 
+                personnel.personnel_phone, 
+                personnel.personnel_username, 
+                sale_status.sale_status_name
+            FROM
+                sale
+                LEFT JOIN sale_product ON sale.sale_id = sale_product.sale_id
+                LEFT JOIN product ON product.product_id = sale_product.product_id
+                LEFT JOIN member ON sale.member_id = member.member_id
+                LEFT JOIN personnel ON sale.personnel_id = personnel.personnel_id
+                LEFT JOIN sale_status ON sale.sale_status_id = sale_status.sale_status_id";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
+        $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($sale_products)) {
+            $error_message = "ไม่พบข้อมูลการขายในระบบ";
+        } else {
+            // คำนวณยอดรวมสำหรับแต่ละ sale_id
+            $total_price_by_sale = [];
+            foreach ($sale_products as $sale_product) {
+                $sale_id = $sale_product['sale_id'];
+                if (!isset($total_price_by_sale[$sale_id])) {
+                    $total_price_by_sale[$sale_id] = 0;
+                }
+                $total_price_by_sale[$sale_id] += $sale_product['sale_product_qty'] * $sale_product['sale_product_price'];
+            }
+        }
+    } catch (PDOException $e) {
+        error_log("Database query error: " . $e->getMessage());
+        $error_message = "การเชื่อมต่อฐานข้อมูลเกิดข้อผิดพลาด: " . $e->getMessage();
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -17,7 +79,7 @@ require_once __DIR__ . '../../../../config/database_server.php';
         <div class="bg-white shadow-md rounded-lg p-6 mb-4">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-gray-800">รายละเอียดบิล</h2>
-                <button class="text-blue-500 hover:text-blue-700">กลับ</button>
+                <a href="http://localhost:8000/?page=sale_list" class="text-blue-500 hover:text-blue-700">กลับ</a>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- รหัสการขาย -->

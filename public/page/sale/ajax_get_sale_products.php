@@ -13,8 +13,7 @@ try {
     $product_query = "SELECT
         sp.sale_product_id, sp.sale_id, sp.product_id,
         COALESCE(pr.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
-        sp.sale_product_qty, sp.sale_product_price, sp.sale_product_capital,
-        sp.sale_reference
+        sp.sale_product_qty, sp.sale_product_price, sp.sale_product_capital
     FROM sale_product sp
     LEFT JOIN product pr ON pr.product_id = sp.product_id
     WHERE sp.sale_id = ?";

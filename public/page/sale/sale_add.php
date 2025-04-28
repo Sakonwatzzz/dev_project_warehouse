@@ -465,10 +465,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         // อัปเดต sale_deposit หากระบุ
-        if (isset($_POST['sale_deposit']) && is_numeric($_POST['sale_deposit'])) {
-            $updateDeposit = $pdo->prepare("UPDATE sale SET sale_deposit = ? WHERE sale_id = ?");
-            $updateDeposit->execute([(float)$_POST['sale_deposit'], $sale_id]);
-        }
+        // if (isset($_POST['sale_deposit']) && is_numeric($_POST['sale_deposit'])) {
+        //     $updateDeposit = $pdo->prepare("UPDATE sale SET sale_deposit = ? WHERE sale_id = ?");
+        //     $updateDeposit->execute([(float)$_POST['sale_deposit'], $sale_id]);
+        // }
 
         // Remove from active sales
         $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$sale_id]);
@@ -500,11 +500,12 @@ try {
     $stmt->execute([$sale_id]);
     $sale_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
+
+    // sp.sale_product_referenc ยังไม่ต้องการคอลัมน์นี้
     $product_query = "SELECT
         sp.sale_product_id, sp.sale_id, sp.product_id,
         COALESCE(pr.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
-        sp.sale_product_qty, sp.sale_product_price, sp.sale_product_capital,
-        sp.sale_reference
+        sp.sale_product_qty, sp.sale_product_price, sp.sale_product_capital
     FROM sale_product sp
     LEFT JOIN product pr ON pr.product_id = sp.product_id
     WHERE sp.sale_id = ?";
@@ -673,7 +674,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         <th class="py-3 px-4 text-center font-medium text-sm">จำนวน</th>
                                         <th class="py-3 px-4 text-right font-medium text-sm">ราคาขาย</th>
                                         <th class="py-3 px-4 text-right font-medium text-sm">ยอดรวม</th>
-                                        <th class="py-3 px-4 text-center font-medium text-sm">อ้างอิง</th>
                                         <th class="py-3 px-4 text-center font-medium text-sm">การจัดการ</th>
                                     </tr>
                                 </thead>
@@ -685,7 +685,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             <td class="py-3 px-4 text-center text-sm"><?php echo htmlspecialchars($product['sale_product_qty']); ?></td>
                                             <td class="py-3 px-4 text-right text-sm"><?php echo number_format($product['sale_product_price'], 2); ?></td>
                                             <td class="py-3 px-4 text-right font-medium text-sm"><?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?></td>
-                                            <td class="py-3 px-4 text-center text-sm"><?php echo htmlspecialchars($product['sale_reference'] ?: '-'); ?></td>
+                                            <!-- <td class="py-3 px-4 text-center text-sm"></td> -->
                                             <td class="py-3 px-4 text-center">
                                                 <div class="flex justify-center space-x-2">
                                                     <button class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
@@ -695,7 +695,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                                         data-qty="<?php echo htmlspecialchars($product['sale_product_qty']); ?>"
                                                         data-price="<?php echo htmlspecialchars($product['sale_product_price']); ?>"
                                                         data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>"
-                                                        data-reference="<?php echo htmlspecialchars($product['sale_reference']); ?>">
+                                                       > 
+                                                     
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                                             viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -800,19 +801,19 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         <?php endwhile; ?>
                                     </select>
                                 </div>
-                                <div class="grid grid-cols-1 gap-2">
+                                <!-- <div class="grid grid-cols-1 gap-2">
                                     <label class="text-base font-medium text-gray-700">เงินมัดจำ (บาท):</label>
                                     <input type="number" name="sale_deposit" step="0.01"
                                         class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="ป้อนเงินมัดจำ">
-                                </div>
-                                <div class="grid grid-cols-1 gap-2">
+                                </div> -->
+                                <!-- <div class="grid grid-cols-1 gap-2">
                                     <label class="text-base font-medium text-gray-700">อ้างอิงบิล (สำหรับคืนสินค้า):</label>
                                     <select name="sale_reference"
                                         class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <option value="">ไม่มีการอ้างอิง</option>
                                     </select>
-                                </div>
+                                </div> -->
                                 <div class="space-y-3">
                                     <button id="new_sale" type="button"
                                         class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center">
@@ -941,10 +942,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 <label class="block text-sm font-medium text-gray-700 mb-1">ต้นทุน</label>
                                 <input type="number" id="edit-capital" name="capital" class="w-full p-2 border border-gray-300 rounded modal-active" step="0.01">
                             </div>
-                            <div>
+                            <!-- <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">อ้างอิง</label>
                                 <input type="text" id="edit-reference" name="sale_reference" class="w-full p-2 border border-gray-300 rounded modal-active">
-                            </div>
+                            </div> -->
                         </div>
                         <div class="mt-6 flex space-x-3">
                             <button type="submit" class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors modal-active">บันทึกการแก้ไข</button>
@@ -1067,8 +1068,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         $('#product_info').addClass('hidden').empty();
                                     } else {
                                         Swal.fire({
-                                            icon: 'error',
-                                            title: 'ข้อผิดพลาด',
+                                            icon: 'warning',
+                                            title: '',
                                             text: response.message,
                                             didOpen: () => {
                                                 $('.main-body').removeAttr('aria-hidden');
