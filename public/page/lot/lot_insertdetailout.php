@@ -152,6 +152,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($newQty < 0) {
                         throw new Exception("ไม่สามารถลบได้ เนื่องจากจำนวนที่ต้องการลบเกินจำนวนที่มีในล็อต");
                     }
+
+                    // Update source warehouse stock
+                    $sourceUpdateStmt = $pdo->prepare("
+                        UPDATE lot_product lp
+                        JOIN lot l ON lp.lot_id = l.lot_id
+                        SET lp.lot_product_remain = lp.lot_product_remain + ?
+                        WHERE lp.product_id = ? 
+                        AND l.warehouse_id = (
+                            SELECT warehouse_from_id FROM lot WHERE lot_id = ?
+                        ) 
+                        AND l.lot_status_id = 2
+                    ");
+                    $sourceUpdateStmt->execute([$quantity, $barcode, $lot_id]);
+
                     if ($newQty == 0) {
                         $delete = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
                         $delete->execute([$lot_id, $barcode]);
@@ -161,31 +175,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             lot_product_remain = ?
                             WHERE lot_id = ? AND product_id = ?");
                         $update->execute([$newQty, $newQty, $lot_id, $barcode]);
-
-                        // Fetch updated product
-                        $stmt = $pdo->prepare("
-                            SELECT 
-                                lp.*, 
-                                p.product_name, 
-                                p.product_capital as default_capital,
-                                COALESCE((
-                                    SELECT SUM(lp2.lot_product_remain)
-                                    FROM lot_product lp2
-                                    JOIN lot l2 ON lp2.lot_id = l2.lot_id
-                                    WHERE lp2.product_id = lp.product_id
-                                    AND l2.warehouse_id = (
-                                        SELECT warehouse_from_id FROM lot WHERE lot_id = ?
-                                    )
-                                    AND l2.lot_status_id = 2
-                                ), 0) as source_qty_remaining
-                            FROM lot_product lp 
-                            LEFT JOIN product p ON p.product_id = lp.product_id 
-                            WHERE lp.lot_id = ? AND lp.product_id = ?
-                        ");
-                        $stmt->execute([$lot_id, $lot_id, $barcode]);
-                        $updated_product = $stmt->fetch(PDO::FETCH_ASSOC);
                     }
+
+                    // Fetch updated product
+                    $stmt = $pdo->prepare("
+                        SELECT 
+                            lp.*, 
+                            p.product_name, 
+                            p.product_capital as default_capital,
+                            COALESCE((
+                                SELECT SUM(lp2.lot_product_remain)
+                                FROM lot_product lp2
+                                JOIN lot l2 ON lp2.lot_id = l2.lot_id
+                                WHERE lp2.product_id = lp.product_id
+                                AND l2.warehouse_id = (
+                                    SELECT warehouse_from_id FROM lot WHERE lot_id = ?
+                                )
+                                AND l2.lot_status_id = 2
+                            ), 0) as source_qty_remaining
+                        FROM lot_product lp 
+                        LEFT JOIN product p ON p.product_id = lp.product_id 
+                        WHERE lp.lot_id = ? AND lp.product_id = ?
+                    ");
+                    $stmt->execute([$lot_id, $lot_id, $barcode]);
+                    $updated_product = $stmt->fetch(PDO::FETCH_ASSOC);
                 } else {
+                    // Logic for adding products (unchanged)
                     $newQty = $existing_product['lot_product_qty'] + $quantity;
                     if ($newQty > $sourceQty) {
                         throw new Exception("จำนวนที่ต้องการย้าย ($newQty) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง ($sourceQty)");
@@ -702,14 +717,7 @@ ob_end_flush();
                         issues.push("ราคาทุนต้องมากกว่า 0");
                     }
                     if (sourceQtyRemaining < transferQty) {
-                        issues.push(`สินค้าในคลังต้นทางไม่เพียงพอ (คงเหลือ ${sourceQtyRemaining} แต่ต้องการย้าย ${transferQty})`);
-                        Swal.fire({
-                            icon: "warning",
-                            title: issues,
-                            text: "กรุณาเพิ่มสินค้าก่อนยืนยันรายการ",
-                            confirmButtonColor: "#3085d6"
-                        });
-                        return false;
+                        issues.push(`สินค้าในคลังต้นทางไม่เพียงพอ (คงเหลือ ${sourceQtyRemaining} หน่วย แต่ต้องการย้าย ${transferQty} หน่วย)`);
                     }
                     if (issues.length > 0) {
                         invalidProducts.push({
@@ -718,6 +726,8 @@ ob_end_flush();
                             issues
                         });
                     }
+
+                    console.log(`Validating product ${barcode}: sourceQty=${sourceQtyRemaining}, transferQty=${transferQty}, issues=${issues.join(", ")}`);
                 });
 
                 if (invalidProducts.length > 0) {
@@ -747,8 +757,10 @@ ob_end_flush();
                         text: 'บันทึกข้อมูลเรียบร้อยแล้ว',
                         timer: 1500,
                         showConfirmButton: false
+
                     }).then(() => {
                         if (successCallback) successCallback(response);
+                        setTimeout(() => location.reload(), 500);
                     });
                 } else {
                     Swal.fire({
@@ -769,9 +781,9 @@ ob_end_flush();
                 } else if (status === 0) {
                     errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
                 } else if (status === 200) {
-                    icon = 'success';
-                    successMessage = 'บันทึกสำเร็จ';
-                    setTimeout(() => location.reload(), 500);
+                    // icon = 'success';
+                    // successMessage = 'บันทึกสำเร็จ';
+                    setTimeout(() => location.reload(), 10);
                 } else if (status === 400) {
                     icon = 'warning';
                     errorMessage = 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่';
@@ -780,22 +792,22 @@ ob_end_flush();
                 } else if (status === 500) {
                     errorMessage = 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์ กรุณาลองใหม่ภายหลัง';
                 }
-                if (status === 200) {
-                    Swal.fire({
-                        position: "top-end",
-                        icon: icon,
-                        title: successMessage,
-                        showConfirmButton: false,
-                        timer: 500
-                    });
-                } else {
-                    Swal.fire({
-                        icon: icon,
-                        title: `ข้อผิดพลาด: ${errorMessage}`,
-                        text: '',
-                        confirmButtonColor: '#3085d6'
-                    });
-                }
+                // if (status === 200) {
+                //     Swal.fire({
+                //         position: "top-end",
+                //         icon: icon,
+                //         title: successMessage,
+                //         showConfirmButton: false,
+                //         timer: 500
+                //     });
+                // } else {
+                //     Swal.fire({
+                //         icon: icon,
+                //         title: `ข้อผิดพลาด: ${errorMessage}`,
+                //         text: '',
+                //         confirmButtonColor: '#3085d6'
+                //     });
+                // }
                 console.error('AJAX Error:', {
                     status: status,
                     statusText: xhr.statusText,
@@ -885,9 +897,7 @@ ob_end_flush();
                 `;
                 if (lot_status_id === <?php echo LOT_STATUS_PENDING; ?>) {
                     rowHtml += `
-                        <td
-
- class="text-right py-2 border"><?php echo htmlspecialchars($lot_data['lot_status_name'], ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td class="text-right py-2 border"><?php echo htmlspecialchars($lot_data['lot_status_name'], ENT_QUOTES, 'UTF-8'); ?></td>
                         <td class="text-right py-2 border px-4">
                             <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
                                 data-id="${product.lot_product_id}"
@@ -1129,7 +1139,7 @@ ob_end_flush();
                 $('#qty').focus();
 
             },
-            
+
             handleConfirmLot() {
                 if (!utils.validateForm()) {
                     return;
