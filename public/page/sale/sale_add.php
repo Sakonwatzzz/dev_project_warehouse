@@ -606,6 +606,37 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             visibility: visible !important;
         }
     </style>
+    <!-- CSS for billTabs -->
+    <style>
+        .tab-active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .tab-inactive {
+            background-color: #e5e7eb;
+            color: black;
+        }
+
+        #billTabs::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        #billTabs::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        #billTabs::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 4px;
+        }
+
+        #billTabs::-webkit-scrollbar-thumb:hover {
+            background: #2563eb;
+        }
+    </style>
+
 </head>
 
 <body class="bg-gray-100 font-sans">
@@ -614,12 +645,34 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             <div class="container mx-auto py-4 px-6 flex justify-between items-center">
                 <h1 class="text-2xl font-bold">POS System</h1>
                 <div class="flex items-center space-x-4">
-                    <span class="text-sm">พนักงาน: <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
+                    <span class="text-sm">พนักงาน:
+                        <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
                     <span class="text-sm">วันที่: <?php echo $displayDateTime; ?></span>
                 </div>
             </div>
         </header>
         <div class="container mx-auto p-6">
+            <div class="flex items-center space-x-2 mb-6">
+                <button id="new_sale"
+                    class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    เปิดบิลใหม่
+                </button>
+                <div id="billTabs" class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full">
+                    <?php foreach ($valid_active_sales as $active_sale_id): ?>
+                        <div id="tab_<?php echo $active_sale_id; ?>"
+                            class="px-4 py-2 rounded <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap"
+                            onclick="switchBill(<?php echo $active_sale_id; ?>)">
+                            บิล #<?php echo $active_sale_id; ?> <span
+                                onclick="cancelSale(<?php echo $active_sale_id; ?>)">×</span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
             <?php if (isset($_SESSION['success'])): ?>
                 <script>
                     Swal.fire({
@@ -647,7 +700,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             <?php endif; ?>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2 space-y-6">
-                    <form action="" method="POST" id="form_add_product" class="space-y-4" novalidate onsubmit="return false;">
+                    <form action="" method="POST" id="form_add_product" class="space-y-4" novalidate
+                        onsubmit="return false;">
                         <div class="flex flex-wrap space-x-4 mb-4 items-center">
                             <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
                             <input type="hidden" name="action" value="add_product">
@@ -655,8 +709,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า</label>
                                 <input type="text" name="barcode" id="barcode_input"
                                     class="p-3 w-full h-8 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                    placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off">
-                                <div id="barcode_suggestions" class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden"></div>
+                                    placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off" autofocus>
+                                <div id="barcode_suggestions"
+                                    class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
@@ -675,6 +731,55 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         </div>
                         <div id="product_info" class="text-sm text-gray-600 hidden"></div>
                     </form>
+                    <!-- Payment Section -->
+                    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                        <h2 class="text-lg font-semibold mb-3 text-gray-800 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            การชำระเงิน
+                        </h2>
+                        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div class="flex justify-between text-gray-800">
+                                <span class="font-medium text-sm">ยอดรวมสินค้า:</span>
+                                <span class="total-amount text-sm"><?php echo number_format($total_amount, 2); ?>
+                                    บาท</span>
+                            </div>
+                            <div
+                                class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
+                                <span>ยอดรวมสุทธิ:</span>
+                                <span class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?>
+                                    บาท</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-row space-x-4 items-end">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ (บาท):</label>
+                                <input type="number" id="paid_amount"
+                                    class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    step="0.01" placeholder="ป้อนจำนวนเงิน">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
+                                <input type="text" id="change_amount"
+                                    class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
+                                    readonly>
+                            </div>
+                            <div>
+                                <button id="calculate_change"
+                                    class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                    </svg>
+                                    คำนวณ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="bg-white rounded-lg shadow-md p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-semibold text-gray-800 flex items-center">
@@ -702,30 +807,46 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 <tbody id="product_table_body">
                                     <?php foreach ($sale_products as $product): ?>
                                         <tr class="border-t border-gray-200 hover:bg-gray-50">
-                                            <td class="py-3 px-4 text-sm"><?php echo htmlspecialchars($product['product_id']); ?></td>
-                                            <td class="py-3 px-4 text-sm"><?php echo htmlspecialchars($product['product_name']); ?></td>
-                                            <td class="py-3 px-4 text-center text-sm"><?php echo htmlspecialchars($product['sale_product_qty']); ?></td>
-                                            <td class="py-3 px-4 text-right text-sm"><?php echo number_format($product['sale_product_price'], 2); ?></td>
-                                            <td class="py-3 px-4 text-right font-medium text-sm"><?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?></td>
+                                            <td class="py-3 px-4 text-sm">
+                                                <?php echo htmlspecialchars($product['product_id']); ?>
+                                            </td>
+                                            <td class="py-3 px-4 text-sm">
+                                                <?php echo htmlspecialchars($product['product_name']); ?>
+                                            </td>
+                                            <td class="py-3 px-4 text-center text-sm">
+                                                <?php echo htmlspecialchars($product['sale_product_qty']); ?>
+                                            </td>
+                                            <td class="py-3 px-4 text-right text-sm">
+                                                <?php echo number_format($product['sale_product_price'], 2); ?>
+                                            </td>
+                                            <td class="py-3 px-4 text-right font-medium text-sm">
+                                                <?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?>
+                                            </td>
                                             <td class="py-3 px-4 text-center">
                                                 <div class="flex justify-center space-x-2">
-                                                    <button class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                                                    <button
+                                                        class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
                                                         data-id="<?php echo htmlspecialchars($product['sale_product_id']); ?>"
                                                         data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
                                                         data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
                                                         data-qty="<?php echo htmlspecialchars($product['sale_product_qty']); ?>"
                                                         data-price="<?php echo htmlspecialchars($product['sale_product_price']); ?>"
                                                         data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
                                                                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                                         </svg>
                                                     </button>
-                                                    <button class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                                    <button
+                                                        class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
                                                         data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
                                                         data-qty="1">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
                                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
                                                     </button>
@@ -763,68 +884,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
                             <input type="hidden" name="action" value="confirm_sale">
                             <div class="space-y-4">
-                                <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">บิลที่ใช้งาน:</label>
-                                    <select id="switch_sale" name="switch_sale_id"
-                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <?php foreach ($valid_active_sales as $active_sale_id): ?>
-                                            <option value="<?php echo $active_sale_id; ?>" <?php echo $active_sale_id == $sale_id ? 'selected' : ''; ?>>
-                                                บิล #<?php echo $active_sale_id; ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                        <?php if (empty($valid_active_sales)): ?>
-                                            <option value="" disabled>ไม่มีบิลที่ใช้งาน</option>
-                                        <?php endif; ?>
-                                    </select>
-                                </div>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">วันที่ทำการขาย:</label>
-                                    <input name="sale_date" value="<?php echo $displayDateTime; ?>" readonly
-                                        class="p-2 bg-gray-50 border border-gray-300 rounded text-gray-500 text-sm">
-                                </div>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">สถานะการขาย:</label>
-                                    <select name="sale_status_id"
-                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        disabled>
-                                        <?php while ($sale_status = $sale_status_result->fetch(PDO::FETCH_ASSOC)): ?>
-                                            <option value="<?php echo $sale_status['sale_status_id']; ?>" <?php echo ($sale_status_id == $sale_status['sale_status_id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($sale_status['sale_status_name']); ?>
-                                            </option>
-                                        <?php endwhile; ?>
-                                    </select>
-                                </div>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">สมาชิก:</label>
-                                    <input type="text" id="member_search" class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="ค้นหาสมาชิก">
-                                    <input type="hidden" name="member_id" id="member_id">
-                                    <div id="member_suggestions" class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden"></div>
-                                </div>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">พนักงานขาย:</label>
-                                    <select name="personnel_id"
-                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">ไม่เลือกพนักงาน</option>
-                                        <?php while ($personnel = $personnels->fetch(PDO::FETCH_ASSOC)): ?>
-                                            <option value="<?php echo $personnel['personnel_id']; ?>" <?php echo ($sale_data['personnel_id'] == $personnel['personnel_id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($personnel['personnel_name']); ?>
-                                            </option>
-                                        <?php endwhile; ?>
-                                    </select>
-                                </div>
-                                <!-- <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">เงินมัดจำ (บาท):</label>
-                                    <input type="number" name="sale_deposit" step="0.01"
-                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="ป้อนเงินมัดจำ">
-                                </div> -->
-                                <!-- <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">อ้างอิงบิล (สำหรับคืนสินค้า):</label>
-                                    <select name="sale_reference"
-                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">ไม่มีการอ้างอิง</option>
-                                    </select>
-                                </div> -->
                                 <div class="space-y-3">
                                     <button id="new_sale" type="button"
                                         class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center">
@@ -845,56 +904,67 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         ยกเลิกบิล
                                     </button>
                                 </div>
-                            </div>
-                            <div class="bg-white rounded-lg shadow-md p-6">
-                                <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    การชำระเงิน
-                                </h2>
-                                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-                                    <div class="flex justify-between text-gray-800">
-                                        <span class="font-medium">ยอดรวมสินค้า:</span>
-                                        <span class="total-amount"><?php echo number_format($total_amount, 2); ?> บาท</span>
-                                    </div>
-                                    <div class="border-t border-gray-200 mt-3 pt-3 flex justify-between font-semibold text-lg">
-                                        <span>ยอดรวมสุทธิ:</span>
-                                        <span class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?> บาท</span>
+                                <!-- <div class="grid grid-cols-1 gap-2">
+                                    <label class="text-base font-medium text-gray-700">บิลที่ใช้งาน:</label>
+                                    <select id="switch_sale" name="switch_sale_id"
+                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <?php foreach ($valid_active_sales as $active_sale_id): ?>
+                                            <option value="<?php echo $active_sale_id; ?>" <?php echo $active_sale_id == $sale_id ? 'selected' : ''; ?>>
+                                                บิล #<?php echo $active_sale_id; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                        <?php if (empty($valid_active_sales)): ?>
+                                            <option value="" disabled>ไม่มีบิลที่ใช้งาน</option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div> -->
+                                <div class="grid grid-cols-1 gap-2" hidden>
+                                    <label class="text-base font-medium text-gray-700" hidden>วันที่ทำการขาย:</label>
+                                    <input name="sale_date" value="<?php echo $displayDateTime; ?>" readonly hidden
+                                        class="p-2 bg-gray-50 border border-gray-300 rounded text-gray-500 text-sm">
+                                </div>
+                                <div class="grid grid-cols-1 gap-2" hidden>
+                                    <label class="text-base font-medium text-gray-700" hidden>สถานะการขาย:</label>
+                                    <select name="sale_status_id"
+                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        hidden>
+                                        <?php while ($sale_status = $sale_status_result->fetch(PDO::FETCH_ASSOC)): ?>
+                                            <option value="<?php echo $sale_status['sale_status_id']; ?>" <?php echo ($sale_status_id == $sale_status['sale_status_id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($sale_status['sale_status_name']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-1 gap-2" hidden>
+                                    <label class="text-base font-medium text-gray-700">สมาชิก:</label>
+                                    <input type="text" id="member_search"
+                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="ค้นหาสมาชิก">
+                                    <input type="hidden" name="member_id" id="member_id">
+                                    <div id="member_suggestions"
+                                        class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                     </div>
                                 </div>
-                                <div class="space-y-4">
-                                    <div class="grid grid-cols-1 gap-2">
-                                        <label class="text-sm font-medium text-gray-700">เงินที่ชำระ (บาท):</label>
-                                        <input type="number" id="paid_amount"
-                                            class="p-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            step="0.01" placeholder="ป้อนจำนวนเงิน">
-                                    </div>
-                                    <div class="grid grid-cols-1 gap-2">
-                                        <label class="text-sm font-medium text-gray-700">เงินทอน (บาท):</label>
-                                        <input type="text" id="change_amount"
-                                            class="p-3 text-lg bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
-                                            readonly>
-                                    </div>
-                                    <button id="calculate_change"
-                                        class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                                            stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                        </svg>
-                                        คำนวณเงินทอน
-                                    </button>
+                                <div class="grid grid-cols-1 gap-2" hidden>
+                                    <label class="text-base font-medium text-gray-700" hidden>พนักงานขาย:</label>
+                                    <select name="personnel_id"
+                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        hidden>
+                                        <option value="" hidden>ไม่เลือกพนักงาน</option>
+                                        <?php while ($personnel = $personnels->fetch(PDO::FETCH_ASSOC)): ?>
+                                            <option value="<?php echo $personnel['personnel_id']; ?>" <?php echo ($sale_data['personnel_id'] == $personnel['personnel_id']) ? 'selected' : ''; ?> hidden>
+                                                <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
                                 </div>
                             </div>
                             <div class="space-y-3">
                                 <button id="print_receipt"
                                     class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
                                     disabled>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                     </svg>
@@ -904,9 +974,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
                                     <span class="loading-spinner hidden">กำลังประมวลผล...</span>
                                     <span class="btn-text">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                                            stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7" />
                                         </svg>
                                         ยืนยันการขาย
                                     </span>
@@ -918,13 +989,16 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             </div>
 
             <!-- Modal -->
-            <div id="edit-product-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+            <div id="edit-product-modal"
+                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
                 <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-xl font-semibold text-gray-800">แก้ไขสินค้า</h3>
                         <button id="close-modal" class="text-gray-500 hover:text-gray-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
@@ -935,23 +1009,28 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า</label>
-                                <input type="text" id="edit-barcode-display" class="w-full p-2 border border-gray-300 rounded modal-active" readonly>
+                                <input type="text" id="edit-barcode-display"
+                                    class="w-full p-2 border border-gray-300 rounded modal-active" readonly>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อสินค้า</label>
-                                <input type="text" id="edit-product-name" class="w-full p-2 border border-gray-300 rounded modal-active" readonly>
+                                <input type="text" id="edit-product-name"
+                                    class="w-full p-2 border border-gray-300 rounded modal-active" readonly>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
-                                <input type="number" id="edit-qty" name="qty" class="w-full p-2 border border-gray-300 rounded modal-active" min="1">
+                                <input type="number" id="edit-qty" name="qty"
+                                    class="w-full p-2 border border-gray-300 rounded modal-active" min="1">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
-                                <input type="number" id="edit-price" name="price" class="w-full p-2 border border-gray-300 rounded modal-active" step="0.01">
+                                <input type="number" id="edit-price" name="price"
+                                    class="w-full p-2 border border-gray-300 rounded modal-active" step="0.01">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">ต้นทุน</label>
-                                <input type="number" id="edit-capital" name="capital" class="w-full p-2 border border-gray-300 rounded modal-active" step="0.01">
+                                <input type="number" id="edit-capital" name="capital"
+                                    class="w-full p-2 border border-gray-300 rounded modal-active" step="0.01">
                             </div>
                             <!-- <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">อ้างอิง</label>
@@ -959,14 +1038,16 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             </div> -->
                         </div>
                         <div class="mt-6 flex space-x-3">
-                            <button type="submit" class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors modal-active">บันทึกการแก้ไข</button>
-                            <button type="button" id="cancel-edit" class="flex-1 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors modal-active">ยกเลิก</button>
+                            <button type="submit"
+                                class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors modal-active">บันทึกการแก้ไข</button>
+                            <button type="button" id="cancel-edit"
+                                class="flex-1 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors modal-active">ยกเลิก</button>
                         </div>
                     </form>
                 </div>
             </div>
             <script>
-                $(document).ready(function() {
+                $(document).ready(function () {
 
                     // ตรวจสอบว่า jQuery โหลดสำเร็จ
                     if (typeof $ === 'undefined') {
@@ -1003,7 +1084,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     // ตัวแปรควบคุมการประมวลผลเพื่อป้องกันการ submit ซ้ำ
                     let isProcessing = false;
 
-                    $('#form_add_product input').on('keypress', function(e) {
+                    $('#form_add_product input').on('keypress', function (e) {
                         if (e.which === 13 && !isProcessing) {
                             e.preventDefault();
                             e.stopPropagation(); // หยุด event bubbling
@@ -1031,12 +1112,12 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 method: 'POST',
                                 data: $('#form_add_product').serialize(),
                                 dataType: 'json',
-                                beforeSend: function() {
+                                beforeSend: function () {
                                     isProcessing = true;
                                     $('#barcode_input').prop('disabled', true);
                                     $('input[name="qty"]').prop('disabled', true);
                                 },
-                                success: function(response) {
+                                success: function (response) {
                                     if (response.status === 'success') {
                                         Toast.fire({
                                             icon: 'success',
@@ -1056,7 +1137,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         });
                                     }
                                 },
-                                complete: function() {
+                                complete: function () {
                                     isProcessing = false;
                                     $('#barcode_input').prop('disabled', false);
                                     $('input[name="qty"]').prop('disabled', false);
@@ -1065,7 +1146,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         $('#barcode_input').focus();
                                     }
                                 },
-                                error: function(xhr) {
+                                error: function (xhr) {
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'ข้อผิดพลาด',
@@ -1081,12 +1162,12 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
 
                     // ป้องกันการ submit ไม่คาดคิดของ #form_add_product
-                    $('#form_add_product').off('submit').on('submit', function(e) {
+                    $('#form_add_product').off('submit').on('submit', function (e) {
                         e.preventDefault();
                         console.log('Unexpected submit event on #form_add_product');
                     });
                     // จัดการ submit ของ #confirm-sale-form เฉพาะเมื่อกดปุ่ม
-                    $('#confirm-sale-btn').on('click', function(e) {
+                    $('#confirm-sale-btn').on('click', function (e) {
                         e.preventDefault();
                         console.log('Submitting #confirm-sale-form:', $('#confirm-sale-form').serialize());
                         $('#confirm-sale-btn .btn-text').addClass('hidden');
@@ -1096,7 +1177,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             method: 'POST',
                             data: $('#confirm-sale-form').serialize(),
                             dataType: 'json',
-                            success: function(response) {
+                            success: function (response) {
                                 $('#confirm-sale-btn .btn-text').removeClass('hidden');
                                 $('#confirm-sale-btn .loading-spinner').addClass('hidden');
                                 if (response.status === 'success') {
@@ -1122,7 +1203,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     });
                                 }
                             },
-                            error: function(xhr) {
+                            error: function (xhr) {
                                 $('#confirm-sale-btn .btn-text').removeClass('hidden');
                                 $('#confirm-sale-btn .loading-spinner').addClass('hidden');
                                 Swal.fire({
@@ -1137,7 +1218,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         });
                     });
                     // ป้องกัน Enter key ใน #confirm-sale-form
-                    $('#confirm-sale-form input').on('keypress', function(e) {
+                    $('#confirm-sale-form input').on('keypress', function (e) {
                         if (e.which === 13) {
                             e.preventDefault();
                             console.log('Blocked Enter key in #confirm-sale-form');
@@ -1145,7 +1226,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
 
                     // Autocomplete สำหรับค้นหาสินค้า
-                    $('#barcode_input').on('input', function() {
+                    $('#barcode_input').on('input', function () {
                         const query = $(this).val();
                         if (query.length < 2) {
                             $('#barcode_suggestions').addClass('hidden').empty();
@@ -1159,7 +1240,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 query: query
                             },
                             dataType: 'json',
-                            success: function(response) {
+                            success: function (response) {
                                 const products = response;
                                 const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
                                 if (products.length === 0) {
@@ -1173,14 +1254,14 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 </div>
                             `);
                                 });
-                                suggestions.find('div').on('click', function() {
+                                suggestions.find('div').on('click', function () {
                                     const barcode = $(this).data('barcode');
                                     $('#barcode_input').val(barcode);
                                     suggestions.addClass('hidden').empty();
                                     fetchProductInfo(barcode);
                                 });
                             },
-                            error: function(xhr) {
+                            error: function (xhr) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'ข้อผิดพลาด',
@@ -1202,7 +1283,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 barcode: barcode
                             },
                             dataType: 'json',
-                            success: function(response) {
+                            success: function (response) {
                                 const product = response;
                                 const info = $('#product_info').removeClass('hidden');
                                 if (!product) {
@@ -1215,7 +1296,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
                         `);
                             },
-                            error: function(xhr) {
+                            error: function (xhr) {
                                 $('#product_info').addClass('hidden').empty();
                                 Swal.fire({
                                     icon: 'error',
@@ -1237,7 +1318,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 sale_id: '<?php echo htmlspecialchars($sale_id); ?>'
                             },
                             dataType: 'json',
-                            success: function(response) {
+                            success: function (response) {
                                 if (response.status === 'success') {
                                     $('#product_table_body').html(response.html);
                                     $('.total-amount').text(response.total_amount + ' บาท');
@@ -1259,7 +1340,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     });
                                 }
                             },
-                            error: function(xhr) {
+                            error: function (xhr) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'ข้อผิดพลาด',
@@ -1272,7 +1353,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         });
                     }
                     // Autocomplete สำหรับค้นหาสมาชิก
-                    $('#member_search').on('input', function() {
+                    $('#member_search').on('input', function () {
                         const query = $(this).val();
                         if (query.length < 2) {
                             $('#member_suggestions').addClass('hidden').empty();
@@ -1285,7 +1366,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 query: query
                             },
                             dataType: 'json',
-                            success: function(response) {
+                            success: function (response) {
                                 const members = response;
                                 const suggestions = $('#member_suggestions').removeClass('hidden').empty();
                                 if (members.length === 0) {
@@ -1299,7 +1380,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     </div>
                                 `);
                                 });
-                                suggestions.find('div').on('click', function() {
+                                suggestions.find('div').on('click', function () {
                                     const memberId = $(this).data('id');
                                     const memberName = $(this).text();
                                     $('#member_search').val(memberName);
@@ -1307,7 +1388,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     suggestions.addClass('hidden').empty();
                                 });
                             },
-                            error: function(xhr) {
+                            error: function (xhr) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'ข้อผิดพลาด',
@@ -1318,7 +1399,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
 
                     // คำนวณเงินทอน
-                    $('#calculate_change').on('click', function() {
+                    $('#calculate_change').on('click', function () {
                         const paid = parseFloat($('#paid_amount').val()) || 0;
                         const total = parseFloat(<?php echo $total_amount; ?>) || 0;
                         const change = paid - total;
@@ -1327,43 +1408,43 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
 
                     // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
-                    $('#paid_amount').on('input', function() {
+                    $('#paid_amount').on('input', function () {
                         $('#calculate_change').click();
                     });
 
                     // สลับบิล
-                    $('#switch_sale').on('change', function() {
-                        const saleId = $(this).val();
-                        $.ajax({
-                            url: '/page/sale/sale_add.php',
-                            method: 'POST',
-                            data: {
-                                action: 'switch_sale',
-                                sale_id: saleId
-                            },
-                            dataType: 'json',
-                            success: function(response) {
-                                if (response.status === 'success') {
-                                    window.location.href = '/?page=sale_add&sale_id=' + saleId;
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'ข้อผิดพลาด',
-                                        text: response.message
-                                    });
-                                }
-                            },
-                            error: function(xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถสลับบิลได้'
-                                });
-                            }
-                        });
-                    });
+                    // $('#switch_sale').on('change', function () {
+                    //     const saleId = $(this).val();
+                    //     $.ajax({
+                    //         url: '/page/sale/sale_add.php',
+                    //         method: 'POST',
+                    //         data: {
+                    //             action: 'switch_sale',
+                    //             sale_id: saleId
+                    //         },
+                    //         dataType: 'json',
+                    //         success: function (response) {
+                    //             if (response.status === 'success') {
+                    //                 window.location.href = '/?page=sale_add&sale_id=' + saleId;
+                    //             } else {
+                    //                 Swal.fire({
+                    //                     icon: 'error',
+                    //                     title: 'ข้อผิดพลาด',
+                    //                     text: response.message
+                    //                 });
+                    //             }
+                    //         },
+                    //         error: function (xhr) {
+                    //             Swal.fire({
+                    //                 icon: 'error',
+                    //                 title: 'ข้อผิดพลาด',
+                    //                 text: xhr.responseText || 'ไม่สามารถสลับบิลได้'
+                    //             });
+                    //         }
+                    //     });
+                    // });
                     // เปิดบิลใหม่
-                    $('#new_sale').on('click', function() {
+                    $('#new_sale').on('click', function () {
                         $.ajax({
                             url: 'page/sale/sale_add.php',
                             method: 'POST',
@@ -1371,7 +1452,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 action: 'new_sale'
                             },
                             dataType: 'json',
-                            success: function(response) {
+                            success: function (response) {
                                 if (response.status === 'success') {
                                     Swal.fire({
                                         icon: 'success',
@@ -1389,7 +1470,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     });
                                 }
                             },
-                            error: function(xhr) {
+                            error: function (xhr) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'ข้อผิดพลาด',
@@ -1400,7 +1481,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
 
                     // ยกเลิกบิล
-                    $('#cancel_sale').on('click', function() {
+                    $('#cancel_sale').on('click', function () {
                         Swal.fire({
                             title: 'ยืนยันการยกเลิกบิล?',
                             icon: 'warning',
@@ -1417,7 +1498,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         sale_id: '<?php echo $sale_id; ?>'
                                     },
                                     dataType: 'json',
-                                    success: function(response) {
+                                    success: function (response) {
                                         if (response.status === 'success') {
                                             Swal.fire({
                                                 icon: 'success',
@@ -1435,7 +1516,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             });
                                         }
                                     },
-                                    error: function(xhr) {
+                                    error: function (xhr) {
                                         Swal.fire({
                                             icon: 'error',
                                             title: 'ข้อผิดพลาด',
@@ -1449,7 +1530,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
 
                     // ลบสินค้า
-                    $(document).on('click', '.delete-product', function(e) {
+                    $(document).on('click', '.delete-product', function (e) {
                         e.preventDefault();
                         console.log('Delete button clicked:', $(this).data('barcode')); // Log การคลิก
                         if (isProcessing) {
@@ -1481,7 +1562,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     },
                                     dataType: 'json',
                                     timeout: 2000,
-                                    beforeSend: function(xhr) {
+                                    beforeSend: function (xhr) {
                                         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest'); // ยืนยัน header
                                         isProcessing = true;
                                         console.log('AJAX request sent:', {
@@ -1491,7 +1572,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             qty
                                         });
                                     },
-                                    success: function(response) {
+                                    success: function (response) {
                                         console.log('AJAX response:', response); // Log response
                                         if (response.status === 'success') {
                                             Toast.fire({
@@ -1510,14 +1591,14 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             });
                                         }
                                     },
-                                    complete: function() {
+                                    complete: function () {
                                         isProcessing = false;
                                         $('.main-body').removeAttr('aria-hidden');
                                         if (!$('#edit-product-modal').is(':visible')) {
                                             $('#barcode_input').focus();
                                         }
                                     },
-                                    error: function(xhr, status, error) {
+                                    error: function (xhr, status, error) {
                                         console.error('AJAX error:', status, error, xhr.responseText); // Log error
                                         Swal.fire({
                                             icon: 'error',
@@ -1535,7 +1616,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
 
                     // เปิด Modal และกรอกข้อมูลแก้ไข
-                    $(document).on('click', '.edit-product', function(e) {
+                    $(document).on('click', '.edit-product', function (e) {
                         e.preventDefault();
                         const barcode = $(this).data('barcode');
                         const name = $(this).data('name');
@@ -1554,7 +1635,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         $('#edit-product-modal').removeClass('hidden');
                     });
                     // Submit ฟอร์มแก้ไขสินค้า
-                    $('#edit-product-form').on('submit', function(e) {
+                    $('#edit-product-form').on('submit', function (e) {
                         e.preventDefault();
                         if (isProcessing) return;
                         const qty = parseInt($('#edit-qty').val()) || 0;
@@ -1574,10 +1655,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             method: 'POST',
                             data: $(this).serialize(),
                             dataType: 'json',
-                            beforeSend: function() {
+                            beforeSend: function () {
                                 isProcessing = true;
                             },
-                            success: function(response) {
+                            success: function (response) {
                                 if (response.status === 'success') {
                                     Toast.fire({
                                         icon: 'success',
@@ -1596,14 +1677,14 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     });
                                 }
                             },
-                            complete: function() {
+                            complete: function () {
                                 isProcessing = false;
                                 $('.main-body').removeAttr('aria-hidden');
                                 if (!$('#edit-product-modal').is(':visible')) {
                                     $('#barcode_input').focus();
                                 }
                             },
-                            error: function(xhr) {
+                            error: function (xhr) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'ข้อผิดพลาด',
@@ -1616,7 +1697,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             }
                         });
                     });
-                    $('#close-modal, #cancel-edit').on('click', function() {
+                    $('#close-modal, #cancel-edit').on('click', function () {
                         $('#edit-product-modal').addClass('hidden');
                         $('.main-body').removeAttr('aria-hidden');
                         $('#barcode_input').focus();
@@ -1630,7 +1711,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
                     // Bind event สำหรับปุ่มแก้ไขและลบ
                     function bindEditProductEvents() {
-                        $('.edit-product').off('click').on('click', function(e) {
+                        $('.edit-product').off('click').on('click', function (e) {
                             e.preventDefault();
                             const barcode = $(this).data('barcode');
                             const name = $(this).data('name');
@@ -1651,9 +1732,180 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     }
                 });
             </script>
+            <script>
+                // Array to track bills in client-side
+                let bills = <?php echo json_encode($valid_active_sales); ?>;
+                let currentSaleId = <?php echo json_encode($sale_id); ?>;
+
+                // Function to create a new sale
+                function createNewSale() {
+                    $.ajax({
+                        url: window.location.pathname,
+                        type: 'POST',
+                        data: {
+                            action: 'new_sale'
+                        },
+                        dataType: 'json',
+                        success: function (response) {
+                            if (response.status === 'success') {
+                                bills.push(response.sale_id);
+                                currentSaleId = response.sale_id;
+                                addBillTab(response.sale_id);
+                                switchBill(response.sale_id);
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'center',
+                                    icon: 'success',
+                                    title: response.message,
+                                    showConfirmButton: false,
+                                    timer: 1500,
+                                    timerProgressBar: true
+                                });
+                                window.location.href = response.redirect;
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: response.message,
+                                    confirmButtonText: 'ตกลง'
+                                });
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: 'เกิดข้อผิดพลาดในการสร้างบิลใหม่: ' + error,
+                                confirmButtonText: 'ตกลง'
+                            });
+                        }
+                    });
+                }
+
+                // Function to add a bill tab to the UI
+                function addBillTab(saleId) {
+                    const tab = `<div id="tab_${saleId}" class="px-4 py-2 rounded tab-active cursor-pointer whitespace-nowrap" onclick="switchBill(${saleId})">
+            บิล #${saleId} <span onclick="cancelSale(${saleId})">×</span>
+        </div>`;
+                    $('#billTabs').append(tab);
+                    updateTabStyles();
+                }
+
+                // Function to switch to a different bill
+                function switchBill(saleId) {
+                    if (saleId === currentSaleId) return;
+                    $.ajax({
+                        url: '/page/sale/sale_add.php',
+                        type: 'POST',
+                        data: {
+                            action: 'switch_sale',
+                            sale_id: saleId
+                        },
+                        dataType: 'json',
+                        success: function (response) {
+                            if (response.status === 'success') {
+                                currentSaleId = saleId;
+                                updateTabStyles();
+                                window.location.href = `?page=sale_add&sale_id=${saleId}`;
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: response.message,
+                                    confirmButtonText: 'ตกลง'
+                                });
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: 'เกิดข้อผิดพลาดในการสลับบิล: ' + error,
+                                confirmButtonText: 'ตกลง'
+                            });
+                        }
+                    });
+                }
+
+                // Function to cancel a sale
+                function cancelSale(saleId) {
+                    event.stopPropagation(); // Prevent triggering switchBill
+                    Swal.fire({
+                        title: 'ยืนยันการยกเลิก?',
+                        text: `คุณต้องการยกเลิกบิล #${saleId} หรือไม่?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'ยืนยัน',
+                        cancelButtonText: 'ยกเลิก'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.ajax({
+                                url: window.location.pathname,
+                                type: 'POST',
+                                data: {
+                                    action: 'cancel_sale',
+                                    sale_id: saleId
+                                },
+                                dataType: 'json',
+                                success: function (response) {
+                                    if (response.status === 'success') {
+                                        bills = bills.filter(id => id != saleId);
+                                        $(`#tab_${saleId}`).remove();
+                                        if (currentSaleId == saleId) {
+                                            currentSaleId = bills.length > 0 ? bills[0] : null;
+                                        }
+                                        updateTabStyles();
+                                        Swal.fire({
+                                            toast: true,
+                                            position: 'center',
+                                            icon: 'success',
+                                            title: response.message,
+                                            showConfirmButton: false,
+                                            timer: 1500,
+                                            timerProgressBar: true
+                                        });
+                                        if (response.redirect) {
+                                            window.location.href = response.redirect;
+                                        }
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'ข้อผิดพลาด',
+                                            text: response.message,
+                                            confirmButtonText: 'ตกลง'
+                                        });
+                                    }
+                                },
+                                error: function (xhr, status, error) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'ข้อผิดพลาด',
+                                        text: 'เกิดข้อผิดพลาดในการยกเลิกบิล: ' + error,
+                                        confirmButtonText: 'ตกลง'
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Function to update tab styles based on currentSaleId
+                function updateTabStyles() {
+                    $('#billTabs > div').each(function () {
+                        const tabId = $(this).attr('id').replace('tab_', '');
+                        if (tabId == currentSaleId) {
+                            $(this).removeClass('tab-inactive').addClass('tab-active');
+                        } else {
+                            $(this).removeClass('tab-active').addClass('tab-inactive');
+                        }
+                    });
+                }
+
+                // Event listener for new sale button
+                $('#new_sale').on('click', createNewSale);
+            </script>
         </div>
     </div>
-
 </body>
 
 </html>

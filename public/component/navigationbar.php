@@ -143,7 +143,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'sale_insert',
             'sale_detail',
             'sale_add',
-            'sale_billtest'
+            'sale_output',
+            'sale_inserttest'
         ];
 
         if ($page) {

@@ -1,476 +1,253 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Word 2007 Ribbon Mockup</title>
-  <style>
-    /* ---- Reset & Base ---- */
-    * { margin:0; padding:0; box-sizing: border-box; }
-    body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; }
+<!-- PHP Handler for switch_sale (ต้องอยู่ใน sale_add.php) -->
+<?php
+// ต้องเรียก ob_start() ที่ต้นไฟล์
+ob_start();
+session_start();
 
-    /* ---- Ribbon Container ---- */
-    .ribbon {
-      background: #bdd0ee; /* พื้นหลังหลัก */
-      border-bottom: 1px solid #6b90da;
-      padding: 2px 4px;
-    }
-    .ribbon-tabs {
-      display: flex;
-      gap: 2px;
-      margin-bottom: 2px;
-    }
-    .ribbon-tab {
-      padding: 4px 10px;
-      background: linear-gradient(to bottom, #e0ecff, #c3d4f5);
-      border: 1px solid #8fabe5;
-      border-bottom: none;
-      border-radius: 3px 3px 0 0;
-      cursor: pointer;
-      color: #1f497d;
-      font-size: 12px;
-      user-select: none;
-    }
-    .ribbon-tab.active {
-      background: linear-gradient(to bottom, #ffffff, #f5f9ff);
-      color: #245683;
-      font-weight: bold;
-    }
-    .ribbon-tab:hover:not(.active) {
-      background: linear-gradient(to bottom, #e8f1ff, #d0dff7);
-    }
-    .ribbon-content {
-      background: linear-gradient(to bottom, #eef3fd, #d6e3f5);
-      border: 1px solid #8fabe5;
-      border-radius: 0 3px 3px 3px;
-      padding: 4px 2px 2px 2px;
-      display: none;
-      height: 94px;
-    }
-    .ribbon-content.active {
-      display: flex;
-      gap: 4px;
-    }
+// ตั้งค่า error reporting เพื่อป้องกัน output ไม่พึงประสงค์
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/logs/php_errors.log');
 
-    /* ---- Groups inside Ribbon ---- */
-    .group {
-      border-right: 1px solid #c0d3ed;
-      padding: 2px 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 70px;
-      position: relative;
-      height: 86px;
+// Handler สำหรับ switch_sale
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'switch_sale') {
+    header('Content-Type: application/json; charset=utf-8');
+    ob_clean(); // ล้าง output buffer
+    error_log("Switch sale request: " . json_encode($_POST)); // Log request
+    $new_sale_id = $_POST['sale_id'] ?? null;
+    if ($new_sale_id && in_array($new_sale_id, $_SESSION['active_sales'] ?? [])) {
+        $_SESSION['current_sale_id'] = $new_sale_id;
+        $response = ['status' => 'success', 'sale_id' => $new_sale_id, 'message' => 'เปลี่ยนไปใช้บิล #' . $new_sale_id];
+        error_log("Switch sale success: " . json_encode($response)); // Log success
+        echo json_encode($response);
+    } else {
+        $response = ['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ'];
+        error_log("Switch sale error: " . json_encode($response)); // Log error
+        echo json_encode($response);
     }
-    .group:last-child { border-right: none; }
+    exit(); // หยุดการประมวลผลทันที
+}
+?>
 
-    .group .group-title {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      text-align: center;
-      font-size: 11px;
-      color: #4a6fa5;
-      padding: 2px 0;
-      border-top: 1px dotted #c0d3ed;
-    }
-
-    /* ---- Button Layouts ---- */
-    .btn-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 2px;
-      margin-bottom: 18px; /* ที่ว่างสำหรับชื่อกลุ่ม */
-    }
-
-    /* ---- Buttons ---- */
-    .btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.2s;
-      padding: 2px;
-    }
-    .btn:hover {
-      background: linear-gradient(to bottom, #fefefe, #e2edff);
-      border: 1px solid #b9d0f7;
-    }
-    .btn:active {
-      background: linear-gradient(to bottom, #e2edff, #fefefe);
-    }
-
-    /* Large button */
-    .btn-large {
-      width: 45px;
-      height: 60px;
-    }
-    .btn-medium {
-      width: 36px;
-      height: 36px;
-    }
-    .btn-small {
-      width: 28px;
-      height: 28px;
-    }
-
-    .btn-icon {
-      font-size: 22px;
-      color: #3a70c1;
-      margin-bottom: 2px;
-    }
-    .btn-medium .btn-icon, .btn-small .btn-icon {
-      font-size: 16px;
-      margin-bottom: 0;
-    }
-    .btn-label {
-      font-size: 10px;
-      text-align: center;
-      color: #1f497d;
-    }
-    .btn-medium .btn-label, .btn-small .btn-label {
-      font-size: 9px;
-    }
-
-    /* ---- Split Buttons ---- */
-    .split-btn {
-      display: flex;
-      flex-direction: column;
-      border: 1px solid transparent;
-      border-radius: 3px;
-      width: 45px;
-    }
-    .split-btn:hover {
-      border: 1px solid #b9d0f7;
-    }
-    .split-btn-main {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2px;
-      cursor: pointer;
-      background: transparent;
-    }
-    .split-btn-main:hover {
-      background: linear-gradient(to bottom, #fefefe, #e2edff);
-    }
-    .split-btn-arrow {
-      border-top: 1px solid #dde8f7;
-      text-align: center;
-      cursor: pointer;
-      font-size: 8px;
-      color: #3a70c1;
-      padding: 1px 0;
-    }
-    .split-btn-arrow:hover {
-      background: #e2edff;
-    }
-
-    /* ---- Font Selector ---- */
-    .font-selector {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      margin-bottom: 18px;
-      width: 100%;
-    }
-    .font-dropdown {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border: 1px solid #b9d0f7;
-      background: linear-gradient(to bottom, #fefefe, #eef3fc);
-      padding: 3px 5px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-    }
-    .font-dropdown:hover {
-      background: linear-gradient(to bottom, #fefefe, #e2edff);
-    }
-    .font-size {
-      width: 40px;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="ribbon">
-    <!-- แท็บต่างๆ -->
-    <div class="ribbon-tabs">
-      <div class="ribbon-tab active" data-target="home">Home</div>
-      <div class="ribbon-tab" data-target="insert">Insert</div>
-      <div class="ribbon-tab" data-target="page-layout">Page Layout</div>
-      <div class="ribbon-tab" data-target="references">References</div>
-      <div class="ribbon-tab" data-target="mailings">Mailings</div>
-      <div class="ribbon-tab" data-target="review">Review</div>
-      <div class="ribbon-tab" data-target="view">View</div>
-    </div>
-
-    <!-- เนื้อหาแต่ละแท็บ -->
-    <div id="home" class="ribbon-content active">
-      <!-- กลุ่ม Clipboard -->
-      <div class="group">
-        <div class="btn-container">
-          <div class="split-btn">
-            <div class="split-btn-main">
-              <div class="btn-icon">📋</div>
-              <div class="btn-label">Paste</div>
+<!-- HTML for billTabs -->
+<div class="flex items-center space-x-2 mb-6">
+    <button id="new_sale" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        เปิดบิลใหม่
+    </button>
+    <div id="billTabs" class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full">
+        <?php foreach ($valid_active_sales as $active_sale_id): ?>
+            <div id="tab_<?php echo $active_sale_id; ?>" class="px-4 py-2 rounded <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap" onclick="switchBill(<?php echo $active_sale_id; ?>)">
+                บิล #<?php echo $active_sale_id; ?> <span onclick="cancelSale(<?php echo $active_sale_id; ?>)">×</span>
             </div>
-            <div class="split-btn-arrow">▼</div>
-          </div>
-        </div>
-        <div class="btn-container">
-          <div class="btn btn-small">
-            <div class="btn-icon">✂️</div>
-            <div class="btn-label">Cut</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">📑</div>
-            <div class="btn-label">Copy</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">🖌️</div>
-            <div class="btn-label">Format</div>
-          </div>
-        </div>
-        <div class="group-title">Clipboard</div>
-      </div>
-      
-      <!-- กลุ่ม Font -->
-      <div class="group">
-        <div class="font-selector">
-          <div class="font-dropdown">Calibri</div>
-          <div class="font-dropdown font-size">11</div>
-        </div>
-        <div class="btn-container">
-          <div class="btn btn-small">
-            <div class="btn-icon" style="font-weight: bold;">B</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon" style="font-style: italic;">I</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon" style="text-decoration: underline;">U</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">A̱</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon" style="color: #c00;">A</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon" style="background: #ffff00; padding: 0 2px;">Ab</div>
-          </div>
-        </div>
-        <div class="group-title">Font</div>
-      </div>
-      
-      <!-- กลุ่ม Paragraph -->
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-small">
-            <div class="btn-icon">•</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">1.</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">↑</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">↓</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">⇌</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">⌧</div>
-          </div>
-        </div>
-        <div class="btn-container">
-          <div class="btn btn-small">
-            <div class="btn-icon">≡</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">≡|</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">|≡</div>
-          </div>
-          <div class="btn btn-small">
-            <div class="btn-icon">≡⫶</div>
-          </div>
-        </div>
-        <div class="group-title">Paragraph</div>
-      </div>
-      
-      <!-- กลุ่ม Styles -->
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon" style="font-size: 18px;">Aa</div>
-            <div class="btn-label">Quick Styles</div>
-          </div>
-        </div>
-        <div class="group-title">Styles</div>
-      </div>
-      
-      <!-- กลุ่ม Editing -->
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">🔍</div>
-            <div class="btn-label">Find</div>
-          </div>
-          <div class="btn btn-large">
-            <div class="btn-icon">🔄</div>
-            <div class="btn-label">Replace</div>
-          </div>
-          <div class="btn btn-large">
-            <div class="btn-icon">📋</div>
-            <div class="btn-label">Select</div>
-          </div>
-        </div>
-        <div class="group-title">Editing</div>
-      </div>
+        <?php endforeach; ?>
     </div>
+</div>
 
-    <div id="insert" class="ribbon-content">
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">📄</div>
-            <div class="btn-label">Cover Page</div>
-          </div>
-          <div class="btn btn-large">
-            <div class="btn-icon">📃</div>
-            <div class="btn-label">Blank Page</div>
-          </div>
-        </div>
-        <div class="group-title">Pages</div>
-      </div>
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">🖼️</div>
-            <div class="btn-label">Picture</div>
-          </div>
-          <div class="btn btn-large">
-            <div class="btn-icon">📊</div>
-            <div class="btn-label">Chart</div>
-          </div>
-        </div>
-        <div class="group-title">Illustrations</div>
-      </div>
-    </div>
+<!-- CSS for billTabs -->
+<style>
+    .tab-active { background-color: #3b82f6; color: white; }
+    .tab-inactive { background-color: #e5e7eb; color: black; }
+    #billTabs::-webkit-scrollbar {
+        height: 8px;
+    }
+    #billTabs::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    #billTabs::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 4px;
+    }
+    #billTabs::-webkit-scrollbar-thumb:hover {
+        background: #2563eb;
+    }
+</style>
 
-    <div id="page-layout" class="ribbon-content">
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">📏</div>
-            <div class="btn-label">Margins</div>
-          </div>
-          <div class="btn btn-large">
-            <div class="btn-icon">📄</div>
-            <div class="btn-label">Orientation</div>
-          </div>
-        </div>
-        <div class="group-title">Page Setup</div>
-      </div>
-    </div>
+<!-- JavaScript/Ajax for billTabs -->
+<script>
+    // Array to track bills in client-side
+    let bills = <?php echo json_encode($valid_active_sales); ?>;
+    let currentSaleId = <?php echo json_encode($sale_id); ?>;
 
-    <div id="references" class="ribbon-content">
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">📑</div>
-            <div class="btn-label">Table of Contents</div>
-          </div>
-        </div>
-        <div class="group-title">Table of Contents</div>
-      </div>
-    </div>
+    // Function to create a new sale
+    function createNewSale() {
+        $.ajax({
+            url: window.location.pathname,
+            type: 'POST',
+            data: {
+                action: 'new_sale'
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    bills.push(response.sale_id);
+                    currentSaleId = response.sale_id;
+                    addBillTab(response.sale_id);
+                    switchBill(response.sale_id);
+                    Swal.fire({
+                        toast: true,
+                        position: 'center',
+                        icon: 'success',
+                        title: response.message,
+                        showConfirmButton: false,
+                        timer: 1500,
+                        timerProgressBar: true
+                    });
+                    window.location.href = response.redirect;
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ข้อผิดพลาด',
+                        text: response.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('New sale error:', xhr.responseText); // Log raw response
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อผิดพลาด',
+                    text: 'เกิดข้อผิดพลาดในการสร้างบิลใหม่: ' + error,
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        });
+    }
 
-    <div id="mailings" class="ribbon-content">
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">✉️</div>
-            <div class="btn-label">Envelopes</div>
-          </div>
-          <div class="btn btn-large">
-            <div class="btn-icon">🏷️</div>
-            <div class="btn-label">Labels</div>
-          </div>
-        </div>
-        <div class="group-title">Create</div>
-      </div>
-    </div>
+    // Function to add a bill tab to the UI
+    function addBillTab(saleId) {
+        const tab = `<div id="tab_${saleId}" class="px-4 py-2 rounded tab-active cursor-pointer whitespace-nowrap" onclick="switchBill(${saleId})">
+            บิล #${saleId} <span onclick="cancelSale(${saleId})">×</span>
+        </div>`;
+        $('#billTabs').append(tab);
+        updateTabStyles();
+    }
 
-    <div id="review" class="ribbon-content">
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">📝</div>
-            <div class="btn-label">Spelling & Grammar</div>
-          </div>
-        </div>
-        <div class="group-title">Proofing</div>
-      </div>
-    </div>
+    // Function to switch to a different bill
+    function switchBill(saleId) {
+        if (saleId === currentSaleId) return;
+        $.ajax({
+            url: window.location.pathname,
+            type: 'POST',
+            data: {
+                action: 'switch_sale',
+                sale_id: saleId
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    currentSaleId = saleId;
+                    updateTabStyles();
+                    window.location.href = `?page=sale_add&sale_id=${saleId}`;
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ข้อผิดพลาด',
+                        text: response.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Switch bill error:', xhr.responseText); // Log raw response
+                let errorMessage = 'เกิดข้อผิดพลาดในการสลับบิล: ' + error;
+                try {
+                    // พยายาม parse JSON ถ้าเป็นไปได้
+                    const parsed = JSON.parse(xhr.responseText);
+                    errorMessage = parsed.message || errorMessage;
+                } catch (e) {
+                    // ถ้า parse ไม่ได้ แสดงว่าเป็น HTML หรือข้อผิดพลาดอื่น
+                    errorMessage = 'เซิร์ฟเวอร์ส่งข้อมูลไม่ถูกต้อง (อาจเป็น HTML)';
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อผิดพลาด',
+                    text: errorMessage,
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        });
+    }
 
-    <div id="view" class="ribbon-content">
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">📄</div>
-            <div class="btn-label">Print Layout</div>
-          </div>
-          <div class="btn btn-large">
-            <div class="btn-icon">📃</div>
-            <div class="btn-label">Full Screen</div>
-          </div>
-        </div>
-        <div class="group-title">Document Views</div>
-      </div>
-      <div class="group">
-        <div class="btn-container">
-          <div class="btn btn-large">
-            <div class="btn-icon">🔍</div>
-            <div class="btn-label">Zoom</div>
-          </div>
-          <div class="btn btn-large">
-            <div class="btn-icon">100%</div>
-            <div class="btn-label">100%</div>
-          </div>
-        </div>
-        <div class="group-title">Zoom</div>
-      </div>
-    </div>
-  </div>
+    // Function to cancel a sale
+    function cancelSale(saleId) {
+        event.stopPropagation(); // Prevent triggering switchBill
+        Swal.fire({
+            title: 'ยืนยันการยกเลิก?',
+            text: `คุณต้องการยกเลิกบิล #${saleId} หรือไม่?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: window.location.pathname,
+                    type: 'POST',
+                    data: {
+                        action: 'cancel_sale',
+                        sale_id: saleId
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            bills = bills.filter(id => id != saleId);
+                            $(`#tab_${saleId}`).remove();
+                            if (currentSaleId == saleId) {
+                                currentSaleId = bills.length > 0 ? bills[0] : null;
+                            }
+                            updateTabStyles();
+                            Swal.fire({
+                                toast: true,
+                                position: 'center',
+                                icon: 'success',
+                                title: response.message,
+                                showConfirmButton: false,
+                                timer: 1500,
+                                timerProgressBar: true
+                            });
+                            if (response.redirect) {
+                                window.location.href = response.redirect;
+                            }
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: response.message,
+                                confirmButtonText: 'ตกลง'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Cancel sale error:', xhr.responseText); // Log raw response
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ข้อผิดพลาด',
+                            text: 'เกิดข้อผิดพลาดในการยกเลิกบิล: ' + error,
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            }
+        });
+    }
 
-  <script>
-    // สคริปต์สลับแท็บ
-    document.querySelectorAll('.ribbon-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        // ติ๊กออกทุกแท็บ และคอนเทนต์
-        document.querySelectorAll('.ribbon-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.ribbon-content').forEach(c => c.classList.remove('active'));
-        // เปิดแท็บที่คลิก
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.target).classList.add('active');
-      });
-    });
-  </script>
+    // Function to update tab styles based on currentSaleId
+    function updateTabStyles() {
+        $('#billTabs > div').each(function() {
+            const tabId = $(this).attr('id').replace('tab_', '');
+            if (tabId == currentSaleId) {
+                $(this).removeClass('tab-inactive').addClass('tab-active');
+            } else {
+                $(this).removeClass('tab-active').addClass('tab-inactive');
+            }
+        });
+    }
 
-</body>
-</html>
+    // Event listener for new sale button
+    $('#new_sale').on('click', createNewSale);
+</script>
