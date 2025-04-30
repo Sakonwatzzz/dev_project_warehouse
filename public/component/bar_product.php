@@ -84,15 +84,22 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             text-align: center;
             /* จัดข้อความให้อยู่ตรงกลาง */
         }
+
+        .button-text {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+            text-align: center;
+        }
     </style>
 </head>
 
 <body>
-    <div class="button-bb ">
+    <div class="button-bb flex flex-col-2 justify-start md:flex-row-2 flex-wrap-2">
         <div class=" border-2 border-[#a6c4de] rounded-lg bg-gradient-to-r bg-[#cbdbee] shadow-xl">
             <div class="flex gap-1 p-2 ">
                 <a href="?page=product_list" class="button-link">
-                    <button class="<?php echo ($current_page == 'product_list') ? 'active' : ''; ?>">
+                    <button class="<?php echo ($current_page == 'product_list_list') ? 'active' : ''; ?>">
                         <img src="../image/box.png" alt="">
                         <p>รายการสินค้า</p>
                     </button>

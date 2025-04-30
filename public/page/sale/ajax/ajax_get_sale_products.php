@@ -21,10 +21,14 @@ try {
     $stmt->execute([$sale_id]);
     $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // คำนวณยอดรวม
+    // คำนวณยอดรวม, จำนวนรายการ, และจำนวนชิ้น
     $total_amount = 0;
+    $total_items = 0; // เพิ่ม: นับจำนวนรายการ
+    $total_qty = 0;   // เพิ่ม: นับจำนวนชิ้น
     foreach ($sale_products as $product) {
         $total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+        $total_items++; // เพิ่ม: เพิ่มจำนวนรายการ
+        $total_qty += $product['sale_product_qty']; // เพิ่ม: รวมจำนวนชิ้น
     }
 
     // สร้าง HTML สำหรับตาราง
@@ -55,7 +59,7 @@ try {
                                 data-name="' . htmlspecialchars($product['product_name']) . '"
                                 data-qty="' . htmlspecialchars($product['sale_product_qty']) . '"
                                 data-price="' . htmlspecialchars($product['sale_product_price']) . '"
-                                data-capital="' . htmlspecialchars($product['sale_product_capital']) . '"
+                                data-capital="' . htmlspecialchars($product['sale_product_capital']) . '">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -82,10 +86,13 @@ try {
         }
     }
 
+    // แก้ไข: เพิ่ม total_items และ total_qty ใน JSON response
     echo json_encode([
         'status' => 'success',
         'html' => $html,
-        'total_amount' => number_format($total_amount, 2)
+        'total_amount' => number_format($total_amount, 2),
+        'total_items' => $total_items, // เพิ่ม: จำนวนรายการ
+        'total_qty' => $total_qty      // เพิ่ม: จำนวนชิ้น
     ]);
 } catch (Exception $e) {
     error_log("Error in ajax_get_sale_products: " . $e->getMessage());

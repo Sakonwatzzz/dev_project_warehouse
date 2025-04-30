@@ -486,12 +486,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $updatePersonnel->execute([$_POST['personnel_id'], $sale_id]);
         }
 
-        // อัปเดต sale_deposit หากระบุ
-        // if (isset($_POST['sale_deposit']) && is_numeric($_POST['sale_deposit'])) {
-        //     $updateDeposit = $pdo->prepare("UPDATE sale SET sale_deposit = ? WHERE sale_id = ?");
-        //     $updateDeposit->execute([(float)$_POST['sale_deposit'], $sale_id]);
-        // }
-
         // Remove from active sales
         $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$sale_id]);
         $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
@@ -536,8 +530,12 @@ try {
     $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $total_amount = 0;
+    $total_items = 0;
+    $total_qty = 0;
     foreach ($sale_products as $product) {
         $total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+        $total_items++;
+        $total_qty += $product['sale_product_qty'];
     }
 } catch (PDOException $e) {
     error_log("Database query error: " . $e->getMessage());
@@ -614,6 +612,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
         }
 
         .tab-inactive {
+
             background-color: #e5e7eb;
             color: black;
         }
@@ -643,7 +642,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
     <div class="main-body">
         <header class="bg-gradient-to-r from-blue-600 to-indigo-800 text-white shadow-lg">
             <div class="container mx-auto py-4 px-6 flex justify-between items-center">
-                <h1 class="text-2xl font-bold">POS System</h1>
+                <h1 class="text-2xl font-bold">Sampeng Buriram -จำหน่ายสินค้าราคาปลีกและส่ง
+                </h1>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm">พนักงาน:
                         <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
@@ -652,9 +652,9 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             </div>
         </header>
         <div class="container mx-auto p-6">
-            <div class="flex items-center space-x-2 mb-6">
+            <div class="flex items-center space-x-2 mb-6 rounded-lg shadow-md py-2 px-2">
                 <button id="new_sale"
-                    class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    class="w-40 px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors flex items-center ">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -662,13 +662,13 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     </svg>
                     เปิดบิลใหม่
                 </button>
-                <div id="billTabs" class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full">
+                <div id="billTabs" class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full pb-2 ">
                     <?php foreach ($valid_active_sales as $active_sale_id): ?>
                         <div id="tab_<?php echo $active_sale_id; ?>"
-                            class="px-4 py-2 rounded <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap"
+                            class="px-4 py-1 rounded-lg hover:bg-blue-500 transition-colors <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap"
                             onclick="switchBill(<?php echo $active_sale_id; ?>)">
-                            บิล #<?php echo $active_sale_id; ?> <span
-                                onclick="cancelSale(<?php echo $active_sale_id; ?>)">×</span>
+                            บิล #<?php echo $active_sale_id; ?> <button id="" type="button"
+                                class="text-red-500 font-bold">×</button>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -732,54 +732,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         <div id="product_info" class="text-sm text-gray-600 hidden"></div>
                     </form>
                     <!-- Payment Section -->
-                    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-                        <h2 class="text-lg font-semibold mb-3 text-gray-800 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            การชำระเงิน
-                        </h2>
-                        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
-                            <div class="flex justify-between text-gray-800">
-                                <span class="font-medium text-sm">ยอดรวมสินค้า:</span>
-                                <span class="total-amount text-sm"><?php echo number_format($total_amount, 2); ?>
-                                    บาท</span>
-                            </div>
-                            <div
-                                class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
-                                <span>ยอดรวมสุทธิ:</span>
-                                <span class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?>
-                                    บาท</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-row space-x-4 items-end">
-                            <div class="flex-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ (บาท):</label>
-                                <input type="number" id="paid_amount"
-                                    class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    step="0.01" placeholder="ป้อนจำนวนเงิน">
-                            </div>
-                            <div class="flex-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
-                                <input type="text" id="change_amount"
-                                    class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
-                                    readonly>
-                            </div>
-                            <div>
-                                <button id="calculate_change"
-                                    class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                    </svg>
-                                    คำนวณ
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                    </div> -->
                     <div class="bg-white rounded-lg shadow-md p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-semibold text-gray-800 flex items-center">
@@ -790,7 +744,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 </svg>
                                 รายการสินค้า
                             </h2>
-
                         </div>
                         <div class="overflow-x-auto rounded-lg border border-gray-200">
                             <table class="w-full border-collapse">
@@ -885,7 +838,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             <input type="hidden" name="action" value="confirm_sale">
                             <div class="space-y-4">
                                 <div class="space-y-3">
-                                    <button id="new_sale" type="button"
+                                    <!-- <button id="" type="button"
                                         class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
@@ -893,7 +846,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                                 d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                         เปิดบิลใหม่
-                                    </button>
+                                    </button> -->
                                     <button id="cancel_sale" type="button"
                                         class="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
@@ -935,14 +888,14 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         <?php endwhile; ?>
                                     </select>
                                 </div>
-                                <div class="grid grid-cols-1 gap-2" hidden>
+                                <div class="grid grid-cols-1 gap-2 pb-4">
                                     <label class="text-base font-medium text-gray-700">สมาชิก:</label>
                                     <input type="text" id="member_search"
                                         class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="ค้นหาสมาชิก">
                                     <input type="hidden" name="member_id" id="member_id">
                                     <div id="member_suggestions"
-                                        class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
+                                        class="absolute z-10 w-auto bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 gap-2" hidden>
@@ -957,6 +910,58 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             </option>
                                         <?php endwhile; ?>
                                     </select>
+                                </div>
+                            </div>
+                            <h2 class="text-lg font-semibold mb-3 text-gray-800 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                การชำระเงิน
+                            </h2>
+                            <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                                <div class="flex justify-between text-gray-800 pb-2">
+                                    <span class="font-medium text-sm">จำนวนรายการ:</span>
+                                    <span class="total-items text-sm"><?php echo $total_items; ?> รายการ</span>
+                                </div>
+                                <div class="flex justify-between text-gray-800 pb-2">
+                                    <span class="font-medium text-sm">จำนวนชิ้น:</span>
+                                    <span class="total-qty text-sm"><?php echo $total_qty; ?> ชิ้น</span>
+                                </div>
+
+                                <div
+                                    class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
+                                    <span>ยอดรวมสุทธิ:</span>
+                                    <span
+                                        class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?>
+                                        บาท</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-row space-x-4 items-end pb-6">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ
+                                        (บาท):</label>
+                                    <input type="number" id="paid_amount"
+                                        class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        step="0.01" placeholder="ป้อนจำนวนเงิน">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
+                                    <input type="text" id="change_amount"
+                                        class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
+                                        readonly>
+                                </div>
+                                <div>
+                                    <button id="calculate_change"
+                                        class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                        </svg>
+                                        คำนวณ
+                                    </button>
                                 </div>
                             </div>
                             <div class="space-y-3">
@@ -984,6 +989,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 </button>
                             </div>
                         </form>
+
                     </div>
                 </div>
             </div>
@@ -1314,14 +1320,14 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         $.ajax({
                             url: 'page/sale/ajax/ajax_get_sale_products.php',
                             method: 'GET',
-                            data: {
-                                sale_id: '<?php echo htmlspecialchars($sale_id); ?>'
-                            },
+                            data: { sale_id: '<?php echo htmlspecialchars($sale_id); ?>' },
                             dataType: 'json',
                             success: function (response) {
                                 if (response.status === 'success') {
                                     $('#product_table_body').html(response.html);
                                     $('.total-amount').text(response.total_amount + ' บาท');
+                                    $('.total-items').text(response.total_items + ' รายการ'); // เพิ่ม
+                                    $('.total-qty').text(response.total_qty + ' ชิ้น'); // เพิ่ม
                                     const hasProducts = !response.html.includes('ไม่พบสินค้า');
                                     $('#confirm-sale-btn')
                                         .prop('disabled', !hasProducts)
@@ -1443,6 +1449,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     //         }
                     //     });
                     // });
+
                     // เปิดบิลใหม่
                     $('#new_sale').on('click', function () {
                         $.ajax({
@@ -1455,8 +1462,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             success: function (response) {
                                 if (response.status === 'success') {
                                     Swal.fire({
+                                        toast: true,
                                         icon: 'success',
                                         title: 'สำเร็จ',
+                                        showConfirmButton: false,
                                         text: response.message,
                                         timer: 1500
                                     }).then(() => {
@@ -1479,7 +1488,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             }
                         });
                     });
-
                     // ยกเลิกบิล
                     $('#cancel_sale').on('click', function () {
                         Swal.fire({
@@ -1501,8 +1509,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     success: function (response) {
                                         if (response.status === 'success') {
                                             Swal.fire({
+                                                toast: true,
                                                 icon: 'success',
-                                                title: 'สำเร็จ',
+                                                title: 'ลบบิลสำเร็จ',
+                                                showConfirmButton: false,
                                                 text: response.message,
                                                 timer: 1500
                                             }).then(() => {
@@ -1527,8 +1537,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             }
                         });
                     });
-
-
                     // ลบสินค้า
                     $(document).on('click', '.delete-product', function (e) {
                         e.preventDefault();
@@ -1752,14 +1760,9 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 currentSaleId = response.sale_id;
                                 addBillTab(response.sale_id);
                                 switchBill(response.sale_id);
-                                Swal.fire({
-                                    toast: true,
-                                    position: 'center',
+                                Toast.fire({
                                     icon: 'success',
-                                    title: response.message,
-                                    showConfirmButton: false,
-                                    timer: 1500,
-                                    timerProgressBar: true
+                                    title: response.message
                                 });
                                 window.location.href = response.redirect;
                             } else {
@@ -1783,13 +1786,13 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                 }
 
                 // Function to add a bill tab to the UI
-                function addBillTab(saleId) {
-                    const tab = `<div id="tab_${saleId}" class="px-4 py-2 rounded tab-active cursor-pointer whitespace-nowrap" onclick="switchBill(${saleId})">
-            บิล #${saleId} <span onclick="cancelSale(${saleId})">×</span>
-        </div>`;
-                    $('#billTabs').append(tab);
-                    updateTabStyles();
-                }
+                // function addBillTab(saleId) {
+                //     const tab = `<div id="tab_${saleId}" class="px-4 py-2 rounded tab-active cursor-pointer whitespace-nowrap" onclick="switchBill(${saleId})">
+                //     บิล #${saleId} <span onclick="cancelSale(${saleId})">×</span>
+                // </div>`;
+                //     $('#billTabs').append(tab);
+                //     updateTabStyles();
+                // }
 
                 // Function to switch to a different bill
                 function switchBill(saleId) {
@@ -1829,19 +1832,18 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
                 // Function to cancel a sale
                 function cancelSale(saleId) {
-                    event.stopPropagation(); // Prevent triggering switchBill
+                    event.stopPropagation(); // เพิ่ม: ป้องกันการเรียก switchBill
                     Swal.fire({
-                        title: 'ยืนยันการยกเลิก?',
-                        text: `คุณต้องการยกเลิกบิล #${saleId} หรือไม่?`,
+                        title: 'ยืนยันการยกเลิกบิล?',
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'ยืนยัน',
+                        confirmButtonText: 'ยกเลิกบิล',
                         cancelButtonText: 'ยกเลิก'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             $.ajax({
-                                url: window.location.pathname,
-                                type: 'POST',
+                                url: '/page/sale/sale_add.php',
+                                method: 'POST',
                                 data: {
                                     action: 'cancel_sale',
                                     sale_id: saleId
@@ -1849,46 +1851,33 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 dataType: 'json',
                                 success: function (response) {
                                     if (response.status === 'success') {
-                                        bills = bills.filter(id => id != saleId);
-                                        $(`#tab_${saleId}`).remove();
-                                        if (currentSaleId == saleId) {
-                                            currentSaleId = bills.length > 0 ? bills[0] : null;
-                                        }
-                                        updateTabStyles();
                                         Swal.fire({
-                                            toast: true,
-                                            position: 'center',
                                             icon: 'success',
-                                            title: response.message,
-                                            showConfirmButton: false,
-                                            timer: 1500,
-                                            timerProgressBar: true
-                                        });
-                                        if (response.redirect) {
+                                            title: 'สำเร็จ',
+                                            text: response.message,
+                                            timer: 1500
+                                        }).then(() => {
                                             window.location.href = response.redirect;
-                                        }
+                                        });
                                     } else {
                                         Swal.fire({
                                             icon: 'error',
                                             title: 'ข้อผิดพลาด',
-                                            text: response.message,
-                                            confirmButtonText: 'ตกลง'
+                                            text: response.message
                                         });
                                     }
                                 },
-                                error: function (xhr, status, error) {
+                                error: function (xhr) {
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'ข้อผิดพลาด',
-                                        text: 'เกิดข้อผิดพลาดในการยกเลิกบิล: ' + error,
-                                        confirmButtonText: 'ตกลง'
+                                        text: xhr.responseText || 'ไม่สามารถยกเลิกบิลได้'
                                     });
                                 }
                             });
                         }
                     });
                 }
-
                 // Function to update tab styles based on currentSaleId
                 function updateTabStyles() {
                     $('#billTabs > div').each(function () {
