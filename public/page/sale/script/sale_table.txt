@@ -1,0 +1,54 @@
+function updateProductTable(sale_id) {
+    $.ajax({
+        url: 'page/sale/ajax/ajax_get_sale_products.php',
+        method: 'GET',
+        data: { sale_id: sale_id },
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 'success') {
+                $('#product_table_body').html(response.html);
+                $('.total-amount').text(response.total_amount + ' บาท');
+                $('.total-items').text(response.total_items + ' รายการ');
+                $('.total-qty').text(response.total_qty + ' ชิ้น');
+                const hasProducts = !response.html.includes('ไม่พบสินค้า');
+                $('#confirm-sale-btn')
+                    .prop('disabled', !hasProducts)
+                    .toggleClass('opacity-50 cursor-not-allowed', !hasProducts);
+                $('#calculate_change').click();
+                bindEditProductEvents();
+                $('.main-body').removeAttr('aria-hidden');
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อผิดพลาด',
+                    text: response.message,
+                    didOpen: () => {
+                        $('.main-body').removeAttr('aria-hidden');
+                    }
+                });
+            }
+        },
+        error: function (xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'ข้อผิดพลาด',
+                text: xhr.responseText || 'ไม่สามารถดึงข้อมูลตารางได้',
+                didOpen: () => {
+                    $('.main-body').removeAttr('aria-hidden');
+                }
+            });
+        }
+    });
+}
+
+$('#calculate_change').on('click', function () {
+    const paid = parseFloat($('#paid_amount').val()) || 0;
+    const total = parseFloat($('.total-amount').text()) || 0;
+    const change = paid - total;
+    $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
+    $('#print_receipt').prop('disabled', change < 0);
+});
+
+$('#paid_amount').on('input', function () {
+    $('#calculate_change').click();
+});

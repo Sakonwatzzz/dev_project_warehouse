@@ -1,0 +1,37 @@
+$(document).ready(function () {
+    // ตรวจสอบว่า jQuery โหลดสำเร็จ
+    if (typeof $ === 'undefined') {
+        console.error('jQuery not loaded');
+        alert('ไม่สามารถโหลด jQuery ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
+        return;
+    }
+
+    // ตรวจสอบว่า SweetAlert2 โหลดสำเร็จ
+    if (typeof Swal === 'undefined') {
+        console.error('SweetAlert2 not loaded');
+        alert('ไม่สามารถโหลด SweetAlert2 ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
+        return;
+    }
+
+    // Toast instance สำหรับ SweetAlert2
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top',
+        showConfirmButton: false,
+        timer: 1500,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+            $('.main-body').removeAttr('aria-hidden');
+        },
+        didClose: () => {
+            if (!$('#edit-product-modal').is(':visible')) {
+                $('#barcode_input').focus();
+            }
+        }
+    });
+
+    // ตัวแปรควบคุมการประมวลผลเพื่อป้องกันการ submit ซ้ำ
+    window.isProcessing = false;
+});

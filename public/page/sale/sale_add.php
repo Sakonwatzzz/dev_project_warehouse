@@ -6,9 +6,6 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/logs/php_errors.log');
 
-//ใช้ $base_url ที่กำหนดไว้
-// $base_url = '/page/sale';
-
 // Set timezone
 date_default_timezone_set('Asia/Bangkok');
 $currentDateTime = date("Y-m-d H:i:s");

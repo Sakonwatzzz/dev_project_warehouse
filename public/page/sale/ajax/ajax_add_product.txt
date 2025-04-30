@@ -1,0 +1,102 @@
+
+ <?php 
+ob_start();
+session_start();
+require_once __DIR__ . '../../../../../config/database_server.php';
+header('Content-Type: application/json');
+
+function isAjaxRequest()
+{
+    $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    error_log("isAjaxRequest: " . ($isAjax ? 'Yes' : 'No') . ", Headers: " . json_encode(getallheaders()));
+    return $isAjax;
+}
+// Handle product add
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_product') {
+
+    if (!isAjaxRequest()) {
+        header('HTTP/1.1 403 Forbidden');
+        echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
+        exit();
+    }
+    header('Content-Type: application/json');
+    ob_clean();
+    try {
+        $barcode = trim($_POST['barcode']);
+        $qty = is_numeric($_POST['qty'] ?? null) ? (int) $_POST['qty'] : 1;
+        $price = is_numeric($_POST['price'] ?? null) ? (float) $_POST['price'] : 0;
+        $price_type = $_POST['price_type'] ?? 'price4';
+
+        if (empty($barcode)) {
+            throw new Exception("กรุณาป้อนรหัสสินค้า");
+        }
+        if ($qty <= 0) {
+            throw new Exception("จำนวนต้องมากกว่า 0");
+        }
+
+        $pdo->beginTransaction();
+
+        // ตรวจสอบสินค้า
+        $stmtP = $pdo->prepare("
+            SELECT product_name, product_price1, product_price2, product_price3, product_price4, product_capital 
+            FROM product 
+            WHERE product_id = ?
+        ");
+        $stmtP->execute([$barcode]);
+        $prod = $stmtP->fetch(PDO::FETCH_ASSOC);
+        if (!$prod) {
+            throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
+        }
+
+        // เลือกราคา
+        $unitPrice = $price > 0 ? $price : $prod['product_' . $price_type];
+        $unitCapital = $prod['product_capital'];
+
+        // ตรวจสอบว่ามีสินค้านี้ในบิลแล้วหรือไม่
+        $stmt = $pdo->prepare("
+            SELECT sale_product_qty, sale_product_price, sale_product_capital 
+            FROM sale_product 
+            WHERE sale_id = ? AND product_id = ?
+        ");
+        $stmt->execute([$sale_id, $barcode]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            $newQty = $existing['sale_product_qty'] + $qty;
+            $newPrice = $price > 0 ? $price : $existing['sale_product_price'];
+            $newCapital = $prod['product_capital'];
+
+            $stmt = $pdo->prepare("
+                UPDATE sale_product 
+                SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ?
+                WHERE sale_id = ? AND product_id = ?
+            ");
+            $stmt->execute([$newQty, $newPrice, $newCapital, $sale_id, $barcode]);
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO sale_product 
+                (sale_id, product_id, sale_product_qty, sale_product_price, sale_product_capital)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$sale_id, $barcode, $qty, $unitPrice, $unitCapital]);
+        }
+
+        // ตัดสต็อก
+        try {
+            $lot_ids = adjustLotRemain($pdo, $barcode, $qty, false);
+        } catch (Exception $e) {
+            throw new Exception("ไม่สามารถตัดสต็อกได้: " . $e->getMessage());
+        }
+
+        $pdo->commit();
+        echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ']);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error adding product: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit();
+}

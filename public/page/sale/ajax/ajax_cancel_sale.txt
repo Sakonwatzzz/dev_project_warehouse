@@ -1,0 +1,59 @@
+<?php
+ob_start();
+session_start();
+require_once __DIR__ . '../../../../../config/database_server.php';
+header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST['action'] !== 'cancel_sale') {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
+    exit();
+}
+
+$cancel_sale_id = $_POST['sale_id'] ?? null;
+if (!$cancel_sale_id || !in_array($cancel_sale_id, $_SESSION['active_sales'])) {
+    echo json_encode(['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ']);
+    exit();
+}
+
+try {
+    $pdo->beginTransaction();
+
+    // Restore stock in lot_product
+    $stmt = $pdo->prepare("SELECT product_id, sale_product_qty FROM sale_product WHERE sale_id = ?");
+    $stmt->execute([$cancel_sale_id]);
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($products as $product) {
+        if (!isset($product['product_id']) || !isset($product['sale_product_qty']) || $product['sale_product_qty'] <= 0) {
+            throw new Exception("ข้อมูลสินค้าไม่ถูกต้องสำหรับบิล #$cancel_sale_id");
+        }
+        adjustLotRemain($pdo, $product['product_id'], $product['sale_product_qty'], true);
+    }
+
+    // Delete sale_product records
+    $deleteProductStmt = $pdo->prepare("DELETE FROM sale_product WHERE sale_id = ?");
+    $deleteProductStmt->execute([$cancel_sale_id]);
+
+    // Delete sale record
+    $deleteSaleStmt = $pdo->prepare("DELETE FROM sale WHERE sale_id = ?");
+    $deleteSaleStmt->execute([$cancel_sale_id]);
+
+    // Update session
+    $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$cancel_sale_id]);
+    if ($_SESSION['current_sale_id'] == $cancel_sale_id) {
+        $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
+    }
+
+    $pdo->commit();
+    $redirect_url = $_SESSION['current_sale_id'] ? "?page=sale_add&sale_id={$_SESSION['current_sale_id']}" : "?page=sale_add";
+    echo json_encode(['status' => 'success', 'message' => 'บิล #' . $cancel_sale_id . ' ถูกลบเรียบร้อย', 'redirect' => $redirect_url]);
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    error_log("Error cancelling sale $cancel_sale_id: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถยกเลิกบิลได้: ' . $e->getMessage()]);
+}
+ob_end_flush();
+exit();
+?>

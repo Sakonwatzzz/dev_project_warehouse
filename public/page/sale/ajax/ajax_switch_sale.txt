@@ -1,0 +1,21 @@
+<?php
+ob_start();
+session_start();
+require_once __DIR__ . '../../../../../config/database_server.php';
+header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST['action'] !== 'switch_sale') {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
+    exit();
+}
+
+$new_sale_id = $_POST['sale_id'] ?? null;
+if ($new_sale_id && in_array($new_sale_id, $_SESSION['active_sales'])) {
+    $_SESSION['current_sale_id'] = $new_sale_id;
+    echo json_encode(['status' => 'success', 'sale_id' => $new_sale_id, 'message' => 'เปลี่ยนไปใช้บิล #' . $new_sale_id]);
+} else {
+    echo json_encode(['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ']);
+}
+ob_end_flush();
+exit();
+?>
