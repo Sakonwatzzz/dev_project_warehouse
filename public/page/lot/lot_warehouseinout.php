@@ -136,9 +136,9 @@ ob_end_flush();
             </div>
         </div>
 
-        <!-- Table -->
-        <div class="overflow-x-auto">
-            <table class="mt-2 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
+         <!-- Table -->
+         <div class="overflow-x-auto">
+            <table class="mt-1 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
                 <thead>
                     <tr>
                         <th
@@ -147,6 +147,9 @@ ob_end_flush();
                         <th
                             class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                             คลังสินค้า</th>
+                        <th
+                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
+                            ผู้ส่งมอบ</th>
                         <th
                             class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
                             สถานะล็อต</th>
@@ -170,6 +173,10 @@ ob_end_flush();
                                 <td class="zoom-in px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer"
                                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list_move['warehouse_id']); ?>'">
                                     <span><?php echo htmlspecialchars($lot_list_move['warehouse_name']); ?></span>
+                                </td>
+                                <td class="zoom-in px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer"
+                                    onclick="window.location.href='?page=supplier_movelot&supplier_id=<?php echo htmlspecialchars($lot_list_move['supplier_id']); ?>'">
+                                    <span><?php echo htmlspecialchars($lot_list_move['supplier_name']); ?></span>
                                 </td>
                                 <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer"
                                     onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>'">
@@ -199,6 +206,9 @@ ob_end_flush();
                     <?php endif; ?>
                 </tbody>
             </table>
+        </div>
+
+
         </div>
 
         <!-- Pagination -->

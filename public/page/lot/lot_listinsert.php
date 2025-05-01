@@ -323,7 +323,7 @@ ob_end_flush();
                                 </div>
                             </div>
                             <input type="hidden" name="lot_status_id" value="<?= $selected_status_id ?>">
-                        </div> 
+                        </div>
 
                         <div class="form-group">
                             <label for="warehouse_inout"
@@ -396,6 +396,8 @@ ob_end_flush();
                             <th class="bg-gray-100 text-gray-700 px-6 py-3 text-left border-b">วันที่และเวลาที่ล็อต</th>
                             <th class="bg-gray-100 text-gray-700 px-6 py-3 text-left border-b">นำมาจากคลัง</th>
                             <th class="bg-gray-100 text-gray-700 px-6 py-3 text-left border-b">ลงคลัง</th>
+                            <th class="bg-gray-100 text-gray-700 px-6 py-3 text-left border-b">ผู้ส่งมอบ</th>
+
                         </tr>
                     </thead>
                     <tbody>
@@ -422,6 +424,10 @@ ob_end_flush();
                                 </td>
                                 <td class="px-6 py-4">
                                     <?php echo htmlspecialchars($lot_list['warehouse_name']) ?>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <?php echo htmlspecialchars($lot_list['supplier_name']) ?>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
@@ -524,13 +530,13 @@ ob_end_flush();
     <!-- JavaScript functions -->
     <script>
         // Alert handling
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const alert = document.getElementById('success-alert');
             if (alert) {
-                setTimeout(function () {
+                setTimeout(function() {
                     alert.style.transition = 'opacity 0.5s';
                     alert.style.opacity = '0';
-                    setTimeout(function () {
+                    setTimeout(function() {
                         alert.remove();
                     }, 500);
                 }, 2000);

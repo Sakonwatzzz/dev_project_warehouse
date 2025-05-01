@@ -7,7 +7,8 @@ $error = null;
 $selected_status_id = '';
 
 // Function to fetch data from database
-function fetchData($pdo, $query, $params = []) {
+function fetchData($pdo, $query, $params = [])
+{
     try {
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
@@ -40,14 +41,23 @@ try {
     // Fetch lots for table (warehouse-to-warehouse transfers)
     $query = "
         SELECT 
-            l.lot_id, l.lot_name, l.lot_date, l.lot_status_id, ls.lot_status_name,
-            w1.warehouse_name AS warehouse_from_name, w2.warehouse_name AS warehouse_name
+            l.lot_id,
+            l.lot_name,
+            l.lot_date,
+            l.lot_status_id,
+            s.supplier_id,
+            s.supplier_name,
+            ls.lot_status_name,
+            w1.warehouse_name AS warehouse_from_name,
+            w2.warehouse_name AS warehouse_name
         FROM lot l
         LEFT JOIN warehouse w1 ON l.warehouse_from_id = w1.warehouse_id
         LEFT JOIN warehouse w2 ON l.warehouse_id = w2.warehouse_id
         INNER JOIN lot_status ls ON l.lot_status_id = ls.lot_status_id
+        LEFT JOIN supplier s ON l.supplier_id = s.supplier_id
         WHERE l.warehouse_inout = 2
-        ORDER BY l.lot_id DESC";
+        ORDER BY l.lot_id DESC
+        ";
     $lots = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
 
     // Set default status ID
@@ -164,6 +174,26 @@ ob_end_flush();
                     </div>
 
                     <div class="form-group">
+                        <label for="supplier_from_id" class="block text-gray-700 font-medium mb-2">ผู้ส่งมอบ <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i class="fas fa-user-tie text-gray-400"></i>
+                            </div>
+                            <select name="supplier_id" id="supplier_id"
+                                class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <?php foreach ($supplier_lot as $supplier): ?>
+                                    <option value="<?= htmlspecialchars($supplier['supplier_id']) ?>">
+                                        <?= htmlspecialchars($supplier['supplier_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
                         <label for="warehouse_from_id" class="block text-gray-700 font-medium mb-2">นำมาจากคลัง <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -240,6 +270,7 @@ ob_end_flush();
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อ Lot</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังต้นทาง</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังปลายทาง</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">เจ้าหน้าที่</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
                                 <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
                             </tr>
@@ -256,6 +287,7 @@ ob_end_flush();
                                         <td class="px-6 py-2 border"><?= htmlspecialchars($lot['lot_name']) ?></td>
                                         <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_from_name'] ?? 'ไม่ระบุ') ?></td>
                                         <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_name'] ?? 'ไม่ระบุ') ?></td>
+                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['supplier_name'] ?? 'ไม่ระบุ') ?></td>
                                         <td class="px-6 py-2 border"><?= htmlspecialchars(date('d/m/Y H:i:s', strtotime($lot['lot_date']))) ?></td>
                                         <td class="px-6 py-2 border text-center">
                                             <a href="index.php?page=lot_insertdetailout&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"

@@ -69,16 +69,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
                         LEFT JOIN product p ON p.product_id = lp.product_id
                         WHERE lp.lot_id = ? 
                         AND (p.product_name IS NULL OR p.product_name = 'ยังไม่ระบุ' OR lp.lot_product_capital = 0)";
-        
+
         $check_stmt = $pdo->prepare($check_query);
         $check_stmt->execute([$_POST['lot_id']]);
         $invalid_products = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         if (count($invalid_products) > 0) {
             // There are products with missing information
             throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน กรุณาตรวจสอบและแก้ไขก่อนยืนยันรายการ");
         }
-        
+
         // Update product names if needed
         if (isset($_POST['product_name']) && isset($_POST['barcode'])) {
             $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
             exit();
         }
-        
+
         // For regular form submissions, redirect with error
         header('Location: index.php?page=lot_view&id=' . $_POST['lot_id'] . '&error=' . urlencode($e->getMessage()));
         exit();
@@ -400,7 +400,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                         pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
                 </div>
-            
+
                 <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
                 <div class="flex space-x-4">
                     <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
@@ -504,7 +504,17 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 </table>
             </div>
         </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between mt-6">
+            <a href="?page=lot_listinsert" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+                <i class="fas fa-arrow-left mr-2"></i>กลับ
+            </a>
+
+        </div>
     </div>
+
+
 
     <!-- Edit Modal -->
     <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
@@ -897,7 +907,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 handleInputValidation: function(e) {
                     const $input = $(e.target);
                     const value = parseFloat($input.val());
-                    const minValue = $input.attr( $input.attr('id') === 'qty' ? 0 : -1);
+                    const minValue = $input.attr($input.attr('id') === 'qty' ? 0 : -1);
 
                     $input.toggleClass('border-red-500', value <= minValue);
                 }
@@ -945,4 +955,5 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
     </style>
 
 </body>
+
 </html>

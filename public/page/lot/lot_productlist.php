@@ -46,11 +46,13 @@ try {
             lot_product.lot_product_date, 
             lot_product.lot_product_status,  
             lot_product.product_id, 
-            product.product_name 
+            product.product_name,
+            supplier.supplier_name 
         FROM
             lot_product
             LEFT JOIN lot ON lot_product.lot_id = lot.lot_id
             LEFT JOIN product ON lot_product.product_id = product.product_id
+            LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
         " . $where_clause . "
         GROUP BY lot_product.product_id, product.product_name, lot.lot_name, lot_product.lot_product_status
         LIMIT :offset, :records_per_page";
@@ -112,6 +114,7 @@ ob_end_flush();
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้าเข้า</th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">จำนวนสินค้าคงเหลือ</th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะสินค้า</th>
+                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ผู้ส่งมอบ</th>
                     <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">วันที่รับสินค้า</th>
                     <!--<th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>-->
                 </tr>
@@ -126,6 +129,7 @@ ob_end_flush();
                             <td class="border border-gray-400 text-end p-2"><?php echo ($lot_product_list['lot_product_qty']); ?></td>
                             <td class="border border-gray-400 text-end p-2"><?php echo ($lot_product_list['lot_product_remain']); ?></td>
                             <td class="border border-gray-400 text-center"><?php echo ($lot_product_list['lot_product_status']); ?></td>
+                            <td class="border border-gray-400 text-center"><?php echo ($lot_product_list['supplier_name']); ?></td>
                             <td class="border border-gray-400 text-center"><?php echo ($lot_product_list['lot_product_date']); ?></td>
                             <!--<td>
                                 <a href="?page=lot_productupdate&id=<?php echo ($lot_product_list['lot_product_id']); ?>" class="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 text-white text-lg border border-yellow-700 border-t-white border-l-white px-2 py-1 rounded shadow-md hover:bg-[#FFF9C4] active:border-[#FFF176] active:border-b-white active:border-r-white active:shadow-inner">แก้ไข</a>
