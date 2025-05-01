@@ -1,15 +1,21 @@
 <?php
-ob_start();
-session_start();
-require_once __DIR__ . '../../../../../config/database_server.php';
-header('Content-Type: application/json; charset=utf-8');
-
+function isAjaxRequest()
+{
+    $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    error_log("isAjaxRequest: " . ($isAjax ? 'Yes' : 'No') . ", Headers: " . json_encode(getallheaders()));
+    return $isAjax;
+}
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST['action'] !== 'delete' || !isAjaxRequest()) {
     header('HTTP/1.1 403 Forbidden');
     echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
     exit();
 }
+require_once __DIR__ . '/../../../../config/database_server.php';
+require_once __DIR__ . '/../../../../functions/adjustLotRemain.php';
 
+header('Content-Type: application/json; charset=utf-8');
+ob_clean();
 try {
     $barcode = trim($_POST['barcode']);
     $qty = (int) ($_POST['qty'] ?? 1);
@@ -22,7 +28,7 @@ try {
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare("
-        SELECT sale_product_qty 
+        SELECT sale_product_qty  
         FROM sale_product 
         WHERE sale_id = ? AND product_id = ?
     ");

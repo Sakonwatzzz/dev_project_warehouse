@@ -19,24 +19,28 @@ if (!isset($_SESSION['active_sales'])) {
 // Get sale_id from POST, GET, or session
 $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 
-// Create new sale if none exists
-if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
-    try {
-        $pdo->beginTransaction();
-        $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id) VALUES (?, 1, ?, ?)");
-        $insertSale->execute([$currentDateTime, null, null]);
-        $sale_id = $pdo->lastInsertId();
-        $_SESSION['active_sales'][] = $sale_id;
-        $_SESSION['current_sale_id'] = $sale_id;
-        $pdo->commit();
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        error_log("Error initializing sale: " . $e->getMessage());
-        die("Error initializing sale: " . $e->getMessage());
-    }
+if (!$sale_id) {
+    die("Error: sale_id is required.");
 }
+
+// Create new sale if none exists
+// if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
+//     try {
+//         $pdo->beginTransaction();
+//         $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id) VALUES (?, 1, ?, ?)");
+//         $insertSale->execute([$currentDateTime, null, null]);
+//         $sale_id = $pdo->lastInsertId();
+//         $_SESSION['active_sales'][] = $sale_id;
+//         $_SESSION['current_sale_id'] = $sale_id;
+//         $pdo->commit();
+//     } catch (Exception $e) {
+//         if ($pdo->inTransaction()) {
+//             $pdo->rollBack();
+//         }
+//         error_log("Error initializing sale: " . $e->getMessage());
+//         die("Error initializing sale: " . $e->getMessage());
+//     }
+// }
 
 if (!$sale_id) {
     die("Error: sale_id is required.");
@@ -120,6 +124,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     exit();
 }
+
+// Handle close billTab via Ajax
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'close_tab') {
+    header('Content-Type: application/json');
+    ob_clean();
+    $close_sale_id = $_POST['sale_id'] ?? null;
+    if (!$close_sale_id || !in_array($close_sale_id, $_SESSION['active_sales'])) {
+        echo json_encode(['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ']);
+        exit();
+    }
+    try {
+        // Update session
+        $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$close_sale_id]);
+        if ($_SESSION['current_sale_id'] == $close_sale_id) {
+            $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
+        }
+        $redirect_url = $_SESSION['current_sale_id'] ? "?page=sale_add&sale_id={$_SESSION['current_sale_id']}" : "?page=sale_add";
+        echo json_encode(['status' => 'success', 'message' => 'ปิดแท็บบิล #' . $close_sale_id . ' เรียบร้อย', 'redirect' => $redirect_url]);
+    } catch (Exception $e) {
+        error_log("Error closing tab $close_sale_id: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถปิดแท็บบิลได้: ' . $e->getMessage()]);
+    }
+    exit();
+}
+
 
 // Handle switch sale via Ajax
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'switch_sale') {
@@ -310,61 +339,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     exit();
 }
-
-// Handle product delete 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-    if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest') {
-        header('HTTP/1.1 403 Forbidden');
-        echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
-        exit();
-    }
-    //ถ้าไม่ใช่ AJAX, ส่ง 403 Forbidden และ JSON error
-    header('Content-Type: application/json; charset=utf-8');
-    ob_clean();
-    try {
-        $barcode = trim($_POST['barcode']);
-        $qty = (int) ($_POST['qty'] ?? 1);
-
-        $pdo->beginTransaction();
-
-        $stmt = $pdo->prepare("
-            SELECT sale_product_qty 
-            FROM sale_product 
-            WHERE sale_id = ? AND product_id = ?
-        ");
-        $stmt->execute([$sale_id, $barcode]);
-        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($existing) {
-            $newQty = $existing['sale_product_qty'] - $qty;
-            if ($newQty <= 0) {
-                $pdo->prepare("
-                    DELETE FROM sale_product 
-                    WHERE sale_id = ? AND product_id = ?
-                ")->execute([$sale_id, $barcode]);
-            } else {
-                $pdo->prepare("
-                    UPDATE sale_product 
-                    SET sale_product_qty = ? 
-                    WHERE sale_id = ? AND product_id = ?
-                ")->execute([$newQty, $sale_id, $barcode]);
-            }
-            adjustLotRemain($pdo, $barcode, $qty, true);
-            $pdo->commit();
-            echo json_encode(['status' => 'success', 'message' => 'ลบสินค้าสำเร็จ']);
-        } else {
-            throw new Exception("ไม่พบสินค้าในรายการ");
-        }
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        error_log("Error deleting product: " . $e->getMessage());
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit();
-}
-
 // Handle product update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     header('Content-Type: application/json');
@@ -499,6 +473,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit();
 }
 
+
 // Query sale details
 try {
     $query = "SELECT
@@ -584,6 +559,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="page/sale/script/sale_print_receipt.js"></script>
     <style>
         #edit-product-modal {
             z-index: 1000;
@@ -604,8 +580,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
     <!-- CSS for billTabs -->
     <style>
         .tab-active {
-            background-color: #3b82f6;
-            color: white;
+            background-color: rgb(255, 255, 255);
+            color: black;
         }
 
         .tab-inactive {
@@ -615,7 +591,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
         }
 
         #billTabs::-webkit-scrollbar {
-            height: 8px;
+            height: 10px;
         }
 
         #billTabs::-webkit-scrollbar-track {
@@ -624,12 +600,12 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
         }
 
         #billTabs::-webkit-scrollbar-thumb {
-            background: #3b82f6;
+            background: rgb(121, 120, 120);
             border-radius: 4px;
         }
 
         #billTabs::-webkit-scrollbar-thumb:hover {
-            background: #2563eb;
+            background: rgb(65, 65, 65);
         }
     </style>
 
@@ -659,13 +635,14 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     </svg>
                     เปิดบิลใหม่
                 </button>
-                <div id="billTabs" class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full pb-2 ">
+                <div id="billTabs"
+                    class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full pb-2 shadow-md p-2 py-2">
                     <?php foreach ($valid_active_sales as $active_sale_id): ?>
                         <div id="tab_<?php echo $active_sale_id; ?>"
-                            class="px-4 py-1 rounded-lg hover:bg-blue-500 transition-colors <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap"
+                            class="px-4 py-1 rounded-md hover:bg-gray-300 transition-colors shadow-lg <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap"
                             onclick="switchBill(<?php echo $active_sale_id; ?>)">
-                            บิล #<?php echo $active_sale_id; ?> <button id="" type="button"
-                                class="text-red-500 font-bold">×</button>
+                            บิล #<?php echo $active_sale_id; ?> <button id="close_tab_<?php echo $active_sale_id; ?>" type="button"
+                                class="text-red-500 text-xl font-bold pl-3">×</button>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -714,9 +691,9 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
                                 <input type="number" name="qty" value="1" min="1"
-                                    class="p-2 w-24 border border-gray-300 rounded-sm">
+                                    class="p-2 w-12 h-8 border border-gray-300 rounded-sm">
                             </div>
-                            <div>
+                            <div hidden>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
                                 <select name="price_type" class="p-2 w-32 border border-gray-300 rounded-sm">
                                     <option value="price4">ราคาขายจริง</option>
@@ -775,7 +752,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             <td class="py-3 px-4 text-center">
                                                 <div class="flex justify-center space-x-2">
                                                     <button
-                                                        class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                                                        class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors shadow-md"
                                                         data-id="<?php echo htmlspecialchars($product['sale_product_id']); ?>"
                                                         data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
                                                         data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
@@ -789,8 +766,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                                                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                                         </svg>
                                                     </button>
-                                                    <button
-                                                        class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                                    <button type="button"
+                                                        class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors shadow-md"
                                                         data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
                                                         data-qty="1">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -962,9 +939,9 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 </div>
                             </div>
                             <div class="space-y-3">
+                                <!-- ปุ่มพิมพ์ใบเสร็จ (เริ่มต้นซ่อน) -->
                                 <button id="print_receipt"
-                                    class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                                    disabled>
+                                    class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -972,16 +949,18 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     </svg>
                                     พิมพ์ใบเสร็จ
                                 </button>
+
+                                <!-- ปุ่มยืนยันรายการขาย -->
                                 <button type="submit" form="confirm-sale-form" id="confirm-sale-btn"
                                     class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
                                     <span class="loading-spinner hidden">กำลังประมวลผล...</span>
                                     <span class="btn-text">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                        <!-- <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        ยืนยันการขาย
+                                        </svg> -->
+                                        ยืนยันรายการขาย
                                     </span>
                                 </button>
                             </div>
@@ -1051,7 +1030,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
             </div>
             <script>
                 $(document).ready(function () {
-
+                    $('#print_receipt').addClass('hidden');
                     // ตรวจสอบว่า jQuery โหลดสำเร็จ
                     if (typeof $ === 'undefined') {
                         console.error('jQuery not loaded');
@@ -1083,9 +1062,11 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             }
                         }
                     });
+                   
 
                     // ตัวแปรควบคุมการประมวลผลเพื่อป้องกันการ submit ซ้ำ
                     let isProcessing = false;
+
 
                     $('#form_add_product input').on('keypress', function (e) {
                         if (e.which === 13 && !isProcessing) {
@@ -1191,9 +1172,14 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         timer: 1500,
                                         didOpen: () => {
                                             $('.main-body').removeAttr('aria-hidden');
+                                            $('#print_receipt').removeClass('hidden');
+                                            //  ซ่อนปุ่ม แก้ไข และ ลบ
+                                            $('.edit-product').addClass('hidden');
+                                            $('.delete-product').addClass('hidden');
+                                            $('.cancel_sale').addClass('hidden');
                                         }
                                     }).then(() => {
-                                        window.location.href = response.redirect;
+                                        // window.location.href = response.redirect;
                                     });
                                 } else {
                                     Swal.fire({
@@ -1407,7 +1393,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         const total = parseFloat(<?php echo $total_amount; ?>) || 0;
                         const change = paid - total;
                         $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
-                        $('#print_receipt').prop('disabled', change < 0);
+                        // $('#print_receipt').prop('disabled', change < 0);
                     });
 
                     // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
@@ -1544,6 +1530,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         }
                         const barcode = $(this).data('barcode');
                         const qty = parseInt($(this).data('qty')) || 1;
+                        console.log("qty" + qty);
                         Swal.fire({
                             title: 'ยืนยันการลบสินค้า?',
                             icon: 'warning',
@@ -1557,7 +1544,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                     qty
                                 }); // Log ก่อนส่ง
                                 $.ajax({
-                                    url: 'page/sale/sale_add.php',
+                                    url: 'page/sale/ajax/ajax_delete_product.php', // ชี้ตรงไปที่ไฟล์ PHP ที่ handle
                                     method: 'POST',
                                     data: {
                                         action: 'delete',
@@ -1566,19 +1553,11 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         qty: qty
                                     },
                                     dataType: 'json',
-                                    timeout: 2000,
                                     beforeSend: function (xhr) {
-                                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest'); // ยืนยัน header
+                                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                                         isProcessing = true;
-                                        console.log('AJAX request sent:', {
-                                            action: 'delete',
-                                            sale_id: '<?php echo htmlspecialchars($sale_id); ?>',
-                                            barcode,
-                                            qty
-                                        });
                                     },
                                     success: function (response) {
-                                        console.log('AJAX response:', response); // Log response
                                         if (response.status === 'success') {
                                             Toast.fire({
                                                 icon: 'success',
@@ -1590,32 +1569,24 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                                 icon: 'error',
                                                 title: 'ข้อผิดพลาด',
                                                 text: response.message,
-                                                didOpen: () => {
-                                                    $('.main-body').removeAttr('aria-hidden');
-                                                }
+
                                             });
                                         }
                                     },
                                     complete: function () {
                                         isProcessing = false;
-                                        $('.main-body').removeAttr('aria-hidden');
-                                        if (!$('#edit-product-modal').is(':visible')) {
-                                            $('#barcode_input').focus();
-                                        }
+                                        $('#barcode_input').focus();
                                     },
                                     error: function (xhr, status, error) {
-                                        console.error('AJAX error:', status, error, xhr.responseText); // Log error
                                         Swal.fire({
                                             icon: 'error',
                                             title: 'ข้อผิดพลาด',
-                                            text: xhr.responseText || 'ไม่สามารถลบสินค้าได้: ' + error,
-                                            didOpen: () => {
-                                                $('.main-body').removeAttr('aria-hidden');
-                                            }
+                                            html: `<pre>${xhr.responseText}</pre>`
                                         });
                                         isProcessing = false;
                                     }
                                 });
+
                             }
                         });
                     });
@@ -1790,6 +1761,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                 //     $('#billTabs').append(tab);
                 //     updateTabStyles();
                 // }
+                
 
                 // Function to switch to a different bill
                 function switchBill(saleId) {
