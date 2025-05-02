@@ -123,7 +123,7 @@ ob_end_flush();
                 <div class="px-4 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[50px]">
                     <?php echo $count; ?>
                 </div>
-                <a href="/?page=lot_listinsert"
+                <a href="/?page=lot_insertout"
                     class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors duration-200">
                     <i class="fas fa-plus mr-2"></i>เพิ่มการย้ายสินค้า
                 </a>

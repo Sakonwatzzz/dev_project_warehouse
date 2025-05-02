@@ -223,7 +223,7 @@ try {
                     <span class=""><?php echo htmlspecialchars($lot['lot_date']); ?></span>
                 </div>
                 <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">วันที่ย้ายคลังสินค้า:</span>
+                    <span class="text-gray-600 font-medium w-40">ผู้ส่งมอบ:</span>
                     <span class=""><?php echo htmlspecialchars($lot['supplier_name']); ?></span>
                 </div>
                 <div class="flex items-center">
