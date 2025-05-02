@@ -43,28 +43,6 @@ $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id']
 //     die("Error: sale_id is required.");
 // }
 
-// Handle new sale creation via Ajax
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'new_sale') {
-    header('Content-Type: application/json');
-    ob_clean();
-    try {
-        $pdo->beginTransaction();
-        $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id) VALUES (?, 1, ?, ?)");
-        $insertSale->execute([$currentDateTime, null, null]);
-        $new_sale_id = $pdo->lastInsertId();
-        $_SESSION['active_sales'][] = $new_sale_id;
-        $_SESSION['current_sale_id'] = $new_sale_id;
-        $pdo->commit();
-        echo json_encode(['status' => 'success', 'sale_id' => $new_sale_id, 'message' => 'บิลใหม่ #' . $new_sale_id . ' ถูกสร้างเรียบร้อย', 'redirect' => "?page=sale_add&sale_id=$new_sale_id"]);
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        error_log("Error creating new sale: " . $e->getMessage());
-        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถสร้างบิลใหม่ได้: ' . $e->getMessage()]);
-    }
-    exit();
-}
 
 // Handle sale cancellation via Ajax
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'cancel_sale') {
@@ -147,19 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 
-// Handle switch sale via Ajax
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'switch_sale') {
-    header('Content-Type: application/json');
-    ob_clean();
-    $new_sale_id = $_POST['sale_id'] ?? null;
-    if ($new_sale_id && in_array($new_sale_id, $_SESSION['active_sales'])) {
-        $_SESSION['current_sale_id'] = $new_sale_id;
-        echo json_encode(['status' => 'success', 'sale_id' => $new_sale_id, 'message' => 'เปลี่ยนไปใช้บิล #' . $new_sale_id]);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ']);
-    }
-    exit();
-}
+
 
 // Create new sale if none exists
 if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
@@ -622,6 +588,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="page/sale/script/sale_print_receipt.js"></script>
+    <script src="page/sale/script/sale_new_sale.js"></script>
+    <script src="page/sale/script/sale_switch.js"></script>
     <style>
         #edit-product-modal {
             z-index: 1000;
@@ -893,20 +861,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         ยกเลิกบิล
                                     </button>
                                 </div>
-                                <!-- <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">บิลที่ใช้งาน:</label>
-                                    <select id="switch_sale" name="switch_sale_id"
-                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <?php foreach ($valid_active_sales as $active_sale_id): ?>
-                                            <option value="<?php echo $active_sale_id; ?>" <?php echo $active_sale_id == $sale_id ? 'selected' : ''; ?>>
-                                                บิล #<?php echo $active_sale_id; ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                        <?php if (empty($valid_active_sales)): ?>
-                                            <option value="" disabled>ไม่มีบิลที่ใช้งาน</option>
-                                        <?php endif; ?>
-                                    </select>
-                                </div> -->
                                 <div class="grid grid-cols-1 gap-2" hidden>
                                     <label class="text-base font-medium text-gray-700" hidden>วันที่ทำการขาย:</label>
                                     <input name="sale_date" value="<?php echo $displayDateTime; ?>" readonly hidden
@@ -1466,38 +1420,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     $('#paid_amount').on('input', function () {
                         $('#calculate_change').click();
                     });
-
-                    // สลับบิล
-                    // $('#switch_sale').on('change', function () {
-                    //     const saleId = $(this).val();
-                    //     $.ajax({
-                    //         url: '/page/sale/sale_add.php',
-                    //         method: 'POST',
-                    //         data: {
-                    //             action: 'switch_sale',
-                    //             sale_id: saleId
-                    //         },
-                    //         dataType: 'json',
-                    //         success: function (response) {
-                    //             if (response.status === 'success') {
-                    //                 window.location.href = '/?page=sale_add&sale_id=' + saleId;
-                    //             } else {
-                    //                 Swal.fire({
-                    //                     icon: 'error',
-                    //                     title: 'ข้อผิดพลาด',
-                    //                     text: response.message
-                    //                 });
-                    //             }
-                    //         },
-                    //         error: function (xhr) {
-                    //             Swal.fire({
-                    //                 icon: 'error',
-                    //                 title: 'ข้อผิดพลาด',
-                    //                 text: xhr.responseText || 'ไม่สามารถสลับบิลได้'
-                    //             });
-                    //         }
-                    //     });
-                    // });
                     $(document).on('click', '[id^="close_tab_"]', function (e) {
                         e.stopPropagation(); // ป้องกันการเรียก switchBill
                         const saleId = $(this).attr('id').replace('close_tab_', '');
@@ -1547,45 +1469,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             }
                         });
                     });
-                    // เปิดบิลใหม่
-                    $('#new_sale').on('click', function () {
-                        $.ajax({
-                            url: 'page/sale/sale_add.php',
-                            method: 'POST',
-                            data: {
-                                action: 'new_sale'
-                            },
-                            dataType: 'json',
-                            success: function (response) {
-                                if (response.status === 'success') {
-                                    Swal.fire({
-                                        toast: true,
-                                        icon: 'success',
-                                        title: 'สำเร็จ',
-                                        showConfirmButton: false,
-                                        text: response.message,
-                                        timer: 1500
-                                    }).then(() => {
-                                        window.location.href = response.redirect;
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'ข้อผิดพลาด',
-                                        text: response.message
-                                    });
-                                }
-                            },
-                            error: function (xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถสร้างบิลใหม่ได้'
-                                });
-                            }
-                        });
-                    });
-                    // ยกเลิกบิล
+
                     $('#cancel_sale').on('click', function () {
                         Swal.fire({
                             title: 'ยืนยันการยกเลิกบิล?',
@@ -1793,12 +1677,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         $('#barcode_input').focus();
                     });
 
-                    // ยืนยันการลบสินค้า
-                    // function confirmDelete() {
-                    //     return confirm('ยืนยันการลบสินค้านี้?');
-                    // }
-
-
                     // Bind event สำหรับปุ่มแก้ไขและลบ
                     function bindEditProductEvents() {
                         $('.edit-product').off('click').on('click', function (e) {
@@ -1826,93 +1704,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                 // Array to track bills in client-side
                 let bills = <?php echo json_encode($valid_active_sales); ?>;
                 let currentSaleId = <?php echo json_encode($sale_id); ?>;
-
-                // Function to create a new sale
-                function createNewSale() {
-                    $.ajax({
-                        url: window.location.pathname,
-                        type: 'POST',
-                        data: {
-                            action: 'new_sale'
-                        },
-                        dataType: 'json',
-                        success: function (response) {
-                            if (response.status === 'success') {
-                                bills.push(response.sale_id);
-                                currentSaleId = response.sale_id;
-                                addBillTab(response.sale_id);
-                                switchBill(response.sale_id);
-                                Toast.fire({
-                                    icon: 'success',
-                                    title: response.message
-                                });
-                                window.location.href = response.redirect;
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: response.message,
-                                    confirmButtonText: 'ตกลง'
-                                });
-                            }
-                        },
-                        error: function (xhr, status, error) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'ข้อผิดพลาด',
-                                text: 'เกิดข้อผิดพลาดในการสร้างบิลใหม่: ' + error,
-                                confirmButtonText: 'ตกลง'
-                            });
-                        }
-                    });
-                }
-
-                // Function to add a bill tab to the UI
-                // function addBillTab(saleId) {
-                //     const tab = `<div id="tab_${saleId}" class="px-4 py-2 rounded tab-active cursor-pointer whitespace-nowrap" onclick="switchBill(${saleId})">
-                //     บิล #${saleId} <span onclick="cancelSale(${saleId})">×</span>
-                // </div>`;
-                //     $('#billTabs').append(tab);
-                //     updateTabStyles();
-                // }
-
-
-                // Function to switch to a different bill
-                function switchBill(saleId) {
-                    if (saleId === currentSaleId) return;
-                    $.ajax({
-                        url: '/page/sale/sale_add.php',
-                        type: 'POST',
-                        data: {
-                            action: 'switch_sale',
-                            sale_id: saleId
-                        },
-                        dataType: 'json',
-                        success: function (response) {
-                            if (response.status === 'success') {
-                                currentSaleId = saleId;
-                                updateTabStyles();
-                                window.location.href = `?page=sale_add&sale_id=${saleId}`;
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: response.message,
-                                    confirmButtonText: 'ตกลง'
-                                });
-                            }
-                        },
-                        error: function (xhr, status, error) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'ข้อผิดพลาด',
-                                text: 'เกิดข้อผิดพลาดในการสลับบิล: ' + error,
-                                confirmButtonText: 'ตกลง'
-                            });
-                        }
-                    });
-                }
-
+        
                 // Function to cancel a sale
                 function cancelSale(saleId) {
                     event.stopPropagation(); // เพิ่ม: ป้องกันการเรียก switchBill
@@ -1973,8 +1765,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
                 }
 
-                // Event listener for new sale button
-                $('#new_sale').on('click', createNewSale);
             </script>
         </div>
     </div>
