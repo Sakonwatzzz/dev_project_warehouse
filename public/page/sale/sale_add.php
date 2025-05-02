@@ -19,9 +19,6 @@ if (!isset($_SESSION['active_sales'])) {
 // Get sale_id from POST, GET, or session
 $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 
-if (!$sale_id) {
-    die("Error: sale_id is required.");
-}
 
 // Create new sale if none exists
 // if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
@@ -42,9 +39,9 @@ if (!$sale_id) {
 //     }
 // }
 
-if (!$sale_id) {
-    die("Error: sale_id is required.");
-}
+// if (!$sale_id) {
+//     die("Error: sale_id is required.");
+// }
 
 // Handle new sale creation via Ajax
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'new_sale') {
@@ -457,9 +454,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $updatePersonnel->execute([$_POST['personnel_id'], $sale_id]);
         }
 
-        // Remove from active sales
-        $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$sale_id]);
-        $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
+        // Remove from active sales // ไม่ลบ sale_id ออกจาก active_sales เพื่อให้บิลยังคงอยู่ในแท็บ
+        // $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$sale_id]);
+        // $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
 
         $pdo->commit();
         echo json_encode(['status' => 'success', 'message' => 'ยืนยันการขายสำเร็จ', 'redirect' => '?page=sale_add']);
@@ -472,7 +469,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     exit();
 }
+// Handle print receipt via Ajax
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'print_receipt') {
+    header('Content-Type: application/json');
+    ob_clean();
+    try {
+        $sale_id = $_POST['sale_id'] ?? null;
+        if (!$sale_id) {
+            throw new Exception("ไม่พบ sale_id ในคำขอ");
+        }
 
+        // Query sale details
+        $query = "SELECT
+            s.sale_id, s.sale_date, s.member_id, m.member_name, m.member_phone,
+            s.personnel_id, p.personnel_name, s.sale_status_id, ss.sale_status_name
+        FROM sale s
+        LEFT JOIN member m ON s.member_id = m.member_id
+        LEFT JOIN personnel p ON s.personnel_id = p.personnel_id
+        LEFT JOIN sale_status ss ON s.sale_status_id = ss.sale_status_id
+        WHERE s.sale_id = ?";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$sale_id]);
+        $sale_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$sale_data) {
+            throw new Exception("ไม่พบข้อมูลบิล #$sale_id");
+        }
+
+        // Query sale products
+        $product_query = "SELECT
+            sp.sale_product_id, sp.sale_id, sp.product_id,
+            COALESCE(pr.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
+            sp.sale_product_qty, sp.sale_product_price, sp.sale_product_capital
+        FROM sale_product sp
+        LEFT JOIN product pr ON pr.product_id = sp.product_id
+        WHERE sp.sale_id = ?";
+        $stmt = $pdo->prepare($product_query);
+        $stmt->execute([$sale_id]);
+        $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $total_amount = 0;
+        $total_qty = 0;
+        foreach ($sale_products as $product) {
+            $total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+            $total_qty += $product['sale_product_qty'];
+        }
+
+        // Prepare receipt data
+        $receipt_data = [
+            'sale_id' => $sale_data['sale_id'],
+            'sale_date' => date("d/m/Y H:i:s", strtotime($sale_data['sale_date'])),
+            'member_name' => $sale_data['member_name'] ?? 'ไม่ระบุ',
+            'personnel_name' => $sale_data['personnel_name'] ?? 'ไม่ระบุ',
+            'products' => $sale_products,
+            'total_qty' => $total_qty,
+            'total_amount' => $total_amount,
+            'paid_amount' => $_POST['paid_amount'] ?? 0,
+            'change_amount' => $_POST['change_amount'] ?? 0
+        ];
+
+        echo json_encode(['status' => 'success', 'receipt' => $receipt_data]);
+    } catch (Exception $e) {
+        error_log("Error generating receipt: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถสร้างใบเสร็จได้: ' . $e->getMessage()]);
+    }
+    exit();
+}
 
 // Query sale details
 try {
@@ -585,7 +647,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
         }
 
         .tab-inactive {
-
             background-color: #e5e7eb;
             color: black;
         }
@@ -641,10 +702,11 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         <div id="tab_<?php echo $active_sale_id; ?>"
                             class="px-4 py-1 rounded-md hover:bg-gray-300 transition-colors shadow-lg <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap"
                             onclick="switchBill(<?php echo $active_sale_id; ?>)">
-                            บิล #<?php echo $active_sale_id; ?> <button id="close_tab_<?php echo $active_sale_id; ?>" type="button"
-                                class="text-red-500 text-xl font-bold pl-3">×</button>
+                            บิล #<?php echo $active_sale_id; ?>
                         </div>
-                    <?php endforeach; ?>
+                        <button id="close_tab_<?php echo $active_sale_id; ?>" type="button"
+                            class="text-red-500 text-xl font-bold pl-3">×</button>
+                        <?php endforeach; ?>
                 </div>
             </div>
             <?php if (isset($_SESSION['success'])): ?>
@@ -872,14 +934,13 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                         class="absolute z-10 w-auto bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-1 gap-2" hidden>
-                                    <label class="text-base font-medium text-gray-700" hidden>พนักงานขาย:</label>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <label class="text-base font-medium text-gray-700">พนักงานขาย:</label>
                                     <select name="personnel_id"
-                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        hidden>
-                                        <option value="" hidden>ไม่เลือกพนักงาน</option>
+                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">ไม่เลือกพนักงาน</option>
                                         <?php while ($personnel = $personnels->fetch(PDO::FETCH_ASSOC)): ?>
-                                            <option value="<?php echo $personnel['personnel_id']; ?>" <?php echo ($sale_data['personnel_id'] == $personnel['personnel_id']) ? 'selected' : ''; ?> hidden>
+                                            <option value="<?php echo $personnel['personnel_id']; ?>" <?php echo ($sale_data['personnel_id'] == $personnel['personnel_id']) ? 'selected' : ''; ?>>
                                                 <?php echo htmlspecialchars($personnel['personnel_name']); ?>
                                             </option>
                                         <?php endwhile; ?>
@@ -1062,7 +1123,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                             }
                         }
                     });
-                   
+
 
                     // ตัวแปรควบคุมการประมวลผลเพื่อป้องกันการ submit ซ้ำ
                     let isProcessing = false;
@@ -1176,7 +1237,12 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             //  ซ่อนปุ่ม แก้ไข และ ลบ
                                             $('.edit-product').addClass('hidden');
                                             $('.delete-product').addClass('hidden');
-                                            $('.cancel_sale').addClass('hidden');
+                                            $('#cancel_sale').addClass('hidden');
+                                            $('#form_add_product').find('input, button').prop('disabled', true);
+                                            // ปิดการใช้งานการเลือกสมาชิกและพนักงาน
+                                            $('#member_search, #member_id, select[name="personnel_id"]').prop('disabled', true);
+                                            // ปิดการใช้งานปุ่มยืนยันการขาย
+                                            $('#confirm-sale-btn').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
                                         }
                                     }).then(() => {
                                         // window.location.href = response.redirect;
@@ -1393,7 +1459,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         const total = parseFloat(<?php echo $total_amount; ?>) || 0;
                         const change = paid - total;
                         $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
-                        // $('#print_receipt').prop('disabled', change < 0);
+                        $('#print_receipt').prop('disabled', change < 0);
                     });
 
                     // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
@@ -1432,7 +1498,55 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     //         }
                     //     });
                     // });
-
+                    $(document).on('click', '[id^="close_tab_"]', function (e) {
+                        e.stopPropagation(); // ป้องกันการเรียก switchBill
+                        const saleId = $(this).attr('id').replace('close_tab_', '');
+                        Swal.fire({
+                            title: 'ยืนยันการปิดบิล?',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'ปิดบิล',
+                            cancelButtonText: 'ยกเลิก'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                $.ajax({
+                                    url: 'page/sale/sale_add.php',
+                                    method: 'POST',
+                                    data: {
+                                        action: 'close_tab',
+                                        sale_id: saleId
+                                    },
+                                    dataType: 'json',
+                                    success: function (response) {
+                                        if (response.status === 'success') {
+                                            Swal.fire({
+                                                toast: true,
+                                                icon: 'success',
+                                                title: response.message,
+                                                // showConfirmButton: false,
+                                                // timer: 1500
+                                            }).then(() => {
+                                                window.location.href = response.redirect;
+                                            });
+                                        } else {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'ข้อผิดพลาด',
+                                                text: response.message
+                                            });
+                                        }
+                                    },
+                                    error: function (xhr) {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'ข้อผิดพลาด',
+                                            text: xhr.responseText || 'ไม่สามารถปิดแท็บบิลได้'
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    });
                     // เปิดบิลใหม่
                     $('#new_sale').on('click', function () {
                         $.ajax({
@@ -1761,7 +1875,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                 //     $('#billTabs').append(tab);
                 //     updateTabStyles();
                 // }
-                
+
 
                 // Function to switch to a different bill
                 function switchBill(saleId) {

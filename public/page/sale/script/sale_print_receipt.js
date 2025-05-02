@@ -3,12 +3,21 @@ $(document).ready(function () {
     $('#print_receipt').on('click', function () {
         const paid = parseFloat($('#paid_amount').val()) || 0;
         const change = parseFloat($('#change_amount').val()) || 0;
+        const sale_id = $('#confirm-sale-form input[name="sale_id"]').val(); // ดึง sale_id จากฟอร์ม
+        if (!sale_id) {
+            Swal.fire({
+                icon: 'error',
+                title: 'ข้อผิดพลาด',
+                text: 'ไม่พบรหัสบิล'
+            });
+            return;
+        }
         $.ajax({
             url: 'page/sale/sale_add.php',
             method: 'POST',
             data: {
                 action: 'print_receipt',
-                sale_id: '<?php echo htmlspecialchars($sale_id); ?>',
+                sale_id: sale_id,
                 paid_amount: paid,
                 change_amount: change
             },
