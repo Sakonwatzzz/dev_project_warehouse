@@ -49,53 +49,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     header('Content-Type: application/json');
     ob_clean();
     $cancel_sale_id = $_POST['sale_id'] ?? null;
-    if (!$cancel_sale_id || !in_array($cancel_sale_id, $_SESSION['active_sales'])) {
-        echo json_encode(['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ']);
-        exit();
-    }
-    error_log("Attempting to cancel sale with sale_id: " . $cancel_sale_id);
-    try {
-        $pdo->beginTransaction();
+    if ($cancel_sale_id && in_array($cancel_sale_id, $_SESSION['active_sales'])) {
+        try {
+            $pdo->beginTransaction();
 
-        // Restore stock in lot_product
-        $stmt = $pdo->prepare("SELECT product_id, sale_product_qty FROM sale_product WHERE sale_id = ?");
-        $stmt->execute([$cancel_sale_id]);
-        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Get products to restore stock
+            $stmt = $pdo->prepare("SELECT product_id, sale_product_qty FROM sale_product WHERE sale_id = ?");
+            $stmt->execute([$cancel_sale_id]);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        foreach ($products as $product) {
-            if (!isset($product['product_id']) || !isset($product['sale_product_qty']) || $product['sale_product_qty'] <= 0) {
-                error_log("Invalid product data for sale_id $cancel_sale_id: " . json_encode($product));
-                throw new Exception("ข้อมูลสินค้าไม่ถูกต้องสำหรับบิล #$cancel_sale_id");
+            // Restore stock
+            foreach ($products as $product) {
+                $updateStock = $pdo->prepare("UPDATE product SET total_stock = total_stock + ? WHERE product_id = ?");
+                $updateStock->execute([$product['sale_product_qty'], $product['product_id']]);
             }
-            adjustLotRemain($pdo, $product['product_id'], $product['sale_product_qty'], true);
-        }
 
-        // Delete sale_product records
-        $deleteProductStmt = $pdo->prepare("DELETE FROM sale_product WHERE sale_id = ?");
-        $deleteProductStmt->execute([$cancel_sale_id]);
+            // Update sale status to Cancelled (3)
+            $updateSale = $pdo->prepare("UPDATE sale SET sale_status_id = 3 WHERE sale_id = ?");
+            $updateSale->execute([$cancel_sale_id]);
 
-        // Delete sale record
-        if (empty($cancel_sale_id)) {
-            throw new Exception("ไม่สามารถยกเลิกบิลได้: sale_id ไม่ถูกต้อง");
-        }
-        $deleteSaleStmt = $pdo->prepare("DELETE FROM sale WHERE sale_id = ?");
-        $deleteSaleStmt->execute([$cancel_sale_id]);
+            // Remove from active sales
+            $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$cancel_sale_id]);
+            if ($_SESSION['current_sale_id'] == $cancel_sale_id) {
+                $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
+            }
 
-        // Update session
-        $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$cancel_sale_id]);
-        if ($_SESSION['current_sale_id'] == $cancel_sale_id) {
-            $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
+            $pdo->commit();
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'บิล #' . $cancel_sale_id . ' ถูกยกเลิกเรียบร้อย',
+                'redirect' => $_SESSION['current_sale_id'] ? "?page=sale_add&sale_id=" . $_SESSION['current_sale_id'] : "?page=sale"
+            ]);
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Error cancelling sale: " . $e->getMessage());
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'ไม่สามารถยกเลิกบิลได้: ' . $e->getMessage()
+            ]);
         }
-
-        $pdo->commit();
-        $redirect_url = $_SESSION['current_sale_id'] ? "?page=sale_add&sale_id={$_SESSION['current_sale_id']}" : "?page=sale_add";
-        echo json_encode(['status' => 'success', 'message' => 'บิล #' . $cancel_sale_id . ' ถูกลบเรียบร้อย', 'redirect' => $redirect_url]);
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        error_log("Error cancelling sale $cancel_sale_id: " . $e->getMessage());
-        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถยกเลิกบิลได้: ' . $e->getMessage()]);
+    } else {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'บิลไม่ถูกต้องหรือไม่พบ'
+        ]);
     }
     exit();
 }
@@ -516,8 +515,6 @@ try {
     $stmt->execute([$sale_id]);
     $sale_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-
-    // sp.sale_product_referenc ยังไม่ต้องการคอลัมน์นี้
     $product_query = "SELECT
         sp.sale_product_id, sp.sale_id, sp.product_id,
         COALESCE(pr.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
@@ -541,7 +538,6 @@ try {
     error_log("Database query error: " . $e->getMessage());
     die("การเชื่อมต่อฐานข้อมูลผิดพลาด: " . $e->getMessage());
 }
-
 // Fetch members, personnel, and sale status
 $members = $pdo->query("SELECT member_id, member_name FROM member ORDER BY member_name");
 $personnels = $pdo->query("SELECT personnel_id, personnel_name FROM personnel ORDER BY personnel_name");
@@ -552,7 +548,7 @@ $valid_active_sales = [];
 if (!empty($_SESSION['active_sales'])) {
     $placeholders = implode(',', array_fill(0, count($_SESSION['active_sales']), '?'));
     try {
-        $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders) AND sale_status_id = 1");
+        $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders) AND sale_status_id = 2");
         $stmt->execute(array_values($_SESSION['active_sales']));
         $valid_sales = $stmt->fetchAll(PDO::FETCH_COLUMN);
         $valid_active_sales = array_intersect($_SESSION['active_sales'], $valid_sales);
@@ -573,8 +569,8 @@ if (!empty($_SESSION['active_sales'])) {
     $sale_id = null;
 }
 
-$sale_status_id = $sale_data['sale_status_id'] ?? 1;
-$sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนินการ';
+$sale_status_id = $sale_data['sale_status_id'] ?? 2;
+$sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -647,6 +643,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                 <h1 class="text-2xl font-bold">Sampeng Buriram -จำหน่ายสินค้าราคาปลีกและส่ง
                 </h1>
                 <div class="flex items-center space-x-4">
+                    <p class="text-yellow-400 font-bold"> <?php echo htmlspecialchars($sale_status_name); ?></p>
+
                     <span class="text-sm">พนักงาน:
                         <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
                     <span class="text-sm">วันที่: <?php echo $displayDateTime; ?></span>
@@ -674,7 +672,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         </div>
                         <button id="close_tab_<?php echo $active_sale_id; ?>" type="button"
                             class="text-red-500 text-xl font-bold pl-3">×</button>
-                        <?php endforeach; ?>
+                    <?php endforeach; ?>
                 </div>
             </div>
             <?php if (isset($_SESSION['success'])): ?>
@@ -1408,6 +1406,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     });
 
                     // คำนวณเงินทอน
+
                     $('#calculate_change').on('click', function () {
                         const paid = parseFloat($('#paid_amount').val()) || 0;
                         const total = parseFloat(<?php echo $total_amount; ?>) || 0;
@@ -1415,6 +1414,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
                         $('#print_receipt').prop('disabled', change < 0);
                     });
+
 
                     // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
                     $('#paid_amount').on('input', function () {
@@ -1492,9 +1492,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                             Swal.fire({
                                                 toast: true,
                                                 icon: 'success',
-                                                title: 'ลบบิลสำเร็จ',
+                                                title: response.message,
                                                 showConfirmButton: false,
-                                                text: response.message,
                                                 timer: 1500
                                             }).then(() => {
                                                 window.location.href = response.redirect;
@@ -1704,7 +1703,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                 // Array to track bills in client-side
                 let bills = <?php echo json_encode($valid_active_sales); ?>;
                 let currentSaleId = <?php echo json_encode($sale_id); ?>;
-        
+
                 // Function to cancel a sale
                 function cancelSale(saleId) {
                     event.stopPropagation(); // เพิ่ม: ป้องกันการเรียก switchBill
