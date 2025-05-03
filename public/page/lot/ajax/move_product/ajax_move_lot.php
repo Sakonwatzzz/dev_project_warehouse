@@ -78,12 +78,14 @@ try {
         $current_qty = $lot_product ? $lot_product['lot_product_qty'] : 0;
         $new_qty = $current_qty + $quantity;
 
-        if ($new_qty < 0) {
-            throw new Exception('ไม่สามารถลบได้ เนื่องจากจำนวนที่ต้องการลบเกินจำนวนที่มีในล็อต');
+        // ตรวจสอบการลบโดยเทียบกับสต็อกต้นทาง
+        if ($is_delete && abs($quantity) > $source_qty) {
+            throw new Exception("ไม่สามารถลบได้ เนื่องจากจำนวนที่ต้องการลบ (" . abs($quantity) . ") เกินจำนวนที่มีในคลังต้นทาง (" . $source_qty . ")");
         }
 
+        // ตรวจสอบการเพิ่มโดยเทียบกับสต็อกต้นทาง
         if ($quantity > 0 && $quantity > $source_qty - $current_qty) {
-            throw new Exception("จำนวนที่ต้องการย้าย ($quantity) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง ($source_qty)");
+            throw new Exception("จำนวนที่ต้องการย้าย ($quantity) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง (" . $source_qty . ")");
         }
 
         if ($lot_product) {
@@ -166,7 +168,7 @@ try {
         $source_qty = $stmt->fetchColumn();
 
         if ($qty > $source_qty) {
-            throw new Exception("จำนวนที่ต้องการย้าย ($qty) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง ($source_qty)");
+            throw new Exception("จำนวนที่ต้องการย้าย ($qty) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง (" . $source_qty . ")");
         }
 
         $stmt = $pdo->prepare("
@@ -257,3 +259,4 @@ try {
 
 echo json_encode($response);
 exit;
+?>

@@ -38,7 +38,7 @@ if (isset($_GET['id'])) {
         // Commit the transaction
         $pdo->commit();
 
-        header("Location: http://localhost:8000/index.php?page=lot_warehouseinout");
+        header("Location: index.php?page=lot_warehouseinout");
         exit;
     } catch (PDOException $e) {
         // Rollback the transaction on error
@@ -75,6 +75,7 @@ try {
         warehouse.warehouse_name, 
         warehouse.warehouse_id,
         lot.lot_id, 
+        lot.lot_name, 
         lot.lot_detail, 
         lot.lot_date, 
         lot.lot_status_id, 
@@ -106,9 +107,14 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="../../output.css" rel="stylesheet">
     <title>ระบบจัดการล็อตสินค้า</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
         .zoom-in {
             cursor: zoom-in;
         }
@@ -116,99 +122,126 @@ ob_end_flush();
 </head>
 
 <body class="bg-gray-50">
-    <div class="font-[Tahoma] mx-auto max-w-[80rem] px-4 py-8 mt-8 sm:px-6 lg:px-8 ">
-        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
-            <div class=" flex items-center gap-6">
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-6">
                 <h2 class="text-2xl font-bold text-gray-800">จำนวนรายการย้ายสินค้ามี:</h2>
                 <div class="px-4 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[50px]">
                     <?php echo $count; ?>
                 </div>
                 <a href="/?page=lot_insertout"
-                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors duration-200">
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center">
                     <i class="fas fa-plus mr-2"></i>เพิ่มการย้ายสินค้า
                 </a>
             </div>
 
             <div class="text-end">
                 <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
-                    placeholder="ค้นหารายการรับสินค้า..."
+                    placeholder="ค้นหารายการย้ายสินค้า..."
                     class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
-         <!-- Table -->
-         <div class="overflow-x-auto">
-            <table class="mt-1 w-[100%] bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
-                <thead>
-                    <tr>
-                        <th
-                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                            วันและเวลาที่ล็อต</th>
-                        <th
-                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                            คลังสินค้า</th>
-                        <th
-                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                            ผู้ส่งมอบ</th>
-                        <th
-                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                            สถานะล็อต</th>
-                        <th
-                            class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">
-                            การจัดการ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if ($result_lot_list->rowCount() > 0): ?>
-                        <?php while ($lot_list_move = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
-                            <tr class="bg-white hover:bg-gray-100 cursor-pointer">
-                                <td hidden><?php echo htmlspecialchars($lot_list_move['lot_id']); ?></td>
-                                <td hidden><?php echo htmlspecialchars($lot_list_move['lot_detail']); ?></td>
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer">
-                                    <a href="?page=warehouse_move&lot_id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
-                                        class="text-blue-600 hover:text-blue-800 hover:underline">
-                                        <?php echo htmlspecialchars($lot_list_move['lot_date']); ?>
-                                    </a>
-                                </td>
-                                <td class="zoom-in px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer"
-                                    onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list_move['warehouse_id']); ?>'">
-                                    <span><?php echo htmlspecialchars($lot_list_move['warehouse_name']); ?></span>
-                                </td>
-                                <td class="zoom-in px-4 py-3 border border-gray-200 hover:bg-gray-200 cursor-pointer"
-                                    onclick="window.location.href='?page=supplier_movelot&supplier_id=<?php echo htmlspecialchars($lot_list_move['supplier_id']); ?>'">
-                                    <span><?php echo htmlspecialchars($lot_list_move['supplier_name']); ?></span>
-                                </td>
-                                <td class="px-4 py-3 border border-gray-200 hover:bg-blue-50 cursor-pointer"
-                                    onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>'">
-                                    <?php echo htmlspecialchars($lot_list_move['lot_status_name']); ?>
-                                </td>
-                                <td class="px-4 py-3 border border-gray-200">
-                                    <?php if ($lot_list_move['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list_move['lot_status_id'] != 2): ?>
-                                        <div class="flex space-x-2">
-                                            <a href="?page=lot_insertdetailout&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
-                                                class="inline-block px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow transition-colors duration-150">
-                                                แก้ไข
-                                            </a>
-                                            <a href="?page=lot_warehouseinout&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
-                                                onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')"
-                                                class="inline-block px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow transition-colors duration-150">
-                                                ลบ
-                                            </a>
-                                        </div>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endwhile; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="5" class="px-4 py-3 text-center border border-gray-200">ไม่มีข้อมูล</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+        <!-- Notification -->
+        <div id="notification"
+            class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
+            <div class="bg-green-500 text-white px-4 py-2 font-bold">การแจ้งเตือน</div>
+            <div class="px-4 py-3">แก้ไขสมาชิกสำเร็จ!</div>
         </div>
 
+        <!-- Table -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-list mr-2"></i>รายการย้ายสินค้าคลัง
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse" id="dataTable">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัส lot</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อ lot</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันและเวลาที่ล็อต</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังสินค้า</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ผู้ส่งมอบ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะล็อต</th>
+                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if ($result_lot_list->rowCount() > 0): ?>
+                                <?php while ($lot_list_move = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
+                                    <tr class="hover:bg-gray-100">
+                                        <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"><?php echo htmlspecialchars($lot_list_move['lot_id']); ?></td>
+                                        <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"><?php echo htmlspecialchars($lot_list_move['lot_name']); ?></td>                                      
+                                        <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"
+                                            onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list_move['warehouse_id']); ?>'">
+                                            <?php echo htmlspecialchars($lot_list_move['warehouse_name']); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"
+                                            onclick="window.location.href='?page=supplier_movelot&supplier_id=<?php echo htmlspecialchars($lot_list_move['supplier_id']); ?>'">
+                                            <?php echo htmlspecialchars($lot_list_move['supplier_name']); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border">
+                                            <a href="?page=warehouse_move&lot_id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
+                                                class="text-blue-600 hover:text-blue-800 hover:underline">
+                                                <?php echo htmlspecialchars(date('d/m/Y H:i:s', strtotime($lot_list_move['lot_date']))); ?>
+                                            </a>
+                                        </td>
+                                        <td class="px-6 py-2 border cursor-pointer hover:underline text-green-600"
+                                            onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>'">
+                                            <?php echo htmlspecialchars($lot_list_move['lot_status_name']); ?>
+                                        </td>
+                                        <!-- <td class="px-6 py-2 border text-center">
+                                            <?php if ($lot_list_move['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list_move['lot_status_id'] != 2): ?>
+                                                <div class="flex justify-center space-x-2">
+                                                    <a href="?page=lot_insertdetailout&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
+                                                        class="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600 transition flex items-center">
+                                                        <i class="fas fa-edit mr-1"></i>แก้ไข
+                                                    </a>
+                                                    <a href="?page=lot_warehouseinout&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
+                                                        onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')"
+                                                        class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition flex items-center">
+                                                        <i class="fas fa-trash-alt mr-1"></i>ลบ
+                                                    </a>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td> -->
 
+                                        <td class="px-6 py-2 border text-center">
+                                            <div class="flex justify-center space-x-2">
+                                                <a href="?page=warehouse_move&lot_id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
+                                                    class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition flex items-center">
+                                                    <i class="fas fa-eye mr-1"></i>ดูรายละเอียด
+                                                </a>
+                                                <?php if ($lot_list_move['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list_move['lot_status_id'] != 2): ?>
+                                                    <div class="flex justify-center space-x-2">
+                                                        <a href="?page=lot_insertdetailout&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
+                                                            class="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600 transition flex items-center">
+                                                            <i class="fas fa-edit mr-1"></i>แก้ไข
+                                                        </a>
+                                                        <a href="?page=lot_warehouseinout&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
+                                                            onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')"
+                                                            class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition flex items-center">
+                                                            <i class="fas fa-trash-alt mr-1"></i>ลบ
+                                                        </a>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-gray-600">ไม่มีข้อมูล</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- Pagination -->
@@ -216,7 +249,7 @@ ob_end_flush();
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
                     <a href="?page=lot_warehouseinout&page_num=<?php echo ($page - 1); ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
                 <?php endif; ?>
@@ -228,7 +261,7 @@ ob_end_flush();
                         </a>
                     <?php else: ?>
                         <a href="?page=lot_warehouseinout&page_num=<?php echo $i; ?>"
-                            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
+                            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                             <?php echo $i; ?>
                         </a>
                     <?php endif; ?>
@@ -236,7 +269,7 @@ ob_end_flush();
 
                 <?php if ($page < $total_pages): ?>
                     <a href="?page=lot_warehouseinout&page_num=<?php echo ($page + 1); ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
                 <?php endif; ?>
@@ -265,7 +298,7 @@ ob_end_flush();
                 // Check every cell in the row
                 for (let j = 0; j < td.length; j++) {
                     const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLower.indexOf(filter) > -1) {
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
                         rowMatchesSearch = true;
                         break;
                     }
@@ -299,6 +332,15 @@ ob_end_flush();
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById("searchInput");
             searchInput.focus();
+
+            if (urlParams.has('success')) {
+                const notification = document.getElementById('notification');
+                notification.classList.remove('hidden');
+
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 2000);
+            }
         });
     </script>
 </body>

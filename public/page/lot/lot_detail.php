@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="detail-body mx-[40rem] my-11  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
+    <div class="detail-body mx-[30rem] my-11  bg-[#F0F0F0] border-2 border-[#A0A0A0] shadow-lg rounded-md ">
         <!-- เปลี่ยนสีหัวข้อเมื่ออยู่ในโหมดแก้ไข -->
         <h2
             class="detail-title bg-gradient-to-b from-blue-300 via-blue-500 to-blue-700 <?php echo $is_update ? '' : ''; ?> text-white text-lg px-3 py-2 border border-blue-700 shadow">
