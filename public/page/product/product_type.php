@@ -90,139 +90,322 @@ try {
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <title>จัดการประเภทสินค้า</title>
+    <style>
+        @media (max-width: 768px) {
+            .table-responsive {
+                display: none;
+            }
+
+            .card-responsive {
+                display: block;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .table-responsive {
+                display: block;
+            }
+
+            .card-responsive {
+                display: none;
+            }
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100">
-    <div class="font-sans mx-96 mt-11">
-        <!-- Title and Search -->
-        <div class="grid grid-cols-2 gap-2 mb-5">
-            <div class="flex items-center space-x-6">
-                <h2 class="text-2xl font-bold text-gray-800">ข้อมูลประเภทสินค้า</h2>
-                <span class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md"><?php echo $count; ?></span>
+<body class="font-sans bg-gray-100">
+    <div class="container mx-auto px-4 py-8 md:px-8 lg:px-16">
+
+        <!-- Table Section -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2"></i>รายการประเภทสินค้า
+                        </h2>
+                        <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
+                    </div>
+                    <div class="w-full md:w-1/2">
+                        <input type="text" id="searchInput" onkeyup="searchTable()"
+                            placeholder="ค้นหาประเภทสินค้า..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                    </div>
+                </div>
             </div>
-            <div class="mt-4 md:mt-0">
-                <input type="text" id="searchInput" onkeyup="searchTable()"
-                    placeholder="ค้นหาประเภทสินค้า..."
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="p-4 md:p-6">
+                <!-- Table View (Desktop/iPad) -->
+                <div class="table-responsive overflow-x-auto">
+                    <table class="w-full border-collapse" id="dataTable">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">รหัสประเภท</th>
+                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">ชื่อประเภทสินค้า</th>
+                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">จำนวนสินค้า</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Add Form Row -->
+                            <tr>
+                                <form action="" method="POST">
+                                    <td class="px-4 py-2 border bg-white text-center text-gray-600 text-sm md:text-base">อัตโนมัติ</td>
+                                    <td class="px-4 py-2 border bg-white">
+                                        <input type="text" id="typename" name="typename"
+                                            placeholder="ชื่อประเภทสินค้า"
+                                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+                                            required />
+                                    </td>
+                                    <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">-</td>
+                                    <td class="px-4 py-2 border bg-white text-center">
+                                        <button type="submit"
+                                            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center mx-auto text-sm md:text-base">
+                                            <i class="fas fa-plus mr-1"></i>เพิ่ม
+                                        </button>
+                                    </td>
+                                </form>
+                            </tr>
+                            <!-- Data Rows -->
+                            <?php if (count($producttypes) > 0): ?>
+                                <?php foreach ($producttypes as $type): ?>
+                                    <tr class="hover:bg-gray-100" data-id="<?php echo htmlspecialchars($type['product_type_id']); ?>">
+                                        <td class="px-4 py-1 border   text-sm md:text-base"><?php echo htmlspecialchars($type['product_type_id']); ?></td>
+                                        <td class="px-4 py-1 border   type-name text-sm md:text-base"><?php echo htmlspecialchars($type['product_type_name']); ?></td>
+                                        <td class="px-4 py-1 border text-center cursor-pointer">
+                                            <a href="?page=product_typegroup&tabel=product_type&id=<?php echo $type['product_type_id']; ?>&product_type_name=<?php echo urlencode($type['product_type_name']); ?>"
+                                                class="text-orange-600 text-sm md:text-base">
+                                                <?php echo number_format($type['product_count']); ?> รายการ
+                                            </a>
+                                        </td>
+                                        <td class="px-4 py-1 border text-center">
+                                            <div class="flex justify-center space-x-2">
+                                                <button onclick="enableEdit(this)"
+                                                    class="edit-btn bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 transition flex items-center text-sm md:text-base">
+                                                    <i class="fas fa-edit mr-1"></i>แก้ไข
+                                                </button>
+                                                <a href="?page=product_type&id=<?php echo htmlspecialchars($type['product_type_id']); ?>"
+                                                    onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                                    class="delete-btn bg-red-500 text-white px-4 py-1 rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
+                                                    <i class="fas fa-trash-alt mr-1"></i>ลบ
+                                                </a>
+                                                <button class="save-btn hidden bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600 transition  items-center text-sm md:text-base"
+                                                    onclick="saveEdit(this)">
+                                                    <i class="fas fa-save mr-1"></i>บันทึก
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-gray-600 text-sm md:text-base">ไม่มีข้อมูล</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Card View (Mobile) -->
+                <div class="card-responsive">
+                    <!-- Add Form Card -->
+                    <div class="bg-white p-4 mb-4 rounded-lg shadow">
+                        <form action="" method="POST">
+                            <div class="mb-4">
+                                <label class="block text-gray-700 font-semibold mb-2 text-sm">ชื่อประเภทสินค้า</label>
+                                <input type="text" id="typename_mobile" name="typename"
+                                    placeholder="ชื่อประเภทสินค้า"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    required />
+                            </div>
+                            <button type="submit"
+                                class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center text-sm">
+                                <i class="fas fa-plus mr-1"></i>เพิ่ม
+                            </button>
+                        </form>
+                    </div>
+                    <!-- Data Cards -->
+                    <?php if (count($producttypes) > 0): ?>
+                        <?php foreach ($producttypes as $type): ?>
+                            <div class="bg-white p-4 mb-4 rounded-lg shadow" data-id="<?php echo htmlspecialchars($type['product_type_id']); ?>">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 font-semibold text-sm">รหัสประเภท:</span>
+                                    <span class="text-sm"><?php echo htmlspecialchars($type['product_type_id']); ?></span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 font-semibold text-sm type-name">ชื่อประเภท:</span>
+                                    <span class="text-sm"><?php echo htmlspecialchars($type['product_type_name']); ?></span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 font-semibold text-sm">จำนวนสินค้า:</span>
+                                    <a href="?page=product_typegroup&tabel=product_type&id=<?php echo $type['product_type_id']; ?>&product_type_name=<?php echo urlencode($type['product_type_name']); ?>"
+                                        class="text-orange-600 hover:underline text-sm">
+                                        <?php echo number_format($type['product_count']); ?> รายการ
+                                    </a>
+                                </div>
+                                <div class="flex justify-center space-x-2 mt-4">
+                                    <button onclick="enableEditMobile(this)"
+                                        class="edit-btn bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition flex items-center text-sm">
+                                        <i class="fas fa-edit mr-1"></i>แก้ไข
+                                    </button>
+                                    <a href="?page=product_type&id=<?php echo htmlspecialchars($type['product_type_id']); ?>"
+                                        onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                        class="delete-btn bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center text-sm">
+                                        <i class="fas fa-trash-alt mr-1"></i>ลบ
+                                    </a>
+                                    <button class="save-btn hidden bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition  items-center text-sm"
+                                        onclick="saveEditMobile(this)">
+                                        <i class="fas fa-save mr-1"></i>บันทึก
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-center py-4 text-gray-600 text-sm">ไม่มีข้อมูล</div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
-        <!-- Table -->
-        <table class="w-full mt-5 mb-8 border border-gray-400 shadow-lg" id="dataTable">
-            <!-- Add Form -->
-            <tr>
-                <form action="" method="POST">
-                    <td class="bg-white p-2">
-                        <input type="text" id="typename" name="typename"
-                            placeholder="ชื่อประเภทสินค้า"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required />
-                    </td>
-                    <td class="p-2 bg-white border border-gray-300 text-center text-lg italic text-gray-600">อัตโนมัติ</td>
-                    <td class="bg-white p-2 text-center">
-                        <button type="submit"
-                            class="w-32 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                            เพิ่ม
-                        </button>
-                    </td>
-                </form>
-            </tr>
-
-            <!-- Header -->
-            <thead>
-                <tr class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800">
-                    <th class="w-2/5 px-3 py-2 border border-gray-500">ชื่อประเภทสินค้า</th>
-                    <th class="w-2/5 px-3 py-2 border border-gray-500">จำนวนสินค้า</th>
-                    <th class="w-1/5 px-3 py-2 border border-gray-500">การจัดการ</th>
-                </tr>
-            </thead>
-
-            <!-- Body -->
-            <tbody id="tableBody">
-                <?php foreach ($producttypes as $type): ?>
-                    <tr class="bg-white hover:bg-gray-100 cursor-pointer" data-id="<?php echo $type['product_type_id']; ?>">
-                        <td class="type-name py-2 px-4 border border-gray-300"><?php echo htmlspecialchars($type['product_type_name']); ?></td>
-                        <td class="py-2 px-4 text-orange-600 border border-gray-300 text-center hover:bg-gray-200 cursor-pointer"
-                            onclick="window.location.href='?page=product_typegroup&tabel=product_type&id=<?php echo $type['product_type_id']; ?>&product_type_name=<?php echo urlencode($type['product_type_name']); ?>'">
-                            <?php echo number_format($type['product_count']); ?> รายการ
-                        </td>
-                        <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
-                            <button onclick="enableEdit(this)"
-                                class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                                แก้ไข
-                            </button>
-                            <a href="?page=product_type&id=<?php echo $type['product_type_id']; ?>"
-                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
-                                class="delete-btn inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
-                                </svg>
-                                ลบ
-                            </a>
-                            <button class="save-btn hidden items-center px-3 py-1 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 transition"
-                                onclick="saveEdit(this)">
-                                <div class="flex">
-                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    บันทึก
-                                </div>
-                            </button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
         <!-- Pagination -->
-        <?php if ($total_pages > 1): ?>
-            <div class="text-center space-x-2">
+        <div class="pagination mt-5 flex flex-wrap justify-center items-center gap-2">
+            <?php if ($total_pages > 1): ?>
+                <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=product_type&page_num=<?php echo ($page - 1); ?>"
-                        class="inline-block px-4 py-2 bg-blue-100 hover:bg-blue-200 text-black rounded-md transition duration-200">
+                    <a href="?page=product_type&page_num=<?= $page - 1 ?>"
+                        class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         « ก่อนหน้า
                     </a>
                 <?php endif; ?>
 
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <a href="?page=product_type&page_num=<?php echo $i; ?>"
-                        class="inline-block px-4 py-2 rounded-md transition duration-200 <?php echo $i === $page ? 'bg-gray-800 text-white' : 'bg-blue-100 hover:bg-blue-200 text-black'; ?>">
-                        <?php echo $i; ?>
+                <!-- Page Numbers -->
+                <?php
+                $start_page = max(1, $page - 2);
+                $end_page = min($total_pages, $page + 2);
+                if ($start_page > 1): ?>
+                    <a href="?page=product_type&page_num=1"
+                        class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
+                        1
+                    </a>
+                    <?php if ($start_page > 2): ?>
+                        <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
+                    <?php endif; ?>
+                <?php endif; ?>
+
+                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                    <a href="?page=product_type&page_num=<?= $i ?>"
+                        class="px-3 py-2 rounded-md transition-colors text-sm md:text-base <?= $i == $page ? 'bg-gray-800 text-white' : 'bg-blue-100 text-black hover:bg-gray-300' ?>">
+                        <?= $i ?>
                     </a>
                 <?php endfor; ?>
 
+                <?php if ($end_page < $total_pages): ?>
+                    <?php if ($end_page < $total_pages - 1): ?>
+                        <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
+                    <?php endif; ?>
+                    <a href="?page=product_type&page_num=<?= $total_pages ?>"
+                        class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
+                        <?= $total_pages ?>
+                    </a>
+                <?php endif; ?>
+
+                <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=product_type&page_num=<?php echo ($page + 1); ?>"
-                        class="inline-block px-4 py-2 bg-blue-100 hover:bg-blue-200 text-black rounded-md transition duration-200">
+                    <a href="?page=product_type&page_num=<?= $page + 1 ?>"
+                        class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         ถัดไป »
                     </a>
                 <?php endif; ?>
-            </div>
-        <?php endif; ?>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Notification -->
-    <div id="notification" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-gray-400 rounded-md shadow-lg w-96 h-32 z-50">
-        <div id="notification-header" class="p-2 rounded-t-md font-bold"></div>
-        <div id="notification-body" class="p-5 text-center text-lg"></div>
+    <div id="notification" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-gray-400 rounded-md shadow-lg w-80 md:w-96 h-32 z-50">
+        <div id="notification-header" class="p-2 rounded-t-md font-bold text-sm md:text-base"></div>
+        <div id="notification-body" class="p-5 text-center text-base md:text-lg"></div>
     </div>
 
     <script>
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById("dataTable");
+            const tr = table.getElementsByTagName("tr");
+            const cards = document.querySelectorAll(".card-responsive > div[data-id]");
+            const thead = table.querySelector("thead");
+            let foundAny = false;
+
+            // Table search
+            tr[0].style.display = "";
+            thead.style.display = "";
+            for (let i = 1; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName("td");
+                let rowMatchesSearch = false;
+                for (let j = 0; j < td.length; j++) {
+                    const txtValue = td[j].textContent || td[j].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rowMatchesSearch = true;
+                        break;
+                    }
+                }
+                tr[i].style.display = rowMatchesSearch ? "" : "none";
+                if (rowMatchesSearch) foundAny = true;
+            }
+
+            // Card search
+            cards.forEach(card => {
+                const texts = card.querySelectorAll("span, a");
+                let cardMatchesSearch = false;
+                texts.forEach(text => {
+                    const txtValue = text.textContent || text.innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        cardMatchesSearch = true;
+                    }
+                });
+                card.style.display = cardMatchesSearch ? "block" : "none";
+                if (cardMatchesSearch) foundAny = true;
+            });
+
+            let noDataMessage = document.getElementById("noDataMessage");
+            if (!foundAny) {
+                if (!noDataMessage) {
+                    noDataMessage = document.createElement("p");
+                    noDataMessage.id = "noDataMessage";
+                    noDataMessage.textContent = "ไม่พบข้อมูล";
+                    noDataMessage.className = "text-red-600 font-bold text-center mt-3 text-sm md:text-base";
+                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
+                    document.querySelector(".card-responsive").appendChild(noDataMessage.cloneNode(true));
+                }
+            } else if (noDataMessage) {
+                noDataMessage.remove();
+                document.querySelectorAll("#noDataMessage").forEach(el => el.remove());
+            }
+        }
+
         function enableEdit(button) {
             const row = button.closest('tr');
             const typeNameCell = row.querySelector('.type-name');
             const originalName = typeNameCell.textContent.trim();
 
-            typeNameCell.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${originalName}" />`;
+            typeNameCell.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" value="${originalName}" />`;
             button.classList.add('hidden');
             row.querySelector('.delete-btn').classList.add('hidden');
             row.querySelector('.save-btn').classList.remove('hidden');
+        }
+
+        function enableEditMobile(button) {
+            const card = button.closest('div[data-id]');
+            const typeNameSpan = card.querySelector('.type-name + span');
+            const originalName = typeNameSpan.textContent.trim();
+
+            typeNameSpan.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value="${originalName}" />`;
+            button.classList.add('hidden');
+            card.querySelector('.delete-btn').classList.add('hidden');
+            card.querySelector('.save-btn').classList.remove('hidden');
         }
 
         function saveEdit(button) {
@@ -262,40 +445,41 @@ try {
                 });
         }
 
-        function searchTable() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById('dataTable');
-            const tr = table.getElementsByTagName('tr');
-            let foundAny = false;
+        function saveEditMobile(button) {
+            const card = button.closest('div[data-id]');
+            const typeId = card.getAttribute('data-id');
+            const newName = card.querySelector('.edit-input').value.trim();
+            const typeNameSpan = card.querySelector('.type-name + span');
 
-            tr[0].style.display = ''; // Keep input row visible
-            table.querySelector('thead').style.display = ''; // Keep header visible
+            if (!newName) {
+                alert('กรุณากรอกชื่อประเภทสินค้า');
+                return;
+            }
 
-            for (let i = 2; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName('td');
-                let rowMatches = false;
-                for (let j = 0; j < td.length; j++) {
-                    const text = td[j].textContent.toLowerCase();
-                    if (text.includes(filter)) {
-                        rowMatches = true;
-                        break;
+            fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `id=${typeId}&update_typename=${encodeURIComponent(newName)}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        typeNameSpan.textContent = newName;
+                        const editBtn = card.querySelector('.edit-btn');
+                        const deleteBtn = card.querySelector('.delete-btn');
+                        editBtn.classList.remove('hidden');
+                        deleteBtn.classList.remove('hidden');
+                        button.classList.add('hidden');
+                        showNotification('แก้ไขสำเร็จ', 'bg-cyan-200');
+                    } else {
+                        throw new Error('Failed to save');
                     }
-                }
-                tr[i].style.display = rowMatches ? '' : 'none';
-                if (rowMatches) foundAny = true;
-            }
-
-            const noData = document.getElementById('noDataMessage');
-            if (!foundAny && !noData) {
-                const msg = document.createElement('p');
-                msg.id = 'noDataMessage';
-                msg.textContent = 'ไม่พบข้อมูล';
-                msg.className = 'text-red-500 font-bold text-center mt-2';
-                table.parentNode.insertBefore(msg, table.nextSibling);
-            } else if (foundAny && noData) {
-                noData.remove();
-            }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('เกิดข้อผิดพลาดในการบันทึก', 'bg-red-200');
+                });
         }
 
         function showNotification(message, headerClass) {
@@ -303,7 +487,7 @@ try {
             const header = document.getElementById('notification-header');
             const body = document.getElementById('notification-body');
 
-            header.className = `p-2 rounded-t-md font-bold ${headerClass}`;
+            header.className = `p-2 rounded-t-md font-bold ${headerClass} text-sm md:text-base`;
             header.textContent = 'แจ้งเตือน';
             body.textContent = message;
             notification.classList.remove('hidden');
