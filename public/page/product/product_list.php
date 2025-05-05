@@ -431,9 +431,9 @@ try {
                                                 </td>
                                                 <td class="px-3 sm:px-6 py-2 border text-center text-xs sm:text-sm">
                                                     <?php if ($is_incomplete): ?>
-                                                        <span class="text-red-600 font-bold">N</span>
+                                                        <span class="text-red-600 font-bold">กรอกข้อมูลสินค้ายังไม่ครบ</span>
                                                     <?php else: ?>
-                                                        <span class="text-green-600 font-bold">OK</span>
+                                                        <span class="text-green-600 font-bold">ข้อมูลสินค้าครบถ้วน</span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="px-3 sm:px-6 py-2 border text-center">
