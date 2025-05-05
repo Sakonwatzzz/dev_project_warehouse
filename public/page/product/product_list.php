@@ -1,3 +1,4 @@
+
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
@@ -12,6 +13,7 @@ try {
     $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
 
     // Sanitize and validate input filters
+    $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
     $selected_types = isset($_GET['product_type']) && !empty($_GET['product_type'])
         ? array_filter(array_map('intval', explode(',', $_GET['product_type'])))
         : [];
@@ -108,6 +110,12 @@ try {
         )";
     }
 
+    if ($search) {
+        $where_conditions[] = "(product.product_name LIKE ? OR product.product_id LIKE ?)";
+        $bind_params[] = "%$search%";
+        $bind_params[] = "%$search%";
+    }
+
     if (!empty($selected_types)) {
         $type_placeholders = implode(',', array_fill(0, count($selected_types), '?'));
         $where_conditions[] = "product.product_type_id IN ($type_placeholders)";
@@ -144,12 +152,11 @@ try {
     LIMIT ?, ?";
 
     $stmt = $pdo->prepare($query);
-    $bind_params[] = $offset;
-    $bind_params[] = $records_per_page;
-
     foreach ($bind_params as $i => $param) {
-        $stmt->bindValue($i + 1, $param, PDO::PARAM_INT);
+        $stmt->bindValue($i + 1, $param, is_string($param) ? PDO::PARAM_STR : PDO::PARAM_INT);
     }
+    $stmt->bindValue(count($bind_params) + 1, $offset, PDO::PARAM_INT);
+    $stmt->bindValue(count($bind_params) + 2, $records_per_page, PDO::PARAM_INT);
 
     $stmt->execute();
     $resultsproduct = $stmt;
@@ -176,9 +183,7 @@ try {
     $count_stmt = $pdo->prepare($count_query);
 
     foreach ($bind_params as $i => $param) {
-        if ($i < count($bind_params) - 2) { // Exclude offset and limit
-            $count_stmt->bindValue($i + 1, $param, PDO::PARAM_INT);
-        }
+        $count_stmt->bindValue($i + 1, $param, is_string($param) ? PDO::PARAM_STR : PDO::PARAM_INT);
     }
 
     $count_stmt->execute();
@@ -206,7 +211,7 @@ try {
     $brandResults = $brand_stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());
-    die("An error occurred while processing your request.");
+    die("เกิดข้อผิดพลาดขณะประมวลผลคำขอของคุณ");
 }
 ?>
 
@@ -263,9 +268,10 @@ try {
             </div>
 
             <div class="w-full sm:w-auto">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
+                <input type="text" id="searchInput" 
                     placeholder="ค้นหาสินค้า..."
-                    class="w-full sm:w-[250px] lg:w-[350px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base">
+                    class="w-full sm:w-[250px] lg:w-[350px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                    value="<?php echo htmlspecialchars($search); ?>">
             </div>
         </div>
 
@@ -362,11 +368,10 @@ try {
             <!-- Table Section -->
             <div class="w-full lg:w-4/5">
                 <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6 sm:mb-8">
-                    <div class="flex justify-between  bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                    <div class="flex justify-between bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
                         <h2 class="text-lg sm:text-2xl font-bold text-gray-800 flex items-center">
                             <i class="fas fa-list mr-2"></i>รายการสินค้า
                         </h2>
-                      
                     </div>
                     <div class="p-4 sm:p-6">
                         <div class="flex items-center space-x-3 sm:space-x-4 mb-4">
@@ -383,7 +388,7 @@ try {
                             <table class="w-full border-collapse" id="dataTable">
                                 <thead>
                                     <tr class="bg-gray-50">
-                                        <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">รหัสสินค้า</th>
+                                        <th class="px-3 bg-blue-400 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">รหัสสินค้า</th>
                                         <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">ชื่อสินค้า</th>
                                         <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">ราคาทุน</th>
                                         <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">ราคาขาย</th>
@@ -397,7 +402,7 @@ try {
                                     <?php if ($resultsproduct->rowCount() > 0): ?>
                                         <?php foreach ($resultsproduct as $product_list): ?>
                                             <?php
-                                            $is_incomplete = empty(trim($product_list['product_name'])) ||
+                                            $is_incomplete = empty($product_list['product_name']) ||
                                                 ($product_list['product_price1'] === null || $product_list['product_price1'] === '' || $product_list['product_price1'] == 0) ||
                                                 ($product_list['product_price2'] === null || $product_list['product_price2'] === '' || $product_list['product_price2'] == 0) ||
                                                 ($product_list['product_price3'] === null || $product_list['product_price3'] === '' || $product_list['product_price3'] == 0) ||
@@ -407,7 +412,7 @@ try {
                                                 empty($product_list['product_brand_id']);
                                             ?>
                                             <tr class="hover:bg-gray-100 <?php echo $is_incomplete ? 'bg-red-50' : ''; ?>">
-                                                <td class="px-3 sm:px-6 py-2 border text-xs sm:text-sm"><?php echo htmlspecialchars($product_list['product_id']); ?></td>
+                                                <td class="px-3 bg-yellow-400 bg-opacity-50 sm:px-6 py-2 border border-gray-300 text-xs sm:text-sm"><?php echo htmlspecialchars($product_list['product_id']); ?></td>
                                                 <td class="px-3 sm:px-6 py-2 border text-blue-600 hover:underline cursor-pointer text-xs sm:text-sm <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
                                                     onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo htmlspecialchars($product_list['product_id']); ?>'">
                                                     <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_name']); ?>
@@ -434,7 +439,7 @@ try {
                                                 <td class="px-3 sm:px-6 py-2 border text-center">
                                                     <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-2">
                                                         <a href="?page=product_detail&tabel=product&id=<?php echo htmlspecialchars($product_list['product_id']); ?>"
-                                                            CHD class="bg-blue-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-blue-600 transition flex items-center text-xs sm:text-sm">
+                                                            class="bg-blue-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-blue-600 transition flex items-center text-xs sm:text-sm">
                                                             <i class="fas fa-eye mr-1"></i>ดู
                                                         </a>
                                                         <a href="?page=product_update&id=<?php echo htmlspecialchars($product_list['product_id']); ?>"
@@ -477,6 +482,9 @@ try {
                     }
                     if (!empty($selected_brands)) {
                         $query_params['product_brand'] = implode(',', $selected_brands);
+                    }
+                    if ($search) {
+                        $query_params['search'] = $search;
                     }
                     ?>
                     <?php if ($total_pages > 1): ?>
@@ -548,116 +556,7 @@ try {
             </div>
         </div>
 
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const checkboxes = document.querySelectorAll('input[name="product_type[]"], input[name="product_brand[]"]');
-                checkboxes.forEach(checkbox => {
-                    checkbox.addEventListener('change', updateFilters);
-                });
-
-                const searchInput = document.getElementById("searchInput");
-                if (searchInput) searchInput.focus();
-
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.has('edit_success')) showNotification('notification-edit');
-                else if (urlParams.has('delete_success')) showNotification('notification-delete');
-
-                // Toggle filters on mobile
-                const toggleFilters = document.getElementById('toggleFilters');
-                const filters = document.getElementById('filters');
-                if (toggleFilters) {
-                    toggleFilters.addEventListener('click', () => {
-                        filters.classList.toggle('hidden');
-                        const icon = toggleFilters.querySelector('i');
-                        icon.classList.toggle('fa-chevron-down');
-                        icon.classList.toggle('fa-chevron-up');
-                    });
-                }
-            });
-
-            function updateFilters() {
-                const selectedTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
-                const selectedBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
-
-                let url = new URL(window.location.href);
-                let params = new URLSearchParams(url.search);
-
-                if (params.has('mode')) url.searchParams.set('mode', params.get('mode'));
-                if (params.has('page_num')) url.searchParams.set('page_num', params.get('page_num'));
-
-                if (selectedTypes.length > 0) url.searchParams.set('product_type', selectedTypes.join(','));
-                else url.searchParams.delete('product_type');
-
-                if (selectedBrands.length > 0) url.searchParams.set('product_brand', selectedBrands.join(','));
-                else url.searchParams.delete('product_brand');
-
-                window.location.href = url.toString();
-            }
-
-            function searchTable() {
-                const input = document.getElementById("searchInput");
-                const filter = input.value.toLowerCase();
-                const table = document.getElementById("dataTable");
-                const tr = table.getElementsByTagName("tr");
-                const thead = table.querySelector("thead");
-                let foundAny = false;
-
-                thead.style.display = "";
-
-                for (let i = 1; i < tr.length; i++) {
-                    const td = tr[i].getElementsByTagName("td");
-                    let rowMatchesSearch = false;
-
-                    for (let j = 0; j < td.length; j++) {
-                        const txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                            rowMatchesSearch = true;
-                            break;
-                        }
-                    }
-                    tr[i].style.display = rowMatchesSearch ? "" : "none";
-                    if (rowMatchesSearch) foundAny = true;
-                }
-
-                let noDataMessage = document.getElementById("noDataMessage");
-                if (!foundAny) {
-                    if (!noDataMessage) {
-                        noDataMessage = document.createElement("p");
-                        noDataMessage.id = "noDataMessage";
-                        noDataMessage.textContent = "ไม่พบข้อมูล";
-                        noDataMessage.className = "text-red-500 font-bold text-center mt-4 text-sm sm:text-base";
-                        table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                    }
-                } else {
-                    if (noDataMessage) {
-                        noDataMessage.remove();
-                    }
-                }
-            }
-
-            function showNotification(id) {
-                const notification = document.getElementById(id);
-                notification.classList.remove('hidden');
-                setTimeout(() => notification.classList.add('hidden'), 2000);
-            }
-
-            // // Current date time
-            // function updateDateTime() {
-            //     const now = new Date();
-            //     const options = {
-            //         weekday: 'long',
-            //         year: 'numeric',
-            //         month: 'long',
-            //         day: 'numeric',
-            //         hour: '2-digit',
-            //         minute: '2-digit'
-            //     };
-            //     document.getElementById('currentDateTime').textContent = now.toLocaleDateString('th-TH', options);
-            // }
-
-            // updateDateTime();
-            // setInterval(updateDateTime, 60000);
-        </script>
+        <script src="page/product/function/search_product.js"></script>
 </body>
 
 </html>

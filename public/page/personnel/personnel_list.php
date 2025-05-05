@@ -294,7 +294,7 @@ try {
                             <?php foreach ($personnel as $person): ?>
                                 <tr data-id="<?php echo htmlspecialchars($person['personnel_id']); ?>">
                                     <td data-label="รหัสบุคลากร" class="cursor-pointer hover:underline"><?php echo htmlspecialchars($person['personnel_id']); ?></td>
-                                    <td data-label="ชื่อ-นามสกุล" class="personnel-name cursor-pointer hover:underline"><?php echo htmlspecialchars($person['personnel_name']); ?></td>
+                                    <td data-label="ชื่อ-นามสกุล" class="personnel-name cursor-pointer hover:underline" onclick="window.location.href='?page=personnel_detail&tabel=personnel&id=<?php echo htmlspecialchars($person['personnel_id']); ?>'"><?php echo htmlspecialchars($person['personnel_name']); ?></td>
                                     <td data-label="ประเภทบุคลากร" class="personnel-type"><?php echo htmlspecialchars($person['personnel_type_name']); ?></td>
                                     <td data-label="ชื่อผู้ใช้"><?php echo htmlspecialchars($person['personnel_username']); ?></td>
                                     <td data-label="การจัดการ" class="text-center">
