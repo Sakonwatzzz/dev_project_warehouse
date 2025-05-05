@@ -1,3 +1,6 @@
+
+//ยังไม่ได้ถูกเรียกใช้งานจากหน้าหลัก แยกออกมารอ
+
 $(document).ready(function () {
   const Toast = Swal.mixin({
     toast: true,
@@ -96,7 +99,7 @@ $(document).ready(function () {
       e.preventDefault();
     });
 
-  // Barcode search
+  // Barcode search for realtime
   $("#barcode_input").on("input", function () {
     const query = $(this).val();
     if (query.length < 2) {

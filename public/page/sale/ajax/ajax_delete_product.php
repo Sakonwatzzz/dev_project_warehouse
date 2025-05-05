@@ -1,4 +1,6 @@
 <?php
+
+//ยังไม่ได้ถูกเรียกใช้งานจากหน้าหลัก แยกออกมารอ
 function isAjaxRequest()
 {
     $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
@@ -11,7 +13,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST[
     echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
     exit();
 }
-require_once __DIR__ . '/../../../../config/database_server.php';
+
+try {
+    require_once __DIR__ . '/../../../../config/database_server.php';
+    error_log('Database connected successfuly');
+}catch(Exception $e){
+    error_log('Error included database_server.php');
+    json_encode([
+        'status' => 'error',
+        'message' => 'การเชื่อมต่อไฟล์ฐานข้อมูลล้มเหลว'.$e->getMessage()
+    ]);
+}
 require_once __DIR__ . '/../../../../functions/adjustLotRemain.php';
 
 header('Content-Type: application/json; charset=utf-8');

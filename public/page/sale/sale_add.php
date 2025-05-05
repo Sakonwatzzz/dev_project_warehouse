@@ -208,93 +208,93 @@ function isAjaxRequest()
     return $isAjax;
 }
 // Handle product add
-// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_product') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_product') {
 
-//     if (!isAjaxRequest()) {
-//         header('HTTP/1.1 403 Forbidden');
-//         echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
-//         exit();
-//     }
-//     header('Content-Type: application/json');
-//     ob_clean();
-//     try {
-//         $barcode = trim($_POST['barcode']);
-//         $qty = is_numeric($_POST['qty'] ?? null) ? (int) $_POST['qty'] : 1;
-//         $price = is_numeric($_POST['price'] ?? null) ? (float) $_POST['price'] : 0;
-//         $price_type = $_POST['price_type'] ?? 'price4';
+    if (!isAjaxRequest()) {
+        header('HTTP/1.1 403 Forbidden');
+        echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
+        exit();
+    }
+    header('Content-Type: application/json');
+    ob_clean();
+    try {
+        $barcode = trim($_POST['barcode']);
+        $qty = is_numeric($_POST['qty'] ?? null) ? (int) $_POST['qty'] : 1;
+        $price = is_numeric($_POST['price'] ?? null) ? (float) $_POST['price'] : 0;
+        $price_type = $_POST['price_type'] ?? 'price4';
 
-//         if (empty($barcode)) {
-//             throw new Exception("กรุณาป้อนรหัสสินค้า");
-//         }
-//         if ($qty <= 0) {
-//             throw new Exception("จำนวนต้องมากกว่า 0");
-//         }
+        if (empty($barcode)) {
+            throw new Exception("กรุณาป้อนรหัสสินค้า");
+        }
+        if ($qty <= 0) {
+            throw new Exception("จำนวนต้องมากกว่า 0");
+        }
 
-//         $pdo->beginTransaction();
+        $pdo->beginTransaction();
 
-//         // ตรวจสอบสินค้า
-//         $stmtP = $pdo->prepare("
-//             SELECT product_name, product_price1, product_price2, product_price3, product_price4, product_capital 
-//             FROM product 
-//             WHERE product_id = ?
-//         ");
-//         $stmtP->execute([$barcode]);
-//         $prod = $stmtP->fetch(PDO::FETCH_ASSOC);
-//         if (!$prod) {
-//             throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
-//         }
+        // ตรวจสอบสินค้า
+        $stmtP = $pdo->prepare("
+            SELECT product_name, product_price1, product_price2, product_price3, product_price4, product_capital 
+            FROM product 
+            WHERE product_id = ?
+        ");
+        $stmtP->execute([$barcode]);
+        $prod = $stmtP->fetch(PDO::FETCH_ASSOC);
+        if (!$prod) {
+            throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
+        }
 
-//         // เลือกราคา
-//         $unitPrice = $price > 0 ? $price : $prod['product_' . $price_type];
-//         $unitCapital = $prod['product_capital'];
+        // เลือกราคา
+        $unitPrice = $price > 0 ? $price : $prod['product_' . $price_type];
+        $unitCapital = $prod['product_capital'];
 
-//         // ตรวจสอบว่ามีสินค้านี้ในบิลแล้วหรือไม่
-//         $stmt = $pdo->prepare("
-//             SELECT sale_product_qty, sale_product_price, sale_product_capital 
-//             FROM sale_product 
-//             WHERE sale_id = ? AND product_id = ?
-//         ");
-//         $stmt->execute([$sale_id, $barcode]);
-//         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        // ตรวจสอบว่ามีสินค้านี้ในบิลแล้วหรือไม่
+        $stmt = $pdo->prepare("
+            SELECT sale_product_qty, sale_product_price, sale_product_capital 
+            FROM sale_product 
+            WHERE sale_id = ? AND product_id = ?
+        ");
+        $stmt->execute([$sale_id, $barcode]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
-//         if ($existing) {
-//             $newQty = $existing['sale_product_qty'] + $qty;
-//             $newPrice = $price > 0 ? $price : $existing['sale_product_price'];
-//             $newCapital = $prod['product_capital'];
+        if ($existing) {
+            $newQty = $existing['sale_product_qty'] + $qty;
+            $newPrice = $price > 0 ? $price : $existing['sale_product_price'];
+            $newCapital = $prod['product_capital'];
 
-//             $stmt = $pdo->prepare("
-//                 UPDATE sale_product 
-//                 SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ?
-//                 WHERE sale_id = ? AND product_id = ?
-//             ");
-//             $stmt->execute([$newQty, $newPrice, $newCapital, $sale_id, $barcode]);
-//         } else {
-//             $stmt = $pdo->prepare("
-//                 INSERT INTO sale_product 
-//                 (sale_id, product_id, sale_product_qty, sale_product_price, sale_product_capital)
-//                 VALUES (?, ?, ?, ?, ?)
-//             ");
-//             $stmt->execute([$sale_id, $barcode, $qty, $unitPrice, $unitCapital]);
-//         }
+            $stmt = $pdo->prepare("
+                UPDATE sale_product 
+                SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ?
+                WHERE sale_id = ? AND product_id = ?
+            ");
+            $stmt->execute([$newQty, $newPrice, $newCapital, $sale_id, $barcode]);
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO sale_product 
+                (sale_id, product_id, sale_product_qty, sale_product_price, sale_product_capital)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$sale_id, $barcode, $qty, $unitPrice, $unitCapital]);
+        }
 
-//         // ตัดสต็อก
-//         try {
-//             $lot_ids = adjustLotRemain($pdo, $barcode, $qty, false);
-//         } catch (Exception $e) {
-//             throw new Exception("ไม่สามารถตัดสต็อกได้: " . $e->getMessage());
-//         }
+        // ตัดสต็อก
+        try {
+            $lot_ids = adjustLotRemain($pdo, $barcode, $qty, false);
+        } catch (Exception $e) {
+            throw new Exception("ไม่สามารถตัดสต็อกได้: " . $e->getMessage());
+        }
 
-//         $pdo->commit();
-//         echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ']);
-//     } catch (Exception $e) {
-//         if ($pdo->inTransaction()) {
-//             $pdo->rollBack();
-//         }
-//         error_log("Error adding product: " . $e->getMessage());
-//         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-//     }
-//     exit();
-// }
+        $pdo->commit();
+        echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ']);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error adding product: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit();
+}
 // Handle product update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     header('Content-Type: application/json');
@@ -579,7 +579,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
     <script src="page/sale/js/sale_print_receipt.js"></script>
     <script src="page/sale/js/sale_new_sale.js"></script>
     <script src="page/sale/js/sale_switch.js"></script>
-    <script src="page/sale/js/sale_insert.js"></script>
+    <!-- <script src="page/sale/js/sale_insert.js"></script> -->
+    <!-- <script src="page/sale/js/sale_modal.js"> </script> -->
     <style>
         #edit-product-modal {
             z-index: 1000;
@@ -1079,88 +1080,88 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     let isProcessing = false;
 
 
-                    // $('#form_add_product input').on('keypress', function (e) {
-                    //     if (e.which === 13 && !isProcessing) {
-                    //         e.preventDefault();
-                    //         e.stopPropagation(); // หยุด event bubbling
-                    //         const barcode = $('#barcode_input').val();
-                    //         const qty = parseInt($('input[name="qty"]').val()) || 0;
-                    //         if (!barcode) {
-                    //             Swal.fire({
-                    //                 icon: 'error',
-                    //                 title: 'ข้อผิดพลาด',
-                    //                 text: 'กรุณาป้อนรหัสสินค้า'
-                    //             });
-                    //             return;
-                    //         }
-                    //         if (qty <= 0) {
-                    //             Swal.fire({
-                    //                 icon: 'error',
-                    //                 title: 'ข้อผิดพลาด',
-                    //                 text: 'จำนวนต้องมากกว่า 0'
-                    //             });
-                    //             return;
-                    //         }
-                    //         console.log('Submitting #form_add_product:', $('#form_add_product').serialize()); // เฉพาะตอนพัฒนาเท่านั้นค่อยปิด
-                    //         $.ajax({
-                    //             url: 'page/sale/ajax/ajax_add_product.php',
-                    //             method: 'POST',
-                    //             data: $('#form_add_product').serialize(),
-                    //             dataType: 'json',
-                    //             beforeSend: function () {
-                    //                 isProcessing = true;
-                    //                 $('#barcode_input').prop('disabled', true);
-                    //                 $('input[name="qty"]').prop('disabled', true);
-                    //             },
-                    //             success: function (response) {
-                    //                 if (response.status === 'success') {
-                    //                     Toast.fire({
-                    //                         icon: 'success',
-                    //                         title: response.message
-                    //                     });
-                    //                     updateProductTable();
-                    //                     $('#form_add_product')[0].reset();
-                    //                     $('#product_info').addClass('hidden').empty();
-                    //                 } else {
-                    //                     Swal.fire({
-                    //                         icon: 'warning',
-                    //                         title: '',
-                    //                         text: response.message,
-                    //                         didOpen: () => {
-                    //                             $('.main-body').removeAttr('aria-hidden');
-                    //                         }
-                    //                     });
-                    //                 }
-                    //             },
-                    //             complete: function () {
-                    //                 isProcessing = false;
-                    //                 $('#barcode_input').prop('disabled', false);
-                    //                 $('input[name="qty"]').prop('disabled', false);
-                    //                 $('.main-body').removeAttr('aria-hidden');
-                    //                 if (!$('#edit-product-modal').is(':visible')) {
-                    //                     $('#barcode_input').focus();
-                    //                 }
-                    //             },
-                    //             error: function (xhr) {
-                    //                 Swal.fire({
-                    //                     icon: 'error',
-                    //                     title: 'ข้อผิดพลาด',
-                    //                     text: xhr.responseText || 'ไม่สามารถเพิ่มสินค้าได้',
-                    //                     didOpen: () => {
-                    //                         $('.main-body').removeAttr('aria-hidden');
-                    //                     }
-                    //                 });
-                    //                 isProcessing = false;
-                    //             }
-                    //         });
-                    //     }
-                    // });
+                    $('#form_add_product input').on('keypress', function (e) {
+                        if (e.which === 13 && !isProcessing) {
+                            e.preventDefault();
+                            e.stopPropagation(); // หยุด event bubbling
+                            const barcode = $('#barcode_input').val();
+                            const qty = parseInt($('input[name="qty"]').val()) || 0;
+                            if (!barcode) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: 'กรุณาป้อนรหัสสินค้า'
+                                });
+                                return;
+                            }
+                            if (qty <= 0) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: 'จำนวนต้องมากกว่า 0'
+                                });
+                                return;
+                            }
+                            console.log('Submitting #form_add_product:', $('#form_add_product').serialize()); // เฉพาะตอนพัฒนาเท่านั้นค่อยปิด
+                            $.ajax({
+                                url: 'page/sale/sale_add.php',
+                                method: 'POST',
+                                data: $('#form_add_product').serialize(),
+                                dataType: 'json',
+                                beforeSend: function () {
+                                    isProcessing = true;
+                                    $('#barcode_input').prop('disabled', true);
+                                    $('input[name="qty"]').prop('disabled', true);
+                                },
+                                success: function (response) {
+                                    if (response.status === 'success') {
+                                        Toast.fire({
+                                            icon: 'success',
+                                            title: response.message
+                                        });
+                                        updateProductTable();
+                                        $('#form_add_product')[0].reset();
+                                        $('#product_info').addClass('hidden').empty();
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'warning',
+                                            title: '',
+                                            text: response.message,
+                                            didOpen: () => {
+                                                $('.main-body').removeAttr('aria-hidden');
+                                            }
+                                        });
+                                    }
+                                },
+                                complete: function () {
+                                    isProcessing = false;
+                                    $('#barcode_input').prop('disabled', false);
+                                    $('input[name="qty"]').prop('disabled', false);
+                                    $('.main-body').removeAttr('aria-hidden');
+                                    if (!$('#edit-product-modal').is(':visible')) {
+                                        $('#barcode_input').focus();
+                                    }
+                                },
+                                error: function (xhr) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'ข้อผิดพลาด',
+                                        text: xhr.responseText || 'ไม่สามารถเพิ่มสินค้าได้',
+                                        didOpen: () => {
+                                            $('.main-body').removeAttr('aria-hidden');
+                                        }
+                                    });
+                                    isProcessing = false;
+                                }
+                            });
+                        }
+                    });
 
                     // ป้องกันการ submit ไม่คาดคิดของ #form_add_product
-                    // $('#form_add_product').off('submit').on('submit', function (e) {
-                    //     e.preventDefault();
-                    //     console.log('Unexpected submit event on #form_add_product');
-                    // });
+                    $('#form_add_product').off('submit').on('submit', function (e) {
+                        e.preventDefault();
+                        console.log('Unexpected submit event on #form_add_product');
+                    });
                     // จัดการ submit ของ #confirm-sale-form เฉพาะเมื่อกดปุ่ม
                     $('#confirm-sale-btn').on('click', function (e) {
                         e.preventDefault();
@@ -1231,133 +1232,134 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
 
                     // Autocomplete สำหรับค้นหาสินค้า
-                    // $('#barcode_input').on('input', function () {
-                    //     const query = $(this).val();
-                    //     if (query.length < 2) {
-                    //         $('#barcode_suggestions').addClass('hidden').empty();
-                    //         $('#product_info').addClass('hidden').empty();
-                    //         return;
-                    //     }
-                    //     $.ajax({
-                    //         url: 'page/sale/ajax/ajax_search_product.php',
-                    //         method: 'GET',
-                    //         data: {
-                    //             query: query
-                    //         },
-                    //         dataType: 'json',
-                    //         success: function (response) {
-                    //             const products = response;
-                    //             const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
-                    //             if (products.length === 0) {
-                    //                 suggestions.append('<div class="p-2 text-gray-500">ไม่พบสินค้า</div>');
-                    //                 return;
-                    //             }
-                    //             products.forEach(product => {
-                    //                 suggestions.append(`
-                    //             <div class="p-2 hover:bg-gray-100 cursor-pointer" data-barcode="${product.product_id}">
-                    //                 ${product.product_id} - ${product.product_name} (สต็อก: ${product.total_stock})
-                    //             </div>
-                    //         `);
-                    //             });
-                    //             suggestions.find('div').on('click', function () {
-                    //                 const barcode = $(this).data('barcode');
-                    //                 $('#barcode_input').val(barcode);
-                    //                 suggestions.addClass('hidden').empty();
-                    //                 fetchProductInfo(barcode);
-                    //             });
-                    //         },
-                    //         error: function (xhr) {
-                    //             Swal.fire({
-                    //                 icon: 'error',
-                    //                 title: 'ข้อผิดพลาด',
-                    //                 text: xhr.responseText || 'ไม่สามารถค้นหาสินค้าได้',
-                    //                 didOpen: () => {
-                    //                     $('.main-body').removeAttr('aria-hidden');
-                    //                 }
-                    //             });
-                    //         }
-                    //     });
-                    // });
+                    $('#barcode_input').on('input', function () {
+                        const query = $(this).val();
+                        if (query.length < 2) {
+                            $('#barcode_suggestions').addClass('hidden').empty();
+                            $('#product_info').addClass('hidden').empty();
+                            return;
+                        }
+                        $.ajax({
+                            url: 'page/sale/ajax/ajax_search_product.php',
+                            method: 'GET',
+                            data: {
+                                query: query
+                            },
+                            dataType: 'json',
+                            success: function (response) {
+                                const products = response;
+                                const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
+                                if (products.length === 0) {
+                                    suggestions.append('<div class="p-2 text-gray-500">ไม่พบสินค้า</div>');
+                                    return;
+                                }
+                                products.forEach(product => {
+                                    suggestions.append(`
+                                <div class="p-2 hover:bg-gray-100 cursor-pointer" data-barcode="${product.product_id}">
+                                    ${product.product_id} - ${product.product_name} (สต็อก: ${product.total_stock})
+                                </div>
+                            `);
+                                });
+                                suggestions.find('div').on('click', function () {
+                                    const barcode = $(this).data('barcode');
+                                    $('#barcode_input').val(barcode);
+                                    suggestions.addClass('hidden').empty();
+                                    fetchProductInfo(barcode);
+                                });
+                            },
+                            error: function (xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: xhr.responseText || 'ไม่สามารถค้นหาสินค้าได้',
+                                    didOpen: () => {
+                                        $('.main-body').removeAttr('aria-hidden');
+                                    }
+                                });
+                            }
+                        });
+                    });
 
                     // แสดงข้อมูลสินค้า
-                    // function fetchProductInfo(barcode) {
-                    //     $.ajax({
-                    //         url: 'page/sale/ajax/ajax_get_product.php',
-                    //         method: 'GET',
-                    //         data: {
-                    //             barcode: barcode
-                    //         },
-                    //         dataType: 'json',
-                    //         success: function (response) {
-                    //             const product = response;
-                    //             const info = $('#product_info').removeClass('hidden');
-                    //             if (!product) {
-                    //                 info.html('<span class="text-red-500">ไม่พบสินค้าหรือสต็อกไม่เพียงพอ</span>');
-                    //                 return;
-                    //             }
-                    //             info.html(`
-                    //         <p><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
-                    //         <p><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
-                    //         <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
-                    //     `);
-                    //         },
-                    //         error: function (xhr) {
-                    //             $('#product_info').addClass('hidden').empty();
-                    //             Swal.fire({
-                    //                 icon: 'error',
-                    //                 title: 'ข้อผิดพลาด',
-                    //                 text: xhr.responseText || 'ไม่สามารถดึงข้อมูลสินค้าได้',
-                    //                 didOpen: () => {
-                    //                     $('.main-body').removeAttr('aria-hidden');
-                    //                 }
-                    //             });
-                    //         }
-                    //     });
-                    // }
+                    function fetchProductInfo(barcode) {
+                        $.ajax({
+                            url: 'page/sale/ajax/ajax_get_product.php',
+                            method: 'GET',
+                            data: {
+                                barcode: barcode
+                            },
+                            dataType: 'json',
+                            success: function (response) {
+                                const product = response;
+                                const info = $('#product_info').removeClass('hidden');
+                                if (!product) {
+                                    info.html('<span class="text-red-500">ไม่พบสินค้าหรือสต็อกไม่เพียงพอ</span>');
+                                    return;
+                                }
+                                info.html(`
+                            <p><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
+                            <p><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
+                            <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
+                        `);
+                            },
+                            error: function (xhr) {
+                                $('#product_info').addClass('hidden').empty();
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: xhr.responseText || 'ไม่สามารถดึงข้อมูลสินค้าได้',
+                                    didOpen: () => {
+                                        $('.main-body').removeAttr('aria-hidden');
+                                    }
+                                });
+                            }
+                        });
+                    }
                     // อัปเดตตารางสินค้าแบบเรียลไทม์
-                    // function updateProductTable() {
-                    //     $.ajax({
-                    //         url: 'page/sale/ajax/ajax_get_sale_products.php',
-                    //         method: 'GET',
-                    //         data: { sale_id: '<?php echo htmlspecialchars($sale_id); ?>' },
-                    //         dataType: 'json',
-                    //         success: function (response) {
-                    //             if (response.status === 'success') {
-                    //                 $('#product_table_body').html(response.html);
-                    //                 $('.total-amount').text(response.total_amount + ' บาท');
-                    //                 $('.total-items').text(response.total_items + ' รายการ'); // เพิ่ม
-                    //                 $('.total-qty').text(response.total_qty + ' ชิ้น'); // เพิ่ม
-                    //                 const hasProducts = !response.html.includes('ไม่พบสินค้า');
-                    //                 $('#confirm-sale-btn')
-                    //                     .prop('disabled', !hasProducts)
-                    //                     .toggleClass('opacity-50 cursor-not-allowed', !hasProducts);
-                    //                 $('#calculate_change').click();
-                    //                 bindEditProductEvents();
-                    //                 $('.main-body').removeAttr('aria-hidden');
-                    //             } else {
-                    //                 Swal.fire({
-                    //                     icon: 'warning',
-                    //                     title: 'ข้อผิดพลาด',
-                    //                     text: response.message,
-                    //                     didOpen: () => {
-                    //                         $('.main-body').removeAttr('aria-hidden');
-                    //                     }
-                    //                 });
-                    //             }
-                    //         },
-                    //         error: function (xhr) {
-                    //             Swal.fire({
-                    //                 icon: 'error',
-                    //                 title: 'ข้อผิดพลาด',
-                    //                 text: xhr.responseText || 'ไม่สามารถดึงข้อมูลตารางได้',
-                    //                 didOpen: () => {
-                    //                     $('.main-body').removeAttr('aria-hidden');
-                    //                 }
-                    //             });
-                    //         }
-                    //     });
-                    // }
+                    function updateProductTable() {
+                        $.ajax({
+                            url: 'page/sale/ajax/ajax_get_sale_products.php',
+                            method: 'GET',
+                            data: { sale_id: '<?php echo htmlspecialchars($sale_id); ?>' },
+                            dataType: 'json',
+                            success: function (response) {
+                                if (response.status === 'success') {
+                                    $('#product_table_body').html(response.html);
+                                    $('.total-amount').text(response.total_amount + ' บาท');
+                                    $('.total-items').text(response.total_items + ' รายการ'); // เพิ่ม
+                                    $('.total-qty').text(response.total_qty + ' ชิ้น'); // เพิ่ม
+                                    const hasProducts = !response.html.includes('ไม่พบสินค้า');
+                                    $('#confirm-sale-btn')
+                                        .prop('disabled', !hasProducts)
+                                        .toggleClass('opacity-50 cursor-not-allowed', !hasProducts);
+                                    $('#calculate_change').click();
+                                    bindEditProductEvents();
+                                    $('.main-body').removeAttr('aria-hidden');
+                                } else {
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'ข้อผิดพลาด',
+                                        text: response.message,
+                                        didOpen: () => {
+                                            $('.main-body').removeAttr('aria-hidden');
+                                        }
+                                    });
+                                }
+                            },
+                            error: function (xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: xhr.responseText || 'ไม่สามารถดึงข้อมูลตารางได้',
+                                    didOpen: () => {
+                                        $('.main-body').removeAttr('aria-hidden');
+                                    }
+                                });
+                            }
+                        });
+                    }
                     // Autocomplete สำหรับค้นหาสมาชิก
+                    
                     $('#member_search').on('input', function () {
                         const query = $(this).val();
                         if (query.length < 2) {
@@ -1515,75 +1517,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         });
                     });
                     // ลบสินค้า
-                    $(document).on('click', '.delete-product', function (e) {
-                        e.preventDefault();
-                        console.log('Delete button clicked:', $(this).data('barcode')); // Log การคลิก
-                        if (isProcessing) {
-                            console.warn('Processing in progress, ignoring click');
-                            return;
-                        }
-                        const barcode = $(this).data('barcode');
-                        const qty = parseInt($(this).data('qty')) || 1;
-                        console.log("qty" + qty);
-                        Swal.fire({
-                            title: 'ยืนยันการลบสินค้า?',
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: 'ลบ',
-                            cancelButtonText: 'ยกเลิก'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                console.log('Sending AJAX request to delete:', {
-                                    barcode,
-                                    qty
-                                }); // Log ก่อนส่ง
-                                $.ajax({
-                                    url: 'page/sale/ajax/ajax_delete_product.php', // ชี้ตรงไปที่ไฟล์ PHP ที่ handle
-                                    method: 'POST',
-                                    data: {
-                                        action: 'delete',
-                                        sale_id: '<?php echo htmlspecialchars($sale_id); ?>',
-                                        barcode: barcode,
-                                        qty: qty
-                                    },
-                                    dataType: 'json',
-                                    beforeSend: function (xhr) {
-                                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                                        isProcessing = true;
-                                    },
-                                    success: function (response) {
-                                        if (response.status === 'success') {
-                                            Toast.fire({
-                                                icon: 'success',
-                                                title: response.message
-                                            });
-                                            updateProductTable();
-                                        } else {
-                                            Swal.fire({
-                                                icon: 'error',
-                                                title: 'ข้อผิดพลาด',
-                                                text: response.message,
-
-                                            });
-                                        }
-                                    },
-                                    complete: function () {
-                                        isProcessing = false;
-                                        $('#barcode_input').focus();
-                                    },
-                                    error: function (xhr, status, error) {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'ข้อผิดพลาด',
-                                            html: `<pre>${xhr.responseText}</pre>`
-                                        });
-                                        isProcessing = false;
-                                    }
-                                });
-
-                            }
-                        });
-                    });
+                   
 
                     // เปิด Modal และกรอกข้อมูลแก้ไข
                     $(document).on('click', '.edit-product', function (e) {
@@ -1674,26 +1608,26 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
 
                     // Bind event สำหรับปุ่มแก้ไขและลบ
-                    // function bindEditProductEvents() {
-                    //     $('.edit-product').off('click').on('click', function (e) {
-                    //         e.preventDefault();
-                    //         const barcode = $(this).data('barcode');
-                    //         const name = $(this).data('name');
-                    //         const qty = $(this).data('qty');
-                    //         const price = $(this).data('price');
-                    //         const capital = $(this).data('capital');
-                    //         const reference = $(this).data('reference') || '';
-                    //         $('#edit-barcode').val(barcode);
-                    //         $('#edit-barcode-display').val(barcode);
-                    //         $('#edit-product-name').val(name);
-                    //         $('#edit-qty').val(qty);
-                    //         $('#edit-price').val(parseFloat(price).toFixed(2));
-                    //         $('#edit-capital').val(parseFloat(capital).toFixed(2));
-                    //         $('#edit-reference').val(reference);
-                    //         $('.main-body').attr('aria-hidden', 'true');
-                    //         $('#edit-product-modal').removeClass('hidden');
-                    //     });
-                    // }
+                    function bindEditProductEvents() {
+                        $('.edit-product').off('click').on('click', function (e) {
+                            e.preventDefault();
+                            const barcode = $(this).data('barcode');
+                            const name = $(this).data('name');
+                            const qty = $(this).data('qty');
+                            const price = $(this).data('price');
+                            const capital = $(this).data('capital');
+                            const reference = $(this).data('reference') || '';
+                            $('#edit-barcode').val(barcode);
+                            $('#edit-barcode-display').val(barcode);
+                            $('#edit-product-name').val(name);
+                            $('#edit-qty').val(qty);
+                            $('#edit-price').val(parseFloat(price).toFixed(2));
+                            $('#edit-capital').val(parseFloat(capital).toFixed(2));
+                            $('#edit-reference').val(reference);
+                            $('.main-body').attr('aria-hidden', 'true');
+                            $('#edit-product-modal').removeClass('hidden');
+                        });
+                    }
                 });
             </script>
             <script>

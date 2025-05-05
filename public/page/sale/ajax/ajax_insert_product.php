@@ -1,4 +1,6 @@
 <?php
+//ยังไม่ได้ถูกเรียกใช้งานจากหน้าหลัก แยกออกมารอ
+
 // Start output buffering
 ob_start();
 
