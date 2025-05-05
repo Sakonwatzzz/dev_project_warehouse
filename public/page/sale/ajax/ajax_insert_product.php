@@ -1,10 +1,96 @@
-
- <?php 
+<?php
+// Start output buffering
 ob_start();
-session_start();
-require_once __DIR__ . '../../../../../config/database_server.php';
-header('Content-Type: application/json');
 
+// Set headers for JSON response
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
+
+// Disable display errors to prevent output
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/logs/php_errors.log');
+
+// Log start of script
+error_log("sale_add.php (add_product) started at " . date('Y-m-d H:i:s'));
+
+// Start session
+try {
+    session_start();
+} catch (Exception $e) {
+    error_log("Session start failed: " . $e->getMessage());
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'ไม่สามารถเริ่มเซสชันได้'
+    ]);
+    ob_end_flush();
+    exit();
+}
+
+// Include database configuration
+try {
+    require_once __DIR__ . '/../../../../config/database_server.php';
+    error_log("Database configuration included successfully");
+} catch (Exception $e) {
+    error_log("Error including database_server.php: " . $e->getMessage());
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'การเชื่อมต่อฐานข้อมูลล้มเหลว: ' . $e->getMessage()
+    ]);
+    ob_end_flush();
+    exit();
+}
+function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = false)
+{
+    $remainingToProcess = $qty;
+    $lot_ids = [];
+    try {
+        while ($remainingToProcess > 0) {
+            $query = "
+                SELECT lot_product_id, lot_product_remain 
+                FROM lot_product 
+                WHERE product_id = ? AND lot_product_remain > 0
+                ORDER BY lot_product_date ASC, lot_product_id ASC LIMIT 1
+            ";
+            $stmtLot = $pdo->prepare($query);
+            $stmtLot->execute([$productId]);
+            $lot = $stmtLot->fetch(PDO::FETCH_ASSOC);
+
+            if (!$lot) {
+                throw new Exception("สต็อกล็อตไม่เพียงพอสำหรับสินค้า $productId");
+            }
+
+            $current = (int) $lot['lot_product_remain'];
+            if ($addMode) {
+                $newRemain = $current + $remainingToProcess;
+                $remainingToProcess = 0;
+            } else {
+                if ($current >= $remainingToProcess) {
+                    $newRemain = $current - $remainingToProcess;
+                    $lot_ids[] = ['lot_product_id' => $lot['lot_product_id'], 'qty' => $remainingToProcess];
+                    $remainingToProcess = 0;
+                } else {
+                    $newRemain = 0;
+                    $lot_ids[] = ['lot_product_id' => $lot['lot_product_id'], 'qty' => $current];
+                    $remainingToProcess -= $current;
+                }
+            }
+
+            $updateLot = $pdo->prepare("
+                UPDATE lot_product 
+                SET lot_product_remain = ? 
+                WHERE lot_product_id = ?
+            ");
+            $updateLot->execute([$newRemain, $lot['lot_product_id']]);
+        }
+    } catch (Exception $e) {
+        error_log("Error in adjustLotRemain for product $productId: " . $e->getMessage());
+        throw $e;
+    }
+    return $lot_ids;
+}
 function isAjaxRequest()
 {
     $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
@@ -12,7 +98,7 @@ function isAjaxRequest()
     error_log("isAjaxRequest: " . ($isAjax ? 'Yes' : 'No') . ", Headers: " . json_encode(getallheaders()));
     return $isAjax;
 }
-// Handle product add
+// Handle add product via Ajax
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_product') {
 
     if (!isAjaxRequest()) {
@@ -99,4 +185,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
     exit();
+} else {
+    // Handle non-add_product requests (not included here)
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'คำขอไม่ถูกต้อง'
+    ]);
 }
+
+// Flush output and exit
+ob_end_flush();
+exit();
+?>

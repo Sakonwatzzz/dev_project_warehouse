@@ -1,7 +1,17 @@
 <?php
 ob_start();
 session_start();
-require_once __DIR__ . '../../../../../config/database_server.php';
+try {
+    require_once __DIR__ . '/../../../../config/database_server.php';
+    error_log("Database configuration included successfully");
+}catch(Exception $e){
+    error_log("Error including database_server.php");
+    json_encode([
+        'status' => 'error',
+        'message' => 'การเชื่อมต่อฐานข้อมูลล้มเหลว' .$e->getMessage()
+    ]);
+}
+
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST['action'] !== 'cancel_sale') {
@@ -46,7 +56,7 @@ try {
 
     $pdo->commit();
     $redirect_url = $_SESSION['current_sale_id'] ? "?page=sale_add&sale_id={$_SESSION['current_sale_id']}" : "?page=sale_add";
-    echo json_encode(['status' => 'success', 'message' => 'บิล #' . $cancel_sale_id . ' ถูกลบเรียบร้อย', 'redirect' => $redirect_url]);
+    echo json_encode(['status' => 'success', 'message' => 'บิล #' . $cancel_sale_id . ' ถูกยกเลิกเรียบร้อย', 'redirect' => $redirect_url]);
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

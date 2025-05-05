@@ -5,8 +5,8 @@ require_once __DIR__ . '../../../../config/database_server.php';
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 $start_date = isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : '';
 $end_date = isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : '';
-$status = isset($_GET['status']) ? (int)$_GET['status'] : 'all'; // ค่าเริ่มต้นสถานะเป็น 'all'
-// $status = isset($_GET['status']) ? (int)$_GET['status'] : 2; // ค่าเริ่มต้นสถานะเป็น 2
+// $status = isset($_GET['status']) ? (int)$_GET['status'] : 'all'; // ค่าเริ่มต้นสถานะเป็น 'all'
+$status = isset($_GET['status']) ? (int)$_GET['status'] : 1; // ค่าเริ่มต้นสถานะ
 $date_range = isset($_GET['date_range']) ? htmlspecialchars($_GET['date_range']) : 'this_year'; // ค่าเริ่มต้นเป็น custom
 
 
@@ -155,6 +155,8 @@ $sale_statusQuery = $pdo->query("SELECT sale_status_id, sale_status_name FROM sa
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
+    <!-- defer จะทำให้สคริปต์รัน หลังจากโหลด HTML ทั้งหมดแล้ว เหมือนวางไว้ล่างสุดของ <body> เหมาะสำหรับ JavaScript ที่ไม่ต้องรันก่อน DOM ถูกโหลด -->
+    <script src="page/sale/js/sale_list.js" defer></script>
     <style>
         /* สไตล์สำหรับไอคอนลูกศรใน select */
         .custom-select {
@@ -212,7 +214,7 @@ $sale_statusQuery = $pdo->query("SELECT sale_status_id, sale_status_name FROM sa
                     <?php echo $count; ?>
                 </div>
                 <div class="flex items-center">
-                    <input type="text" id="searchInput" placeholder="ค้นหารายการขาย..."
+                    <input type="text" id="searchInput" autofocus placeholder="ค้นหารายการขาย..."
                         class="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-96 transition duration-200 hover:bg-gray-50"
                         value="<?php echo htmlspecialchars($search); ?>">
                 </div>
@@ -239,7 +241,6 @@ $sale_statusQuery = $pdo->query("SELECT sale_status_id, sale_status_name FROM sa
                     <h2 class="text-gray-700 font-medium">สถานะการขาย</h2>
                     <select id="saleStatusSelect" name="sale_status_id"
                         class="custom-select border border-gray-200 rounded-md px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition duration-200 hover:bg-blue-50 w-40">
-                        <option value="all" <?php echo $status === 'all' ? 'selected' : ''; ?>>ทั้งหมด</option>
                         <?php while ($status_list = $sale_statusQuery->fetch(PDO::FETCH_ASSOC)): ?>
                             <option value="<?php echo htmlspecialchars($status_list['sale_status_id']); ?>"
                                 <?php echo $status_list['sale_status_id'] == $status ? 'selected' : ''; ?>>
@@ -248,7 +249,7 @@ $sale_statusQuery = $pdo->query("SELECT sale_status_id, sale_status_name FROM sa
                         <?php endwhile; ?>
                     </select>
                 </div>
-
+                <button id="resetFilter" class="py-2 p-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white shadow-sm transition duration-200 hover:bg-purple-600">รีเซ็ตการกรอง</button>
             </div>
         </div>
 
@@ -342,7 +343,6 @@ $sale_statusQuery = $pdo->query("SELECT sale_status_id, sale_status_name FROM sa
             </div>
         </div>
     </div>
-    <script src="page/sale/script/sale_list.js"></script>
 </body>
 
 </html>

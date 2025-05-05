@@ -49,52 +49,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     header('Content-Type: application/json');
     ob_clean();
     $cancel_sale_id = $_POST['sale_id'] ?? null;
-    if ($cancel_sale_id && in_array($cancel_sale_id, $_SESSION['active_sales'])) {
-        try {
-            $pdo->beginTransaction();
+    if (!$cancel_sale_id || !in_array($cancel_sale_id, $_SESSION['active_sales'])) {
+        echo json_encode(['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ']);
+        exit();
+    }
+    error_log("Attempting to cancel sale with sale_id: " . $cancel_sale_id);
+    try {
+        $pdo->beginTransaction();
 
-            // Get products to restore stock
-            $stmt = $pdo->prepare("SELECT product_id, sale_product_qty FROM sale_product WHERE sale_id = ?");
-            $stmt->execute([$cancel_sale_id]);
-            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Restore stock in lot_product
+        $stmt = $pdo->prepare("SELECT product_id, sale_product_qty FROM sale_product WHERE sale_id = ?");
+        $stmt->execute([$cancel_sale_id]);
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Restore stock
-            foreach ($products as $product) {
-                $updateStock = $pdo->prepare("UPDATE product SET total_stock = total_stock + ? WHERE product_id = ?");
-                $updateStock->execute([$product['sale_product_qty'], $product['product_id']]);
+        foreach ($products as $product) {
+            if (!isset($product['product_id']) || !isset($product['sale_product_qty']) || $product['sale_product_qty'] <= 0) {
+                error_log("Invalid product data for sale_id $cancel_sale_id: " . json_encode($product));
+                throw new Exception("ข้อมูลสินค้าไม่ถูกต้องสำหรับบิล #$cancel_sale_id");
             }
-
-            // Update sale status to Cancelled (3)
-            $updateSale = $pdo->prepare("UPDATE sale SET sale_status_id = 3 WHERE sale_id = ?");
-            $updateSale->execute([$cancel_sale_id]);
-
-            // Remove from active sales
-            $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$cancel_sale_id]);
-            if ($_SESSION['current_sale_id'] == $cancel_sale_id) {
-                $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
-            }
-
-            $pdo->commit();
-            echo json_encode([
-                'status' => 'success',
-                'message' => 'บิล #' . $cancel_sale_id . ' ถูกยกเลิกเรียบร้อย',
-                'redirect' => $_SESSION['current_sale_id'] ? "?page=sale_add&sale_id=" . $_SESSION['current_sale_id'] : "?page=sale"
-            ]);
-        } catch (Exception $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            error_log("Error cancelling sale: " . $e->getMessage());
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'ไม่สามารถยกเลิกบิลได้: ' . $e->getMessage()
-            ]);
+            adjustLotRemain($pdo, $product['product_id'], $product['sale_product_qty'], true);
         }
-    } else {
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'บิลไม่ถูกต้องหรือไม่พบ'
-        ]);
+
+        // อัพเดทสถานะการขายจากค่าเดิม ('ขายปกติ = 1' หรือ 'กำลังขาย = 2') ให้เป็น สถานะ 'ยกเลิก' (sale_status_id = 3)
+        $updateSaleStatusid = $pdo->prepare("UPDATE sale SET sale_status_id = 3 WHERE sale_id = ?");
+        $updateSaleStatusid->execute([$cancel_sale_id]);
+
+        // Update session
+        $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$cancel_sale_id]);
+        if ($_SESSION['current_sale_id'] == $cancel_sale_id) {
+            $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
+        }
+
+        $pdo->commit();
+        $redirect_url = $_SESSION['current_sale_id'] ? "?page=sale_add&sale_id={$_SESSION['current_sale_id']}" : "?page=sale_add";
+        echo json_encode(['status' => 'success', 'message' => 'บิล #' . $cancel_sale_id . ' ถูกยกเลิกเรียบร้อย', 'redirect' => $redirect_url]);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error cancelling sale $cancel_sale_id: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถยกเลิกบิลได้: ' . $e->getMessage()]);
     }
     exit();
 }
@@ -214,93 +208,93 @@ function isAjaxRequest()
     return $isAjax;
 }
 // Handle product add
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_product') {
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_product') {
 
-    if (!isAjaxRequest()) {
-        header('HTTP/1.1 403 Forbidden');
-        echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
-        exit();
-    }
-    header('Content-Type: application/json');
-    ob_clean();
-    try {
-        $barcode = trim($_POST['barcode']);
-        $qty = is_numeric($_POST['qty'] ?? null) ? (int) $_POST['qty'] : 1;
-        $price = is_numeric($_POST['price'] ?? null) ? (float) $_POST['price'] : 0;
-        $price_type = $_POST['price_type'] ?? 'price4';
+//     if (!isAjaxRequest()) {
+//         header('HTTP/1.1 403 Forbidden');
+//         echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
+//         exit();
+//     }
+//     header('Content-Type: application/json');
+//     ob_clean();
+//     try {
+//         $barcode = trim($_POST['barcode']);
+//         $qty = is_numeric($_POST['qty'] ?? null) ? (int) $_POST['qty'] : 1;
+//         $price = is_numeric($_POST['price'] ?? null) ? (float) $_POST['price'] : 0;
+//         $price_type = $_POST['price_type'] ?? 'price4';
 
-        if (empty($barcode)) {
-            throw new Exception("กรุณาป้อนรหัสสินค้า");
-        }
-        if ($qty <= 0) {
-            throw new Exception("จำนวนต้องมากกว่า 0");
-        }
+//         if (empty($barcode)) {
+//             throw new Exception("กรุณาป้อนรหัสสินค้า");
+//         }
+//         if ($qty <= 0) {
+//             throw new Exception("จำนวนต้องมากกว่า 0");
+//         }
 
-        $pdo->beginTransaction();
+//         $pdo->beginTransaction();
 
-        // ตรวจสอบสินค้า
-        $stmtP = $pdo->prepare("
-            SELECT product_name, product_price1, product_price2, product_price3, product_price4, product_capital 
-            FROM product 
-            WHERE product_id = ?
-        ");
-        $stmtP->execute([$barcode]);
-        $prod = $stmtP->fetch(PDO::FETCH_ASSOC);
-        if (!$prod) {
-            throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
-        }
+//         // ตรวจสอบสินค้า
+//         $stmtP = $pdo->prepare("
+//             SELECT product_name, product_price1, product_price2, product_price3, product_price4, product_capital 
+//             FROM product 
+//             WHERE product_id = ?
+//         ");
+//         $stmtP->execute([$barcode]);
+//         $prod = $stmtP->fetch(PDO::FETCH_ASSOC);
+//         if (!$prod) {
+//             throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
+//         }
 
-        // เลือกราคา
-        $unitPrice = $price > 0 ? $price : $prod['product_' . $price_type];
-        $unitCapital = $prod['product_capital'];
+//         // เลือกราคา
+//         $unitPrice = $price > 0 ? $price : $prod['product_' . $price_type];
+//         $unitCapital = $prod['product_capital'];
 
-        // ตรวจสอบว่ามีสินค้านี้ในบิลแล้วหรือไม่
-        $stmt = $pdo->prepare("
-            SELECT sale_product_qty, sale_product_price, sale_product_capital 
-            FROM sale_product 
-            WHERE sale_id = ? AND product_id = ?
-        ");
-        $stmt->execute([$sale_id, $barcode]);
-        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+//         // ตรวจสอบว่ามีสินค้านี้ในบิลแล้วหรือไม่
+//         $stmt = $pdo->prepare("
+//             SELECT sale_product_qty, sale_product_price, sale_product_capital 
+//             FROM sale_product 
+//             WHERE sale_id = ? AND product_id = ?
+//         ");
+//         $stmt->execute([$sale_id, $barcode]);
+//         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($existing) {
-            $newQty = $existing['sale_product_qty'] + $qty;
-            $newPrice = $price > 0 ? $price : $existing['sale_product_price'];
-            $newCapital = $prod['product_capital'];
+//         if ($existing) {
+//             $newQty = $existing['sale_product_qty'] + $qty;
+//             $newPrice = $price > 0 ? $price : $existing['sale_product_price'];
+//             $newCapital = $prod['product_capital'];
 
-            $stmt = $pdo->prepare("
-                UPDATE sale_product 
-                SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ?
-                WHERE sale_id = ? AND product_id = ?
-            ");
-            $stmt->execute([$newQty, $newPrice, $newCapital, $sale_id, $barcode]);
-        } else {
-            $stmt = $pdo->prepare("
-                INSERT INTO sale_product 
-                (sale_id, product_id, sale_product_qty, sale_product_price, sale_product_capital)
-                VALUES (?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([$sale_id, $barcode, $qty, $unitPrice, $unitCapital]);
-        }
+//             $stmt = $pdo->prepare("
+//                 UPDATE sale_product 
+//                 SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ?
+//                 WHERE sale_id = ? AND product_id = ?
+//             ");
+//             $stmt->execute([$newQty, $newPrice, $newCapital, $sale_id, $barcode]);
+//         } else {
+//             $stmt = $pdo->prepare("
+//                 INSERT INTO sale_product 
+//                 (sale_id, product_id, sale_product_qty, sale_product_price, sale_product_capital)
+//                 VALUES (?, ?, ?, ?, ?)
+//             ");
+//             $stmt->execute([$sale_id, $barcode, $qty, $unitPrice, $unitCapital]);
+//         }
 
-        // ตัดสต็อก
-        try {
-            $lot_ids = adjustLotRemain($pdo, $barcode, $qty, false);
-        } catch (Exception $e) {
-            throw new Exception("ไม่สามารถตัดสต็อกได้: " . $e->getMessage());
-        }
+//         // ตัดสต็อก
+//         try {
+//             $lot_ids = adjustLotRemain($pdo, $barcode, $qty, false);
+//         } catch (Exception $e) {
+//             throw new Exception("ไม่สามารถตัดสต็อกได้: " . $e->getMessage());
+//         }
 
-        $pdo->commit();
-        echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ']);
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        error_log("Error adding product: " . $e->getMessage());
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit();
-}
+//         $pdo->commit();
+//         echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ']);
+//     } catch (Exception $e) {
+//         if ($pdo->inTransaction()) {
+//             $pdo->rollBack();
+//         }
+//         error_log("Error adding product: " . $e->getMessage());
+//         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+//     }
+//     exit();
+// }
 // Handle product update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     header('Content-Type: application/json');
@@ -352,7 +346,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit();
 }
 
-// Handle sale confirmation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_sale') {
     header('Content-Type: application/json');
     ob_clean();
@@ -373,7 +366,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (!$sale) {
             throw new Exception("ไม่พบข้อมูลบิล #$sale_id ในระบบ");
         }
-        if ($sale['sale_status_id'] != 1) {
+        if ($sale['sale_status_id'] != 2) {
             throw new Exception("บิล #$sale_id ไม่สามารถยืนยันได้ เนื่องจากไม่ได้อยู่ในสถานะรอดำเนินการ");
         }
 
@@ -403,8 +396,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน:\n" . $invalid_list);
         }
 
-        // อัปเดตสถานะบิลเป็นยืนยันแล้ว (sale_status_id = 2)
-        $updateSale = $pdo->prepare("UPDATE sale SET sale_status_id = 2 WHERE sale_id = ?");
+        // อัปเดตสถานะบิลเป็นยืนยันแล้ว (sale_status_id = 1 / sale_status_name = 'ขายปกติ')
+        $updateSale = $pdo->prepare("UPDATE sale SET sale_status_id = 1 WHERE sale_id = ?");
         $updateSale->execute([$sale_id]);
 
         // อัปเดต member_id หากระบุ
@@ -583,9 +576,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="page/sale/script/sale_print_receipt.js"></script>
-    <script src="page/sale/script/sale_new_sale.js"></script>
-    <script src="page/sale/script/sale_switch.js"></script>
+    <script src="page/sale/js/sale_print_receipt.js"></script>
+    <script src="page/sale/js/sale_new_sale.js"></script>
+    <script src="page/sale/js/sale_switch.js"></script>
+    <script src="page/sale/js/sale_insert.js"></script>
     <style>
         #edit-product-modal {
             z-index: 1000;
@@ -760,69 +754,73 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                     </tr>
                                 </thead>
                                 <tbody id="product_table_body">
-                                    <?php foreach ($sale_products as $product): ?>
-                                        <tr class="border-t border-gray-200 hover:bg-gray-50">
-                                            <td class="py-3 px-4 text-sm">
-                                                <?php echo htmlspecialchars($product['product_id']); ?>
-                                            </td>
-                                            <td class="py-3 px-4 text-sm">
-                                                <?php echo htmlspecialchars($product['product_name']); ?>
-                                            </td>
-                                            <td class="py-3 px-4 text-center text-sm">
-                                                <?php echo htmlspecialchars($product['sale_product_qty']); ?>
-                                            </td>
-                                            <td class="py-3 px-4 text-right text-sm">
-                                                <?php echo number_format($product['sale_product_price'], 2); ?>
-                                            </td>
-                                            <td class="py-3 px-4 text-right font-medium text-sm">
-                                                <?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?>
-                                            </td>
-                                            <td class="py-3 px-4 text-center">
-                                                <div class="flex justify-center space-x-2">
-                                                    <button
-                                                        class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors shadow-md"
-                                                        data-id="<?php echo htmlspecialchars($product['sale_product_id']); ?>"
-                                                        data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
-                                                        data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
-                                                        data-qty="<?php echo htmlspecialchars($product['sale_product_qty']); ?>"
-                                                        data-price="<?php echo htmlspecialchars($product['sale_product_price']); ?>"
-                                                        data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                            viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                        </svg>
-                                                    </button>
-                                                    <button type="button"
-                                                        class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors shadow-md"
-                                                        data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
-                                                        data-qty="1">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                            viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
+                                    <?php if (empty($sale_products)): ?>
+                                        <tr>
+                                            <td colspan="6" class="text-center py-8 text-gray-500">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24"
+                                                    stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                                </svg>
+                                                <p class="mt-2">ไม่พบสินค้าในการขายนี้</p>
+                                                <p class="text-sm">กรุณาเพิ่มสินค้า</p>
                                             </td>
                                         </tr>
-                                    <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <?php foreach ($sale_products as $product): ?>
+                                            <tr class="border-t border-gray-200 hover:bg-gray-50">
+                                                <td class="py-3 px-4 text-sm">
+                                                    <?php echo htmlspecialchars($product['product_id']); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-sm">
+                                                    <?php echo htmlspecialchars($product['product_name']); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-center text-sm">
+                                                    <?php echo htmlspecialchars($product['sale_product_qty']); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-right text-sm">
+                                                    <?php echo number_format($product['sale_product_price'], 2); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-right font-medium text-sm">
+                                                    <?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <div class="flex justify-center space-x-2">
+                                                        <button
+                                                            class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors shadow-md"
+                                                            data-id="<?php echo htmlspecialchars($product['sale_product_id']); ?>"
+                                                            data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
+                                                            data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
+                                                            data-qty="<?php echo htmlspecialchars($product['sale_product_qty']); ?>"
+                                                            data-price="<?php echo htmlspecialchars($product['sale_product_price']); ?>"
+                                                            data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button type="button"
+                                                            class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors shadow-md"
+                                                            data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
+                                                            data-qty="1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
-                        <?php if (empty($sale_products)): ?>
-                            <div class="text-center py-8 text-gray-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                                </svg>
-                                <p class="mt-2">ไม่พบสินค้าในการขายนี้</p>
-                                <p class="text-sm">กรุณาเพิ่มสินค้า</p>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="space-y-6">
@@ -856,7 +854,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M6 18L18 6M6 6l12 12" />
                                         </svg>
-                                        ยกเลิกบิล
+                                        ยกเลิกการขาย
                                     </button>
                                 </div>
                                 <div class="grid grid-cols-1 gap-2" hidden>
@@ -1081,88 +1079,88 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     let isProcessing = false;
 
 
-                    $('#form_add_product input').on('keypress', function (e) {
-                        if (e.which === 13 && !isProcessing) {
-                            e.preventDefault();
-                            e.stopPropagation(); // หยุด event bubbling
-                            const barcode = $('#barcode_input').val();
-                            const qty = parseInt($('input[name="qty"]').val()) || 0;
-                            if (!barcode) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: 'กรุณาป้อนรหัสสินค้า'
-                                });
-                                return;
-                            }
-                            if (qty <= 0) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: 'จำนวนต้องมากกว่า 0'
-                                });
-                                return;
-                            }
-                            console.log('Submitting #form_add_product:', $('#form_add_product').serialize());
-                            $.ajax({
-                                url: 'page/sale/sale_add.php',
-                                method: 'POST',
-                                data: $('#form_add_product').serialize(),
-                                dataType: 'json',
-                                beforeSend: function () {
-                                    isProcessing = true;
-                                    $('#barcode_input').prop('disabled', true);
-                                    $('input[name="qty"]').prop('disabled', true);
-                                },
-                                success: function (response) {
-                                    if (response.status === 'success') {
-                                        Toast.fire({
-                                            icon: 'success',
-                                            title: response.message
-                                        });
-                                        updateProductTable();
-                                        $('#form_add_product')[0].reset();
-                                        $('#product_info').addClass('hidden').empty();
-                                    } else {
-                                        Swal.fire({
-                                            icon: 'warning',
-                                            title: '',
-                                            text: response.message,
-                                            didOpen: () => {
-                                                $('.main-body').removeAttr('aria-hidden');
-                                            }
-                                        });
-                                    }
-                                },
-                                complete: function () {
-                                    isProcessing = false;
-                                    $('#barcode_input').prop('disabled', false);
-                                    $('input[name="qty"]').prop('disabled', false);
-                                    $('.main-body').removeAttr('aria-hidden');
-                                    if (!$('#edit-product-modal').is(':visible')) {
-                                        $('#barcode_input').focus();
-                                    }
-                                },
-                                error: function (xhr) {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'ข้อผิดพลาด',
-                                        text: xhr.responseText || 'ไม่สามารถเพิ่มสินค้าได้',
-                                        didOpen: () => {
-                                            $('.main-body').removeAttr('aria-hidden');
-                                        }
-                                    });
-                                    isProcessing = false;
-                                }
-                            });
-                        }
-                    });
+                    // $('#form_add_product input').on('keypress', function (e) {
+                    //     if (e.which === 13 && !isProcessing) {
+                    //         e.preventDefault();
+                    //         e.stopPropagation(); // หยุด event bubbling
+                    //         const barcode = $('#barcode_input').val();
+                    //         const qty = parseInt($('input[name="qty"]').val()) || 0;
+                    //         if (!barcode) {
+                    //             Swal.fire({
+                    //                 icon: 'error',
+                    //                 title: 'ข้อผิดพลาด',
+                    //                 text: 'กรุณาป้อนรหัสสินค้า'
+                    //             });
+                    //             return;
+                    //         }
+                    //         if (qty <= 0) {
+                    //             Swal.fire({
+                    //                 icon: 'error',
+                    //                 title: 'ข้อผิดพลาด',
+                    //                 text: 'จำนวนต้องมากกว่า 0'
+                    //             });
+                    //             return;
+                    //         }
+                    //         console.log('Submitting #form_add_product:', $('#form_add_product').serialize()); // เฉพาะตอนพัฒนาเท่านั้นค่อยปิด
+                    //         $.ajax({
+                    //             url: 'page/sale/ajax/ajax_add_product.php',
+                    //             method: 'POST',
+                    //             data: $('#form_add_product').serialize(),
+                    //             dataType: 'json',
+                    //             beforeSend: function () {
+                    //                 isProcessing = true;
+                    //                 $('#barcode_input').prop('disabled', true);
+                    //                 $('input[name="qty"]').prop('disabled', true);
+                    //             },
+                    //             success: function (response) {
+                    //                 if (response.status === 'success') {
+                    //                     Toast.fire({
+                    //                         icon: 'success',
+                    //                         title: response.message
+                    //                     });
+                    //                     updateProductTable();
+                    //                     $('#form_add_product')[0].reset();
+                    //                     $('#product_info').addClass('hidden').empty();
+                    //                 } else {
+                    //                     Swal.fire({
+                    //                         icon: 'warning',
+                    //                         title: '',
+                    //                         text: response.message,
+                    //                         didOpen: () => {
+                    //                             $('.main-body').removeAttr('aria-hidden');
+                    //                         }
+                    //                     });
+                    //                 }
+                    //             },
+                    //             complete: function () {
+                    //                 isProcessing = false;
+                    //                 $('#barcode_input').prop('disabled', false);
+                    //                 $('input[name="qty"]').prop('disabled', false);
+                    //                 $('.main-body').removeAttr('aria-hidden');
+                    //                 if (!$('#edit-product-modal').is(':visible')) {
+                    //                     $('#barcode_input').focus();
+                    //                 }
+                    //             },
+                    //             error: function (xhr) {
+                    //                 Swal.fire({
+                    //                     icon: 'error',
+                    //                     title: 'ข้อผิดพลาด',
+                    //                     text: xhr.responseText || 'ไม่สามารถเพิ่มสินค้าได้',
+                    //                     didOpen: () => {
+                    //                         $('.main-body').removeAttr('aria-hidden');
+                    //                     }
+                    //                 });
+                    //                 isProcessing = false;
+                    //             }
+                    //         });
+                    //     }
+                    // });
 
                     // ป้องกันการ submit ไม่คาดคิดของ #form_add_product
-                    $('#form_add_product').off('submit').on('submit', function (e) {
-                        e.preventDefault();
-                        console.log('Unexpected submit event on #form_add_product');
-                    });
+                    // $('#form_add_product').off('submit').on('submit', function (e) {
+                    //     e.preventDefault();
+                    //     console.log('Unexpected submit event on #form_add_product');
+                    // });
                     // จัดการ submit ของ #confirm-sale-form เฉพาะเมื่อกดปุ่ม
                     $('#confirm-sale-btn').on('click', function (e) {
                         e.preventDefault();
@@ -1189,7 +1187,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                             //  ซ่อนปุ่ม แก้ไข และ ลบ
                                             $('.edit-product').addClass('hidden');
                                             $('.delete-product').addClass('hidden');
-                                            $('#cancel_sale').addClass('hidden');
+                                            // $('#cancel_sale').addClass('hidden');
                                             $('#form_add_product').find('input, button').prop('disabled', true);
                                             // ปิดการใช้งานการเลือกสมาชิกและพนักงาน
                                             $('#member_search, #member_id, select[name="personnel_id"]').prop('disabled', true);
@@ -1233,132 +1231,132 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
 
                     // Autocomplete สำหรับค้นหาสินค้า
-                    $('#barcode_input').on('input', function () {
-                        const query = $(this).val();
-                        if (query.length < 2) {
-                            $('#barcode_suggestions').addClass('hidden').empty();
-                            $('#product_info').addClass('hidden').empty();
-                            return;
-                        }
-                        $.ajax({
-                            url: 'page/sale/ajax/ajax_search_product.php',
-                            method: 'GET',
-                            data: {
-                                query: query
-                            },
-                            dataType: 'json',
-                            success: function (response) {
-                                const products = response;
-                                const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
-                                if (products.length === 0) {
-                                    suggestions.append('<div class="p-2 text-gray-500">ไม่พบสินค้า</div>');
-                                    return;
-                                }
-                                products.forEach(product => {
-                                    suggestions.append(`
-                                <div class="p-2 hover:bg-gray-100 cursor-pointer" data-barcode="${product.product_id}">
-                                    ${product.product_id} - ${product.product_name} (สต็อก: ${product.total_stock})
-                                </div>
-                            `);
-                                });
-                                suggestions.find('div').on('click', function () {
-                                    const barcode = $(this).data('barcode');
-                                    $('#barcode_input').val(barcode);
-                                    suggestions.addClass('hidden').empty();
-                                    fetchProductInfo(barcode);
-                                });
-                            },
-                            error: function (xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถค้นหาสินค้าได้',
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
-                            }
-                        });
-                    });
+                    // $('#barcode_input').on('input', function () {
+                    //     const query = $(this).val();
+                    //     if (query.length < 2) {
+                    //         $('#barcode_suggestions').addClass('hidden').empty();
+                    //         $('#product_info').addClass('hidden').empty();
+                    //         return;
+                    //     }
+                    //     $.ajax({
+                    //         url: 'page/sale/ajax/ajax_search_product.php',
+                    //         method: 'GET',
+                    //         data: {
+                    //             query: query
+                    //         },
+                    //         dataType: 'json',
+                    //         success: function (response) {
+                    //             const products = response;
+                    //             const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
+                    //             if (products.length === 0) {
+                    //                 suggestions.append('<div class="p-2 text-gray-500">ไม่พบสินค้า</div>');
+                    //                 return;
+                    //             }
+                    //             products.forEach(product => {
+                    //                 suggestions.append(`
+                    //             <div class="p-2 hover:bg-gray-100 cursor-pointer" data-barcode="${product.product_id}">
+                    //                 ${product.product_id} - ${product.product_name} (สต็อก: ${product.total_stock})
+                    //             </div>
+                    //         `);
+                    //             });
+                    //             suggestions.find('div').on('click', function () {
+                    //                 const barcode = $(this).data('barcode');
+                    //                 $('#barcode_input').val(barcode);
+                    //                 suggestions.addClass('hidden').empty();
+                    //                 fetchProductInfo(barcode);
+                    //             });
+                    //         },
+                    //         error: function (xhr) {
+                    //             Swal.fire({
+                    //                 icon: 'error',
+                    //                 title: 'ข้อผิดพลาด',
+                    //                 text: xhr.responseText || 'ไม่สามารถค้นหาสินค้าได้',
+                    //                 didOpen: () => {
+                    //                     $('.main-body').removeAttr('aria-hidden');
+                    //                 }
+                    //             });
+                    //         }
+                    //     });
+                    // });
 
                     // แสดงข้อมูลสินค้า
-                    function fetchProductInfo(barcode) {
-                        $.ajax({
-                            url: 'page/sale/ajax/ajax_get_product.php',
-                            method: 'GET',
-                            data: {
-                                barcode: barcode
-                            },
-                            dataType: 'json',
-                            success: function (response) {
-                                const product = response;
-                                const info = $('#product_info').removeClass('hidden');
-                                if (!product) {
-                                    info.html('<span class="text-red-500">ไม่พบสินค้าหรือสต็อกไม่เพียงพอ</span>');
-                                    return;
-                                }
-                                info.html(`
-                            <p><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
-                            <p><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
-                            <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
-                        `);
-                            },
-                            error: function (xhr) {
-                                $('#product_info').addClass('hidden').empty();
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถดึงข้อมูลสินค้าได้',
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
-                            }
-                        });
-                    }
+                    // function fetchProductInfo(barcode) {
+                    //     $.ajax({
+                    //         url: 'page/sale/ajax/ajax_get_product.php',
+                    //         method: 'GET',
+                    //         data: {
+                    //             barcode: barcode
+                    //         },
+                    //         dataType: 'json',
+                    //         success: function (response) {
+                    //             const product = response;
+                    //             const info = $('#product_info').removeClass('hidden');
+                    //             if (!product) {
+                    //                 info.html('<span class="text-red-500">ไม่พบสินค้าหรือสต็อกไม่เพียงพอ</span>');
+                    //                 return;
+                    //             }
+                    //             info.html(`
+                    //         <p><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
+                    //         <p><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
+                    //         <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
+                    //     `);
+                    //         },
+                    //         error: function (xhr) {
+                    //             $('#product_info').addClass('hidden').empty();
+                    //             Swal.fire({
+                    //                 icon: 'error',
+                    //                 title: 'ข้อผิดพลาด',
+                    //                 text: xhr.responseText || 'ไม่สามารถดึงข้อมูลสินค้าได้',
+                    //                 didOpen: () => {
+                    //                     $('.main-body').removeAttr('aria-hidden');
+                    //                 }
+                    //             });
+                    //         }
+                    //     });
+                    // }
                     // อัปเดตตารางสินค้าแบบเรียลไทม์
-                    function updateProductTable() {
-                        $.ajax({
-                            url: 'page/sale/ajax/ajax_get_sale_products.php',
-                            method: 'GET',
-                            data: { sale_id: '<?php echo htmlspecialchars($sale_id); ?>' },
-                            dataType: 'json',
-                            success: function (response) {
-                                if (response.status === 'success') {
-                                    $('#product_table_body').html(response.html);
-                                    $('.total-amount').text(response.total_amount + ' บาท');
-                                    $('.total-items').text(response.total_items + ' รายการ'); // เพิ่ม
-                                    $('.total-qty').text(response.total_qty + ' ชิ้น'); // เพิ่ม
-                                    const hasProducts = !response.html.includes('ไม่พบสินค้า');
-                                    $('#confirm-sale-btn')
-                                        .prop('disabled', !hasProducts)
-                                        .toggleClass('opacity-50 cursor-not-allowed', !hasProducts);
-                                    $('#calculate_change').click();
-                                    bindEditProductEvents();
-                                    $('.main-body').removeAttr('aria-hidden');
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'ข้อผิดพลาด',
-                                        text: response.message,
-                                        didOpen: () => {
-                                            $('.main-body').removeAttr('aria-hidden');
-                                        }
-                                    });
-                                }
-                            },
-                            error: function (xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถดึงข้อมูลตารางได้',
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
-                            }
-                        });
-                    }
+                    // function updateProductTable() {
+                    //     $.ajax({
+                    //         url: 'page/sale/ajax/ajax_get_sale_products.php',
+                    //         method: 'GET',
+                    //         data: { sale_id: '<?php echo htmlspecialchars($sale_id); ?>' },
+                    //         dataType: 'json',
+                    //         success: function (response) {
+                    //             if (response.status === 'success') {
+                    //                 $('#product_table_body').html(response.html);
+                    //                 $('.total-amount').text(response.total_amount + ' บาท');
+                    //                 $('.total-items').text(response.total_items + ' รายการ'); // เพิ่ม
+                    //                 $('.total-qty').text(response.total_qty + ' ชิ้น'); // เพิ่ม
+                    //                 const hasProducts = !response.html.includes('ไม่พบสินค้า');
+                    //                 $('#confirm-sale-btn')
+                    //                     .prop('disabled', !hasProducts)
+                    //                     .toggleClass('opacity-50 cursor-not-allowed', !hasProducts);
+                    //                 $('#calculate_change').click();
+                    //                 bindEditProductEvents();
+                    //                 $('.main-body').removeAttr('aria-hidden');
+                    //             } else {
+                    //                 Swal.fire({
+                    //                     icon: 'warning',
+                    //                     title: 'ข้อผิดพลาด',
+                    //                     text: response.message,
+                    //                     didOpen: () => {
+                    //                         $('.main-body').removeAttr('aria-hidden');
+                    //                     }
+                    //                 });
+                    //             }
+                    //         },
+                    //         error: function (xhr) {
+                    //             Swal.fire({
+                    //                 icon: 'error',
+                    //                 title: 'ข้อผิดพลาด',
+                    //                 text: xhr.responseText || 'ไม่สามารถดึงข้อมูลตารางได้',
+                    //                 didOpen: () => {
+                    //                     $('.main-body').removeAttr('aria-hidden');
+                    //                 }
+                    //             });
+                    //         }
+                    //     });
+                    // }
                     // Autocomplete สำหรับค้นหาสมาชิก
                     $('#member_search').on('input', function () {
                         const query = $(this).val();
@@ -1406,7 +1404,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
 
                     // คำนวณเงินทอน
-
                     $('#calculate_change').on('click', function () {
                         const paid = parseFloat($('#paid_amount').val()) || 0;
                         const total = parseFloat(<?php echo $total_amount; ?>) || 0;
@@ -1472,15 +1469,15 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
 
                     $('#cancel_sale').on('click', function () {
                         Swal.fire({
-                            title: 'ยืนยันการยกเลิกบิล?',
+                            title: 'ยืนยันการยกเลิกการขาย?',
                             icon: 'warning',
                             showCancelButton: true,
-                            confirmButtonText: 'ยกเลิกบิล',
+                            confirmButtonText: 'ยกเลิกการขาย',
                             cancelButtonText: 'ยกเลิก'
                         }).then((result) => {
                             if (result.isConfirmed) {
                                 $.ajax({
-                                    url: 'page/sale/sale_add.php',
+                                    url: 'page/sale/ajax/ajax_cancel_sale.php',
                                     method: 'POST',
                                     data: {
                                         action: 'cancel_sale',
@@ -1677,26 +1674,26 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
 
                     // Bind event สำหรับปุ่มแก้ไขและลบ
-                    function bindEditProductEvents() {
-                        $('.edit-product').off('click').on('click', function (e) {
-                            e.preventDefault();
-                            const barcode = $(this).data('barcode');
-                            const name = $(this).data('name');
-                            const qty = $(this).data('qty');
-                            const price = $(this).data('price');
-                            const capital = $(this).data('capital');
-                            const reference = $(this).data('reference') || '';
-                            $('#edit-barcode').val(barcode);
-                            $('#edit-barcode-display').val(barcode);
-                            $('#edit-product-name').val(name);
-                            $('#edit-qty').val(qty);
-                            $('#edit-price').val(parseFloat(price).toFixed(2));
-                            $('#edit-capital').val(parseFloat(capital).toFixed(2));
-                            $('#edit-reference').val(reference);
-                            $('.main-body').attr('aria-hidden', 'true');
-                            $('#edit-product-modal').removeClass('hidden');
-                        });
-                    }
+                    // function bindEditProductEvents() {
+                    //     $('.edit-product').off('click').on('click', function (e) {
+                    //         e.preventDefault();
+                    //         const barcode = $(this).data('barcode');
+                    //         const name = $(this).data('name');
+                    //         const qty = $(this).data('qty');
+                    //         const price = $(this).data('price');
+                    //         const capital = $(this).data('capital');
+                    //         const reference = $(this).data('reference') || '';
+                    //         $('#edit-barcode').val(barcode);
+                    //         $('#edit-barcode-display').val(barcode);
+                    //         $('#edit-product-name').val(name);
+                    //         $('#edit-qty').val(qty);
+                    //         $('#edit-price').val(parseFloat(price).toFixed(2));
+                    //         $('#edit-capital').val(parseFloat(capital).toFixed(2));
+                    //         $('#edit-reference').val(reference);
+                    //         $('.main-body').attr('aria-hidden', 'true');
+                    //         $('#edit-product-modal').removeClass('hidden');
+                    //     });
+                    // }
                 });
             </script>
             <script>
@@ -1705,53 +1702,53 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 let currentSaleId = <?php echo json_encode($sale_id); ?>;
 
                 // Function to cancel a sale
-                function cancelSale(saleId) {
-                    event.stopPropagation(); // เพิ่ม: ป้องกันการเรียก switchBill
-                    Swal.fire({
-                        title: 'ยืนยันการยกเลิกบิล?',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'ยกเลิกบิล',
-                        cancelButtonText: 'ยกเลิก'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $.ajax({
-                                url: '/page/sale/sale_add.php',
-                                method: 'POST',
-                                data: {
-                                    action: 'cancel_sale',
-                                    sale_id: saleId
-                                },
-                                dataType: 'json',
-                                success: function (response) {
-                                    if (response.status === 'success') {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'สำเร็จ',
-                                            text: response.message,
-                                            timer: 1500
-                                        }).then(() => {
-                                            window.location.href = response.redirect;
-                                        });
-                                    } else {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'ข้อผิดพลาด',
-                                            text: response.message
-                                        });
-                                    }
-                                },
-                                error: function (xhr) {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'ข้อผิดพลาด',
-                                        text: xhr.responseText || 'ไม่สามารถยกเลิกบิลได้'
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
+                // function cancelSale(saleId) {
+                //     event.stopPropagation(); // เพิ่ม: ป้องกันการเรียก switchBill
+                //     Swal.fire({
+                //         title: 'ยืนยันการยกเลิกบิล?',
+                //         icon: 'warning',
+                //         showCancelButton: true,
+                //         confirmButtonText: 'ยกเลิกบิล',
+                //         cancelButtonText: 'ยกเลิก'
+                //     }).then((result) => {
+                //         if (result.isConfirmed) {
+                //             $.ajax({
+                //                 url: '/page/sale/sale_add.php',
+                //                 method: 'POST',
+                //                 data: {
+                //                     action: 'cancel_sale',
+                //                     sale_id: saleId
+                //                 },
+                //                 dataType: 'json',
+                //                 success: function (response) {
+                //                     if (response.status === 'success') {
+                //                         Swal.fire({
+                //                             icon: 'success',
+                //                             title: 'สำเร็จ',
+                //                             text: response.message,
+                //                             timer: 1500
+                //                         }).then(() => {
+                //                             window.location.href = response.redirect;
+                //                         });
+                //                     } else {
+                //                         Swal.fire({
+                //                             icon: 'error',
+                //                             title: 'ข้อผิดพลาด',
+                //                             text: response.message
+                //                         });
+                //                     }
+                //                 },
+                //                 error: function (xhr) {
+                //                     Swal.fire({
+                //                         icon: 'error',
+                //                         title: 'ข้อผิดพลาด',
+                //                         text: xhr.responseText || 'ไม่สามารถยกเลิกบิลได้'
+                //                     });
+                //                 }
+                //             });
+                //         }
+                //     });
+                // }
                 // Function to update tab styles based on currentSaleId
                 function updateTabStyles() {
                     $('#billTabs > div').each(function () {
