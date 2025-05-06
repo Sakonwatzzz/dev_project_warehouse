@@ -6,7 +6,7 @@ header('Content-Type: application/json');
 try {
     $sale_id = $_GET['sale_id'] ?? null;
     if (!$sale_id) {
-        throw new Exception("ไม่พบ sale_id ในคำขอ");
+        throw new Exception("ไม่พบ sale_id ในคำขอ กรุณาเปิดบิลใหม่และเพิ่มข้อมูลการขาย");
     }
 
     // ดึงข้อมูลสินค้าในบิล
@@ -92,7 +92,7 @@ try {
         'total_qty' => $total_qty      // เพิ่ม: จำนวนชิ้น
     ]);
 } catch (Exception $e) {
-    error_log("Error in ajax_get_sale_products: " . $e->getMessage());
+    error_log("Error in ajax_get_sale_product: " . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
 }
 exit();

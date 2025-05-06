@@ -98,7 +98,7 @@ $(document).on("click", ".delete-product", function (e) {
 
 function updateProductTable(sale_id) {
   $.ajax({
-    url: "page/sale/ajax/ajax_get_sale_products.php",
+    url: "page/sale/ajax/ajax_get_sale_product.php",
     method: "GET",
     data: { sale_id: sale_id }, // ใช้ sale_id ที่ส่งมา
     dataType: "json",

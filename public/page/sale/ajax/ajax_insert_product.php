@@ -1,5 +1,4 @@
 <?php
-//ยังไม่ได้ถูกเรียกใช้งานจากหน้าหลัก แยกออกมารอ
 
 // Start output buffering
 ob_start();
@@ -44,6 +43,12 @@ try {
     ob_end_flush();
     exit();
 }
+
+
+$sale_id = $_POST['sale_id'] ?? null;
+if (empty($sale_id)) {
+    throw new Exception("กรุณาระบุ sale_id");
+}   
 function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = false)
 {
     $remainingToProcess = $qty;
@@ -198,4 +203,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Flush output and exit
 ob_end_flush();
 exit();
-?>
