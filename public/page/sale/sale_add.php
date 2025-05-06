@@ -1,10 +1,18 @@
 <?php
+try {
+    require_once __DIR__ . '../../../../config/database_server.php';
+    error_log('Database connected including successfuly database_server.php');
+} catch (Exception $e) {
+    error_log("Database failed included database_server.php : " . $e->getMessage());
+
+}
+// เพิ่มการแสดงผลข้อผิดพลาดสำหรับการดีบักชั่วคราวตั้งค่า display_errors เป็น 1 ในไฟล์เพื่อดูข้อผิดพลาดโดยตรง
+// ini_set('display_errors', 1);
+// ini_set('log_errors', 1);
+// ini_set('error_log', __DIR__ . '/logs/php_errors.log');
+
 ob_start();
 session_start();
-require_once __DIR__ . '../../../../config/database_server.php';
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/logs/php_errors.log');
 
 // Set timezone
 date_default_timezone_set('Asia/Bangkok');
@@ -16,9 +24,24 @@ if (!isset($_SESSION['active_sales'])) {
     $_SESSION['active_sales'] = [];
 }
 
-// Get sale_id from POST, GET, or session
-$sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
+// กรณีที่ต้องการให้สร้างบิลอัตโนมัติ ให้ใช้โค้ด หรือ logic ดังนี้ 
+// 1.เช็คและสร้าง sale_id ใหม่หากยังไม่มี (ถ้า $sale_id ยังไม่มีค่า (เช่น null หรือ false) 
+// 1.1 และยังไม่ได้อยู่ในหน้า sale_list ($_GET['page'] !== 'sale_list') จึงเข้าสู่ขั้นตอนการสร้าง sale ใหม่)
+// 1.2 เริ่มต้น transaction เพื่อให้การบันทึกลงฐานข้อมูลสามารถยกเลิก (rollback) ได้หากมีข้อผิดพลาด
+// 1.3 คำสั่ง SQL สำหรับเพิ่มแถวใหม่ในตาราง sale ใช้ค่าคงที่: sale_status_id = 2 คือ กำลังขาย
+// 1.4 ทำการ execute คำสั่ง insert
+// 1.5 ดึง sale_id ที่เพิ่ง insert สำเร็จ เก็บค่า sale_id ที่เพิ่งถูกสร้างล่าสุดไว้ในตัวแปร $sale_id
+// 1.6 บันทึก sale_id ลง session เก็บ sale_id นี้ใน session ทั้งในรูปแบบ: รายการที่ active อยู่ (active_sales) /กำหนดให้เป็น current_sale_id ที่ใช้งานอยู่ตอนนี้
+// 1.7 ยืนยันการ transaction บันทึกการเปลี่ยนแปลงทั้งหมดลงฐานข้อมูลจริง
+/* หากมี error เกิดขึ้น */
+// ทำการ rollback ยกเลิกธุรกรรม -> บันทึก log -> แสดงข้อความผิดพลาดและหยุดทำงาน
+/* หากยังไม่มี $sale_id หลังจากจบบล็อก try-catch */
+// หากยังไม่มี $sale_id จริง ๆ แสดงว่าเกิดข้อผิดพลาดบางอย่าง -> หยุดการทำงานและแจ้งว่า sale_id จำเป็น
 
+// 2. รับ sale_id จาก POST, GET, หรือ SESSION
+// 2.1 รับค่าตามลำดับ จาก POST GET SESSION(current_sale_id) ถ้าไม่มี -> null
+/* หากยังไม่มี sale_id หลังจากพยายามรับจากทุกช่องทาง */
+// ถ้าไม่พบ sale_id จริง ๆ : บันทึก error ลง log -> ส่ง HTTP response code 400 (Bad Request) = ส่งข้อความ error เป็น JSON
 
 // Create new sale if none exists
 // if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
@@ -42,6 +65,18 @@ $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id']
 // if (!$sale_id) {
 //     die("Error: sale_id is required.");
 // }
+
+// Get sale_id from POST, GET, or session
+$sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
+
+// if (!$sale_id) {
+//     error_log("No sale_id provided in request or session.");
+//     http_response_code(400);
+//     // บนหน้าจอแสดงผลจะแสดงว่า {"status":"error","message":"\u0e01\u0e23\u0e38\u0e13\u0e32\u0e23\u0e30\u0e1a\u0e38 sale_id"}
+//     die(json_encode(['status' => 'error', 'message' => 'กรุณาระบุ sale_id']));
+// }
+
+
 
 
 // Handle sale cancellation via Ajax
@@ -117,31 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit();
 }
 
-
-
-
-// Create new sale if none exists
-if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
-    try {
-        $pdo->beginTransaction();
-        $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id) VALUES (?, 1, ?, ?)");
-        $insertSale->execute([$currentDateTime, null, null]);
-        $sale_id = $pdo->lastInsertId();
-        $_SESSION['active_sales'][] = $sale_id;
-        $_SESSION['current_sale_id'] = $sale_id;
-        $pdo->commit();
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        error_log("Error initializing sale: " . $e->getMessage());
-        die("Error initializing sale: " . $e->getMessage());
-    }
-}
-
-if (!$sale_id) {
-    die("Error: sale_id is required.");
-}
 
 /**
  * Helper function to adjust lot_product remain
@@ -326,11 +336,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             ")->execute([$qty, $price, $capital, $sale_id, $barcode]);
 
             if ($qtyDiff > 0) {
+                // เพิ่มจำนวน: ตัดสต็อก
                 adjustLotRemain($pdo, $barcode, $qtyDiff, false);
             } elseif ($qtyDiff < 0) {
+                // ลดจำนวน: คืนสต็อก
                 adjustLotRemain($pdo, $barcode, abs($qtyDiff), true);
             }
-
             $pdo->commit();
             echo json_encode(['status' => 'success', 'message' => 'แก้ไขสินค้าสำเร็จ']);
         } else {
@@ -533,7 +544,12 @@ try {
 }
 // Fetch members, personnel, and sale status
 $members = $pdo->query("SELECT member_id, member_name FROM member ORDER BY member_name");
-$personnels = $pdo->query("SELECT personnel_id, personnel_name FROM personnel ORDER BY personnel_name");
+
+$default_id = 3;
+$stmt = $pdo->prepare("SELECT * FROM personnel WHERE personnel_id = ?");
+$stmt->execute([$default_id]);
+$personnels = $stmt->fetch(PDO::FETCH_ASSOC);
+
 $sale_status_result = $pdo->query("SELECT sale_status_id, sale_status_name FROM sale_status");
 
 // Validate active sales against database
@@ -581,6 +597,13 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
     <script src="page/sale/js/sale_switch.js"></script>
     <!-- <script src="page/sale/js/sale_insert.js"></script> -->
     <!-- <script src="page/sale/js/sale_modal.js"> </script> -->
+
+    <!-- ตรวจสอบว่า sale_delete.js ถูกโหลดใน sale_add.php อย่างไร. หากเป็นไฟล์ .js แยก, ต้องส่ง 
+    sale_id จาก sale_add.php ไปยัง JavaScript ผ่านวิธีอื่น เช่น การกำหนดตัวแปรใน <script> หรือผ่าน attribute ใน HTML. -->
+    <script>
+        const SALE_ID = '<?php echo htmlspecialchars($sale_id); ?>';
+    </script>
+    <script src="page/sale/js/sale_delete.js"></script>
     <style>
         #edit-product-modal {
             z-index: 1000;
@@ -635,13 +658,16 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
     <div class="main-body">
         <header class="bg-gradient-to-r from-blue-600 to-indigo-800 text-white shadow-lg">
             <div class="container mx-auto py-4 px-6 flex justify-between items-center">
-                <h1 class="text-2xl font-bold">Sampeng Buriram -จำหน่ายสินค้าราคาปลีกและส่ง
+                <h1 class="text-2xl font-bold">Your Store or Company name POS
                 </h1>
                 <div class="flex items-center space-x-4">
                     <p class="text-yellow-400 font-bold"> <?php echo htmlspecialchars($sale_status_name); ?></p>
-
-                    <span class="text-sm">พนักงาน:
-                        <?php echo htmlspecialchars($sale_data['personnel_name'] ?? 'N/A'); ?></span>
+                    <label class="text-base font-medium">พนักงานขาย:</label>
+                    <div class="text-xll font-bold">
+                        <input class="bg-transparent " type="text" name="personnel_id"
+                            value="<?php echo $personnels['personnel_id']; ?>" readonly hidden>
+                        <?php echo htmlspecialchars($personnels['personnel_name'] ?? 'ไม่พบชื่อ'); ?>
+                    </div>
                     <span class="text-sm">วันที่: <?php echo $displayDateTime; ?></span>
                 </div>
             </div>
@@ -885,642 +911,729 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                         class="absolute z-10 w-auto bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <label class="text-base font-medium text-gray-700">พนักงานขาย:</label>
-                                    <select name="personnel_id"
-                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">ไม่เลือกพนักงาน</option>
-                                        <?php while ($personnel = $personnels->fetch(PDO::FETCH_ASSOC)): ?>
-                                            <option value="<?php echo $personnel['personnel_id']; ?>" <?php echo ($sale_data['personnel_id'] == $personnel['personnel_id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($personnel['personnel_name']); ?>
-                                            </option>
-                                        <?php endwhile; ?>
-                                    </select>
-                                </div>
                             </div>
-                            <h2 class="text-lg font-semibold mb-3 text-gray-800 flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
+                    </div>
+                    <h2 class="text-lg font-semibold mb-3 text-gray-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        การชำระเงิน
+                    </h2>
+                    <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">จำนวนรายการ:</span>
+                            <span class="total-items text-sm"><?php echo $total_items; ?> รายการ</span>
+                        </div>
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">จำนวนชิ้น:</span>
+                            <span class="total-qty text-sm"><?php echo $total_qty; ?> ชิ้น</span>
+                        </div>
+
+                        <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
+                            <span>ยอดรวมสุทธิ:</span>
+                            <span class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?>
+                                บาท</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-row space-x-4 items-end pb-6">
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ
+                                (บาท):</label>
+                            <input type="number" id="paid_amount" value="" min="1"
+                                class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                step="0.01" placeholder="ป้อนจำนวนเงิน">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
+                            <input type="text" id="change_amount"
+                                class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
+                                readonly>
+                        </div>
+                        <div>
+                            <button id="calculate_change"
+                                class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                 </svg>
-                                การชำระเงิน
-                            </h2>
-                            <div class="mb-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex justify-between text-gray-800 pb-2">
-                                    <span class="font-medium text-sm">จำนวนรายการ:</span>
-                                    <span class="total-items text-sm"><?php echo $total_items; ?> รายการ</span>
-                                </div>
-                                <div class="flex justify-between text-gray-800 pb-2">
-                                    <span class="font-medium text-sm">จำนวนชิ้น:</span>
-                                    <span class="total-qty text-sm"><?php echo $total_qty; ?> ชิ้น</span>
-                                </div>
+                                คำนวณ
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <!-- ปุ่มพิมพ์ใบเสร็จ (เริ่มต้นซ่อน) -->
+                        <button id="print_receipt"
+                            class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            พิมพ์ใบเสร็จ
+                        </button>
 
-                                <div
-                                    class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
-                                    <span>ยอดรวมสุทธิ:</span>
-                                    <span
-                                        class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?>
-                                        บาท</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-row space-x-4 items-end pb-6">
-                                <div class="flex-1">
-                                    <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ
-                                        (บาท):</label>
-                                    <input type="number" id="paid_amount"
-                                        class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        step="0.01" placeholder="ป้อนจำนวนเงิน">
-                                </div>
-                                <div class="flex-1">
-                                    <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
-                                    <input type="text" id="change_amount"
-                                        class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
-                                        readonly>
-                                </div>
-                                <div>
-                                    <button id="calculate_change"
-                                        class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                        </svg>
-                                        คำนวณ
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="space-y-3">
-                                <!-- ปุ่มพิมพ์ใบเสร็จ (เริ่มต้นซ่อน) -->
-                                <button id="print_receipt"
-                                    class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                    </svg>
-                                    พิมพ์ใบเสร็จ
-                                </button>
-
-                                <!-- ปุ่มยืนยันรายการขาย -->
-                                <button type="submit" form="confirm-sale-form" id="confirm-sale-btn"
-                                    class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
-                                    <span class="loading-spinner hidden">กำลังประมวลผล...</span>
-                                    <span class="btn-text">
-                                        <!-- <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                        <!-- ปุ่มยืนยันรายการขาย -->
+                        <button type="submit" form="confirm-sale-form" id="confirm-sale-btn"
+                            class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
+                            <span class="loading-spinner hidden">กำลังประมวลผล...</span>
+                            <span class="btn-text">
+                                <!-- <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M5 13l4 4L19 7" />
                                         </svg> -->
-                                        ยืนยันรายการขาย
-                                    </span>
-                                </button>
-                            </div>
-                        </form>
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal -->
-            <div id="edit-product-modal"
-                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-                <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800">แก้ไขสินค้า</h3>
-                        <button id="close-modal" class="text-gray-500 hover:text-gray-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                                ยืนยันรายการขาย
+                            </span>
                         </button>
                     </div>
-                    <form id="edit-product-form" method="POST" action="" onsubmit="return false;">
-                        <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
-                        <input type="hidden" name="action" value="update">
-                        <input type="hidden" id="edit-barcode" name="barcode">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า</label>
-                                <input type="text" id="edit-barcode-display"
-                                    class="w-full p-2 border border-gray-300 rounded modal-active" readonly>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อสินค้า</label>
-                                <input type="text" id="edit-product-name"
-                                    class="w-full p-2 border border-gray-300 rounded modal-active" readonly>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
-                                <input type="number" id="edit-qty" name="qty"
-                                    class="w-full p-2 border border-gray-300 rounded modal-active" min="1">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
-                                <input type="number" id="edit-price" name="price"
-                                    class="w-full p-2 border border-gray-300 rounded modal-active" step="0.01">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">ต้นทุน</label>
-                                <input type="number" id="edit-capital" name="capital"
-                                    class="w-full p-2 border border-gray-300 rounded modal-active" step="0.01">
-                            </div>
-                            <!-- <div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div id="edit-product-modal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">แก้ไขสินค้า</h3>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <form id="edit-product-form" method="POST" action="" onsubmit="return false;">
+                    <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" id="edit-barcode" name="barcode">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า</label>
+                            <input type="text" id="edit-barcode-display"
+                                class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อสินค้า</label>
+                            <input type="text" id="edit-product-name"
+                                class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
+                            <input type="number" id="edit-qty" name="qty"
+                                class="w-full p-2 border border-gray-300 rounded modal-active" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
+                            <input type="number" id="edit-price" name="price"
+                                class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" step="0.01"
+                                readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ต้นทุน</label>
+                            <input type="number" id="edit-capital" name="capital"
+                                class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" step="0.01"
+                                readonly>
+                        </div>
+                        <!-- <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">อ้างอิง</label>
                                 <input type="text" id="edit-reference" name="sale_reference" class="w-full p-2 border border-gray-300 rounded modal-active">
                             </div> -->
-                        </div>
-                        <div class="mt-6 flex space-x-3">
-                            <button type="submit"
-                                class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors modal-active">บันทึกการแก้ไข</button>
-                            <button type="button" id="cancel-edit"
-                                class="flex-1 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors modal-active">ยกเลิก</button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="mt-6 flex space-x-3">
+                        <button type="submit"
+                            class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors modal-active">บันทึกการแก้ไข</button>
+                        <button type="button" id="cancel-edit"
+                            class="flex-1 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors modal-active">ยกเลิก</button>
+                    </div>
+                </form>
             </div>
-            <script>
-                $(document).ready(function () {
-                    $('#print_receipt').addClass('hidden');
-                    // ตรวจสอบว่า jQuery โหลดสำเร็จ
-                    if (typeof $ === 'undefined') {
-                        console.error('jQuery not loaded');
-                        alert('ไม่สามารถโหลด jQuery ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
-                        return;
-                    }
+        </div>
+        <script>
+            $(document).ready(function () {
+                $('#print_receipt').addClass('hidden');
+                // ตรวจสอบว่า jQuery โหลดสำเร็จ
+                if (typeof $ === 'undefined') {
+                    console.error('jQuery not loaded');
+                    alert('ไม่สามารถโหลด jQuery ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
+                    return;
+                }
 
-                    // ตรวจสอบว่า SweetAlert2 โหลดสำเร็จ
-                    if (typeof Swal === 'undefined') {
-                        console.error('SweetAlert2 not loaded');
-                        alert('ไม่สามารถโหลด SweetAlert2 ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
-                        return;
+                // ตรวจสอบว่า SweetAlert2 โหลดสำเร็จ
+                if (typeof Swal === 'undefined') {
+                    console.error('SweetAlert2 not loaded');
+                    alert('ไม่สามารถโหลด SweetAlert2 ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
+                    return;
+                }
+                // Toast instance สำหรับ SweetAlert2
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top', // มุมขวาบน
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                        $('.main-body').removeAttr('aria-hidden');
+                    },
+                    didClose: () => {
+                        if (!$('#edit-product-modal').is(':visible')) {
+                            $('#barcode_input').focus();
+                        }
                     }
-                    // Toast instance สำหรับ SweetAlert2
-                    const Toast = Swal.mixin({
-                        toast: true,
-                        position: 'top', // มุมขวาบน
-                        showConfirmButton: false,
-                        timer: 1500,
-                        timerProgressBar: true,
-                        didOpen: (toast) => {
-                            toast.addEventListener('mouseenter', Swal.stopTimer);
-                            toast.addEventListener('mouseleave', Swal.resumeTimer);
-                            $('.main-body').removeAttr('aria-hidden');
-                        },
-                        didClose: () => {
-                            if (!$('#edit-product-modal').is(':visible')) {
-                                $('#barcode_input').focus();
+                });
+
+
+                // ตัวแปรควบคุมการประมวลผลเพื่อป้องกันการ submit ซ้ำ
+                let isProcessing = false;
+
+
+                $('#form_add_product input').on('keypress', function (e) {
+                    if (e.which === 13 && !isProcessing) {
+                        e.preventDefault();
+                        e.stopPropagation(); // หยุด event bubbling
+                        const barcode = $('#barcode_input').val();
+                        const qty = parseInt($('input[name="qty"]').val()) || 0;
+                        if (!barcode) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: 'กรุณาป้อนรหัสสินค้า'
+                            });
+                            return;
+                        }
+                        if (qty <= 0) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: 'จำนวนต้องมากกว่า 0'
+                            });
+                            return;
+                        }
+                        console.log('Submitting #form_add_product:', $('#form_add_product').serialize()); // เฉพาะตอนพัฒนาเท่านั้นค่อยปิด
+                        $.ajax({
+                            url: 'page/sale/sale_add.php',
+                            method: 'POST',
+                            data: $('#form_add_product').serialize(),
+                            dataType: 'json',
+                            beforeSend: function () {
+                                isProcessing = true;
+                                $('#barcode_input').prop('disabled', true);
+                                $('input[name="qty"]').prop('disabled', true);
+                            },
+                            success: function (response) {
+                                if (response.status === 'success') {
+                                    Toast.fire({
+                                        icon: 'success',
+                                        title: response.message
+                                    });
+                                    updateProductTable();
+                                    $('#form_add_product')[0].reset();
+                                    $('#product_info').addClass('hidden').empty();
+                                } else {
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: '',
+                                        text: response.message,
+                                        didOpen: () => {
+                                            $('.main-body').removeAttr('aria-hidden');
+                                        }
+                                    });
+                                }
+                            },
+                            complete: function () {
+                                isProcessing = false;
+                                $('#barcode_input').prop('disabled', false);
+                                $('input[name="qty"]').prop('disabled', false);
+                                $('.main-body').removeAttr('aria-hidden');
+                                if (!$('#edit-product-modal').is(':visible')) {
+                                    $('#barcode_input').focus();
+                                }
+                            },
+                            error: function (xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: xhr.responseText || 'ไม่สามารถเพิ่มสินค้าได้',
+                                    didOpen: () => {
+                                        $('.main-body').removeAttr('aria-hidden');
+                                    }
+                                });
+                                isProcessing = false;
                             }
+                        });
+                    }
+                });
+
+                // ป้องกันการ submit ไม่คาดคิดของ #form_add_product
+                $('#form_add_product').off('submit').on('submit', function (e) {
+                    e.preventDefault();
+                    console.log('Unexpected submit event on #form_add_product');
+                });
+                // จัดการ submit ของ #confirm-sale-form เฉพาะเมื่อกดปุ่ม
+                $('#confirm-sale-btn').on('click', function (e) {
+                    e.preventDefault();
+                    console.log('Submitting #confirm-sale-form:', $('#confirm-sale-form').serialize());
+                    $('#confirm-sale-btn .btn-text').addClass('hidden');
+                    $('#confirm-sale-btn .loading-spinner').removeClass('hidden');
+                    $.ajax({
+                        url: 'page/sale/sale_add.php',
+                        method: 'POST',
+                        data: $('#confirm-sale-form').serialize(),
+                        dataType: 'json',
+                        success: function (response) {
+                            $('#confirm-sale-btn .btn-text').removeClass('hidden');
+                            $('#confirm-sale-btn .loading-spinner').addClass('hidden');
+                            if (response.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'สำเร็จ',
+                                    text: response.message,
+                                    timer: 1500,
+                                    didOpen: () => {
+                                        $('.main-body').removeAttr('aria-hidden');
+                                        $('#print_receipt').removeClass('hidden');
+                                        //  ซ่อนปุ่ม แก้ไข และ ลบ
+                                        $('.edit-product').addClass('hidden');
+                                        $('.delete-product').addClass('hidden');
+                                        // $('#cancel_sale').addClass('hidden');
+                                        $('#form_add_product').find('input, button').prop('disabled', true);
+                                        // ปิดการใช้งานการเลือกสมาชิกและพนักงาน
+                                        $('#member_search, #member_id, select[name="personnel_id"]').prop('disabled', true);
+                                        // ปิดการใช้งานปุ่มยืนยันการขาย
+                                        $('#confirm-sale-btn').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+                                    }
+                                }).then(() => {
+                                    // window.location.href = response.redirect;
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: response.message,
+                                    didOpen: () => {
+                                        $('.main-body').removeAttr('aria-hidden');
+                                    }
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#confirm-sale-btn .btn-text').removeClass('hidden');
+                            $('#confirm-sale-btn .loading-spinner').addClass('hidden');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถยืนยันการขายได้',
+                                didOpen: () => {
+                                    $('.main-body').removeAttr('aria-hidden');
+                                }
+                            });
                         }
                     });
+                });
+                // ป้องกัน Enter key ใน #confirm-sale-form
+                $('#confirm-sale-form input').on('keypress', function (e) {
+                    if (e.which === 13) {
+                        e.preventDefault();
+                        console.log('Blocked Enter key in #confirm-sale-form');
+                    }
+                });
 
-
-                    // ตัวแปรควบคุมการประมวลผลเพื่อป้องกันการ submit ซ้ำ
-                    let isProcessing = false;
-
-
-                    $('#form_add_product input').on('keypress', function (e) {
-                        if (e.which === 13 && !isProcessing) {
-                            e.preventDefault();
-                            e.stopPropagation(); // หยุด event bubbling
-                            const barcode = $('#barcode_input').val();
-                            const qty = parseInt($('input[name="qty"]').val()) || 0;
-                            if (!barcode) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: 'กรุณาป้อนรหัสสินค้า'
-                                });
+                // Autocomplete สำหรับค้นหาสินค้า
+                $('#barcode_input').on('input', function () {
+                    const query = $(this).val();
+                    if (query.length < 2) {
+                        $('#barcode_suggestions').addClass('hidden').empty();
+                        $('#product_info').addClass('hidden').empty();
+                        return;
+                    }
+                    $.ajax({
+                        url: 'page/sale/ajax/ajax_search_product.php',
+                        method: 'GET',
+                        data: {
+                            query: query
+                        },
+                        dataType: 'json',
+                        success: function (response) {
+                            const products = response;
+                            const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
+                            if (products.length === 0) {
+                                suggestions.append('<div class="p-2 text-gray-500">ไม่พบสินค้า</div>');
                                 return;
                             }
-                            if (qty <= 0) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: 'จำนวนต้องมากกว่า 0'
-                                });
+                            products.forEach(product => {
+                                suggestions.append(`
+                                <div class="p-2 hover:bg-gray-100 cursor-pointer" data-barcode="${product.product_id}">
+                                    ${product.product_id} - ${product.product_name} (สต็อก: ${product.total_stock})
+                                </div>
+                            `);
+                            });
+                            suggestions.find('div').on('click', function () {
+                                const barcode = $(this).data('barcode');
+                                $('#barcode_input').val(barcode);
+                                suggestions.addClass('hidden').empty();
+                                fetchProductInfo(barcode);
+                            });
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถค้นหาสินค้าได้',
+                                didOpen: () => {
+                                    $('.main-body').removeAttr('aria-hidden');
+                                }
+                            });
+                        }
+                    });
+                });
+
+                // แสดงข้อมูลสินค้า
+                function fetchProductInfo(barcode) {
+                    $.ajax({
+                        url: 'page/sale/ajax/ajax_get_product.php',
+                        method: 'GET',
+                        data: {
+                            barcode: barcode
+                        },
+                        dataType: 'json',
+                        success: function (response) {
+                            const product = response;
+                            const info = $('#product_info').removeClass('hidden');
+                            if (!product) {
+                                info.html('<span class="text-red-500">ไม่พบสินค้าหรือสต็อกไม่เพียงพอ</span>');
                                 return;
                             }
-                            console.log('Submitting #form_add_product:', $('#form_add_product').serialize()); // เฉพาะตอนพัฒนาเท่านั้นค่อยปิด
+                            info.html(`
+                            <p><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
+                            <p><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
+                            <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
+                        `);
+                        },
+                        error: function (xhr) {
+                            $('#product_info').addClass('hidden').empty();
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถดึงข้อมูลสินค้าได้',
+                                didOpen: () => {
+                                    $('.main-body').removeAttr('aria-hidden');
+                                }
+                            });
+                        }
+                    });
+                }
+                let dynamicTotalAmount = <?php echo $total_amount; ?>; // ค่าเริ่มต้น
+                // อัปเดตตารางสินค้าแบบเรียลไทม์
+                function updateProductTable() {
+                    $.ajax({
+                        url: 'page/sale/ajax/ajax_get_sale_products.php',
+                        method: 'GET',
+                        data: { sale_id: '<?php echo htmlspecialchars($sale_id); ?>' },
+                        dataType: 'json',
+                        success: function (response) {
+                            if (response.status === 'success') {
+                                $('#product_table_body').html(response.html);
+                                $('.total-amount').text(response.total_amount + ' บาท');
+                                $('.total-items').text(response.total_items + ' รายการ'); // เพิ่ม
+                                $('.total-qty').text(response.total_qty + ' ชิ้น'); // เพิ่ม
+                                const hasProducts = !response.html.includes('ไม่พบสินค้า');
+                                $('#confirm-sale-btn')
+                                    .prop('disabled', !hasProducts)
+                                    .toggleClass('opacity-50 cursor-not-allowed', !hasProducts);
+                                $('#calculate_change').click();
+                                bindEditProductEvents();
+                                $('.main-body').removeAttr('aria-hidden');
+                            } else {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'ข้อผิดพลาด',
+                                    text: response.message,
+                                    didOpen: () => {
+                                        $('.main-body').removeAttr('aria-hidden');
+                                    }
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถดึงข้อมูลตารางได้',
+                                didOpen: () => {
+                                    $('.main-body').removeAttr('aria-hidden');
+                                }
+                            });
+                        }
+                    });
+                }
+                // Autocomplete สำหรับค้นหาสมาชิก
+
+                $('#member_search').on('input', function () {
+                    const query = $(this).val();
+                    if (query.length < 2) {
+                        $('#member_suggestions').addClass('hidden').empty();
+                        return;
+                    }
+                    $.ajax({
+                        url: 'page/sale/ajax/ajax_search_member.php',
+                        method: 'GET',
+                        data: {
+                            query: query
+                        },
+                        dataType: 'json',
+                        success: function (response) {
+                            const members = response;
+                            const suggestions = $('#member_suggestions').removeClass('hidden').empty();
+                            if (members.length === 0) {
+                                suggestions.append('<div class="p-2 text-gray-500">ไม่พบสมาชิก</div>');
+                                return;
+                            }
+                            members.forEach(member => {
+                                suggestions.append(`
+                                    <div class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${member.member_id}">
+                                        ${member.member_name}
+                                    </div>
+                                `);
+                            });
+                            suggestions.find('div').on('click', function () {
+                                const memberId = $(this).data('id');
+                                const memberName = $(this).text();
+                                $('#member_search').val(memberName);
+                                $('#member_id').val(memberId);
+                                suggestions.addClass('hidden').empty();
+                            });
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถค้นหาสมาชิกได้'
+                            });
+                        }
+                    });
+                });
+
+                // คำนวณเงินทอน
+                $('#calculate_change').on('click', function () {
+                    const paid = parseFloat($('#paid_amount').val()) || 0;
+                    const total = dynamicTotalAmount;
+                    const change = paid - total;
+                    //console.log เพื่อดีบักตรวจสอบการใช้งานว่าล้มเหลวหรือไม่ ใช้ตอนพัฒนาเท่านั้น!!!
+                    console.log("Calculate change: ", { paid, total });
+                    $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
+                    $('#print_receipt').prop('disabled', change < 0);
+                });
+
+
+                // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
+                $('#paid_amount').off('input').on('input', function () {
+                    $('#calculate_change').click();
+                });
+
+                function refreshSummary() {
+                    $('.total-amount').text(dynamicTotalAmount.toFixed(2) + ' บาท');
+                    $('#calculate_change').click();
+                }
+
+                $(document).on('click', '[id^="close_tab_"]', function (e) {
+                    e.stopPropagation(); // ป้องกันการเรียก switchBill
+                    const saleId = $(this).attr('id').replace('close_tab_', '');
+                    Swal.fire({
+                        title: 'ยืนยันการปิดบิล?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'ปิดบิล',
+                        cancelButtonText: 'ยกเลิก'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
                             $.ajax({
                                 url: 'page/sale/sale_add.php',
                                 method: 'POST',
-                                data: $('#form_add_product').serialize(),
-                                dataType: 'json',
-                                beforeSend: function () {
-                                    isProcessing = true;
-                                    $('#barcode_input').prop('disabled', true);
-                                    $('input[name="qty"]').prop('disabled', true);
+                                data: {
+                                    action: 'close_tab',
+                                    sale_id: saleId
                                 },
+                                dataType: 'json',
                                 success: function (response) {
                                     if (response.status === 'success') {
-                                        Toast.fire({
+                                        Swal.fire({
+                                            toast: true,
                                             icon: 'success',
-                                            title: response.message
+                                            title: response.message,
+                                            // showConfirmButton: false,
+                                            // timer: 1500
+                                        }).then(() => {
+                                            window.location.href = response.redirect;
                                         });
-                                        updateProductTable();
-                                        $('#form_add_product')[0].reset();
-                                        $('#product_info').addClass('hidden').empty();
                                     } else {
                                         Swal.fire({
-                                            icon: 'warning',
-                                            title: '',
-                                            text: response.message,
-                                            didOpen: () => {
-                                                $('.main-body').removeAttr('aria-hidden');
-                                            }
+                                            icon: 'error',
+                                            title: 'ข้อผิดพลาด',
+                                            text: response.message
                                         });
-                                    }
-                                },
-                                complete: function () {
-                                    isProcessing = false;
-                                    $('#barcode_input').prop('disabled', false);
-                                    $('input[name="qty"]').prop('disabled', false);
-                                    $('.main-body').removeAttr('aria-hidden');
-                                    if (!$('#edit-product-modal').is(':visible')) {
-                                        $('#barcode_input').focus();
                                     }
                                 },
                                 error: function (xhr) {
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'ข้อผิดพลาด',
-                                        text: xhr.responseText || 'ไม่สามารถเพิ่มสินค้าได้',
-                                        didOpen: () => {
-                                            $('.main-body').removeAttr('aria-hidden');
-                                        }
+                                        text: xhr.responseText || 'ไม่สามารถปิดแท็บบิลได้'
                                     });
-                                    isProcessing = false;
                                 }
                             });
                         }
                     });
+                });
 
-                    // ป้องกันการ submit ไม่คาดคิดของ #form_add_product
-                    $('#form_add_product').off('submit').on('submit', function (e) {
-                        e.preventDefault();
-                        console.log('Unexpected submit event on #form_add_product');
-                    });
-                    // จัดการ submit ของ #confirm-sale-form เฉพาะเมื่อกดปุ่ม
-                    $('#confirm-sale-btn').on('click', function (e) {
-                        e.preventDefault();
-                        console.log('Submitting #confirm-sale-form:', $('#confirm-sale-form').serialize());
-                        $('#confirm-sale-btn .btn-text').addClass('hidden');
-                        $('#confirm-sale-btn .loading-spinner').removeClass('hidden');
-                        $.ajax({
-                            url: 'page/sale/sale_add.php',
-                            method: 'POST',
-                            data: $('#confirm-sale-form').serialize(),
-                            dataType: 'json',
-                            success: function (response) {
-                                $('#confirm-sale-btn .btn-text').removeClass('hidden');
-                                $('#confirm-sale-btn .loading-spinner').addClass('hidden');
-                                if (response.status === 'success') {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'สำเร็จ',
-                                        text: response.message,
-                                        timer: 1500,
-                                        didOpen: () => {
-                                            $('.main-body').removeAttr('aria-hidden');
-                                            $('#print_receipt').removeClass('hidden');
-                                            //  ซ่อนปุ่ม แก้ไข และ ลบ
-                                            $('.edit-product').addClass('hidden');
-                                            $('.delete-product').addClass('hidden');
-                                            // $('#cancel_sale').addClass('hidden');
-                                            $('#form_add_product').find('input, button').prop('disabled', true);
-                                            // ปิดการใช้งานการเลือกสมาชิกและพนักงาน
-                                            $('#member_search, #member_id, select[name="personnel_id"]').prop('disabled', true);
-                                            // ปิดการใช้งานปุ่มยืนยันการขาย
-                                            $('#confirm-sale-btn').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
-                                        }
-                                    }).then(() => {
-                                        // window.location.href = response.redirect;
-                                    });
-                                } else {
+                $('#cancel_sale').on('click', function () {
+                    Swal.fire({
+                        title: 'ยืนยันการยกเลิกการขาย?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'ยกเลิกการขาย',
+                        cancelButtonText: 'ยกเลิก'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.ajax({
+                                url: 'page/sale/ajax/ajax_cancel_sale.php',
+                                method: 'POST',
+                                data: {
+                                    action: 'cancel_sale',
+                                    sale_id: '<?php echo $sale_id; ?>'
+                                },
+                                dataType: 'json',
+                                success: function (response) {
+                                    if (response.status === 'success') {
+                                        Swal.fire({
+                                            toast: true,
+                                            icon: 'success',
+                                            title: response.message,
+                                            showConfirmButton: false,
+                                            timer: 1500
+                                        }).then(() => {
+                                            window.location.href = response.redirect;
+                                        });
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'ข้อผิดพลาด',
+                                            text: response.message
+                                        });
+                                    }
+                                },
+                                error: function (xhr) {
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'ข้อผิดพลาด',
-                                        text: response.message,
-                                        didOpen: () => {
-                                            $('.main-body').removeAttr('aria-hidden');
-                                        }
+                                        text: xhr.responseText || 'ไม่สามารถยกเลิกบิลได้'
                                     });
                                 }
-                            },
-                            error: function (xhr) {
-                                $('#confirm-sale-btn .btn-text').removeClass('hidden');
-                                $('#confirm-sale-btn .loading-spinner').addClass('hidden');
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถยืนยันการขายได้',
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
-                            }
-                        });
-                    });
-                    // ป้องกัน Enter key ใน #confirm-sale-form
-                    $('#confirm-sale-form input').on('keypress', function (e) {
-                        if (e.which === 13) {
-                            e.preventDefault();
-                            console.log('Blocked Enter key in #confirm-sale-form');
+                            });
                         }
                     });
+                });
+                // ลบสินค้า
 
-                    // Autocomplete สำหรับค้นหาสินค้า
-                    $('#barcode_input').on('input', function () {
-                        const query = $(this).val();
-                        if (query.length < 2) {
-                            $('#barcode_suggestions').addClass('hidden').empty();
-                            $('#product_info').addClass('hidden').empty();
-                            return;
-                        }
-                        $.ajax({
-                            url: 'page/sale/ajax/ajax_search_product.php',
-                            method: 'GET',
-                            data: {
-                                query: query
-                            },
-                            dataType: 'json',
-                            success: function (response) {
-                                const products = response;
-                                const suggestions = $('#barcode_suggestions').removeClass('hidden').empty();
-                                if (products.length === 0) {
-                                    suggestions.append('<div class="p-2 text-gray-500">ไม่พบสินค้า</div>');
-                                    return;
-                                }
-                                products.forEach(product => {
-                                    suggestions.append(`
-                                <div class="p-2 hover:bg-gray-100 cursor-pointer" data-barcode="${product.product_id}">
-                                    ${product.product_id} - ${product.product_name} (สต็อก: ${product.total_stock})
-                                </div>
-                            `);
-                                });
-                                suggestions.find('div').on('click', function () {
-                                    const barcode = $(this).data('barcode');
-                                    $('#barcode_input').val(barcode);
-                                    suggestions.addClass('hidden').empty();
-                                    fetchProductInfo(barcode);
-                                });
-                            },
-                            error: function (xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถค้นหาสินค้าได้',
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
+
+                // เปิด Modal และกรอกข้อมูลแก้ไข
+                $(document).on('click', '.edit-product', function (e) {
+                    e.preventDefault();
+                    const barcode = $(this).data('barcode');
+                    const name = $(this).data('name');
+                    const qty = $(this).data('qty');
+                    const price = $(this).data('price');
+                    const capital = $(this).data('capital');
+                    const reference = $(this).data('reference') || '';
+                    $('#edit-barcode').val(barcode);
+                    $('#edit-barcode-display').val(barcode);
+                    $('#edit-product-name').val(name);
+                    $('#edit-qty').val(qty);
+                    $('#edit-price').val(parseFloat(price).toFixed(2));
+                    $('#edit-capital').val(parseFloat(capital).toFixed(2));
+                    $('#edit-reference').val(reference);
+                    $('.main-body').attr('aria-hidden', 'true');
+                    $('#edit-product-modal').removeClass('hidden');
+                });
+                // Submit ฟอร์มแก้ไขสินค้า
+                $('#edit-product-form').on('submit', function (e) {
+                    e.preventDefault();
+                    if (isProcessing) return;
+                    const qty = parseInt($('#edit-qty').val()) || 0;
+                    if (qty <= 0) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ข้อผิดพลาด',
+                            text: 'จำนวนต้องมากกว่า 0',
+                            didOpen: () => {
+                                $('.main-body').removeAttr('aria-hidden');
                             }
                         });
-                    });
-
-                    // แสดงข้อมูลสินค้า
-                    function fetchProductInfo(barcode) {
-                        $.ajax({
-                            url: 'page/sale/ajax/ajax_get_product.php',
-                            method: 'GET',
-                            data: {
-                                barcode: barcode
-                            },
-                            dataType: 'json',
-                            success: function (response) {
-                                const product = response;
-                                const info = $('#product_info').removeClass('hidden');
-                                if (!product) {
-                                    info.html('<span class="text-red-500">ไม่พบสินค้าหรือสต็อกไม่เพียงพอ</span>');
-                                    return;
-                                }
-                                info.html(`
-                            <p><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
-                            <p><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
-                            <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
-                        `);
-                            },
-                            error: function (xhr) {
-                                $('#product_info').addClass('hidden').empty();
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถดึงข้อมูลสินค้าได้',
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
-                            }
-                        });
+                        return;
                     }
-                    // อัปเดตตารางสินค้าแบบเรียลไทม์
-                    function updateProductTable() {
-                        $.ajax({
-                            url: 'page/sale/ajax/ajax_get_sale_products.php',
-                            method: 'GET',
-                            data: { sale_id: '<?php echo htmlspecialchars($sale_id); ?>' },
-                            dataType: 'json',
-                            success: function (response) {
-                                if (response.status === 'success') {
-                                    $('#product_table_body').html(response.html);
-                                    $('.total-amount').text(response.total_amount + ' บาท');
-                                    $('.total-items').text(response.total_items + ' รายการ'); // เพิ่ม
-                                    $('.total-qty').text(response.total_qty + ' ชิ้น'); // เพิ่ม
-                                    const hasProducts = !response.html.includes('ไม่พบสินค้า');
-                                    $('#confirm-sale-btn')
-                                        .prop('disabled', !hasProducts)
-                                        .toggleClass('opacity-50 cursor-not-allowed', !hasProducts);
-                                    $('#calculate_change').click();
-                                    bindEditProductEvents();
+                    $.ajax({
+                        url: 'page/sale/sale_add.php',
+                        method: 'POST',
+                        data: $(this).serialize(),
+                        dataType: 'json',
+                        beforeSend: function () {
+                            isProcessing = true;
+                        },
+                        success: function (response) {
+                            if (response.status === 'success') {
+                                Toast.fire({
+                                    icon: 'success',
+                                    title: response.message
+                                });
+                                $('#edit-product-modal').addClass('hidden');
+                                updateProductTable();
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ข้อผิดพลาด',
+                                    text: response.message,
+                                    didOpen: () => {
+                                        $('.main-body').removeAttr('aria-hidden');
+                                    }
+                                });
+                            }
+                        },
+                        complete: function () {
+                            isProcessing = false;
+                            $('.main-body').removeAttr('aria-hidden');
+                            if (!$('#edit-product-modal').is(':visible')) {
+                                $('#barcode_input').focus();
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถแก้ไขสินค้าได้',
+                                didOpen: () => {
                                     $('.main-body').removeAttr('aria-hidden');
-                                } else {
-                                    Swal.fire({
-                                        icon: 'warning',
-                                        title: 'ข้อผิดพลาด',
-                                        text: response.message,
-                                        didOpen: () => {
-                                            $('.main-body').removeAttr('aria-hidden');
-                                        }
-                                    });
                                 }
-                            },
-                            error: function (xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถดึงข้อมูลตารางได้',
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
-                            }
-                        });
-                    }
-                    // Autocomplete สำหรับค้นหาสมาชิก
-                    
-                    $('#member_search').on('input', function () {
-                        const query = $(this).val();
-                        if (query.length < 2) {
-                            $('#member_suggestions').addClass('hidden').empty();
-                            return;
+                            });
+                            isProcessing = false;
                         }
-                        $.ajax({
-                            url: 'page/sale/ajax/ajax_search_member.php',
-                            method: 'GET',
-                            data: {
-                                query: query
-                            },
-                            dataType: 'json',
-                            success: function (response) {
-                                const members = response;
-                                const suggestions = $('#member_suggestions').removeClass('hidden').empty();
-                                if (members.length === 0) {
-                                    suggestions.append('<div class="p-2 text-gray-500">ไม่พบสมาชิก</div>');
-                                    return;
-                                }
-                                members.forEach(member => {
-                                    suggestions.append(`
-                                    <div class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${member.member_id}">
-                                        ${member.member_name}
-                                    </div>
-                                `);
-                                });
-                                suggestions.find('div').on('click', function () {
-                                    const memberId = $(this).data('id');
-                                    const memberName = $(this).text();
-                                    $('#member_search').val(memberName);
-                                    $('#member_id').val(memberId);
-                                    suggestions.addClass('hidden').empty();
-                                });
-                            },
-                            error: function (xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถค้นหาสมาชิกได้'
-                                });
-                            }
-                        });
                     });
+                });
+                $('#close-modal, #cancel-edit').on('click', function () {
+                    $('#edit-product-modal').addClass('hidden');
+                    $('.main-body').removeAttr('aria-hidden');
+                    $('#barcode_input').focus();
+                });
 
-                    // คำนวณเงินทอน
-                    $('#calculate_change').on('click', function () {
-                        const paid = parseFloat($('#paid_amount').val()) || 0;
-                        const total = parseFloat(<?php echo $total_amount; ?>) || 0;
-                        const change = paid - total;
-                        $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
-                        $('#print_receipt').prop('disabled', change < 0);
-                    });
-
-
-                    // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
-                    $('#paid_amount').on('input', function () {
-                        $('#calculate_change').click();
-                    });
-                    $(document).on('click', '[id^="close_tab_"]', function (e) {
-                        e.stopPropagation(); // ป้องกันการเรียก switchBill
-                        const saleId = $(this).attr('id').replace('close_tab_', '');
-                        Swal.fire({
-                            title: 'ยืนยันการปิดบิล?',
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: 'ปิดบิล',
-                            cancelButtonText: 'ยกเลิก'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                $.ajax({
-                                    url: 'page/sale/sale_add.php',
-                                    method: 'POST',
-                                    data: {
-                                        action: 'close_tab',
-                                        sale_id: saleId
-                                    },
-                                    dataType: 'json',
-                                    success: function (response) {
-                                        if (response.status === 'success') {
-                                            Swal.fire({
-                                                toast: true,
-                                                icon: 'success',
-                                                title: response.message,
-                                                // showConfirmButton: false,
-                                                // timer: 1500
-                                            }).then(() => {
-                                                window.location.href = response.redirect;
-                                            });
-                                        } else {
-                                            Swal.fire({
-                                                icon: 'error',
-                                                title: 'ข้อผิดพลาด',
-                                                text: response.message
-                                            });
-                                        }
-                                    },
-                                    error: function (xhr) {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'ข้อผิดพลาด',
-                                            text: xhr.responseText || 'ไม่สามารถปิดแท็บบิลได้'
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    });
-
-                    $('#cancel_sale').on('click', function () {
-                        Swal.fire({
-                            title: 'ยืนยันการยกเลิกการขาย?',
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: 'ยกเลิกการขาย',
-                            cancelButtonText: 'ยกเลิก'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                $.ajax({
-                                    url: 'page/sale/ajax/ajax_cancel_sale.php',
-                                    method: 'POST',
-                                    data: {
-                                        action: 'cancel_sale',
-                                        sale_id: '<?php echo $sale_id; ?>'
-                                    },
-                                    dataType: 'json',
-                                    success: function (response) {
-                                        if (response.status === 'success') {
-                                            Swal.fire({
-                                                toast: true,
-                                                icon: 'success',
-                                                title: response.message,
-                                                showConfirmButton: false,
-                                                timer: 1500
-                                            }).then(() => {
-                                                window.location.href = response.redirect;
-                                            });
-                                        } else {
-                                            Swal.fire({
-                                                icon: 'error',
-                                                title: 'ข้อผิดพลาด',
-                                                text: response.message
-                                            });
-                                        }
-                                    },
-                                    error: function (xhr) {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'ข้อผิดพลาด',
-                                            text: xhr.responseText || 'ไม่สามารถยกเลิกบิลได้'
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    });
-                    // ลบสินค้า
-                   
-
-                    // เปิด Modal และกรอกข้อมูลแก้ไข
-                    $(document).on('click', '.edit-product', function (e) {
+                // Bind event สำหรับปุ่มแก้ไขและลบ
+                function bindEditProductEvents() {
+                    $('.edit-product').off('click').on('click', function (e) {
                         e.preventDefault();
                         const barcode = $(this).data('barcode');
                         const name = $(this).data('name');
@@ -1538,165 +1651,76 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         $('.main-body').attr('aria-hidden', 'true');
                         $('#edit-product-modal').removeClass('hidden');
                     });
-                    // Submit ฟอร์มแก้ไขสินค้า
-                    $('#edit-product-form').on('submit', function (e) {
-                        e.preventDefault();
-                        if (isProcessing) return;
-                        const qty = parseInt($('#edit-qty').val()) || 0;
-                        if (qty <= 0) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'ข้อผิดพลาด',
-                                text: 'จำนวนต้องมากกว่า 0',
-                                didOpen: () => {
-                                    $('.main-body').removeAttr('aria-hidden');
-                                }
-                            });
-                            return;
-                        }
-                        $.ajax({
-                            url: 'page/sale/sale_add.php',
-                            method: 'POST',
-                            data: $(this).serialize(),
-                            dataType: 'json',
-                            beforeSend: function () {
-                                isProcessing = true;
-                            },
-                            success: function (response) {
-                                if (response.status === 'success') {
-                                    Toast.fire({
-                                        icon: 'success',
-                                        title: response.message
-                                    });
-                                    $('#edit-product-modal').addClass('hidden');
-                                    updateProductTable();
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'ข้อผิดพลาด',
-                                        text: response.message,
-                                        didOpen: () => {
-                                            $('.main-body').removeAttr('aria-hidden');
-                                        }
-                                    });
-                                }
-                            },
-                            complete: function () {
-                                isProcessing = false;
-                                $('.main-body').removeAttr('aria-hidden');
-                                if (!$('#edit-product-modal').is(':visible')) {
-                                    $('#barcode_input').focus();
-                                }
-                            },
-                            error: function (xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ข้อผิดพลาด',
-                                    text: xhr.responseText || 'ไม่สามารถแก้ไขสินค้าได้',
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
-                                isProcessing = false;
-                            }
-                        });
-                    });
-                    $('#close-modal, #cancel-edit').on('click', function () {
-                        $('#edit-product-modal').addClass('hidden');
-                        $('.main-body').removeAttr('aria-hidden');
-                        $('#barcode_input').focus();
-                    });
+                }
+            });
+        </script>
+        <script>
+            // Array to track bills in client-side
+            let bills = <?php echo json_encode($valid_active_sales); ?>;
+            let currentSaleId = <?php echo json_encode($sale_id); ?>;
 
-                    // Bind event สำหรับปุ่มแก้ไขและลบ
-                    function bindEditProductEvents() {
-                        $('.edit-product').off('click').on('click', function (e) {
-                            e.preventDefault();
-                            const barcode = $(this).data('barcode');
-                            const name = $(this).data('name');
-                            const qty = $(this).data('qty');
-                            const price = $(this).data('price');
-                            const capital = $(this).data('capital');
-                            const reference = $(this).data('reference') || '';
-                            $('#edit-barcode').val(barcode);
-                            $('#edit-barcode-display').val(barcode);
-                            $('#edit-product-name').val(name);
-                            $('#edit-qty').val(qty);
-                            $('#edit-price').val(parseFloat(price).toFixed(2));
-                            $('#edit-capital').val(parseFloat(capital).toFixed(2));
-                            $('#edit-reference').val(reference);
-                            $('.main-body').attr('aria-hidden', 'true');
-                            $('#edit-product-modal').removeClass('hidden');
-                        });
+            // Function to cancel a sale
+            // function cancelSale(saleId) {
+            //     event.stopPropagation(); // เพิ่ม: ป้องกันการเรียก switchBill
+            //     Swal.fire({
+            //         title: 'ยืนยันการยกเลิกบิล?',
+            //         icon: 'warning',
+            //         showCancelButton: true,
+            //         confirmButtonText: 'ยกเลิกบิล',
+            //         cancelButtonText: 'ยกเลิก'
+            //     }).then((result) => {
+            //         if (result.isConfirmed) {
+            //             $.ajax({
+            //                 url: '/page/sale/sale_add.php',
+            //                 method: 'POST',
+            //                 data: {
+            //                     action: 'cancel_sale',
+            //                     sale_id: saleId
+            //                 },
+            //                 dataType: 'json',
+            //                 success: function (response) {
+            //                     if (response.status === 'success') {
+            //                         Swal.fire({
+            //                             icon: 'success',
+            //                             title: 'สำเร็จ',
+            //                             text: response.message,
+            //                             timer: 1500
+            //                         }).then(() => {
+            //                             window.location.href = response.redirect;
+            //                         });
+            //                     } else {
+            //                         Swal.fire({
+            //                             icon: 'error',
+            //                             title: 'ข้อผิดพลาด',
+            //                             text: response.message
+            //                         });
+            //                     }
+            //                 },
+            //                 error: function (xhr) {
+            //                     Swal.fire({
+            //                         icon: 'error',
+            //                         title: 'ข้อผิดพลาด',
+            //                         text: xhr.responseText || 'ไม่สามารถยกเลิกบิลได้'
+            //                     });
+            //                 }
+            //             });
+            //         }
+            //     });
+            // }
+            // Function to update tab styles based on currentSaleId
+            function updateTabStyles() {
+                $('#billTabs > div').each(function () {
+                    const tabId = $(this).attr('id').replace('tab_', '');
+                    if (tabId == currentSaleId) {
+                        $(this).removeClass('tab-inactive').addClass('tab-active');
+                    } else {
+                        $(this).removeClass('tab-active').addClass('tab-inactive');
                     }
                 });
-            </script>
-            <script>
-                // Array to track bills in client-side
-                let bills = <?php echo json_encode($valid_active_sales); ?>;
-                let currentSaleId = <?php echo json_encode($sale_id); ?>;
+            }
 
-                // Function to cancel a sale
-                // function cancelSale(saleId) {
-                //     event.stopPropagation(); // เพิ่ม: ป้องกันการเรียก switchBill
-                //     Swal.fire({
-                //         title: 'ยืนยันการยกเลิกบิล?',
-                //         icon: 'warning',
-                //         showCancelButton: true,
-                //         confirmButtonText: 'ยกเลิกบิล',
-                //         cancelButtonText: 'ยกเลิก'
-                //     }).then((result) => {
-                //         if (result.isConfirmed) {
-                //             $.ajax({
-                //                 url: '/page/sale/sale_add.php',
-                //                 method: 'POST',
-                //                 data: {
-                //                     action: 'cancel_sale',
-                //                     sale_id: saleId
-                //                 },
-                //                 dataType: 'json',
-                //                 success: function (response) {
-                //                     if (response.status === 'success') {
-                //                         Swal.fire({
-                //                             icon: 'success',
-                //                             title: 'สำเร็จ',
-                //                             text: response.message,
-                //                             timer: 1500
-                //                         }).then(() => {
-                //                             window.location.href = response.redirect;
-                //                         });
-                //                     } else {
-                //                         Swal.fire({
-                //                             icon: 'error',
-                //                             title: 'ข้อผิดพลาด',
-                //                             text: response.message
-                //                         });
-                //                     }
-                //                 },
-                //                 error: function (xhr) {
-                //                     Swal.fire({
-                //                         icon: 'error',
-                //                         title: 'ข้อผิดพลาด',
-                //                         text: xhr.responseText || 'ไม่สามารถยกเลิกบิลได้'
-                //                     });
-                //                 }
-                //             });
-                //         }
-                //     });
-                // }
-                // Function to update tab styles based on currentSaleId
-                function updateTabStyles() {
-                    $('#billTabs > div').each(function () {
-                        const tabId = $(this).attr('id').replace('tab_', '');
-                        if (tabId == currentSaleId) {
-                            $(this).removeClass('tab-inactive').addClass('tab-active');
-                        } else {
-                            $(this).removeClass('tab-active').addClass('tab-inactive');
-                        }
-                    });
-                }
-
-            </script>
-        </div>
+        </script>
+    </div>
     </div>
 </body>
 
