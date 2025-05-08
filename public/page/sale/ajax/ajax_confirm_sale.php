@@ -81,6 +81,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $updateSale = $pdo->prepare("UPDATE sale SET sale_status_id = 1 WHERE sale_id = ?");
         $updateSale->execute([$sale_id]);
 
+        // ดึงสถานะล่าสุด
+        $status_query = "SELECT ss.sale_status_name
+    FROM sale s
+    JOIN sale_status ss ON s.sale_status_id = ss.sale_status_id
+    WHERE s.sale_id = ?";
+        $status_stmt = $pdo->prepare($status_query);
+        $status_stmt->execute([$sale_id]);
+        $sale_status = $status_stmt->fetch(PDO::FETCH_ASSOC);
+        $sale_status_name = $sale_status ? $sale_status['sale_status_name'] : 'ไม่ทราบสถานะ';
+
         // อัปเดต member_id หากระบุ
         if (isset($_POST['member_id']) && !empty($_POST['member_id'])) {
             $updateMember = $pdo->prepare("UPDATE sale SET member_id = ? WHERE sale_id = ?");
@@ -94,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         $pdo->commit();
-        echo json_encode(['status' => 'success', 'message' => 'ยืนยันการขายสำเร็จ']);
+        echo json_encode(['status' => 'success', 'message' => 'ยืนยันการขายสำเร็จ', 'sale_status_name' => $sale_status_name]);
         // echo json_encode(['status' => 'success', 'message' => 'ยืนยันการขายสำเร็จ', 'redirect' => '?page=sale_add']);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {

@@ -39,8 +39,21 @@ $(document).ready(function () {
               $("#confirm-sale-btn")
                 .prop("disabled", true)
                 .addClass("opacity-50 cursor-not-allowed");
+              $("#barcode_input, #barcode-qty").prop("disabled", true);
+              $("#form_add_product")
+                .find("input, select, button")
+                .prop("disabled", true);
+              $("#sale-status").text(
+                response.sale_status_name || "ไม่ทราบสถานะ"
+              );
             },
           }).then(() => {
+            // รีเฟรช ตารางและสถานะ
+            // if (){
+
+            // } else{
+
+            // }
             // window.location.href = response.redirect;
           });
         } else {

@@ -377,7 +377,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 <h1 class="text-2xl font-bold">Your Store or Company name POS
                 </h1>
                 <div class="flex items-center space-x-4">
-                    <p class="text-yellow-400 font-bold"> <?php echo htmlspecialchars($sale_status_name); ?></p>
+                    <p id="sale-status" class="text-yellow-400 font-bold"> <?php echo htmlspecialchars($sale_status_name); ?></p>
                     <label class="text-base font-medium">พนักงานขาย:</label>
                     <div class="text-xll font-bold">
                         <input class="bg-transparent " type="text" name="personnel_id"
@@ -448,15 +448,17 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                 <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า</label>
                                 <input type="text" name="barcode" id="barcode_input"
                                     class="p-3 w-full h-8 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                    placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off" autofocus>
+                                    placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off" autofocus
+                                    <?php echo($sale_status_id === 1) ? 'disable' : ''; ?> >
                                 <div id="barcode_suggestions"
                                     class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
-                                <input type="number" name="qty" value="1" min="1"
-                                    class="p-2 w-12 h-8 border border-gray-300 rounded-sm">
+                                <input type="number" name="qty" value="1" min="1" id="barcode-qty"
+                                    class="p-2 w-12 h-8 border border-gray-300 rounded-sm"
+                                    <?php echo($sale_status_id === 1) ? 'disable' : '';?>>
                             </div>
                             <div hidden>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
@@ -796,14 +798,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         }
                     }
                 });
-
-
-
-                // ตัวแปรควบคุมการประมวลผลเพื่อป้องกันการ submit ซ้ำ
-                let isProcessing = false;
-
-
-                
                 const saleStatusId = <?php echo json_encode($sale_data['sale_status_id'] ?? 2); ?>;
                 if (saleStatusId === 1) {
                     $('#print_receipt').removeClass('hidden');
@@ -811,6 +805,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     $('.delete-product').addClass('hidden');
                     $('#member_search, #member_id, select[name="personnel_id"]').prop('disabled', true);
                     $('#confirm-sale-btn').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+                    $('#barcode_input, #barcode-qty').prop('disabled', true);
+                    $('#form_add_product').find('input, select, button').prop('disabled', true);
                 } else {
                     $('#print_receipt').addClass('hidden');
                 }
