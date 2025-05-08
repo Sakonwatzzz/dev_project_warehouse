@@ -8,6 +8,11 @@ require_once __DIR__ . '../../../../../functions/adjustLotRemain.php';
 header('Content-Type: application/json');
 
 
+$sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
+
+if($sale_id){
+    echo 'Error sale_id not require';
+}
 
 // Handle product update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {

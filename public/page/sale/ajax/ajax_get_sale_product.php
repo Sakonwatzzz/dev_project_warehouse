@@ -31,8 +31,40 @@ try {
         $total_qty += $product['sale_product_qty']; // เพิ่ม: รวมจำนวนชิ้น
     }
 
+    $valid_active_sale = [];
+    if (!empty($_SESSION['active_sales'])) {
+        $placeholders = implode(',', array_fill(0, count($_SESSION['active_sales']), '?'));
+        try {
+            // เปลี่ยนจาก sale_status_id = 2 เป็น sale_status_id IN (1, 2) เพื่อให้บิลที่ยืนยันแล้วยังคงอยู่ใน active_sales ชั่วคราว
+            $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders) AND sale_status_id IN (1, 2)");
+            $stmt->execute(array_values($_SESSION['active_sales']));
+            $valid_sales = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $valid_active_sale = array_intersect($_SESSION['active_sales'], $valid_sales);
+            $_SESSION['active_sales'] = $valid_active_sale;
+            if (!in_array($_SESSION['current_sale_id'], $valid_active_sale)) {
+                $_SESSION['current_sale_id'] = !empty($valid_active_sale) ? reset($valid_active_sale) : null;
+                $sale_id = $_SESSION['current_sale_id'];
+            }
+            error_log("Validated active_sales: " . json_encode($valid_active_sale));
+        } catch (PDOException $e) {
+            error_log("Error validating active sales: " . $e->getMessage());
+            $_SESSION['active_sales'] = [];
+            $_SESSION['current_sale_id'] = null;
+            $sale_id = null;
+        }
+    } else {
+        $_SESSION['active_sales'] = [];
+        $_SESSION['current_sale_id'] = null;
+        $sale_id = null;
+    }
     // สร้าง HTML สำหรับตาราง
     $html = '';
+    foreach ($valid_active_sale as $active_sale_id) {
+        $html = '<div class="flex items-center space-x-4">
+                     <p class="text-yellow-400 font-bold"> <?php echo htmlspecialchars($sale_status_name); ?></p>
+                </div>';
+    }
+
     if (empty($sale_products)) {
         $html = '<tr><td colspan="7" class="text-center py-8 text-gray-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none"

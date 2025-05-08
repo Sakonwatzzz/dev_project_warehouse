@@ -84,7 +84,51 @@ $(document).ready(function () {
         isProcessing = false;
       },
     });
-  }); 
+  });
+  function updateProductTable() {
+    $.ajax({
+      url: "page/sale/ajax/ajax_get_sale_product.php",
+      method: "GET",
+      data: {
+        sale_id: "<?php echo htmlspecialchars($sale_id); ?>",
+      },
+      dataType: "json",
+      success: function (response) {
+        if (response.status === "success") {
+          $("#product_table_body").html(response.html);
+          $(".total-amount").text(response.total_amount + " บาท");
+          $(".total-items").text(response.total_items + " รายการ"); // เพิ่ม
+          $(".total-qty").text(response.total_qty + " ชิ้น"); // เพิ่ม
+          const hasProducts = !response.html.includes("ไม่พบสินค้า");
+          $("#confirm-sale-btn")
+            .prop("disabled", !hasProducts)
+            .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
+          $("#calculate_change").click();
+          bindEditProductEvents();
+          $(".main-body").removeAttr("aria-hidden");
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "ข้อผิดพลาด",
+            text: response.message,
+            didOpen: () => {
+              $(".main-body").removeAttr("aria-hidden");
+            },
+          });
+        }
+      },
+      error: function (xhr) {
+        Swal.fire({
+          icon: "error",
+          title: "ข้อผิดพลาด",
+          text: xhr.responseText || "ไม่สามารถดึงข้อมูลตารางได้",
+          didOpen: () => {
+            $(".main-body").removeAttr("aria-hidden");
+          },
+        });
+      },
+    });
+  }
   $("#close-modal, #cancel-edit").on("click", function () {
     $("#edit-product-modal").addClass("hidden");
     $(".main-body").removeAttr("aria-hidden");

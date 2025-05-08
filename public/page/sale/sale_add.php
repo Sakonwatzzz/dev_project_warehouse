@@ -264,7 +264,7 @@ $personnels = $stmt->fetch(PDO::FETCH_ASSOC);
 $sale_status_result = $pdo->query("SELECT sale_status_id, sale_status_name FROM sale_status");
 
 // Validate active sales against database
-$valid_active_sales = [];
+$valid_active_sale = [];
 if (!empty($_SESSION['active_sales'])) {
     $placeholders = implode(',', array_fill(0, count($_SESSION['active_sales']), '?'));
     try {
@@ -272,13 +272,13 @@ if (!empty($_SESSION['active_sales'])) {
         $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders) AND sale_status_id IN (1, 2)");
         $stmt->execute(array_values($_SESSION['active_sales']));
         $valid_sales = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $valid_active_sales = array_intersect($_SESSION['active_sales'], $valid_sales);
-        $_SESSION['active_sales'] = $valid_active_sales;
-        if (!in_array($_SESSION['current_sale_id'], $valid_active_sales)) {
-            $_SESSION['current_sale_id'] = !empty($valid_active_sales) ? reset($valid_active_sales) : null;
+        $valid_active_sale = array_intersect($_SESSION['active_sales'], $valid_sales);
+        $_SESSION['active_sales'] = $valid_active_sale;
+        if (!in_array($_SESSION['current_sale_id'], $valid_active_sale)) {
+            $_SESSION['current_sale_id'] = !empty($valid_active_sale) ? reset($valid_active_sale) : null;
             $sale_id = $_SESSION['current_sale_id'];
         }
-        error_log("Validated active_sales: " . json_encode($valid_active_sales));
+        error_log("Validated active_sales: " . json_encode($valid_active_sale));
     } catch (PDOException $e) {
         error_log("Error validating active sales: " . $e->getMessage());
         $_SESSION['active_sales'] = [];
@@ -401,7 +401,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 </button>
                 <div id="billTabs"
                     class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full pb-2 shadow-md p-2 py-2">
-                    <?php foreach ($valid_active_sales as $active_sale_id): ?>
+                    <?php foreach ($valid_active_sale as $active_sale_id): ?>
                         <div id="tab_<?php echo $active_sale_id; ?>"
                             class="px-4 py-1 rounded-md hover:bg-gray-300 transition-colors shadow-lg <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap"
                             onclick="switchBill(<?php echo $active_sale_id; ?>)">
@@ -816,52 +816,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 }
 
                 let dynamicTotalAmount = <?php echo $total_amount; ?>; // ค่าเริ่มต้น
-                // อัปเดตตารางสินค้าแบบเรียลไทม์
-                function updateProductTable() {
-                    $.ajax({
-                        url: 'page/sale/ajax/ajax_get_sale_product.php',
-                        method: 'GET',
-                        data: {
-                            sale_id: '<?php echo htmlspecialchars($sale_id); ?>'
-                        },
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.status === 'success') {
-                                $('#product_table_body').html(response.html);
-                                $('.total-amount').text(response.total_amount + ' บาท');
-                                $('.total-items').text(response.total_items + ' รายการ'); // เพิ่ม
-                                $('.total-qty').text(response.total_qty + ' ชิ้น'); // เพิ่ม
-                                const hasProducts = !response.html.includes('ไม่พบสินค้า');
-                                $('#confirm-sale-btn')
-                                    .prop('disabled', !hasProducts)
-                                    .toggleClass('opacity-50 cursor-not-allowed', !hasProducts);
-                                $('#calculate_change').click();
-                                bindEditProductEvents();
-                                $('.main-body').removeAttr('aria-hidden');
-                            } else {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'ข้อผิดพลาด',
-                                    text: response.message,
-                                    didOpen: () => {
-                                        $('.main-body').removeAttr('aria-hidden');
-                                    }
-                                });
-                            }
-                        },
-                        error: function(xhr) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'ข้อผิดพลาด',
-                                text: xhr.responseText || 'ไม่สามารถดึงข้อมูลตารางได้',
-                                didOpen: () => {
-                                    $('.main-body').removeAttr('aria-hidden');
-                                }
-                            });
-                        }
-                    });
-                }
-                // Autocomplete สำหรับค้นหาสมาชิก
+                
 
                 $('#member_search').on('input', function() {
                     const query = $(this).val();
@@ -935,7 +890,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
             });
 
             // Array to track bills in client-side
-            let bills = <?php echo json_encode($valid_active_sales); ?>;
+            let bills = <?php echo json_encode($valid_active_sale); ?>;
             let currentSaleId = <?php echo json_encode($sale_id); ?>;
 
             // Function to update tab styles based on currentSaleId
