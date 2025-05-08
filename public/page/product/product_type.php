@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+// เพิ่มตัวแปรสำหรับการค้นหา
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 // Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -51,30 +54,55 @@ try {
     echo "Count error: " . htmlspecialchars($e->getMessage());
 }
 
-// Pagination
+// Pagination และ การค้นหา
 $records_per_page = 6;
 $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
 try {
-    $total_records = $pdo->query("SELECT COUNT(*) FROM product_type")->fetchColumn();
+    // สร้าง SQL query สำหรับนับรายการทั้งหมด ตามเงื่อนไขการค้นหา
+    $count_query = "SELECT COUNT(*) FROM product_type";
+    $params = [];
+
+    if (!empty($search)) {
+        $count_query .= " WHERE product_type_name LIKE :search OR product_type_id LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $total_records = $stmt->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
     $total_pages = 1;
     echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// Fetch data
+// ดึงข้อมูลตามเงื่อนไขการค้นหา
 try {
     $query = "SELECT 
         pt.product_type_id,
         pt.product_type_name,
         COALESCE(COUNT(p.product_id), 0) as product_count
         FROM product_type pt
-        LEFT JOIN product p ON pt.product_type_id = p.product_type_id
-        GROUP BY pt.product_type_id, pt.product_type_name 
+        LEFT JOIN product p ON pt.product_type_id = p.product_type_id";
+
+    $params = [];
+    if (!empty($search)) {
+        $query .= " WHERE pt.product_type_name LIKE :search OR pt.product_type_id LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+
+    $query .= " GROUP BY pt.product_type_id, pt.product_type_name 
         LIMIT :offset, :records_per_page";
+
     $stmt = $pdo->prepare($query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
@@ -130,10 +158,21 @@ try {
                         </h2>
                         <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
                     </div>
+
+                    <!-- แก้ไขส่วน input search ให้ส่งค่าไปยัง GET -->
                     <div class="w-full md:w-1/2">
-                        <input type="text" id="searchInput" onkeyup="searchTable()"
-                            placeholder="ค้นหาประเภทสินค้า..."
-                            class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                        <form action="" method="GET" class="w-full" id="searchForm">
+                            <input type="hidden" name="page" value="product_type">
+                            <div class="relative">
+                                <input type="text" name="search" id="searchInput"
+                                    placeholder="ค้นหาประเภทสินค้า..." value="<?php echo htmlspecialchars($search); ?>"
+                                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+                                    oninput="checkEmptySearch(this)">
+                                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -270,12 +309,12 @@ try {
             </div>
         </div>
 
-        <!-- Pagination -->
+        <!-- แก้ไขส่วน Pagination ให้รองรับการค้นหา -->
         <div class="pagination mt-5 flex flex-wrap justify-center items-center gap-2">
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=product_type&page_num=<?= $page - 1 ?>"
+                    <a href="?page=product_type&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         « ก่อนหน้า
                     </a>
@@ -286,7 +325,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=product_type&page_num=1"
+                    <a href="?page=product_type&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         1
                     </a>
@@ -296,7 +335,7 @@ try {
                 <?php endif; ?>
 
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=product_type&page_num=<?= $i ?>"
+                    <a href="?page=product_type&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 rounded-md transition-colors text-sm md:text-base <?= $i == $page ? 'bg-gray-800 text-white' : 'bg-blue-100 text-black hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -306,7 +345,7 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
                     <?php endif; ?>
-                    <a href="?page=product_type&page_num=<?= $total_pages ?>"
+                    <a href="?page=product_type&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         <?= $total_pages ?>
                     </a>
@@ -314,13 +353,14 @@ try {
 
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=product_type&page_num=<?= $page + 1 ?>"
+                    <a href="?page=product_type&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         ถัดไป »
                     </a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+
     </div>
 
     <!-- Notification -->
@@ -330,61 +370,57 @@ try {
     </div>
 
     <script>
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-            const cards = document.querySelectorAll(".card-responsive > div[data-id]");
-            const thead = table.querySelector("thead");
-            let foundAny = false;
-
-            // Table search
-            tr[0].style.display = "";
-            thead.style.display = "";
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) foundAny = true;
-            }
-
-            // Card search
-            cards.forEach(card => {
-                const texts = card.querySelectorAll("span, a");
-                let cardMatchesSearch = false;
-                texts.forEach(text => {
-                    const txtValue = text.textContent || text.innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        cardMatchesSearch = true;
-                    }
-                });
-                card.style.display = cardMatchesSearch ? "block" : "none";
-                if (cardMatchesSearch) foundAny = true;
-            });
-
-            let noDataMessage = document.getElementById("noDataMessage");
-            if (!foundAny) {
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement("p");
-                    noDataMessage.id = "noDataMessage";
-                    noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.className = "text-red-600 font-bold text-center mt-3 text-sm md:text-base";
-                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                    document.querySelector(".card-responsive").appendChild(noDataMessage.cloneNode(true));
-                }
-            } else if (noDataMessage) {
-                noDataMessage.remove();
-                document.querySelectorAll("#noDataMessage").forEach(el => el.remove());
+        // ฟังก์ชันตรวจสอบเมื่อลบข้อความค้นหาจนหมด
+        function checkEmptySearch(input) {
+            if (input.value.trim() === '') {
+                // ถ้าช่องค้นหาว่างเปล่า ให้เปลี่ยนเส้นทางไปยังหน้าแสดงข้อมูลทั้งหมด
+                window.location.href = '?page=product_type';
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('add_success')) {
+                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('edit_success')) {
+                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
+            }
+
+            // ถ้ามีการค้นหา ให้ focus ที่ช่องค้นหา
+            if (urlParams.has('search')) {
+                document.getElementById('searchInput').focus();
+            }
+
+            // เพิ่ม event listener สำหรับการกด Escape เพื่อยกเลิกการค้นหา
+            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.location.href = '?page=product_type';
+                }
+            });
+        });
+
+        // ก่อน reload ให้เก็บไว้
+        document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                localStorage.setItem('searchPreserve', this.value);
+            }
+        });
+
+        // หลังโหลดหน้า
+        document.addEventListener('DOMContentLoaded', () => {
+            const preserved = localStorage.getItem('searchPreserve');
+            if (preserved) {
+                const input = document.getElementById('searchInput');
+                input.value = preserved;
+                input.focus();
+                // เคลื่อนเคอร์เซอร์ไปหลังข้อความ
+                input.selectionStart = input.selectionEnd = preserved.length;
+                localStorage.removeItem('searchPreserve');
+            }
+        });
+
 
         function enableEdit(button) {
             const row = button.closest('tr');

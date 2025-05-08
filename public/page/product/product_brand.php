@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+// เพิ่มตัวแปรสำหรับการค้นหา
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 // Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -51,30 +54,55 @@ try {
     echo "Count error: " . htmlspecialchars($e->getMessage());
 }
 
-// Pagination
+// Pagination และ การค้นหา
 $records_per_page = 5;
 $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
 try {
-    $total_records = $pdo->query("SELECT COUNT(*) FROM product_brand")->fetchColumn();
+    // สร้าง SQL query สำหรับนับรายการทั้งหมด ตามเงื่อนไขการค้นหา
+    $count_query = "SELECT COUNT(*) FROM product_brand";
+    $params = [];
+
+    if (!empty($search)) {
+        $count_query .= " WHERE product_brand_name LIKE :search OR product_brand_id LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $total_records = $stmt->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
     $total_pages = 1;
     echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// Fetch data
+// ดึงข้อมูลตามเงื่อนไขการค้นหา
 try {
     $query = "SELECT 
         pt.product_brand_id,
         pt.product_brand_name,
         COALESCE(COUNT(p.product_id), 0) as product_count
         FROM product_brand pt
-        LEFT JOIN product p ON pt.product_brand_id = p.product_brand_id
-        GROUP BY pt.product_brand_id, pt.product_brand_name 
+        LEFT JOIN product p ON pt.product_brand_id = p.product_brand_id";
+
+    $params = [];
+    if (!empty($search)) {
+        $query .= " WHERE pt.product_brand_name LIKE :search OR pt.product_brand_id LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+
+    $query .= " GROUP BY pt.product_brand_id, pt.product_brand_name 
         LIMIT :offset, :records_per_page";
+
     $stmt = $pdo->prepare($query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
@@ -124,15 +152,23 @@ try {
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div class="flex items-center gap-4">
-                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-list mr-2"></i>รายการแบรนด์สินค้า
-                        </h2>
-                        <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
+                        <h2 class="text-xl md:text-2 pobli            <span class=" px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
                     </div>
+
+                    <!-- แก้ไขส่วน input search ให้ส่งค่าไปยัง GET -->
                     <div class="w-full md:w-1/2">
-                        <input type="text" id="searchInput" onkeyup="searchTable()"
-                            placeholder="ค้นหาประเภทสินค้า..."
-                            class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                        <form action="" method="GET" class="w-full" id="searchForm">
+                            <input type="hidden" name="page" value="product_brand">
+                            <div class="relative">
+                                <input type="text" name="search" id="searchInput"
+                                    placeholder="ค้นหาแบรนด์สินค้า..." value="<?php echo htmlspecialchars($search); ?>"
+                                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+                                    oninput="checkEmptySearch(this)">
+                                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -172,11 +208,11 @@ try {
                             <?php if (count($productbrand) > 0): ?>
                                 <?php foreach ($productbrand as $brand): ?>
                                     <tr class="hover:bg-gray-100" data-id="<?php echo htmlspecialchars($brand['product_brand_id']); ?>">
-                                        <td class="px-4 py-1 border  text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_id']); ?></td>
-                                        <td class="px-4 py-1 border   brand-name text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_name']); ?></td>
+                                        <td class="px-4 py-1 border text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_id']); ?></td>
+                                        <td class="px-4 py-1 border brand-name text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_name']); ?></td>
                                         <td class="px-4 py-1 border text-center cursor-pointer">
                                             <a href="?page=product_brandgroup&tabel=product_brand&id=<?php echo $brand['product_brand_id']; ?>&product_brand_name=<?php echo urlencode($brand['product_brand_name']); ?>"
-                                                class="text-orange-600  btext-sm md:text-base">
+                                                class="text-orange-600 text-sm md:text-base">
                                                 <?php echo number_format($brand['product_count']); ?> รายการ
                                             </a>
                                         </td>
@@ -191,7 +227,7 @@ try {
                                                     class="delete-btn bg-red-500 text-white px-4 py-1 rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
                                                     <i class="fas fa-trash-alt mr-1"></i>ลบ
                                                 </a>
-                                                <button class="save-btn hidden bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600 transition  items-center text-sm md:text-base"
+                                                <button class="save-btn hidden bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600 transition items-center text-sm md:text-base"
                                                     onclick="saveEdit(this)">
                                                     <i class="fas fa-save mr-1"></i>บันทึก
                                                 </button>
@@ -255,7 +291,7 @@ try {
                                         class="delete-btn bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center text-sm">
                                         <i class="fas fa-trash-alt mr-1"></i>ลบ
                                     </a>
-                                    <button class="save-btn hidden bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition  items-center text-sm"
+                                    <button class="save-btn hidden bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition items-center text-sm"
                                         onclick="saveEditMobile(this)">
                                         <i class="fas fa-save mr-1"></i>บันทึก
                                     </button>
@@ -274,7 +310,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=product_brand&page_num=<?= $page - 1 ?>"
+                    <a href="?page=product_brand&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         « ก่อนหน้า
                     </a>
@@ -285,7 +321,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=product_brand&page_num=1"
+                    <a href="?page=product_brand&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         1
                     </a>
@@ -295,7 +331,7 @@ try {
                 <?php endif; ?>
 
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=product_brand&page_num=<?= $i ?>"
+                    <a href="?page=product_brand&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 rounded-md transition-colors text-sm md:text-base <?= $i == $page ? 'bg-gray-800 text-white' : 'bg-blue-100 text-black hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -305,7 +341,7 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
                     <?php endif; ?>
-                    <a href="?page=product_brand&page_num=<?= $total_pages ?>"
+                    <a href="?page=product_brand&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         <?= $total_pages ?>
                     </a>
@@ -313,7 +349,7 @@ try {
 
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=product_brand&page_num=<?= $page + 1 ?>"
+                    <a href="?page=product_brand&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         ถัดไป »
                     </a>
@@ -329,61 +365,56 @@ try {
     </div>
 
     <script>
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-            const cards = document.querySelectorAll(".card-responsive > div[data-id]");
-            const thead = table.querySelector("thead");
-            let foundAny = false;
-
-            // Table search
-            tr[0].style.display = "";
-            thead.style.display = "";
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) foundAny = true;
-            }
-
-            // Card search
-            cards.forEach(card => {
-                const texts = card.querySelectorAll("span, a");
-                let cardMatchesSearch = false;
-                texts.forEach(text => {
-                    const txtValue = text.textContent || text.innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        cardMatchesSearch = true;
-                    }
-                });
-                card.style.display = cardMatchesSearch ? "block" : "none";
-                if (cardMatchesSearch) foundAny = true;
-            });
-
-            let noDataMessage = document.getElementById("noDataMessage");
-            if (!foundAny) {
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement("p");
-                    noDataMessage.id = "noDataMessage";
-                    noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.className = "text-red-600 font-bold text-center mt-3 text-sm md:text-base";
-                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                    document.querySelector(".card-responsive").appendChild(noDataMessage.cloneNode(true));
-                }
-            } else if (noDataMessage) {
-                noDataMessage.remove();
-                document.querySelectorAll("#noDataMessage").forEach(el => el.remove());
+        // ฟังก์ชันตรวจสอบเมื่อลบข้อความค้นหาจนหมด
+        function checkEmptySearch(input) {
+            if (input.value.trim() === '') {
+                // ถ้าช่องค้นหาว่างเปล่า ให้เปลี่ยนเส้นทางไปยังหน้าแสดงข้อมูลทั้งหมด
+                window.location.href = '?page=product_brand';
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('add_success')) {
+                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('edit_success')) {
+                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
+            }
+
+            // ถ้ามีการค้นหา ให้ focus ที่ช่องค้นหา
+            if (urlParams.has('search')) {
+                document.getElementById('searchInput').focus();
+            }
+
+            // เพิ่ม event listener สำหรับการกด Escape เพื่อยกเลิกการค้นหา
+            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.location.href = '?page=product_brand';
+                }
+            });
+        });
+
+        // ก่อน reload ให้เก็บไว้
+        document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                localStorage.setItem('searchPreserve', this.value);
+            }
+        });
+
+        // หลังโหลดหน้า
+        document.addEventListener('DOMContentLoaded', () => {
+            const preserved = localStorage.getItem('searchPreserve');
+            if (preserved) {
+                const input = document.getElementById('searchInput');
+                input.value = preserved;
+                input.focus();
+                // เคลื่อนเคอร์เซอร์ไปหลังข้อความ
+                input.selectionStart = input.selectionEnd = preserved.length;
+                localStorage.removeItem('searchPreserve');
+            }
+        });
 
         function enableEdit(button) {
             const row = button.closest('tr');
@@ -495,18 +526,6 @@ try {
                 notification.classList.add('hidden');
             }, 1000);
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('add_success')) {
-                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
-            } else if (urlParams.has('edit_success')) {
-                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
-            } else if (urlParams.has('delete_success')) {
-                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
-            }
-            document.getElementById('searchInput').focus();
-        });
     </script>
 </body>
 

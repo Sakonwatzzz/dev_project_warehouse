@@ -1,4 +1,3 @@
-
 <?php
 ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
@@ -43,11 +42,27 @@ if (isset($_GET['id']) && isset($_GET['action']) && $_GET['action'] === 'delete'
     }
 }
 
-// Total member count
-$query = "SELECT COUNT(*) as total_count FROM member";
-$stmt = $pdo->query($query);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$count = $row['total_count'];
+// Add search variable
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+// Total member count with search
+try {
+    $count_query = "SELECT COUNT(*) as total_count FROM member";
+    $params = [];
+    if (!empty($search)) {
+        $count_query .= " WHERE member_id LIKE :search OR member_name LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $count = $stmt->fetchColumn();
+} catch (PDOException $e) {
+    echo "Count error: " . htmlspecialchars($e->getMessage());
+    $count = 0;
+}
 
 // Pagination
 $records_per_page = 5;
@@ -55,14 +70,14 @@ $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
 try {
-    $total_records = $pdo->query("SELECT COUNT(*) FROM member")->fetchColumn();
+    $total_records = $count; // Use the count from the search query
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
     $total_pages = 1;
     echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// Fetch member data
+// Fetch member data with search
 try {
     $query = "
         SELECT 
@@ -74,10 +89,17 @@ try {
             m.member_type_id,
             mt.member_type_name
         FROM member m
-        INNER JOIN member_type mt ON m.member_type_id = mt.member_type_id
-        LIMIT :offset, :records_per_page
-    ";
+        INNER JOIN member_type mt ON m.member_type_id = mt.member_type_id";
+    $params = [];
+    if (!empty($search)) {
+        $query .= " WHERE m.member_id LIKE :search OR m.member_name LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+    $query .= " LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
@@ -90,14 +112,14 @@ ob_end_flush();
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/dist/output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <title>Member List</title>
+    <title>รายการสมาชิก</title>
     <style>
         body {
             font-family: 'Tahoma', sans-serif;
@@ -132,7 +154,6 @@ ob_end_flush();
 
         th {
             background: #f9fafb;
-            font-weight: 600;
         }
 
         tr:hover {
@@ -264,9 +285,19 @@ ob_end_flush();
                         <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
                     </div>
                     <div class="w-full md:w-1/2">
-                        <input type="text" id="searchInput" onkeyup="searchTable()"
-                            placeholder="ค้นหา..."
-                            class="search-bar focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <form action="" method="GET" id="searchForm">
+                            <input type="hidden" name="page" value="member_list">
+                            <input type="hidden" name="page_num" value="1">
+                            <div class="relative">
+                                <input type="text" name="search" id="searchInput"
+                                    placeholder="ค้นหาสมาชิก..."
+                                    value="<?php echo htmlspecialchars($search); ?>"
+                                    class="search-bar focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -287,7 +318,7 @@ ob_end_flush();
                                 <tr data-id="<?php echo htmlspecialchars($member['member_id']); ?>">
                                     <td data-label="รหัสสมาชิก" class="cursor-pointer hover:underline"><?php echo htmlspecialchars($member['member_id']); ?></td>
                                     <td data-label="ชื่อ-นามสกุล" class="member-name cursor-pointer hover:underline" onclick="window.location.href='?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>'"><?php echo htmlspecialchars($member['member_name']); ?></td>
-                                    <td data-label="ประเภทสมาชิก" class="member-type" ><?php echo htmlspecialchars($member['member_type_name']); ?></td>
+                                    <td data-label="ประเภทสมาชิก" class="member-type"><?php echo htmlspecialchars($member['member_type_name']); ?></td>
                                     <td data-label="วันที่สมัคร"><?php echo htmlspecialchars($member['member_register_date']); ?></td>
                                     <td data-label="การจัดการ" class="text-center">
                                         <div class="action-buttons flex justify-center">
@@ -323,7 +354,7 @@ ob_end_flush();
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=member_list&page_num=<?= $page - 1 ?>"
+                    <a href="?page=member_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         « ก่อนหน้า
                     </a>
@@ -334,7 +365,7 @@ ob_end_flush();
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=member_list&page_num=1"
+                    <a href="?page=member_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         1
                     </a>
@@ -344,7 +375,7 @@ ob_end_flush();
                 <?php endif; ?>
 
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=member_list&page_num=<?= $i ?>"
+                    <a href="?page=member_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="rounded-md transition-colors <?php echo $i == $page ? 'active' : 'bg-[#aec5e366] text-black hover:bg-gray-300'; ?>">
                         <?= $i ?>
                     </a>
@@ -354,7 +385,7 @@ ob_end_flush();
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-3 py-1 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=member_list&page_num=<?= $total_pages ?>"
+                    <a href="?page=member_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         <?= $total_pages ?>
                     </a>
@@ -362,7 +393,7 @@ ob_end_flush();
 
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=member_list&page_num=<?= $page + 1 ?>"
+                    <a href="?page=member_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         ถัดไป »
                     </a>
@@ -378,47 +409,6 @@ ob_end_flush();
     </div>
 
     <script>
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-            const thead = table.querySelector("thead");
-            let foundAny = false;
-
-            thead.style.display = window.innerWidth > 768 ? "" : "none";
-            tr[0].style.display = window.innerWidth > 768 ? "" : "none";
-
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
-
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
-
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) foundAny = true;
-            }
-
-            let noDataMessage = document.getElementById("noDataMessage");
-            if (!foundAny) {
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement("p");
-                    noDataMessage.id = "noDataMessage";
-                    noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.className = "text-red-600 font-bold text-center mt-3";
-                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                }
-            } else if (noDataMessage) {
-                noDataMessage.remove();
-            }
-        }
-
         function enableEdit(button) {
             const row = button.closest('tr');
             const memberNameCell = row.querySelector('.member-name');
@@ -498,9 +488,53 @@ ob_end_flush();
             }, 1000);
         }
 
+        // ฟังก์ชันตรวจสอบเมื่อลบข้อความค้นหาจนหมด
+        function checkEmptySearch(input) {
+            if (input.value.trim() === '') {
+                // ถ้าช่องค้นหาว่างเปล่า ให้เปลี่ยนเส้นทางไปยังหน้าแสดงข้อมูลทั้งหมด
+                window.location.href = '?page=member_list';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            document.getElementById('searchInput').focus();
+            const searchInput = document.getElementById('searchInput');
+
+            // ถ้ามีการค้นหา ให้ focus ที่ช่องค้นหา
+            if (urlParams.has('search')) {
+                searchInput.focus();
+            }
+
+            // เพิ่ม event listener สำหรับการกด Escape เพื่อยกเลิกการค้นหา
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.location.href = '?page=member_list';
+                }
+            });
+
+            // เก็บค่า search ก่อน submit form
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    localStorage.setItem('searchPreserve', this.value);
+                }
+            });
+
+            // คืนค่า search หลังโหลดหน้า
+            const preserved = localStorage.getItem('searchPreserve');
+            if (preserved) {
+                searchInput.value = preserved;
+                searchInput.focus();
+                // เคลื่อนเคอร์เซอร์ไปหลังข้อความ
+                searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
+                localStorage.removeItem('searchPreserve');
+            }
+
+            // เพิ่ม event listener สำหรับตรวจสอบเมื่อลบข้อความค้นหา
+            searchInput.addEventListener('input', function() {
+                checkEmptySearch(this);
+            });
+
+            // แสดงการแจ้งเตือนตามสถานะ
             if (urlParams.has('edit_success')) {
                 showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
             } else if (urlParams.has('delete_success')) {

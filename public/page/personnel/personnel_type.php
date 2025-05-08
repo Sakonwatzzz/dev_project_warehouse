@@ -1,11 +1,17 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+// Add search variable
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 function fetchData($pdo, $query, $params = [])
 {
     try {
         $stmt = $pdo->prepare($query);
-        $stmt->execute($params);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
         return $stmt;
     } catch (PDOException $e) {
         die('Database error: ' . htmlspecialchars($e->getMessage()));
@@ -19,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt = $pdo->prepare('INSERT INTO personnel_type (personnel_type_name) VALUES (?)');
                 $stmt->execute([$personnel_type]);
-                header('Location: ?page=personnel_type&add_success=1');
+                header('Location: ?page=personnel_type&add_success=1' . (!empty($search) ? '&search=' . urlencode($search) : ''));
                 exit;
             } catch (PDOException $e) {
                 echo 'Database error: ' . htmlspecialchars($e->getMessage());
@@ -33,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt = $pdo->prepare("UPDATE personnel_type SET personnel_type_name = ? WHERE personnel_type_id = ?");
                 $stmt->execute([$newpersonnel_type, $id]);
-                header('Location: ?page=personnel_type&edit_success=1');
+                header('Location: ?page=personnel_type&edit_success=1' . (!empty($search) ? '&search=' . urlencode($search) : ''));
                 exit;
             } catch (PDOException $e) {
                 echo 'Database error: ' . htmlspecialchars($e->getMessage());
@@ -49,7 +55,7 @@ if (isset($_GET['id']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
         if ($id) {
             $stmt = $pdo->prepare("DELETE FROM personnel_type WHERE personnel_type_id = ?");
             $stmt->execute([$id]);
-            header("Location: ?page=personnel_type&delete_success=1");
+            header("Location: ?page=personnel_type&delete_success=1" . (!empty($search) ? '&search=' . urlencode($search) : ''));
             exit;
         }
     } catch (PDOException $e) {
@@ -71,7 +77,19 @@ $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
 try {
-    $total_records = $pdo->query("SELECT COUNT(*) FROM personnel_type")->fetchColumn();
+    $count_query = "SELECT COUNT(*) FROM personnel_type";
+    $params = [];
+    if (!empty($search)) {
+        $count_query .= " WHERE personnel_type_name LIKE :search OR personnel_type_id LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $total_records = $stmt->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
     $total_pages = 1;
@@ -85,10 +103,21 @@ try {
             pn.personnel_type_name,
             COALESCE(COUNT(p.personnel_id), 0) as personnel_count
         FROM personnel_type pn
-        LEFT JOIN personnel p ON pn.personnel_type_id = p.personnel_type_id
-        GROUP BY pn.personnel_type_id, pn.personnel_type_name 
+        LEFT JOIN personnel p ON pn.personnel_type_id = p.personnel_type_id";
+    
+    $params = [];
+    if (!empty($search)) {
+        $query .= " WHERE pn.personnel_type_name LIKE :search OR pn.personnel_type_id LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+
+    $query .= " GROUP BY pn.personnel_type_id, pn.personnel_type_name 
         LIMIT :offset, :records_per_page";
+    
     $stmt = $pdo->prepare($query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
@@ -144,9 +173,18 @@ try {
                         <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
                     </div>
                     <div class="w-full md:w-1/2">
-                        <input type="text" id="searchInput" onkeyup="searchTable()"
-                            placeholder="ค้นหาประเภทบุคลากร..."
-                            class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                        <form action="" method="GET" class="w-full" id="searchForm">
+                            <input type="hidden" name="page" value="personnel_type">
+                            <div class="relative">
+                                <input type="text" name="search" id="searchInput"
+                                    placeholder="ค้นหาประเภทบุคลากร..." value="<?php echo htmlspecialchars($search); ?>"
+                                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+                                    oninput="checkEmptySearch(this)">
+                                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -189,12 +227,11 @@ try {
                                         <td class="px-4 py-1 border text-sm md:text-base"><?php echo htmlspecialchars($personneltype['personnel_type_id']); ?></td>
                                         <td class="px-4 py-1 border type-name text-sm md:text-base"><?php echo htmlspecialchars($personneltype['personnel_type_name']); ?></td>
                                         <td class="px-4 py-1 border text-center">
-                                            <span onclick="window.location.href='?page=personnel_group&type=<?php echo urlencode($personneltype['personnel_type_name']); ?>'"
-                                                class="cursor-pointer text-orange-600 text-sm md:text-base hover:underline">
+                                            <a href="?page=personnel_group&type=<?php echo urlencode($personneltype['personnel_type_name']); ?>"
+                                                class="text-orange-600 text-sm md:text-base hover:underline">
                                                 <?php echo number_format($personneltype['personnel_count']); ?> รายการ
-                                            </span>
+                                            </a>
                                         </td>
-
                                         <td class="px-4 py-1 border text-center">
                                             <div class="flex justify-center space-x-2">
                                                 <button onclick="enableEdit(this)"
@@ -255,12 +292,11 @@ try {
                                 </div>
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-gray-700 font-semibold text-sm">จำนวนบุคลากร:</span>
-                                    <span onclick="window.location.href='?page=personnel_group&type=<?php echo urlencode($personneltype['personnel_type_name']); ?>'"
-                                        class="text-orange-600 hover:underline text-sm cursor-pointer">
+                                    <a href="?page=personnel_group&type=<?php echo urlencode($personneltype['personnel_type_name']); ?>"
+                                        class="text-orange-600 hover:underline text-sm">
                                         <?php echo number_format($personneltype['personnel_count']); ?> รายการ
-                                    </span>
+                                    </a>
                                 </div>
-
                                 <div class="flex justify-center space-x-2 mt-4">
                                     <button onclick="enableEditMobile(this)"
                                         class="edit-btn bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition flex items-center text-sm">
@@ -290,7 +326,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=personnel_type&page_num=<?= $page - 1 ?>"
+                    <a href="?page=personnel_type&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         « ก่อนหน้า
                     </a>
@@ -301,7 +337,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=personnel_type&page_num=1"
+                    <a href="?page=personnel_type&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         1
                     </a>
@@ -311,7 +347,7 @@ try {
                 <?php endif; ?>
 
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=personnel_type&page_num=<?= $i ?>"
+                    <a href="?page=personnel_type&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 rounded-md transition-colors text-sm md:text-base <?= $i == $page ? 'bg-gray-800 text-white' : 'bg-blue-100 text-black hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -321,7 +357,7 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
                     <?php endif; ?>
-                    <a href="?page=personnel_type&page_num=<?= $total_pages ?>"
+                    <a href="?page=personnel_type&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         <?= $total_pages ?>
                     </a>
@@ -329,7 +365,7 @@ try {
 
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=personnel_type&page_num=<?= $page + 1 ?>"
+                    <a href="?page=personnel_type&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         ถัดไป »
                     </a>
@@ -345,61 +381,54 @@ try {
     </div>
 
     <script>
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-            const cards = document.querySelectorAll(".card-responsive > div[data-id]");
-            const thead = table.querySelector("thead");
-            let foundAny = false;
-
-            // Table search
-            tr[0].style.display = "";
-            thead.style.display = "";
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) foundAny = true;
-            }
-
-            // Card search
-            cards.forEach(card => {
-                const texts = card.querySelectorAll("span, a");
-                let cardMatchesSearch = false;
-                texts.forEach(text => {
-                    const txtValue = text.textContent || text.innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        cardMatchesSearch = true;
-                    }
-                });
-                card.style.display = cardMatchesSearch ? "block" : "none";
-                if (cardMatchesSearch) foundAny = true;
-            });
-
-            let noDataMessage = document.getElementById("noDataMessage");
-            if (!foundAny) {
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement("p");
-                    noDataMessage.id = "noDataMessage";
-                    noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.className = "text-red-600 font-bold text-center mt-3 text-sm md:text-base";
-                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                    document.querySelector(".card-responsive").appendChild(noDataMessage.cloneNode(true));
-                }
-            } else if (noDataMessage) {
-                noDataMessage.remove();
-                document.querySelectorAll("#noDataMessage").forEach(el => el.remove());
+        // Function to check if search input is empty
+        function checkEmptySearch(input) {
+            if (input.value.trim() === '') {
+                window.location.href = '?page=personnel_type';
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('add_success')) {
+                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('edit_success')) {
+                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
+            }
+
+            // Focus on search input if search parameter exists
+            if (urlParams.has('search')) {
+                document.getElementById('searchInput').focus();
+            }
+
+            // Add event listener for Escape key to clear search
+            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.location.href = '?page=personnel_type';
+                }
+            });
+        });
+
+        // Preserve search input before form submission
+        document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                localStorage.setItem('searchPreserve', this.value);
+            }
+        });
+
+        // Restore search input after page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const preserved = localStorage.getItem('searchPreserve');
+            if (preserved) {
+                const input = document.getElementById('searchInput');
+                input.value = preserved;
+                input.focus();
+                input.selectionStart = input.selectionEnd = preserved.length;
+                localStorage.removeItem('searchPreserve');
+            }
+        });
 
         function enableEdit(button) {
             const row = button.closest('tr');
@@ -511,18 +540,6 @@ try {
                 notification.classList.add('hidden');
             }, 1000);
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('add_success')) {
-                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
-            } else if (urlParams.has('edit_success')) {
-                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
-            } else if (urlParams.has('delete_success')) {
-                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
-            }
-            document.getElementById('searchInput').focus();
-        });
     </script>
 </body>
 

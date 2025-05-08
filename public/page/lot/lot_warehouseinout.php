@@ -43,28 +43,40 @@ if (isset($_GET['id'])) {
     } catch (PDOException $e) {
         // Rollback the transaction on error
         $pdo->rollBack();
-        echo "Error: " . $e->getMessage();
+        echo "Error: " . htmlspecialchars($e->getMessage());
         exit;
     }
 }
 
+// Add search variable
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 // Pagination setup
 try {
     $records_per_page = 5;
-    $page = isset($_GET['page_num']) ? (int) $_GET['page_num'] : 1;
+    $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
     $offset = ($page - 1) * $records_per_page;
 
-    // Get total count
-    $query = "SELECT COUNT(*) as total_count FROM lot WHERE lot.warehouse_inout = 2";
-    $stmt = $pdo->query($query);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    $count = $row['total_count'];
+    // Get total count with search
+    $count_query = "SELECT COUNT(*) as total_count FROM lot WHERE lot.warehouse_inout = 2";
+    $params = [];
+    if (!empty($search)) {
+        $count_query .= " AND (lot.lot_id LIKE :search OR lot.lot_name LIKE :search)";
+        $params[':search'] = "%$search%";
+    }
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $count = $stmt->fetchColumn();
     $total_pages = ceil($count / $records_per_page);
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    echo "Error: " . htmlspecialchars($e->getMessage());
+    exit();
 }
 
-// Fetch paginated data
+// Fetch paginated data with search
 try {
     $query = "
     SELECT
@@ -85,17 +97,27 @@ try {
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
         LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
         LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-    WHERE lot.warehouse_inout = 2
-    ORDER BY lot.lot_date DESC
-    LIMIT :offset, :records_per_page";
+    WHERE lot.warehouse_inout = 2";
+
+    $params = [];
+    if (!empty($search)) {
+        $query .= " AND (lot.lot_id LIKE :search OR lot.lot_name LIKE :search)";
+        $params[':search'] = "%$search%";
+    }
+
+    $query .= " ORDER BY lot.lot_date DESC LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $result_lot_list = $stmt;
+    $result_lot_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    echo "Error: " . htmlspecialchars($e->getMessage());
+    exit();
 }
 
 ob_end_flush();
@@ -134,11 +156,21 @@ ob_end_flush();
                     <i class="fas fa-plus mr-2"></i>เพิ่มการย้ายสินค้า
                 </a>
             </div>
-
             <div class="text-end">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
-                    placeholder="ค้นหารายการย้ายสินค้า..."
-                    class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <form action="" method="GET" id="searchForm">
+                    <input type="hidden" name="page" value="lot_warehouseinout">
+                    <input type="hidden" name="page_num" value="1">
+                    <div class="relative">
+                        <input type="text" name="search" id="searchInput"
+                            placeholder="ค้นหารายการย้ายสินค้า..."
+                            value="<?php echo htmlspecialchars($search); ?>"
+                            class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            oninput="checkEmptySearch(this)">
+                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -161,21 +193,21 @@ ob_end_flush();
                     <table class="w-full border-collapse" id="dataTable">
                         <thead>
                             <tr class="bg-gray-50">
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัส lot</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อ lot</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันและเวลาที่ล็อต</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัส Lot</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อ Lot</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ผู้ส่งมอบ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันและเวลาที่ล็อต</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะล็อต</th>
                                 <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if ($result_lot_list->rowCount() > 0): ?>
-                                <?php while ($lot_list_move = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
+                            <?php if (count($result_lot_list) > 0): ?>
+                                <?php foreach ($result_lot_list as $lot_list_move): ?>
                                     <tr class="hover:bg-gray-100">
                                         <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"><?php echo htmlspecialchars($lot_list_move['lot_id']); ?></td>
-                                        <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"><?php echo htmlspecialchars($lot_list_move['lot_name']); ?></td>                                      
+                                        <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"><?php echo htmlspecialchars($lot_list_move['lot_name']); ?></td>
                                         <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"
                                             onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot_list_move['warehouse_id']); ?>'">
                                             <?php echo htmlspecialchars($lot_list_move['warehouse_name']); ?>
@@ -194,9 +226,13 @@ ob_end_flush();
                                             onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>'">
                                             <?php echo htmlspecialchars($lot_list_move['lot_status_name']); ?>
                                         </td>
-                                        <!-- <td class="px-6 py-2 border text-center">
-                                            <?php if ($lot_list_move['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list_move['lot_status_id'] != 2): ?>
-                                                <div class="flex justify-center space-x-2">
+                                        <td class="px-6 py-2 border text-center">
+                                            <div class="flex justify-center space-x-2">
+                                                <a href="?page=warehouse_move&lot_id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
+                                                    class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition flex items-center">
+                                                    <i class="fas fa-eye mr-1"></i>ดูรายละเอียด
+                                                </a>
+                                                <?php if ($lot_list_move['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list_move['lot_status_id'] != 2): ?>
                                                     <a href="?page=lot_insertdetailout&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
                                                         class="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600 transition flex items-center">
                                                         <i class="fas fa-edit mr-1"></i>แก้ไข
@@ -206,36 +242,14 @@ ob_end_flush();
                                                         class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition flex items-center">
                                                         <i class="fas fa-trash-alt mr-1"></i>ลบ
                                                     </a>
-                                                </div>
-                                            <?php endif; ?>
-                                        </td> -->
-
-                                        <td class="px-6 py-2 border text-center">
-                                            <div class="flex justify-center space-x-2">
-                                                <a href="?page=warehouse_move&lot_id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
-                                                    class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition flex items-center">
-                                                    <i class="fas fa-eye mr-1"></i>ดูรายละเอียด
-                                                </a>
-                                                <?php if ($lot_list_move['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list_move['lot_status_id'] != 2): ?>
-                                                    <div class="flex justify-center space-x-2">
-                                                        <a href="?page=lot_insertdetailout&tabel=lot&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
-                                                            class="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600 transition flex items-center">
-                                                            <i class="fas fa-edit mr-1"></i>แก้ไข
-                                                        </a>
-                                                        <a href="?page=lot_warehouseinout&id=<?php echo htmlspecialchars($lot_list_move['lot_id']); ?>"
-                                                            onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')"
-                                                            class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition flex items-center">
-                                                            <i class="fas fa-trash-alt mr-1"></i>ลบ
-                                                        </a>
-                                                    </div>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
-                                <?php endwhile; ?>
+                                <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-gray-600">ไม่มีข้อมูล</td>
+                                    <td colspan="7" class="text-center py-4 text-gray-600">ไม่มีข้อมูล</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -247,28 +261,44 @@ ob_end_flush();
         <!-- Pagination -->
         <div class="flex justify-center mt-6 space-x-2">
             <?php if ($total_pages > 1): ?>
+                <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=lot_warehouseinout&page_num=<?php echo ($page - 1); ?>"
+                    <a href="?page=lot_warehouseinout&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
                 <?php endif; ?>
-
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <?php if ($i == $page): ?>
-                        <a href="#" class="px-4 py-2 bg-gray-500 text-white rounded">
-                            <?php echo $i; ?>
-                        </a>
-                    <?php else: ?>
-                        <a href="?page=lot_warehouseinout&page_num=<?php echo $i; ?>"
-                            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
-                            <?php echo $i; ?>
-                        </a>
+                <!-- Page Numbers -->
+                <?php
+                $start_page = max(1, $page - 2);
+                $end_page = min($total_pages, $page + 2);
+                if ($start_page > 1): ?>
+                    <a href="?page=lot_warehouseinout&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
+                        1
+                    </a>
+                    <?php if ($start_page > 2): ?>
+                        <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
+                <?php endif; ?>
+                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                    <a href="?page=lot_warehouseinout&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
+                        <?= $i ?>
+                    </a>
                 <?php endfor; ?>
-
+                <?php if ($end_page < $total_pages): ?>
+                    <?php if ($end_page < $total_pages - 1): ?>
+                        <span class="px-4 py-2 text-gray-500">...</span>
+                    <?php endif; ?>
+                    <a href="?page=lot_warehouseinout&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
+                        <?= $total_pages ?>
+                    </a>
+                <?php endif; ?>
+                <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=lot_warehouseinout&page_num=<?php echo ($page + 1); ?>"
+                    <a href="?page=lot_warehouseinout&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
@@ -278,65 +308,40 @@ ob_end_flush();
     </div>
 
     <script>
-        // Search function
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-            const thead = table.querySelector("thead");
-            let foundAny = false;
-
-            // Always keep the header visible
-            thead.style.display = "";
-
-            // Search through data rows (start from index 1 to skip header)
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
-
-                // Check every cell in the row
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
-
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) {
-                    foundAny = true;
-                }
-            }
-
-            // Handle "No data" message
-            let noDataMessage = document.getElementById("noDataMessage");
-            if (!foundAny) {
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement("p");
-                    noDataMessage.id = "noDataMessage";
-                    noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.className = "text-red-500 font-bold text-center mt-4";
-                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                }
-            } else {
-                if (noDataMessage) {
-                    noDataMessage.remove();
-                }
+        function checkEmptySearch(input) {
+            if (input.value.trim() === '') {
+                window.location.href = '?page=lot_warehouseinout';
             }
         }
 
-        // Notification handler
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
+            const searchInput = document.getElementById('searchInput');
+            if (urlParams.has('search')) {
+                searchInput.focus();
+            }
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.location.href = '?page=lot_warehouseinout';
+                }
+            });
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    localStorage.setItem('searchPreserve', this.value);
+                }
+            });
+            const preserved = localStorage.getItem('searchPreserve');
+            if (preserved) {
+                searchInput.value = preserved;
+                searchInput.focus();
+                searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
+                localStorage.removeItem('searchPreserve');
+            }
 
+            // Notification handler
             if (urlParams.has('success')) {
                 const notification = document.getElementById('notification');
                 notification.classList.remove('hidden');
-
                 setTimeout(() => {
                     notification.classList.add('hidden');
                 }, 2000);
