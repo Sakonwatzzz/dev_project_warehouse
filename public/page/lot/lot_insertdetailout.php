@@ -100,7 +100,7 @@ try {
     exit;
 }
 
-  
+
 ?>
 
 <!DOCTYPE html>
@@ -678,9 +678,7 @@ try {
                         });
                         return;
                     }
-                });
-            }
-        };
+
                     utils.sendRequest({
                         lot_product_id,
                         qty,
@@ -689,59 +687,6 @@ try {
 
                     $('#edit-modal').fadeOut(200);
                 });
-
-                // // Confirm transfer
-                // $('.confirm-transfer').on('click', function() {
-                //     Swal.fire({
-                //         icon: 'warning',
-                //         title: 'ยืนยันการย้าย',
-                //         text: 'ยืนยันการย้ายสินค้าทั้งหมด? เมื่อยืนยันแล้วจะไม่สามารถแก้ไขได้',
-                //         showCancelButton: true,
-                //         confirmButtonText: 'ยืนยัน',
-                //         cancelButtonText: 'ยกเลิก',
-                //         confirmButtonColor: '#3085d6',
-                //         cancelButtonColor: '#d33'
-                //     }).then((result) => {
-                //         if (result.isConfirmed) {
-                //             const lot_id = $(this).data('lot-id');
-                //             $.ajax({
-                //                 url: 'page/lot/ajax/move_product/ajax_move_lot.php',
-                //                 type: 'POST',
-                //                 data: {
-                //                     lot_id,
-                //                     action: 'confirm_transfer'
-                //                 },
-                //                 dataType: 'json',
-                //                 success: function(response) {
-                //                     if (response.success) {
-                //                         Swal.fire({
-                //                             icon: 'success',
-                //                             title: 'ยืนยันสำเร็จ',
-                //                             showConfirmButton: false,
-                //                             timer: 1500
-                //                         }).then(() => {
-                //                             window.location.href = 'index.php?page=lot_insertout';
-                //                         });
-                //                     } else {
-                //                         Swal.fire({
-                //                             icon: 'error',
-                //                             title: 'เกิดข้อผิดพลาด',
-                //                             text: response.error || 'กรุณาลองใหม่อีกครั้ง'
-                //                         });
-                //                     }
-                //                 },
-                //                 error: function() {
-                //                     Swal.fire({
-                //                         icon: 'error',
-                //                         title: 'ข้อผิดพลาด',
-                //                         text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'
-                //                     });
-                //                 }
-                //             });
-                //         }
-                //     });
-                // });
-
 
                 // Confirm transfer (แบบฮาๆ หลายขั้น)
                 $('.confirm-transfer').on('click', function() {
@@ -816,7 +761,6 @@ try {
 
                     showConfirmStep(0); // เริ่มจากขั้นแรก
                 });
-
 
                 // Close modal on Escape key
                 $(document).keydown(function(e) {
