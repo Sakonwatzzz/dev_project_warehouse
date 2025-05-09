@@ -356,7 +356,7 @@ ob_end_flush();
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
                 <h2 class="text-2xl font-semibold text-gray-800">รายการย้ายคลังล่าสุด</h2>
             </div>
-<<<<<<< HEAD
+
             <div class="overflow-x-auto">
                 <table class="w-full" id="dataTable">
                     <thead>
@@ -387,7 +387,6 @@ ob_end_flush();
                         <?php endwhile; ?>
                     </tbody>
                 </table>
-=======
             <div class="p-6">
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse">
@@ -428,7 +427,7 @@ ob_end_flush();
                         </tbody>
                     </table>
                 </div>
->>>>>>> parent of 68f1189 (remain)
+
             </div>
         </div>
     </div>
