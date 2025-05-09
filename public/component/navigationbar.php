@@ -106,6 +106,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'warehouse_lot',
             'warehouse_move',
             'supplier_lot',
+            'supplier_movelot',
             'lot_insertout',
             'lot_insertdetailout',
             'lot_warehouseinout'
@@ -136,6 +137,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'supplier_update',
             'supplier_insert',
             'supplier_detail',
+            
         ];
         $sale_pages = [
             'sale_add',
@@ -298,6 +300,17 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         include $barfile;
                     }
                     $filepath = "$basePath/lot/supplier_lot.php";
+
+                    if (isset($_GET['supplier_id'])) {
+                        $_REQUEST['supplier_id'] = $_GET['supplier_id'];
+                    }
+                } elseif ($prefix === 'supplier' && $page === 'supplier_movelot') {
+                    // โหลด bar_product.php ก่อน
+                    $barfile = __DIR__ . "/bar_product.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $filepath = "$basePath/lot/supplier_movelot.php";
 
                     if (isset($_GET['supplier_id'])) {
                         $_REQUEST['supplier_id'] = $_GET['supplier_id'];
