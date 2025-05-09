@@ -1,13 +1,15 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
+ob_start();
 
 // รับค่า lot_id และ warehouse_id จาก URL
 $lot_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;
 
-// ตรวจสอบว่า lot_id มีค่าหรือไม่
-if (!$lot_id) {
-    die(json_encode(['success' => false, 'error' => 'lot_id is missing. Debug: ' . json_encode($_GET)]));
+// CSRF Token Generation
+session_start();
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Initialize variables
@@ -50,6 +52,7 @@ try {
             LEFT JOIN warehouse w2 ON lot.warehouse_id = w2.warehouse_id
             WHERE lot.lot_id = :lot_id AND lot.warehouse_inout = 2";
     $stmt = $pdo->prepare($query_lot);
+
     $stmt->execute(['lot_id' => $lot_id]);
     $lot = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -96,6 +99,8 @@ try {
     echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-center my-4">เกิดข้อผิดพลาด: ' . htmlspecialchars($e->getMessage()) . '</div>';
     exit;
 }
+
+  
 ?>
 
 <!DOCTYPE html>
@@ -194,6 +199,43 @@ try {
             max-width: 500px;
             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
         }
+
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .bg-pink-100 {
+            background-color: #fbcfe8 !important;
+        }
+
+        .bg-pink-500 {
+            background-color: #ec4899 !important;
+        }
+
+        .bg-red-100 {
+            background-color: #fee2e2 !important;
+        }
+
+        table {
+            table-layout: fixed;
+        }
+
+        th,
+        td {
+            word-wrap: break-word;
+        }
+
+        .loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
     </style>
 </head>
 
@@ -248,10 +290,10 @@ try {
                         echo "ยังไม่ระบุ";
                     }
                     ?>
+
                 </div>
             </div>
         </div>
-
         <!-- Barcode Scanner Section -->
         <?php if (!$is_confirmed): ?>
             <div class="card mb-6">
@@ -270,6 +312,7 @@ try {
                         <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all">
                             <i class="fas fa-plus mr-2"></i>เพิ่ม/ลบ
                         </button>
+
                     </div>
                     <div class=" flex flex-row space-x-8">
                         <p class="text-sm text-green-700 mt-1">
@@ -304,6 +347,8 @@ try {
                             <th class="px-4 py-3 text-center">สถานะ</th>
                             <?php if (!$is_confirmed): ?>
                                 <th class="px-4 py-3 text-center">การจัดการ</th>
+
+
                             <?php endif; ?>
                         </tr>
                     </thead>
@@ -361,7 +406,6 @@ try {
                     </tbody>
                 </table>
             </div>
-
             <?php if (!$is_confirmed && count($products) > 0): ?>
                 <div class="mt-6 text-center sm:text-right">
                     <button class="btn bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-all confirm-transfer"
@@ -402,7 +446,6 @@ try {
             </form>
         </div>
     </div>
-
     <script>
         $(document).ready(function() {
             // Shared state
@@ -635,7 +678,9 @@ try {
                         });
                         return;
                     }
-
+                });
+            }
+        };
                     utils.sendRequest({
                         lot_product_id,
                         qty,
