@@ -2,70 +2,98 @@
 ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
 
-// Initial query to fetch supplier data
-$query = "SELECT
-    supplier.supplier_id, 
-    supplier.supplier_name, 
-    supplier.supplier_address, 
-    supplier.supplier_phone, 
-    supplier.supplier_detail
-FROM supplier";
-try {
-    $supplierResults = $pdo->query($query);
-} catch (Exception $e) {
-    echo "error" . $e->getMessage();
-    exit();
+// Handle POST requests for updating supplier
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['update_supplier_name'])) {
+        $id = $_POST['id'];
+        $newName = $_POST['update_supplier_name'];
+        $newAddress = $_POST['update_supplier_address'];
+        try {
+            $stmt = $pdo->prepare("UPDATE supplier SET supplier_name = ?, supplier_address = ? WHERE supplier_id = ?");
+            $stmt->execute([$newName, $newAddress, $id]);
+            header('Location: index.php?page=supplier_list&edit_success=1');
+            exit;
+        } catch (PDOException $e) {
+            echo 'Database error: ' . htmlspecialchars($e->getMessage());
+        }
+    }
 }
 
-// Total supplier count
-$query = "SELECT COUNT(*) as total_count FROM supplier";
-$stmt = $pdo->query($query);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$count = $row['total_count'];
-
 // Handle DELETE request
-if (isset($_GET['id'])) {
+if (isset($_GET['id']) && isset($_GET['action']) && $_GET['action'] === 'delete') {
     $id = $_GET['id'];
-    $stmt = $pdo->prepare("DELETE FROM supplier WHERE supplier_id = ?");
-    $stmt->execute([$id]);
-    header("Location: index.php?page=supplier_list&delete_success");
-    exit;
+    try {
+        $stmt = $pdo->prepare("DELETE FROM supplier WHERE supplier_id = ?");
+        $stmt->execute([$id]);
+        header("Location: index.php?page=supplier_list&delete_success=1");
+        exit;
+    } catch (PDOException $e) {
+        echo "Error: " . htmlspecialchars($e->getMessage());
+    }
+}
+
+// Add search variable
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+// Total supplier count with search
+try {
+    $count_query = "SELECT COUNT(*) as total_count FROM supplier";
+    $params = [];
+    if (!empty($search)) {
+        $count_query .= " WHERE supplier_id LIKE :search OR supplier_name LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $count = $stmt->fetchColumn();
+} catch (PDOException $e) {
+    echo "Count error: " . htmlspecialchars($e->getMessage());
+    $count = 0;
 }
 
 // Pagination
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
-// Count total records for pagination
 try {
-    $total_query = "SELECT COUNT(*) FROM supplier";
-    $total_result = $pdo->query($total_query);
-    $total_records = $total_result->fetchColumn();
+    $total_records = $count; // Use the count from the search query
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-    exit();
+    $total_pages = 1;
+    echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// Fetch paginated supplier data
+// Fetch supplier data with search
 try {
-    $query = "SELECT 
-                supplier_id, 
-                supplier_name, 
-                supplier_address, 
-                supplier_phone, 
-                supplier_detail 
-              FROM supplier 
-              LIMIT :offset, :records_per_page";
+    $query = "
+        SELECT 
+            supplier_id, 
+            supplier_name, 
+            supplier_address, 
+            supplier_phone, 
+            supplier_detail 
+        FROM supplier";
+    $params = [];
+    if (!empty($search)) {
+        $query .= " WHERE supplier_id LIKE :search OR supplier_name LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+    $query .= " LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $supplierResults = $stmt;
+    $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-    exit();
+    $suppliers = [];
+    echo "Fetch error: " . htmlspecialchars($e->getMessage());
 }
 ob_end_flush();
 ?>
@@ -76,36 +104,68 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../style/personnel_list.css">
-    <link href="../../output.css" rel="stylesheet">
-    <title>Supplier List</title>
+    <link href="/dist/output.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>รายการผู้ส่งมอบ</title>
     <style>
-        .title {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
+        body {
+            font-family: 'Tahoma', sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
-        .count {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
         }
 
-        .listcount {
-            font-size: 16px;
-            text-align: right;
-            color: #000;
-            padding: 4px 10px 4px 10px;
-            border: 1px solid gray;
-            border-radius: 5px;
-            background-color: #fff;
-            display: inline-block;
-            margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: 70px;
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f3f4f6;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+        }
+
+        .pagination a {
+            padding: 0.5rem 1rem;
+            margin: 0 0.25rem;
+            border-radius: 0.375rem;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .pagination a.active {
+            background: #1f2937;
+            color: white;
         }
 
         .notification {
@@ -113,210 +173,351 @@ ob_end_flush();
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #fff;
-            color: #000;
-            border: 2px solid #A0A0A0;
-            border-radius: 5px;
-            font-family: "Tahoma", "Verdana", sans-serif;
-            width: 400px;
-            height: 120px;
-            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            display: none;
+            background: white;
+            border: 2px solid #d1d5db;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 400px;
+            z-index: 50;
         }
 
-        .notification-header {
-            background-color: #ffdfa0;
-            color: #000;
-            padding: 10px;
-            font-weight: bold;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 0 0.5rem;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            table {
+                display: block;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tbody,
+            tr {
+                display: block;
+            }
+
+            tr {
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.375rem;
+                background: white;
+            }
+
+            td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem;
+                border: none;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            td:last-child {
+                border-bottom: none;
+            }
+
+            td:before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #374151;
+                flex: 1;
+            }
+
+            td .edit-input {
+                flex: 2;
+            }
+
+            .action-buttons {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .pagination a {
+                padding: 0.5rem;
+                font-size: 0.875rem;
+            }
+
+            .search-bar {
+                font-size: 0.875rem;
+            }
         }
 
-        .notification-body {
-            padding: 20px;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .pagination {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .pagination a {
-            display: inline-block;
-            padding: 8px 16px;
-            text-decoration: none;
-            background-color: #f1f1f1;
-            color: black;
-            border-radius: 5px;
-            margin: 0 4px;
-        }
-
-        .pagination a.active {
-            background-color: #5b97b2;
-            color: white;
-        }
-
-        .pagination a:hover:not(.active) {
-            background-color: #ddd;
+        @media (min-width: 769px) {
+            .action-buttons {
+                display: flex;
+                gap: 0.5rem;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="font-[Tahoma] mx-[23rem] mt-11">
-        <div class="title">
-            <div class="count">
-                <h2 class="text-2xl font-bold">ข้อมูลผู้ส่งมอบ</h2>
-                <div class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md ">
-                    <?php echo $count; ?>
+    <div class="container">
+        <!-- Table -->
+        <div class="table-container mb-8">
+            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-3 border-b border-[#8f959b]">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2"></i>รายการผู้ส่งมอบ
+                        </h2>
+                        <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
+                    </div>
+                    <div class="w-full md:w-1/2">
+                        <form action="" method="GET" id="searchForm">
+                            <input type="hidden" name="page" value="supplier_list">
+                            <input type="hidden" name="page_num" value="1">
+                            <div class="relative">
+                                <input type="text" name="search" id="searchInput"
+                                    placeholder="ค้นหาผู้ส่งมอบ..."
+                                    value="<?php echo htmlspecialchars($search); ?>"
+                                    class="search-bar focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
-            <div class="mt-4 md:mt-0">
-                <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาผู้ส่งมอบ..."
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="p-4">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>รหัสผู้ส่งมอบ</th>
+                            <th>ชื่อ</th>
+                            <th>ที่อยู่</th>
+                            <th>เบอร์โทรศัพท์</th>
+                            <th class="text-center">การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (count($suppliers) > 0): ?>
+                            <?php foreach ($suppliers as $supplier): ?>
+                                <tr data-id="<?php echo htmlspecialchars($supplier['supplier_id']); ?>">
+                                    <td data-label="รหัสผู้ส่งมอบ" class="cursor-pointer hover:underline"><?php echo htmlspecialchars($supplier['supplier_id']); ?></td>
+                                    <td data-label="ชื่อ" class="supplier-name cursor-pointer hover:underline" onclick="window.location.href='?page=supplier_detail&tabel=supplier&id=<?php echo htmlspecialchars($supplier['supplier_id']); ?>'"><?php echo htmlspecialchars($supplier['supplier_name']); ?></td>
+                                    <td data-label="ที่อยู่" class="supplier-address"><?php echo htmlspecialchars($supplier['supplier_address']); ?></td>
+                                    <td data-label="เบอร์โทรศัพท์"><?php echo htmlspecialchars($supplier['supplier_phone']); ?></td>
+                                    <td data-label="การจัดการ" class="text-center">
+                                        <div class="action-buttons flex justify-center">
+                                            <button onclick="enableEdit(this)"
+                                                class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-sm">
+                                                <i class="fas fa-edit mr-1"></i>แก้ไข
+                                            </button>
+                                            <a href="?page=supplier_list&id=<?php echo htmlspecialchars($supplier['supplier_id']); ?>&action=delete"
+                                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                                class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-sm">
+                                                <i class="fas fa-trash-alt mr-1"></i>ลบ
+                                            </a>
+                                            <button class="save-btn hidden bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition items-center text-sm"
+                                                onclick="saveEdit(this)">
+                                                <i class="fas fa-save mr-1"></i>บันทึก
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-gray-600">ไม่มีข้อมูล</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <div id="notification-edit" class="notification">
-            <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">แก้ไขผู้ส่งมอบสำเร็จ!</div>
-        </div>
-        <div id="notification-delete" class="notification">
-            <div class="notification-header">การแจ้งเตือน</div>
-            <div class="notification-body">ลบสำเร็จ!</div>
-        </div>
-
-        <table class="data-table mt-5 mb-8 w-[100%] border shadow-lg" id="dataTable">
-            <thead>
-                <tr>
-                    <th class="w-[100px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">รหัสผู้ส่งมอบ</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อ</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ที่อยู่</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">เบอร์โทรศัพท์</th>
-                    <th class="w-[170px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($supplier_list = $supplierResults->fetch(PDO::FETCH_ASSOC)): ?>
-                    <tr class="bg-white hover:bg-gray-100 cursor-pointer">
-                        <td class="py-2 px-4 border border-gray-300"><?php echo ($supplier_list['supplier_id']) ?></td>
-                        <td class="py-2 px-4 text-blue-500 border border-gray-300 hover:bg-gray-300 cursor-pointer" onclick="window.location.href='?page=supplier_detail&tabel=supplier&id=<?php echo ($supplier_list['supplier_id']) ?>'"><?php echo ($supplier_list['supplier_name']) ?></td>
-                        <td class="py-2 px-4 border border-gray-300"><?php echo ($supplier_list['supplier_address']) ?></td>
-                        <td class="py-2 px-4 border border-gray-300"><?php echo ($supplier_list['supplier_phone']) ?></td>
-                        <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
-                            <a href="?page=supplier_update&id=<?php echo ($supplier_list['supplier_id']) ?>"
-                                class="inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                                แก้ไข
-                            </a>
-                            <a href="?page=supplier_list&id=<?php echo $supplier_list['supplier_id']; ?>" onclick="return confirm('ลบหรือไม่ลบ สรุป?')"
-                                class="inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
-                                </svg>
-                                ลบ
-                            </a>
-                        </td>
-                    </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
-
-        <div class="pagination">
+        <!-- Pagination -->
+        <div class="pagination mt-5 flex justify-center items-center gap-2 flex-wrap">
             <?php if ($total_pages > 1): ?>
+                <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=supplier_list&page_num=<?php echo ($page - 1); ?>">« ก่อนหน้า</a>
+                    <a href="?page=supplier_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                        « ก่อนหน้า
+                    </a>
                 <?php endif; ?>
 
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <?php if ($i == $page): ?>
-                        <a href="#" class="active"><?php echo $i; ?></a>
-                    <?php else: ?>
-                        <a href="?page=supplier_list&page_num=<?php echo $i; ?>"><?php echo $i; ?></a>
+                <!-- Page Numbers -->
+                <?php
+                $start_page = max(1, $page - 2);
+                $end_page = min($total_pages, $page + 2);
+                if ($start_page > 1): ?>
+                    <a href="?page=supplier_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                        1
+                    </a>
+                    <?php if ($start_page > 2): ?>
+                        <span class="px-3 py-1 text-gray-500">...</span>
                     <?php endif; ?>
+                <?php endif; ?>
+
+                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                    <a href="?page=supplier_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        class="rounded-md transition-colors <?php echo $i == $page ? 'active' : 'bg-[#aec5e366] text-black hover:bg-gray-300'; ?>">
+                        <?= $i ?>
+                    </a>
                 <?php endfor; ?>
 
+                <?php if ($end_page < $total_pages): ?>
+                    <?php if ($end_page < $total_pages - 1): ?>
+                        <span class="px-3 py-1 text-gray-500">...</span>
+                    <?php endif; ?>
+                    <a href="?page=supplier_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                        <?= $total_pages ?>
+                    </a>
+                <?php endif; ?>
+
+                <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=supplier_list&page_num=<?php echo ($page + 1); ?>">ถัดไป »</a>
+                    <a href="?page=supplier_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                        ถัดไป »
+                    </a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
 
+    <!-- Notification -->
+    <div id="notification" class="notification hidden">
+        <div id="notification-header" class="p-2 rounded-t-md font-bold"></div>
+        <div id="notification-body" class="p-4 text-center text-base"></div>
+    </div>
+
     <script>
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-            const thead = table.querySelector("thead");
-            let foundAny = false;
+        function enableEdit(button) {
+            const row = button.closest('tr');
+            const supplierNameCell = row.querySelector('.supplier-name');
+            const supplierAddressCell = row.querySelector('.supplier-address');
 
-            // Always keep the header visible
-            thead.style.display = "";
+            const originalName = supplierNameCell.textContent.trim();
+            const originalAddress = supplierAddressCell.textContent.trim();
 
-            // Search through data rows (start from index 1 to skip header)
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
+            supplierNameCell.innerHTML = `<input type="text" class="edit-input p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${originalName}" />`;
+            supplierAddressCell.innerHTML = `<input type="text" class="edit-input w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${originalAddress}" />`;
 
-                // Check every cell in the row
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
+            button.classList.add('hidden');
+            row.querySelector('.delete-btn').classList.add('hidden');
+            row.querySelector('.save-btn').classList.remove('hidden');
+        }
 
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) {
-                    foundAny = true;
-                }
+        function saveEdit(button) {
+            const row = button.closest('tr');
+            const supplierId = row.getAttribute('data-id');
+            const newName = row.querySelector('.supplier-name .edit-input').value.trim();
+            const newAddress = row.querySelector('.supplier-address .edit-input').value.trim();
+            const supplierNameCell = row.querySelector('.supplier-name');
+            const supplierAddressCell = row.querySelector('.supplier-address');
+
+            if (!newName || !newAddress) {
+                alert('กรุณากรอกชื่อและที่อยู่ของผู้ส่งมอบ');
+                return;
             }
 
-            // Handle "No data" message
-            let noDataMessage = document.getElementById("noDataMessage");
-            if (!foundAny) {
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement("p");
-                    noDataMessage.id = "noDataMessage";
-                    noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.style.color = "red";
-                    noDataMessage.style.fontWeight = "bold";
-                    noDataMessage.style.textAlign = "center";
-                    noDataMessage.style.marginTop = "10px";
-                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                }
-            } else {
-                if (noDataMessage) {
-                    noDataMessage.remove();
-                }
+            fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `id=${supplierId}&update_supplier_name=${encodeURIComponent(newName)}&update_supplier_address=${encodeURIComponent(newAddress)}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        supplierNameCell.textContent = newName;
+                        supplierAddressCell.textContent = newAddress;
+                        const editBtn = row.querySelector('.edit-btn');
+                        const deleteBtn = row.querySelector('.delete-btn');
+                        editBtn.classList.remove('hidden');
+                        deleteBtn.classList.remove('hidden');
+                        button.classList.add('hidden');
+                        showNotification('แก้ไขสำเร็จ', 'bg-cyan-200');
+                    } else {
+                        throw new Error('Failed to save');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('เกิดข้อผิดพลาดในการบันทึก', 'bg-red-200');
+                });
+        }
+
+        function showNotification(message, headerClass) {
+            const notification = document.getElementById('notification');
+            const header = document.getElementById('notification-header');
+            const body = document.getElementById('notification-body');
+
+            header.className = `p-2 rounded-t-md font-bold ${headerClass}`;
+            header.textContent = 'แจ้งเตือน';
+            body.textContent = message;
+            notification.classList.remove('hidden');
+
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 1000);
+        }
+
+        // ฟังก์ชันตรวจสอบเมื่อลบข้อความค้นหาจนหมด
+        function checkEmptySearch(input) {
+            if (input.value.trim() === '') {
+                // ถ้าช่องค้นหาว่างเปล่า ให้เปลี่ยนเส้นทางไปยังหน้าแสดงข้อมูลทั้งหมด
+                window.location.href = '?page=supplier_list';
             }
         }
 
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById("searchInput");
-            searchInput.focus();
+            const searchInput = document.getElementById('searchInput');
+
+            // ถ้ามีการค้นหา ให้ focus ที่ช่องค้นหา
+            if (urlParams.has('search')) {
+                searchInput.focus();
+            }
+
+            // เพิ่ม event listener สำหรับการกด Escape เพื่อยกเลิกการค้นหา
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.location.href = '?page=supplier_list';
+                }
+            });
+
+            // เก็บค่า search ก่อน submit form
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    localStorage.setItem('searchPreserve', this.value);
+                }
+            });
+
+            // คืนค่า search หลังโหลดหน้า
+            const preserved = localStorage.getItem('searchPreserve');
+            if (preserved) {
+                searchInput.value = preserved;
+                searchInput.focus();
+                // เคลื่อนเคอร์เซอร์ไปหลังข้อความ
+                searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
+                localStorage.removeItem('searchPreserve');
+            }
+
+            // เพิ่ม event listener สำหรับตรวจสอบเมื่อลบข้อความค้นหา
+            searchInput.addEventListener('input', function() {
+                checkEmptySearch(this);
+            });
+
+            // แสดงการแจ้งเตือนตามสถานะ
             if (urlParams.has('edit_success')) {
-                const notificationEdit = document.getElementById('notification-edit');
-                notificationEdit.style.display = 'block';
-                setTimeout(() => {
-                    notificationEdit.style.display = 'none';
-                }, 2000);
+                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
             } else if (urlParams.has('delete_success')) {
-                const notificationDelete = document.getElementById('notification-delete');
-                notificationDelete.style.display = 'block';
-                setTimeout(() => {
-                    notificationDelete.style.display = 'none';
-                }, 2000);
+                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
             }
         });
     </script>

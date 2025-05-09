@@ -168,82 +168,64 @@ try {
 </head>
 
 <body class="font-[Tahoma]">
-    <div class="mx-[15rem] mt-11">
-        <div class="grid grid-cols-2 items-center justify-center gap-[5px]">
-            <div class="flex gap-6 items-center">
-                <h2 class="text-2xl font-bold">จำนวนคลังสินค้า</h2>
-                <div class="w-[120px] p-2 bg-blue-200 font-bold text-end border border-blue-500 rounded-md">
-                    <?= $count ?>
+    <div class="mx-[8rem] mt-11">
+        <!-- Table -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-list mr-2"></i>รายการคลังสินค้า
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse" id="dataTable">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสคลัง</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อคลังสินค้า</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวน Lot</th>
+                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($warehouses) > 0): ?>
+                                <?php foreach ($warehouses as $warehouse): ?>
+                                    <tr class="hover:bg-gray-100">
+                                        <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in"><?php echo htmlspecialchars($warehouse['warehouse_id']); ?></td>
+                                        <td class="px-6 py-2 border cursor-pointer hover:underline zoom-in warehouse-name"><?php echo htmlspecialchars($warehouse['warehouse_name']); ?></td>
+                                        <td class="px-6 py-2 border warehouse-status"><?php echo htmlspecialchars($warehouse['warehouse_status']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($warehouse['lot_count']); ?></td>
+                                        <td class="px-6 py-2 border text-center">
+                                            <div class="flex justify-center space-x-2">
+                                                
+                                                <button onclick="enableEdit(this)"
+                                                    class="edit-btn bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600 transition flex items-center">
+                                                    <i class="fas fa-edit mr-1"></i>แก้ไข
+                                                </button>
+                                                <a href="?page=warehouse_list&id=<?php echo htmlspecialchars($warehouse['warehouse_id']); ?>"
+                                                    onclick="return confirm('ยืนยันการลบข้อมูล?')"
+                                                    class="delete-btn bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition flex items-center">
+                                                    <i class="fas fa-trash-alt mr-1"></i>ลบ
+                                                </a>
+                                                <button class="save-btn hidden bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600 transition  items-center"
+                                                    onclick="saveEdit(this)">
+                                                    <i class="fas fa-save mr-1"></i>บันทึก
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-gray-600">ไม่มีข้อมูล</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div class="mt-4 md:mt-0">
-                <input type="text" id="searchInput" onkeyup="searchTable()" tabindex="1"
-                    placeholder="ค้นหาคลังสินค้า..."
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
         </div>
-
-        <table class="mt-5 mb-8 w-[100%] border-2 border-[#A0A0A0] shadow-lg" id="dataTable">
-            <tr>
-                <form action="" method="POST">
-                    <td class="bg-white">
-                        <input type="text" id="warehousename" name="warehousename" placeholder="ชื่อคลังสินค้า"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
-                    </td>
-                    <td class="bg-white">
-                        <input type="text" id="warehousestatus" name="warehousestatus" placeholder="สถานะ"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600" />
-                    </td>
-                    <td class="bg-white py-2 flex justify-center items-center">
-                        <button type="submit"
-                            class="w-[130px] px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition ease-in-out duration-200">
-                            เพิ่ม
-                        </button>
-                    </td>
-                </form>
-            </tr>
-            <thead>
-                <tr>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">ชื่อคลังสินค้า</th>
-                    <th class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">สถานะ</th>
-                    <th class="w-[250px] bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-lg px-3 py-2 border border-[#8f959b] shadow">การจัดการ</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <?php foreach ($warehouses as $warehouse): ?>
-                    <tr class="bg-white hover:bg-[#b7babe66] cursor-pointer" data-id="<?= htmlspecialchars($warehouse['warehouse_id']) ?>">
-                        <td class="warehouse-name border p-2"><?= htmlspecialchars($warehouse['warehouse_name']) ?></td>
-                        <td class="warehouse-status border p-2 text-center"><?= htmlspecialchars($warehouse['warehouse_status']) ?></td>
-                        <td class="py-3 px-4 text-center space-x-2 border border-gray-300">
-                            <button onclick="enableEdit(this)"
-                                class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                                แก้ไข
-                            </button>
-                            <a href="?page=warehouse_list&id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>"
-                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
-                                class="delete-btn inline-flex items-center px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2h8a2 2 0 00-2-2m-4 0V3m-3 4h10"></path>
-                                </svg>
-                                ลบ
-                            </a>
-                            <button class="save-btn hidden items-center px-3 py-1 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 transition"
-                                onclick="saveEdit(this)">
-                                <div class="flex">
-                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    บันทึก
-                                </div>
-                            </button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
 
         <!-- Pagination for table -->
         <div class="pagination mt-5 flex justify-center items-center gap-2">
@@ -303,7 +285,7 @@ try {
             <?php foreach ($warehouses as $warehouse): ?>
                 <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>'">
-                    <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                    <div class="bg-blue-100 p-4 border-b border-gray-200">
                         <h3 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($warehouse['warehouse_name']) ?></h3>
                     </div>
                     <div class="p-6 flex justify-between items-center">
@@ -322,7 +304,7 @@ try {
             <?php endforeach; ?>
         </div>
     </div>
-    
+
     <!-- Notification -->
     <div id="notification" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-gray-400 rounded-md shadow-lg w-96 h-32 z-50">
         <div id="notification-header" class="p-2 rounded-t-md font-bold"></div>
