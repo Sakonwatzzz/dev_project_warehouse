@@ -21,7 +21,7 @@ $product_section_pages = [
     'lot_listinsert',
     'lot_list',
     'lot_productlist',
-    'lot_productinsert'
+    'lot_productinsert',
 ];
 
 // Check if we're in dashboard section (for highlighting both home and dashboard)
@@ -43,6 +43,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 <body>
     <div class="header">
         <p>Admin Management system</p>
+
         <div class="navbar">
             <div class="link">
                 <ul>
@@ -56,8 +57,9 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
                     <li><a href="?page=bar_supplier"
                             class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
-                    <li><a href="?page=navigationbar_sale"
-                            class="<?php echo $current_page == 'navigationbar_sale' ? 'active' : ''; ?>">ขาย</a></li>
+                    <li><a href="?page=bar_sale"
+                            class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a></li>
+                   
                 </ul>
             </div>
         </div>
@@ -67,7 +69,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         <?php
         // Get page parameter and set defaults
         $page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
-        $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'navigationbar_sale'];
+        $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale'];
 
         $dashboard_pages = [
             'dashboard'
@@ -137,12 +139,21 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'supplier_detail',
             
         ];
+        $sale_pages = [
+            'sale_add',
+            'sale_list',
+            'sale_bill',
+            'sale_insert',
+            'sale_detail',
+            'sale_output',
+            'sale_inserttest'
+        ];
 
         if ($page) {
 
             $parts = explode('_', $page);
             $prefix = $parts[0] ?? null;  // 'bar' หรือ 'member'
-            $module = $parts[1] ?? null;  // 'product', 'supplier', 'list', 'insert', etc.
+            $module = $parts[1] ?? null;  // 'product', 'supplier', 'list', 'insert','add', etc.
 
             // If no page is specified or it's the homepage/bar_index, show dashboard
             if ($page == 'dashboard' || $page == 'bar_index') {
@@ -176,7 +187,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         'supplier' => 'supplier',
                         'personnel' => 'personnel',
                         'member' => 'member',
-                        'lot' => 'lot'
+                        'lot' => 'lot',
+                        'sale' => 'sale'
                     ];
 
                     if (isset($folderMapping[$module])) {
@@ -327,8 +339,28 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     if (isset($_GET['id'])) {
                         $_REQUEST['id'] = $_GET['id'];
                     }
-                }
+                } elseif ($prefix === 'sale' && in_array($page, $sale_pages)) {
+                    // โหลด bar_sale.php ก่อน
+                    // สร้าง path ไปยังไฟล์ bar_sale.php
+                    $barfile = __DIR__ . "/bar_sale.php"; //__DIR__ คือ directory ของไฟล์ที่โค้ดนี้อยู่ 
+                    
+                    //ถ้าไฟล์ bar_sale.php มีอยู่จริง ให้ include มันเข้าไป
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    // ดึงค่าที่สองจาก $parts array (เช่น URL ที่แบ่งโดย /) มาเก็บใน $action
+                    // ถ้าไม่มี ให้ใช้ 'add' เป็นค่าเริ่มต้น
+                    $action = $parts[1] ?? 'add';
 
+                    //สร้าง path ไปยังไฟล์ PHP ของหน้า sale เช่น sale_add.php
+                    $filepath = "$basePath/sale/sale_{$action}.php";
+
+                    //ถ้ามี id ใน URL (?id=123)
+                    // ให้เพิ่มเข้าไปใน $_REQUEST['id'] ด้วย เพื่อให้สามารถเรียกใช้ได้จากทั้ง $_GET และ $_POST ปกติใช้เพื่อโหลดข้อมูล sale ตาม ID นั้น
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                }
                 // Include the file if it exists
                 if (isset($filepath) && file_exists($filepath)) {
                     include $filepath;

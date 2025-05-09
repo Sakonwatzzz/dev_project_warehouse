@@ -1,0 +1,448 @@
+<?php
+// โค้ดในไฟล์ ajax_sale.php นี้คือรวมการทำงนของ action=delete, add_product, update, confirm_sale, new_sale, cancel_sale, switch_sale 
+ob_start();
+session_start();
+require_once __DIR__ . '../../../../../config/database_server.php';
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../../logs/php_errors.log');
+
+// Set timezone
+date_default_timezone_set('Asia/Bangkok');
+$currentDateTime = date("Y-m-d H:i:s");
+
+// Initialize active sales if not set
+if (!isset($_SESSION['active_sales'])) {
+    $_SESSION['active_sales'] = [];
+}
+function isAjaxRequest()
+{
+    $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    error_log("isAjaxRequest: " . ($isAjax ? 'Yes' : 'No') . ", Headers: " . json_encode(getallheaders()));
+    return $isAjax;
+}
+
+// ตรวจสอบว่าเป็น AJAX request
+if (!isAjaxRequest()) {
+    header('HTTP/1.1 403 Forbidden');
+    echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
+    exit();
+}
+header('Content-Type: application/json; charset=utf-8');
+ob_clean();
+// Get sale_id
+$sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
+
+function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = false)
+{
+    $remainingToProcess = $qty;
+    $lot_ids = [];
+    try {
+        while ($remainingToProcess > 0) {
+            $query = "
+                SELECT lot_product_id, lot_product_remain 
+                FROM lot_product 
+                WHERE product_id = ? AND lot_product_remain > 0
+                ORDER BY lot_product_date ASC, lot_product_id ASC LIMIT 1
+            ";
+            $stmtLot = $pdo->prepare($query);
+            $stmtLot->execute([$productId]);
+            $lot = $stmtLot->fetch(PDO::FETCH_ASSOC);
+
+            if (!$lot) {
+                throw new Exception("สต็อกล็อตไม่เพียงพอสำหรับสินค้า $productId");
+            }
+
+            $current = (int) $lot['lot_product_remain'];
+            if ($addMode) {
+                $newRemain = $current + $remainingToProcess;
+                $remainingToProcess = 0;
+            } else {
+                if ($current >= $remainingToProcess) {
+                    $newRemain = $current - $remainingToProcess;
+                    $lot_ids[] = ['lot_product_id' => $lot['lot_product_id'], 'qty' => $remainingToProcess];
+                    $remainingToProcess = 0;
+                } else {
+                    $newRemain = 0;
+                    $lot_ids[] = ['lot_product_id' => $lot['lot_product_id'], 'qty' => $current];
+                    $remainingToProcess -= $current;
+                }
+            }
+
+            $updateLot = $pdo->prepare("
+                UPDATE lot_product 
+                SET lot_product_remain = ? 
+                WHERE lot_product_id = ?
+            ");
+            $updateLot->execute([$newRemain, $lot['lot_product_id']]);
+        }
+    } catch (Exception $e) {
+        error_log("Error in adjustLotRemain for product $productId: " . $e->getMessage());
+        throw $e;
+    }
+    return $lot_ids;
+}
+
+// Handle AJAX actions
+// $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+// Handle product add
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_product') {
+
+    if (!isAjaxRequest()) {
+        header('HTTP/1.1 403 Forbidden');
+        echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
+        exit();
+    }
+    header('Content-Type: application/json');
+    ob_clean();
+    try {
+        $barcode = trim($_POST['barcode']);
+        $qty = is_numeric($_POST['qty'] ?? null) ? (int) $_POST['qty'] : 1;
+        $price = is_numeric($_POST['price'] ?? null) ? (float) $_POST['price'] : 0;
+        $price_type = $_POST['price_type'] ?? 'price4';
+
+        if (empty($barcode)) {
+            throw new Exception("กรุณาป้อนรหัสสินค้า");
+        }
+        if ($qty <= 0) {
+            throw new Exception("จำนวนต้องมากกว่า 0");
+        }
+
+        $pdo->beginTransaction();
+
+        // ตรวจสอบสินค้า
+        $stmtP = $pdo->prepare("
+            SELECT product_name, product_price1, product_price2, product_price3, product_price4, product_capital 
+            FROM product 
+            WHERE product_id = ?
+        ");
+        $stmtP->execute([$barcode]);
+        $prod = $stmtP->fetch(PDO::FETCH_ASSOC);
+        if (!$prod) {
+            throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
+        }
+
+        // เลือกราคา
+        $unitPrice = $price > 0 ? $price : $prod['product_' . $price_type];
+        $unitCapital = $prod['product_capital'];
+
+        // ตรวจสอบว่ามีสินค้านี้ในบิลแล้วหรือไม่
+        $stmt = $pdo->prepare("
+            SELECT sale_product_qty, sale_product_price, sale_product_capital 
+            FROM sale_product 
+            WHERE sale_id = ? AND product_id = ?
+        ");
+        $stmt->execute([$sale_id, $barcode]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            $newQty = $existing['sale_product_qty'] + $qty;
+            $newPrice = $price > 0 ? $price : $existing['sale_product_price'];
+            $newCapital = $prod['product_capital'];
+
+            $stmt = $pdo->prepare("
+                UPDATE sale_product 
+                SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ?
+                WHERE sale_id = ? AND product_id = ?
+            ");
+            $stmt->execute([$newQty, $newPrice, $newCapital, $sale_id, $barcode]);
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO sale_product 
+                (sale_id, product_id, sale_product_qty, sale_product_price, sale_product_capital)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$sale_id, $barcode, $qty, $unitPrice, $unitCapital]);
+        }
+
+        // ตัดสต็อก
+        try {
+            $lot_ids = adjustLotRemain($pdo, $barcode, $qty, false);
+        } catch (Exception $e) {
+            throw new Exception("ไม่สามารถตัดสต็อกได้: " . $e->getMessage());
+        }
+
+        $pdo->commit();
+        echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ']);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error adding product: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit();
+}
+// Handle product update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
+    header('Content-Type: application/json');
+    ob_clean();
+    try {
+        $barcode = trim($_POST['barcode']);
+        $qty = (int) ($_POST['qty'] ?? 1);
+        $price = (float) ($_POST['price'] ?? 0);
+        $capital = (float) ($_POST['capital'] ?? 0);
+
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare("
+            SELECT sale_product_qty, sale_product_price, sale_product_capital 
+            FROM sale_product 
+            WHERE sale_id = ? AND product_id = ?
+        ");
+        $stmt->execute([$sale_id, $barcode]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            $oldQty = $existing['sale_product_qty'];
+            $qtyDiff = $qty - $oldQty;
+
+            $pdo->prepare("
+                UPDATE sale_product 
+                SET sale_product_qty = ?, sale_product_price = ?, sale_product_capital = ? 
+                WHERE sale_id = ? AND product_id = ?
+            ")->execute([$qty, $price, $capital, $sale_id, $barcode]);
+
+            if ($qtyDiff > 0) {
+                adjustLotRemain($pdo, $barcode, $qtyDiff, false);
+            } elseif ($qtyDiff < 0) {
+                adjustLotRemain($pdo, $barcode, abs($qtyDiff), true);
+            }
+
+            $pdo->commit();
+            echo json_encode(['status' => 'success', 'message' => 'แก้ไขสินค้าสำเร็จ']);
+        } else {
+            throw new Exception("ไม่พบสินค้าในรายการ");
+        }
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error updating product: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit();
+}
+
+//เพิ่มการตรวจสอบ X-Requested-With: XMLHttpRequest.
+// Handle product delete 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest') {
+        header('HTTP/1.1 403 Forbidden');
+        echo json_encode(['status' => 'error', 'message' => 'Access denied: AJAX request required']);
+        exit();
+    }
+    //ถ้าไม่ใช่ AJAX, ส่ง 403 Forbidden และ JSON error
+    header('Content-Type: application/json; charset=utf-8');
+    ob_clean();
+    try {
+        $barcode = trim($_POST['barcode']);
+        $qty = (int) ($_POST['qty'] ?? 1);
+
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare("
+            SELECT sale_product_qty 
+            FROM sale_product 
+            WHERE sale_id = ? AND product_id = ?
+        ");
+        $stmt->execute([$sale_id, $barcode]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            $newQty = $existing['sale_product_qty'] - $qty;
+            if ($newQty <= 0) {
+                $pdo->prepare("
+                    DELETE FROM sale_product 
+                    WHERE sale_id = ? AND product_id = ?
+                ")->execute([$sale_id, $barcode]);
+            } else {
+                $pdo->prepare("
+                    UPDATE sale_product 
+                    SET sale_product_qty = ? 
+                    WHERE sale_id = ? AND product_id = ?
+                ")->execute([$newQty, $sale_id, $barcode]);
+            }
+            adjustLotRemain($pdo, $barcode, $qty, true);
+            $pdo->commit();
+            echo json_encode(['status' => 'success', 'message' => 'ลบสินค้าสำเร็จ']);
+        } else {
+            throw new Exception("ไม่พบสินค้าในรายการ");
+        }
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error deleting product: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit();
+}
+
+// Handle sale confirmation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_sale') {
+    header('Content-Type: application/json');
+    ob_clean();
+    try {
+        $pdo->beginTransaction();
+
+        // ตรวจสอบ sale_id
+        $sale_id = $_POST['sale_id'] ?? null;
+        error_log("Confirm sale: sale_id = " . ($sale_id ?? 'null')); // บันทึก sale_id
+        if (empty($sale_id)) {
+            throw new Exception("ไม่พบ sale_id ในคำขอ");
+        }
+
+        // ตรวจสอบว่าบิลมีอยู่ในฐานข้อมูลและอยู่ในสถานะรอดำเนินการ
+        $check_sale = $pdo->prepare("SELECT sale_status_id FROM sale WHERE sale_id = ?");
+        $check_sale->execute([$sale_id]);
+        $sale = $check_sale->fetch(PDO::FETCH_ASSOC);
+        if (!$sale) {
+            throw new Exception("ไม่พบข้อมูลบิล #$sale_id ในระบบ");
+        }
+        if ($sale['sale_status_id'] != 1) {
+            throw new Exception("บิล #$sale_id ไม่สามารถยืนยันได้ เนื่องจากไม่ได้อยู่ในสถานะรอดำเนินการ");
+        }
+
+        // ตรวจสอบว่ามีสินค้าในบิล
+        $check_products = $pdo->prepare("SELECT COUNT(*) FROM sale_product WHERE sale_id = ?");
+        $check_products->execute([$sale_id]);
+        if ($check_products->fetchColumn() == 0) {
+            throw new Exception("ไม่พบสินค้าในรายการขาย กรุณาเพิ่มสินค้าก่อนยืนยันการขาย");
+        }
+
+        // ตรวจสอบความสมบูรณ์ของข้อมูลสินค้า
+        $check_query = "SELECT sp.product_id, COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name, 
+                   sp.sale_product_price, sp.sale_product_capital 
+                   FROM sale_product sp
+                   LEFT JOIN product p ON p.product_id = sp.product_id
+                   WHERE sp.sale_id = ? 
+                   AND (p.product_name IS NULL OR p.product_name = 'ยังไม่ระบุ' OR sp.sale_product_price = 0 OR sp.sale_product_capital = 0)";
+        $check_stmt = $pdo->prepare($check_query);
+        $check_stmt->execute([$sale_id]);
+        $invalid_products = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($invalid_products) > 0) {
+            $invalid_list = '';
+            foreach ($invalid_products as $product) {
+                $invalid_list .= "- รหัส: {$product['product_id']} ชื่อ: {$product['product_name']}\n";
+            }
+            throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน:\n" . $invalid_list);
+        }
+
+        // อัปเดตสถานะบิลเป็นยืนยันแล้ว (sale_status_id = 2)
+        $updateSale = $pdo->prepare("UPDATE sale SET sale_status_id = 2 WHERE sale_id = ?");
+        $updateSale->execute([$sale_id]);
+
+        // อัปเดต member_id หากระบุ
+        if (isset($_POST['member_id']) && !empty($_POST['member_id'])) {
+            $updateMember = $pdo->prepare("UPDATE sale SET member_id = ? WHERE sale_id = ?");
+            $updateMember->execute([$_POST['member_id'], $sale_id]);
+        }
+
+        // อัปเดต personnel_id หากระบุ
+        if (isset($_POST['personnel_id']) && !empty($_POST['personnel_id'])) {
+            $updatePersonnel = $pdo->prepare("UPDATE sale SET personnel_id = ? WHERE sale_id = ?");
+            $updatePersonnel->execute([$_POST['personnel_id'], $sale_id]);
+        }
+
+        // อัปเดต sale_deposit หากระบุ
+        // if (isset($_POST['sale_deposit']) && is_numeric($_POST['sale_deposit'])) {
+        //     $updateDeposit = $pdo->prepare("UPDATE sale SET sale_deposit = ? WHERE sale_id = ?");
+        //     $updateDeposit->execute([(float)$_POST['sale_deposit'], $sale_id]);
+        // }
+
+        // Remove from active sales
+        $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$sale_id]);
+        $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
+
+        $pdo->commit();
+        echo json_encode(['status' => 'success', 'message' => 'ยืนยันการขายสำเร็จ', 'redirect' => '?page=sale_add']);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error confirming sale: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit();
+}
+// Handle new sale creation via Ajax
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'new_sale') {
+    header('Content-Type: application/json');
+    ob_clean();
+    try {
+        $pdo->beginTransaction();
+        $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id) VALUES (?, 1, ?, ?)");
+        $insertSale->execute([$currentDateTime, null, null]);
+        $new_sale_id = $pdo->lastInsertId();
+        $_SESSION['active_sales'][] = $new_sale_id;
+        $_SESSION['current_sale_id'] = $new_sale_id;
+        $pdo->commit();
+        echo json_encode(['status' => 'success', 'sale_id' => $new_sale_id, 'message' => 'บิลใหม่ #' . $new_sale_id . ' ถูกสร้างเรียบร้อย', 'redirect' => "?page=sale_add&sale_id=$new_sale_id"]);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error creating new sale: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถสร้างบิลใหม่ได้: ' . $e->getMessage()]);
+    }
+    exit();
+}
+// Handle sale cancellation via Ajax
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'cancel_sale') {
+    header('Content-Type: application/json');
+    ob_clean();
+    $cancel_sale_id = $_POST['sale_id'] ?? null;
+    if (!$cancel_sale_id || !in_array($cancel_sale_id, $_SESSION['active_sales'])) {
+        echo json_encode(['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ']);
+        exit();
+    }
+    error_log("Attempting to cancel sale with sale_id: " . $cancel_sale_id);
+    try {
+        $pdo->beginTransaction();
+
+        // Restore stock in lot_product
+        $stmt = $pdo->prepare("SELECT product_id, sale_product_qty FROM sale_product WHERE sale_id = ?");
+        $stmt->execute([$cancel_sale_id]);
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($products as $product) {
+            if (!isset($product['product_id']) || !isset($product['sale_product_qty']) || $product['sale_product_qty'] <= 0) {
+                error_log("Invalid product data for sale_id $cancel_sale_id: " . json_encode($product));
+                throw new Exception("ข้อมูลสินค้าไม่ถูกต้องสำหรับบิล #$cancel_sale_id");
+            }
+            adjustLotRemain($pdo, $product['product_id'], $product['sale_product_qty'], true);
+        }
+
+        // Delete sale_product records
+        $deleteProductStmt = $pdo->prepare("DELETE FROM sale_product WHERE sale_id = ?");
+        $deleteProductStmt->execute([$cancel_sale_id]);
+
+        // Delete sale record
+        if (empty($cancel_sale_id)) {
+            throw new Exception("ไม่สามารถยกเลิกบิลได้: sale_id ไม่ถูกต้อง");
+        }
+        $deleteSaleStmt = $pdo->prepare("DELETE FROM sale WHERE sale_id = ?");
+        $deleteSaleStmt->execute([$cancel_sale_id]);
+
+        // Update session
+        $_SESSION['active_sales'] = array_diff($_SESSION['active_sales'], [$cancel_sale_id]);
+        if ($_SESSION['current_sale_id'] == $cancel_sale_id) {
+            $_SESSION['current_sale_id'] = !empty($_SESSION['active_sales']) ? reset($_SESSION['active_sales']) : null;
+        }
+
+        $pdo->commit();
+        $redirect_url = $_SESSION['current_sale_id'] ? "?page=sale_add&sale_id={$_SESSION['current_sale_id']}" : "?page=sale_add";
+        echo json_encode(['status' => 'success', 'message' => 'บิล #' . $cancel_sale_id . ' ถูกลบเรียบร้อย', 'redirect' => $redirect_url]);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error cancelling sale $cancel_sale_id: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถยกเลิกบิลได้: ' . $e->getMessage()]);
+    }
+    exit();
+}

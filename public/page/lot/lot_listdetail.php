@@ -720,7 +720,6 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
             return false; // Prevent automatic form submission
         }
-
         function closeEditModal() {
             document.getElementById('editModal').style.display = 'none';
         }
@@ -729,7 +728,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
         $('#cancel-edit, #close-modal').on('click', function() {
             $('#editModal').fadeOut(200);
         });
-
+      
         const inputField = document.getElementById('inputField');
 
         // ฟังก์ชันสำหรับการเปลี่ยนสีพื้นหลังตามการกดปุ่ม
@@ -988,6 +987,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 handleInputValidation: function(e) {
                     const $input = $(e.target);
                     const value = parseFloat($input.val());
+
                     const minValue = $input.attr($input.attr('id') === 'qty' ? 0 : -1);
 
                     $input.toggleClass('border-red-500', value <= minValue);
@@ -1015,5 +1015,4 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
         });
     </script>
 </body>
-
 </html>

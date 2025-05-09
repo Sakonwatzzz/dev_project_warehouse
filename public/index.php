@@ -1,4 +1,6 @@
 <?php
+
+// นี่คือโค้ดในไฟล์ index.php ตำแหน่งไฟล์คืออยู่ ภายใต้โฟลเดอร์ (Dev_Project_warehouse/public/index.php )
 require_once __DIR__ . '/../config/database_server.php';
 
 ?>

@@ -363,7 +363,6 @@ try {
                 </table>
             </div>
         </div>
-
         <!-- Pagination -->
         <div class="pagination mt-5 flex justify-center items-center gap-2 flex-wrap">
             <?php if ($total_pages > 1): ?>
@@ -430,6 +429,7 @@ try {
                 window.location.href = '?page=personnel_list';
             }
         }
+
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);

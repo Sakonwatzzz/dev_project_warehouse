@@ -97,22 +97,28 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
 <body>
     <div class="button-bb">
         <div class="flex gap-1 p-2 border border--500 rounded-lg bg-gradient-to-r bg-[#cbdbee] shadow-xl">
-            <a href="?page=sale_bill" class="button-link">
-                <button class="<?php echo ($current_page == 'sale_bill') ? 'active' : ''; ?>">
+            <a href="?page=sale_add" class="button-link">
+                <button class="<?php echo ($current_page == 'sale_add') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
-                    <p>ข้อมูลบิลการขาย</p>
+                    <p>หน้าการขายสินค้า</p>
                 </button>
             </a>
             <a href="?page=sale_list" class="button-link">
                 <button class="<?php echo ($current_page == 'sale_list') ? 'active' : ''; ?>">
                     <img src="../image/add-product.png" alt="">
-                    <p>ข้อมูลการขายสินค้า</p>
+                    <p>รายการขายสินค้า</p>
                 </button>
             </a>
-            <a href="?page=sale_status" class="button-link">
-                <button class="<?php echo ($current_page == 'sale_status') ? 'active' : ''; ?>">
+            <a href="?page=sale_output" class="button-link">
+                <button class="<?php echo ($current_page == 'sale_output') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
-                    <p>ข้อมูลสถานะสินค้า</p>
+                    <p>แสดงรายการขาย(ลูกค้า)</p>
+                </button>
+            </a>
+            <a href="?page=sale_inserttest" class="button-link">
+                <button class="<?php echo ($current_page == 'sale_inserttest') ? 'active' : ''; ?>">
+                    <img src="../image/box.png" alt="">
+                    <p>หน้าการขายสินค้า(ทดลอง4)</p>
                 </button>
             </a>
 
