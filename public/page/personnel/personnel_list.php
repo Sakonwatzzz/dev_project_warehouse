@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+// Add search parameter handling
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 function fetchData($pdo, $query, $params = [])
 {
     try {
@@ -21,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("UPDATE personnel SET personnel_name = ?, personnel_type_id = ? WHERE personnel_id = ?");
             $stmt->execute([$newName, $newTypeId, $id]);
-            header('Location: /index.php?page=personnel_list&edit_success=1');
+            header('Location: /index.php?page=personnel_list&edit_success=1' . (!empty($search) ? '&search=' . urlencode($search) : ''));
             exit;
         } catch (PDOException $e) {
             echo 'Database error: ' . htmlspecialchars($e->getMessage());
@@ -35,18 +38,28 @@ if (isset($_GET['id'])) {
     try {
         $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
         $stmt->execute([$id]);
-        header("Location: /index.php?page=personnel_list&delete_success=1");
+        header("Location: /index.php?page=personnel_list&delete_success=1" . (!empty($search) ? '&search=' . urlencode($search) : ''));
         exit;
     } catch (PDOException $e) {
         echo "Error: " . htmlspecialchars($e->getMessage());
     }
 }
 
-// Count total records in the personnel table
-$query = "SELECT COUNT(*) as total_count FROM personnel";
-$stmt = $pdo->query($query);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$count = $row['total_count'];
+// Count total records in the personnel table (with search)
+try {
+    $count_query = "SELECT COUNT(*) as total_count FROM personnel";
+    $count_params = [];
+    if (!empty($search)) {
+        $count_query .= " WHERE personnel_id LIKE :search OR personnel_name LIKE :search OR personnel_username LIKE :search";
+        $count_params[':search'] = "%$search%";
+    }
+    $stmt = $pdo->prepare($count_query);
+    $stmt->execute($count_params);
+    $count = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
+} catch (PDOException $e) {
+    $count = 0;
+    echo "Count error: " . htmlspecialchars($e->getMessage());
+}
 
 // Pagination logic
 $records_per_page = 5;
@@ -54,14 +67,22 @@ $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
 try {
-    $total_records = $pdo->query("SELECT COUNT(*) FROM personnel")->fetchColumn();
+    $total_query = "SELECT COUNT(*) FROM personnel";
+    $total_params = [];
+    if (!empty($search)) {
+        $total_query .= " WHERE personnel_id LIKE :search OR personnel_name LIKE :search OR personnel_username LIKE :search";
+        $total_params[':search'] = "%$search%";
+    }
+    $stmt = $pdo->prepare($total_query);
+    $stmt->execute($total_params);
+    $total_records = $stmt->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
     $total_pages = 1;
     echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// Fetch personnel data
+// Fetch personnel data (with search)
 try {
     $query = "
         SELECT 
@@ -71,10 +92,17 @@ try {
             p.personnel_type_id,
             pt.personnel_type_name
         FROM personnel p
-        INNER JOIN personnel_type pt ON p.personnel_type_id = pt.personnel_type_id
-        LIMIT :offset, :records_per_page
-    ";
+        INNER JOIN personnel_type pt ON p.personnel_type_id = pt.personnel_type_id";
+    $params = [];
+    if (!empty($search)) {
+        $query .= " WHERE p.personnel_id LIKE :search OR p.personnel_name LIKE :search OR p.personnel_username LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+    $query .= " LIMIT :offset, :records_per_page";
     $stmt = $pdo->prepare($query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
@@ -272,9 +300,19 @@ try {
                         <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
                     </div>
                     <div class="w-full md:w-1/2">
-                        <input type="text" id="searchInput" onkeyup="searchTable()"
-                            placeholder="ค้นหา..."
-                            class="search-bar focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <form action="" method="GET" class="w-full" id="searchForm">
+                            <input type="hidden" name="page" value="personnel_list">
+                            <div class="relative">
+                                <input type="text" name="search" id="searchInput"
+                                    placeholder="ค้นหา..."
+                                    value="<?php echo htmlspecialchars($search); ?>"
+                                    class="search-bar focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    oninput="checkEmptySearch(this)">
+                                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -303,7 +341,7 @@ try {
                                                 class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-sm">
                                                 <i class="fas fa-edit mr-1"></i>แก้ไข
                                             </button>
-                                            <a href="?page=personnel_list&id=<?php echo htmlspecialchars($person['personnel_id']); ?>"
+                                            <a href="?page=personnel_list&id=<?php echo htmlspecialchars($person['personnel_id']); ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
                                                 onclick="return confirm('ยืนยันการลบข้อมูล?')"
                                                 class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-sm">
                                                 <i class="fas fa-trash-alt mr-1"></i>ลบ
@@ -331,7 +369,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=personnel_list&page_num=<?= $page - 1 ?>"
+                    <a href="?page=personnel_list&page_num=<?= $page - 1 ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
                         class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         « ก่อนหน้า
                     </a>
@@ -342,7 +380,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=personnel_list&page_num=1"
+                    <a href="?page=personnel_list&page_num=1<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
                         class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         1
                     </a>
@@ -352,7 +390,7 @@ try {
                 <?php endif; ?>
 
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=personnel_list&page_num=<?= $i ?>"
+                    <a href="?page=personnel_list&page_num=<?= $i ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
                         class="rounded-md transition-colors <?php echo $i == $page ? 'active' : 'bg-[#aec5e366] text-black hover:bg-gray-300'; ?>">
                         <?= $i ?>
                     </a>
@@ -362,7 +400,7 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-3 py-1 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=personnel_list&page_num=<?= $total_pages ?>"
+                    <a href="?page=personnel_list&page_num=<?= $total_pages ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
                         class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         <?= $total_pages ?>
                     </a>
@@ -370,7 +408,7 @@ try {
 
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=personnel_list&page_num=<?= $page + 1 ?>"
+                    <a href="?page=personnel_list&page_num=<?= $page + 1 ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
                         class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
                         ถัดไป »
                     </a>
@@ -386,46 +424,52 @@ try {
     </div>
 
     <script>
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
-            const thead = table.querySelector("thead");
-            let foundAny = false;
-
-            thead.style.display = window.innerWidth > 768 ? "" : "none";
-            tr[0].style.display = window.innerWidth > 768 ? "" : "none";
-
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName("td");
-                let rowMatchesSearch = false;
-
-                for (let j = 0; j < td.length; j++) {
-                    const txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatchesSearch = true;
-                        break;
-                    }
-                }
-
-                tr[i].style.display = rowMatchesSearch ? "" : "none";
-                if (rowMatchesSearch) foundAny = true;
-            }
-
-            let noDataMessage = document.getElementById("noDataMessage");
-            if (!foundAny) {
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement("p");
-                    noDataMessage.id = "noDataMessage";
-                    noDataMessage.textContent = "ไม่พบข้อมูล";
-                    noDataMessage.className = "text-red-600 font-bold text-center mt-3";
-                    table.parentNode.insertBefore(noDataMessage, table.nextSibling);
-                }
-            } else if (noDataMessage) {
-                noDataMessage.remove();
+        // Function to handle empty search input
+        function checkEmptySearch(input) {
+            if (input.value.trim() === '') {
+                window.location.href = '?page=personnel_list';
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            // Focus on search input if search parameter exists
+            if (urlParams.has('search')) {
+                document.getElementById('searchInput').focus();
+            }
+            // Add event listener for Escape key to clear search
+            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.location.href = '?page=personnel_list';
+                }
+            });
+            // Show notifications for success actions
+            if (urlParams.has('edit_success')) {
+                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
+            }
+        });
+
+        // ก่อน reload ให้เก็บไว้
+        document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                localStorage.setItem('searchPreserve', this.value);
+            }
+        });
+
+        // หลังโหลดหน้า
+        document.addEventListener('DOMContentLoaded', () => {
+            const preserved = localStorage.getItem('searchPreserve');
+            if (preserved) {
+                const input = document.getElementById('searchInput');
+                input.value = preserved;
+                input.focus();
+                // เคลื่อนเคอร์เซอร์ไปหลังข้อความ
+                input.selectionStart = input.selectionEnd = preserved.length;
+                localStorage.removeItem('searchPreserve');
+            }
+        });
 
         function enableEdit(button) {
             const row = button.closest('tr');
@@ -505,16 +549,6 @@ try {
                 notification.classList.add('hidden');
             }, 1000);
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            document.getElementById('searchInput').focus();
-            if (urlParams.has('edit_success')) {
-                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
-            } else if (urlParams.has('delete_success')) {
-                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
-            }
-        });
     </script>
 </body>
 
