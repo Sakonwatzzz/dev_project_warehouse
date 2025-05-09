@@ -190,9 +190,11 @@ $(document).ready(function () {
     }
   });
 
-  $("#form_add_product").off("submit").on("submit", function (e) {
-    e.preventDefault();
-  });
+  $("#form_add_product")
+    .off("submit")
+    .on("submit", function (e) {
+      e.preventDefault();
+    });
 
   function updateProductTable() {
     const current_sale_id = $('input[name="sale_id"]').val();
@@ -221,7 +223,7 @@ $(document).ready(function () {
           $("#confirm-sale-btn")
             .prop("disabled", !hasProducts)
             .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
-          $("#calculate_change").click();
+          $(document).trigger("productListUpdated", [response.total_amount]);
           bindEditProductEvents();
           $(".main-body").removeAttr("aria-hidden");
         } else {

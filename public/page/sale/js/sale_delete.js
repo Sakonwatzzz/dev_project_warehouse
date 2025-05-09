@@ -1,4 +1,3 @@
-// sale_delete.js
 const Toast = Swal.mixin({
   toast: true,
   position: "top",
@@ -27,7 +26,7 @@ $(document).on("click", ".delete-product", function (e) {
   }
   const barcode = $(this).data("barcode");
   const qty = parseInt($(this).data("qty")) || 1;
-  const sale_id = $(this).data("sale-id") || SALE_ID; // ดึงจาก data-sale-id หรือ SALE_ID
+  const sale_id = $(this).data("sale-id") || SALE_ID;
   console.log("Delete request data:", { barcode, qty, sale_id });
 
   if (!barcode || !sale_id) {
@@ -60,7 +59,12 @@ $(document).on("click", ".delete-product", function (e) {
         beforeSend: function (xhr) {
           xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
           isProcessing = true;
-          console.log("Sending delete request:", { action: "delete", sale_id, barcode, qty });
+          console.log("Sending delete request:", {
+            action: "delete",
+            sale_id,
+            barcode,
+            qty,
+          });
         },
         success: function (response) {
           console.log("Delete response:", response);
@@ -69,7 +73,7 @@ $(document).on("click", ".delete-product", function (e) {
               icon: "success",
               title: response.message,
             });
-            updateProductTable(sale_id); // ส่ง sale_id ไปยัง updateProductTable
+            updateProductTable(sale_id);
           } else {
             Swal.fire({
               icon: "error",
@@ -100,9 +104,9 @@ function updateProductTable(sale_id) {
   $.ajax({
     url: "page/sale/ajax/ajax_get_sale_product.php",
     method: "GET",
-    data: { sale_id: sale_id }, // ใช้ sale_id ที่ส่งมา
+    data: { sale_id: sale_id },
     dataType: "json",
-    cache: false, // ป้องกันการแคช
+    cache: false,
     success: function (response) {
       console.log("Update table response:", response);
       if (response.status === "success") {
@@ -114,7 +118,8 @@ function updateProductTable(sale_id) {
         $("#confirm-sale-btn")
           .prop("disabled", !hasProducts)
           .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
-        $("#calculate_change").click();
+        // Trigger productListUpdated event for sale_payment.js
+        $(document).trigger("productListUpdated", [response.total_amount]);
         bindEditProductEvents();
         $(".main-body").removeAttr("aria-hidden");
       } else {

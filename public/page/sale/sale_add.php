@@ -320,6 +320,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
     <script src="page/sale/js/sale_bill.js"></script>
     <script src="page/sale/js/sale_confirm_btn.js"></script>
     <script src="page/sale/js/sale_modal_edit.js"></script>
+    <script src="page/sale/js/sale_payment.js"></script>
+
     <style>
         #edit-product-modal {
             z-index: 1000;
@@ -449,7 +451,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                 <input type="text" name="barcode" id="barcode_input"
                                     class="p-3 w-full h-8 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                     placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off" autofocus
-                                    <?php echo($sale_status_id === 1) ? 'disable' : ''; ?> >
+                                    <?php echo ($sale_status_id === 1) ? 'disable' : ''; ?>>
                                 <div id="barcode_suggestions"
                                     class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                 </div>
@@ -458,7 +460,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
                                 <input type="number" name="qty" value="1" min="1" id="barcode-qty"
                                     class="p-2 w-12 h-8 border border-gray-300 rounded-sm"
-                                    <?php echo($sale_status_id === 1) ? 'disable' : '';?>>
+                                    <?php echo ($sale_status_id === 1) ? 'disable' : ''; ?>>
                             </div>
                             <div hidden>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
@@ -642,8 +644,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
 
                         <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
                             <span>ยอดรวมสุทธิ:</span>
-                            <span class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?>
-                                บาท</span>
+                            <span type="number" id="total_amount" class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?>
+                            บาท</span>
                         </div>
 
                         <div class="flex flex-row space-x-4 items-end pb-6">
@@ -812,7 +814,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 }
 
                 let dynamicTotalAmount = <?php echo $total_amount; ?>; // ค่าเริ่มต้น
-                
+
 
                 $('#member_search').on('input', function() {
                     const query = $(this).val();
@@ -859,30 +861,30 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
                 });
 
-                // คำนวณเงินทอน
-                $('#calculate_change').on('click', function() {
-                    const paid = parseFloat($('#paid_amount').val()) || 0;
-                    const total = dynamicTotalAmount;
-                    const change = paid - total;
-                    //console.log เพื่อดีบักตรวจสอบการใช้งานว่าล้มเหลวหรือไม่ ใช้ตอนพัฒนาเท่านั้น!!!
-                    console.log("Calculate change: ", {
-                        paid,
-                        total
-                    });
-                    $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
-                    $('#print_receipt').prop('disabled', change < 0);
-                });
+                // // คำนวณเงินทอน
+                // $('#calculate_change').on('click', function() {
+                //     const paid = parseFloat($('#paid_amount').val()) || 0;
+                //     const total = dynamicTotalAmount;
+                //     const change = paid - total;
+                //     //console.log เพื่อดีบักตรวจสอบการใช้งานว่าล้มเหลวหรือไม่ ใช้ตอนพัฒนาเท่านั้น!!!
+                //     console.log("Calculate change: ", {
+                //         paid,
+                //         total
+                //     });
+                //     $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
+                //     $('#print_receipt').prop('disabled', change < 0);
+                // });
 
 
-                // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
-                $('#paid_amount').off('input').on('input', function() {
-                    $('#calculate_change').click();
-                });
+                // // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
+                // $('#paid_amount').off('input').on('input', function() {
+                //     $('#calculate_change').click();
+                // });
 
-                function refreshSummary() {
-                    $('.total-amount').text(dynamicTotalAmount.toFixed(2) + ' บาท');
-                    $('#calculate_change').click();
-                }
+                // function refreshSummary() {
+                //     $('.total-amount').text(dynamicTotalAmount.toFixed(2) + ' บาท');
+                //     $('#calculate_change').click();
+                // }
             });
 
             // Array to track bills in client-side
