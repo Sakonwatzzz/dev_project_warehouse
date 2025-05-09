@@ -19,14 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // Start transaction for consistent data
         $pdo->beginTransaction();
 
-        // Update product name and capital in product table
+        // Update product name in product table
         $productStmt = $pdo->prepare("UPDATE product SET 
-            product_name = ?,
-            product_capital = ?
+            product_name = ?
             WHERE product_id = ?");
-        $productStmt->execute([$_POST['product_name'], $_POST['capital'], $_POST['barcode']]);
+        $productStmt->execute([$_POST['product_name'], $_POST['barcode']]);
 
-        // Update quantity and price in lot_product table
+        // Update quantity and price in lot_product table - FIX: correct parameter order
         $stmt = $pdo->prepare("UPDATE lot_product SET 
             lot_product_qty = ?, 
             lot_product_remain = ?,
@@ -69,16 +68,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
                         LEFT JOIN product p ON p.product_id = lp.product_id
                         WHERE lp.lot_id = ? 
                         AND (p.product_name IS NULL OR p.product_name = 'ยังไม่ระบุ' OR lp.lot_product_capital = 0)";
-
+        
         $check_stmt = $pdo->prepare($check_query);
         $check_stmt->execute([$_POST['lot_id']]);
         $invalid_products = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
-
+        
         if (count($invalid_products) > 0) {
             // There are products with missing information
             throw new Exception("พบสินค้าที่ข้อมูลไม่ครบถ้วน กรุณาตรวจสอบและแก้ไขก่อนยืนยันรายการ");
         }
-
+        
         // Update product names if needed
         if (isset($_POST['product_name']) && isset($_POST['barcode'])) {
             $productStmt = $pdo->prepare("UPDATE product SET product_name = ? WHERE product_id = ?");
@@ -105,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['lot_id'])) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
             exit();
         }
-
+        
         // For regular form submissions, redirect with error
         header('Location: index.php?page=lot_view&id=' . $_POST['lot_id'] . '&error=' . urlencode($e->getMessage()));
         exit();
@@ -119,14 +118,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
         $barcode = $_POST['barcode'];
         $isDeleteMode = isset($_POST['deleteMode']) && $_POST['deleteMode'] === 'true';
         $quantity = isset($_POST['qty']) && is_numeric($_POST['qty']) ? (int) $_POST['qty'] : 1;
-        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : null;
-
-        // Start transaction
-        $pdo->beginTransaction();
+        $capital = isset($_POST['capital']) && is_numeric($_POST['capital']) ? (float) $_POST['capital'] : 0;
 
         // Check if product exists in lot
-        $stmt = $pdo->prepare("SELECT lp.*, p.product_name, p.product_capital 
-                              FROM lot_product lp 
+        $stmt = $pdo->prepare("SELECT lp.*, p.product_name FROM lot_product lp 
                               LEFT JOIN product p ON p.product_id = lp.product_id 
                               WHERE lp.lot_id = ? AND lp.product_id = ?");
         $stmt->execute([$lot_id, $barcode]);
@@ -147,8 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                 }
             } else {
                 $newQty = $existing_product['lot_product_qty'] + $quantity;
-                // Use provided capital, or fall back to existing lot_product_capital
-                $newCapital = $capital !== null ? $capital : $existing_product['lot_product_capital'];
+                $newCapital = $capital > 0 ? $capital : $existing_product['lot_product_capital'];
 
                 $update = $pdo->prepare("UPDATE lot_product SET 
                     lot_product_qty = ?,
@@ -156,17 +150,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     lot_product_capital = ?
                     WHERE lot_id = ? AND product_id = ?");
                 $update->execute([$newQty, $newQty, $newCapital, $lot_id, $barcode]);
-
-                // Update product table with new capital if provided
-                if ($capital !== null) {
-                    $updateProduct = $pdo->prepare("UPDATE product SET product_capital = ? WHERE product_id = ?");
-                    $updateProduct->execute([$capital, $barcode]);
-                }
             }
         } else {
             if (!$isDeleteMode) {
-                $stmt_product = $pdo->prepare("SELECT product_id, product_name, product_capital 
-                                              FROM product WHERE product_id = ?");
+                $stmt_product = $pdo->prepare("SELECT * FROM product WHERE product_id = ?");
                 $stmt_product->execute([$barcode]);
                 $product_exists = $stmt_product->fetch();
 
@@ -184,17 +171,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     ) VALUES (?, ?, 0, 0, 0, 0, ?, NULL, NULL)");
 
                     $product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "ยังไม่ระบุ";
-                    $insert_product->execute([$barcode, $product_name, $capital ?? 0]);
-                } else {
-                    // If product exists and capital is provided, update product_capital
-                    if ($capital !== null) {
-                        $updateProduct = $pdo->prepare("UPDATE product SET product_capital = ? WHERE product_id = ?");
-                        $updateProduct->execute([$capital, $barcode]);
-                    }
+                    $insert_product->execute([$barcode, $product_name, $capital]);
                 }
-
-                // Use provided capital, or fall back to product_capital if exists, or 0
-                $finalCapital = $capital ?? ($product_exists['product_capital'] ?? 0);
 
                 $insert = $pdo->prepare("INSERT INTO lot_product (
                     lot_id, 
@@ -206,16 +184,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barcode'])) {
                     lot_product_status
                 ) VALUES (?, ?, ?, ?, ?, NOW(), 1)");
 
-                $insert->execute([$lot_id, $barcode, $quantity, $quantity, $finalCapital]);
+                $insert->execute([$lot_id, $barcode, $quantity, $quantity, $capital]);
             }
         }
 
-        $pdo->commit();
         echo json_encode(['success' => true]);
     } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     exit();
@@ -243,6 +217,7 @@ FROM
     INNER JOIN lot_status ls ON l.lot_status_id = ls.lot_status_id
 WHERE l.lot_id = :lot_id";
 
+
 try {
     $stmt = $pdo->prepare($query);
     $stmt->execute(['lot_id' => $lot_id]);
@@ -254,28 +229,27 @@ try {
 
     // Query products in lot
     $product_query = "SELECT
-        lp.lot_id,
-        lp.lot_product_id,
-        lp.product_id,
-        COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
-        lp.lot_product_qty,
-        lp.lot_product_remain,
-        lp.lot_product_capital,
-        p.product_capital,
-        lp.lot_product_date,
-        lp.lot_product_status,
-        CASE 
-            WHEN p.product_id IS NULL THEN 1
-            ELSE 0
-        END as needs_update
-    FROM
-        lot_product lp
-        LEFT JOIN product p ON p.product_id = lp.product_id
-    WHERE 
-        lp.lot_id = :lot_id
-    ORDER BY 
-        needs_update DESC,  
-        lp.lot_product_date DESC";
+    lp.lot_id,
+    lp.lot_product_id,
+    lp.product_id,
+    COALESCE(p.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
+    lp.lot_product_qty,
+    lp.lot_product_remain,
+    lp.lot_product_capital,
+    lp.lot_product_date,
+    lp.lot_product_status,
+    CASE 
+        WHEN p.product_id IS NULL THEN 1
+        ELSE 0
+    END as needs_update
+FROM
+    lot_product lp
+    LEFT JOIN product p ON p.product_id = lp.product_id
+WHERE 
+    lp.lot_id = :lot_id
+ORDER BY 
+    needs_update DESC,  
+    lp.lot_product_date DESC";
 
     $stmt = $pdo->prepare($product_query);
     $stmt->execute(['lot_id' => $lot_id]);
@@ -291,6 +265,7 @@ $warehouse_lot = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $lot_status_id = $lot_data['lot_status_id'] ?? null;
 $lot_status_name = $lot_data['lot_status_name'] ?? null;
+
 ?>
 
 <!DOCTYPE html>
@@ -303,140 +278,57 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body {
-            background-color: #f8f9fa;
+        /* กำหนดพื้นหลังสีแดงเมื่อลบข้อมูล */
+        .input-delete {
+            background-color: red;
+            color: white;
         }
 
-        .card {
+        /* กำหนดพื้นหลังสีเขียวเมื่อเพิ่มข้อมูล */
+        .input-add {
+            background-color: green;
+            color: white;
+        }
+
+        /* ปกติช่อง input ไม่มีการเปลี่ยนสี */
+        .input-normal {
             background-color: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .highlight-row {
-            background-color: #fff3cd;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background-color: #f3f4f6;
-            text-align: left;
-            padding: 0.75rem;
-            font-weight: 600;
-            color: #374151;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        td {
-            padding: 0.75rem;
-            border-bottom: 1px solid #e5e7eb;
-            vertical-align: middle;
-        }
-
-        .total-row {
-            background-color: #f9fafb;
-            font-weight: 500;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            margin: 15% auto;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Add the styles for delete mode */
-        .bg-pink-100 {
-            background-color: #fbcfe8 !important;
-        }
-
-        .bg-pink-500 {
-            background-color: #ec4899 !important;
-        }
-
-        /* Override hover behavior when in pink-100 mode */
-        .bg-pink-100:hover {
-            background-color: #fbcfe8 !important;
-        }
-
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+            color: black;
         }
     </style>
 </head>
 
-<body class="min-h-screen">
-    <div class="mx-auto px-4 py-8 container max-w-6xl">
-        <h1 class="text-4xl font-bold text-gray-800 mb-6">รายละเอียดล็อตสินค้า</h1>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8 mb-11">
+        <h1 class="text-4xl font-bold mb-8">รายละเอียดล็อตสินค้า</h1>
         <?php if ($lot_data): ?>
-            <div class="card mb-6">
-                <div class="text-end mb-4">
-                    <span class="<?php echo $lot_data['lot_status_id'] == 1 ? 'text-yellow-600' : 'text-green-600'; ?> font-semibold">
-                        <i class="fas <?php echo $lot_data['lot_status_id'] == 1 ? 'fa-clock mr-1' : 'fa-check-circle mr-1'; ?>"></i>
-                        <?php echo htmlspecialchars($lot_data['lot_status_name']); ?>
-                    </span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex items-center">
-                        <span class="text-gray-600 font-medium w-40">รหัส Lot สินค้า:</span>
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="font-semibold mb-2">รหัส Lot สินค้า:</label>
                         <span><?php echo htmlspecialchars($lot_data['lot_id']); ?></span>
                     </div>
-                    <div class="flex items-center">
-                        <span class="text-gray-600 font-medium w-40">ชื่อ Lot สินค้า:</span>
+                    <div>
+                        <label class="font-semibold mb-2">ชื่อ Lot สินค้า:</label>
                         <span><?php echo htmlspecialchars($lot_data['lot_name']); ?></span>
                     </div>
-                    <div class="flex items-center">
-                        <span class="text-gray-600 font-medium w-40">วันที่รับสินค้า:</span>
+                    <div>
+                        <label class="font-semibold mb-2">วันที่รับสินค้า:</label>
                         <span><?php echo htmlspecialchars($lot_data['lot_date']); ?></span>
                     </div>
-                    <div class="flex items-center">
-                        <span class="text-gray-600 font-medium w-40">รับมาจากผู้ส่งมอบ:</span>
+                    <div>
+                        <label class="font-semibold mb-2">รับมาจากผู้ส่งมอบ:</label>
                         <span><?php echo htmlspecialchars($lot_data['supplier_name']); ?></span>
                     </div>
-                    <div class="flex items-center">
-                        <span class="text-gray-600 font-medium w-40">ลงคลัง:</span>
+                    <div>
+                        <label class="font-semibold mb-2">ลงคลัง:</label>
                         <span><?php echo htmlspecialchars($lot_data['warehouse_name']); ?></span>
                     </div>
-                    <div class="flex items-center">
-                        <span class="text-gray-600 font-medium w-40">นำมาจากคลัง:</span>
+
+                    <div>
+                        <label class="font-semibold mb-2">นำมาจากคลัง:</label>
                         <span>
                             <?php
                             if (!empty($lot_data['warehouse_from_name'])) {
@@ -449,7 +341,8 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                             ?>
                         </span>
                     </div>
-                    <div class="flex items-center">
+
+                    <div>
                         <?php
                         if (!empty($lot_data['warehouse_inout'])) {
                             if ($lot_data['warehouse_inout'] == 1) {
@@ -464,179 +357,177 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         }
                         ?>
                     </div>
+
+                    <div>
+                        <label class="font-semibold mb-2">สถานะ:</label>
+                        <span><?php echo htmlspecialchars($lot_data['lot_status_name']); ?></span>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
 
         <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
-            <div class="card mb-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">สแกนสินค้าเข้าล็อต</h2>
-                <form id="barcode-form" class="space-y-4">
-                    <div class="flex flex-col sm:flex-row items-center gap-3">
-                        <label class="block text-gray-600 font-medium w-32" for="product_id">รหัสบาร์โค้ด:</label>
-                        <div class="flex-1">
-                            <input type="text" id="inputField" name="product_id"
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                pattern="[0-9*\-]*" placeholder="เช่น 12345*2*150 หรือ -12345*3" autofocus>
-                        </div>
-                        <!-- <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all">
-                            <i class="fas fa-plus mr-2"></i>เพิ่ม/ลบ
-                        </button> -->
+            <h2 class="text-2xl font-semibold mb-4">สแกนสินค้าเข้าล็อต</h2>
+            <form id="barcode-form" action="" method="POST">
+                <div class="mb-4 flex items-center gap-4">
+                    <label class="block mb-2" id="barcodeInput">รหัสบาร์โค้ด:</label>
+                    <input type="text" id="inputField" name="product_id"
+                        class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        pattern="[0-9*]*" placeholder="กรอกเฉพาะตัวเลขหรือ * , -" autofocus>
+                </div>
+                <!-- เพิ่มข้อความแนะนำวิธีการใช้งานใหม่ -->
+                <div class="flex space-x-4">
+                    <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-green-300 bg-green-100">
+                        <p><b>รูปแบบการป้อนข้อมูล:</b> รหัสบาร์โค้ด*จำนวน*ราคาทุน (เช่น 12345*2*150)</p>
+                        <p>หากไม่ระบุจำนวนหรือราคาทุน ระบบจะใช้ค่าเริ่มต้น คือ 0 </p>
                     </div>
-                    <div class="flex flex-row space-x-8">
-                        <p class="text-sm text-green-700 mt-1">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            รูปแบบการเพิ่ม: รหัส*จำนวน*ราคาทุน (เช่น 12345*2*150)
-                        </p>
-                        <p class="text-sm text-red-700 mt-1">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            รูปแบบการลบ: -รหัส*จำนวน (เช่น -12345*3)
-                        </p>
+                    <div class="p-4 text-sm text-gray-600 mt-1 mb-4 border border-red-300 bg-red-100">
+                        <p><b>รูปแบบการลบข้อมูล:</b> -รหัสบาร์โค้ด*จำนวน (เช่น -12345*3)</p>
+                        <p>หากไม่ระบุจำนวน ระบบจะลบออกทีละ 1 ชิ้น</p>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         <?php endif; ?>
 
-        <div class="card">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-semibold text-gray-800">รายการสินค้าที่สแกน</h3>
-            </div>
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-xl font-semibold mb-4">รายการสินค้าที่สแกน</h3>
             <div class="overflow-x-auto">
-                <table class="w-full" id="products-table">
+                <table class="w-full border-collapse" id="products-table">
                     <thead>
-                        <tr>
-                            <th class="px-4 py-3 text-left">รหัสบาร์โค้ด</th>
-                            <th class="px-4 py-3 text-left">ชื่อสินค้า</th>
-                            <th class="px-4 py-3 text-center">จำนวน</th>
-                            <th class="px-4 py-3 text-right">ราคาทุน</th>
-                            <th class="px-4 py-3 text-right">มูลค่ารวม</th>
-                            <th class="px-4 py-3 text-center">สถานะ</th>
+                        <tr class="bg-gray-50">
+                            <th class="px-6 py-3 border text-left">รหัสบาร์โค้ดสินค้า</th>
+                            <th class="px-6 py-3 border text-left">ชื่อสินค้า</th>
+                            <th class="px-6 py-3 border text-center">จำนวน</th>
+                            <th class="px-6 py-3 border text-right">ราคาทุน</th>
+                            <th class="px-6 py-3 border text-right">มูลค่ารวม</th>
+                            <th class="px-6 py-3 border text-right">สถานะ</th>
                             <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
-                                <th class="px-4 py-3 text-center">การจัดการ</th>
+                                <th class="px-6 py-3 border text-right">การจัดการ</th>
                             <?php endif; ?>
+
                         </tr>
                     </thead>
                     <tbody>
                         <?php
-                        if (count($lot_products) == 0) {
-                            echo '<tr><td colspan="' . (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว" ? 7 : 6) . '" class="text-center py-4 text-gray-500">ไม่พบรายการสินค้า</td></tr>';
-                        } else {
-                            $total_value = 0;
-                            $total_quantity = 0;
-                            foreach ($lot_products as $index => $item):
-                                $item_total = $item['lot_product_qty'] * $item['lot_product_capital'];
-                                $total_value += $item_total;
-                                $total_quantity += $item['lot_product_qty'];
+                        $total_value = 0;
+                        $total_quantity = 0;
+                        foreach ($lot_products as $index => $item):
+                            $item_total = $item['lot_product_qty'] * $item['lot_product_capital'];
+                            $total_value += $item_total;
+                            $total_quantity += $item['lot_product_qty'];
                         ?>
-                                <tr class="hover:bg-gray-50" data-product-id="<?php echo htmlspecialchars($item['product_id']); ?>">
-                                    <td class="px-4 py-3"><?php echo htmlspecialchars($item['product_id']); ?></td>
-                                    <td class="px-4 py-3"><?php echo htmlspecialchars($item['product_name']); ?></td>
-                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($item['lot_product_qty']); ?></td>
-                                    <td class="px-4 py-3 text-right"><?php echo number_format($item['lot_product_capital'], 2); ?></td>
-                                    <td class="px-4 py-3 text-right"><?php echo number_format($item_total, 2); ?></td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full <?php echo $lot_data['lot_status_id'] == 2 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'; ?>">
-                                            <i class="fas <?php echo $lot_data['lot_status_id'] == 2 ? 'fa-check mr-1' : 'fa-clock mr-1'; ?>"></i>
-                                            <?php echo htmlspecialchars($lot_data['lot_status_name']); ?>
-                                        </span>
+                            <tr class="bg-white hover:bg-[#aec5e366] cursor-pointer"
+                                data-product-id="<?php echo htmlspecialchars($item['product_id']); ?>">
+                                <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_id']); ?></td>
+                                <td class="pl-6 py-2 border"><?php echo htmlspecialchars($item['product_name']); ?></td>
+                                <td class="text-center py-2 border">
+                                    <?php echo htmlspecialchars($item['lot_product_qty']); ?>
+                                </td>
+                                <td class="text-right py-2 border">
+                                    <?php echo number_format($item['lot_product_capital'], 2); ?>
+                                </td>
+                                <td class="text-right py-2 border"><?php echo number_format($item_total, 2); ?></td>
+                                <td class="text-right py-2 border">
+                                    <?php echo htmlspecialchars($lot_data['lot_status_name']); ?>
+                                </td>
+                                <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
+                                    <td class="text-right py-2 border px-4">
+                                        <button type="button" class="bg-blue-500 text-white px-4 py-1 rounded edit-product"
+                                            data-id="<?php echo htmlspecialchars($item['lot_product_id']); ?>"
+                                            data-qty="<?php echo htmlspecialchars($item['lot_product_qty']); ?>"
+                                            data-capital="<?php echo htmlspecialchars($item['lot_product_capital']); ?>"
+                                            data-name="<?php echo htmlspecialchars($item['product_name']); ?>"
+                                            data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
+                                            แก้ไข
+                                        </button>
+                                        <button type="button" class="bg-red-500 text-white px-4 py-1 rounded toggle-delete-mode"
+                                            data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
+                                            ลบ
+                                        </button>
                                     </td>
-                                    <?php if (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว"): ?>
-                                        <td class="px-4 py-3 text-center">
-                                            <button type="button" class="btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mr-1 edit-product"
-                                                data-id="<?php echo htmlspecialchars($item['lot_product_id']); ?>"
-                                                data-qty="<?php echo htmlspecialchars($item['lot_product_qty']); ?>"
-                                                data-capital="<?php echo htmlspecialchars($item['product_capital'] ?? $item['lot_product_capital']); ?>"
-                                                data-name="<?php echo htmlspecialchars($item['product_name']); ?>"
-                                                data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button type="button" class="btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded toggle-delete-mode"
-                                                data-barcode="<?php echo htmlspecialchars($item['product_id']); ?>">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </td>
-                                    <?php endif; ?>
-                                </tr>
-                            <?php
-                            endforeach;
-                            ?>
-                            <tr class="total-row border-t-2 border-gray-200">
-                                <td colspan="2" class="px-4 py-3 text-right font-medium">ยอดรวม:</td>
-                                <td class="px-4 py-3 text-center font-bold"><?php echo number_format($total_quantity, 0); ?></td>
-                                <td class="px-4 py-3"></td>
-                                <td class="px-4 py-3 text-right font-bold"><?php echo number_format($total_value, 2); ?> บาท</td>
-                                <td colspan="<?php echo (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว" ? 2 : 1); ?>" class="px-4 py-3"></td>
+                                <?php endif; ?>
                             </tr>
-                        <?php
-                        }
-                        ?>
+                        <?php endforeach; ?>
+                        <?php if (count($lot_products) > 0): ?>
+                            <!-- Summary row with improved styling -->
+                            <tr
+                                class="bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium h-14 border-t-2 border-gray-400">
+                                <td colspan="2" class="text-end pe-4 align-middle">ยอดรวมสินค้า:</td>
+                                <td class="text-center py-4 font-bold"><?php echo number_format($total_quantity); ?></td>
+                                <td></td>
+                                <td colspan="2" class="text-end pe-4 align-middle">มูลค่ารวมทั้งสิ้น:</td>
+                                <td class="text-end py-4 font-bold"><?php echo number_format($total_value, 2); ?> บาท</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+
+                            <?php if (count($lot_products) > 0 && $lot_data['lot_status_id'] == 1): ?>
+                                <!-- แสดงปุ่มยืนยันเฉพาะเมื่อสถานะเป็น "รอการอนุมัติ" -->
+                                <form id="confirm-form" method="POST" action="" onsubmit="return validateForm(event)">
+                                    <!-- ใส่ path ของไฟล์ PHP ที่ประมวลผลการอัปเดต -->
+                                    <tr class="h-16">
+                                        <td colspan="9" class="text-end pe-4 pt-4 overflow-hidden">
+                                            <button type="submit"
+                                                class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                                                <i class="fas fa-check-circle me-2"></i>ยืนยันรายการ
+                                            </button>
+                                            <input type="hidden" name="lot_id" value="<?php echo $lot_data['lot_id']; ?>">
+                                            <!-- ส่ง lot_id ไปในฟอร์ม -->
+                                        </td>
+                                    </tr>
+                                </form>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
-
-            <?php if (count($lot_products) > 0 && $lot_data['lot_status_id'] == 1): ?>
-                <div class="mt-6 text-center sm:text-right">
-                    <form id="confirm-form" method="POST" action="" onsubmit="return validateForm(event)">
-                        <button type="submit" class="btn bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-all">
-                            <i class="fas fa-check-circle mr-2"></i>ยืนยันรายการ
-                        </button>
-                        <input type="hidden" name="lot_id" value="<?php echo $lot_data['lot_id']; ?>">
-                    </form>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex justify-between mt-6">
-            <a href="?page=lot_listinsert" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
-                <i class="fas fa-arrow-left mr-2"></i>กลับ
-            </a>
         </div>
     </div>
 
     <!-- Edit Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-800">แก้ไขข้อมูลสินค้า</h2>
-                <button type="button" id="close-modal" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <form id="edit-form" class="space-y-4">
+    <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-lg w-96 mx-auto mt-20">
+            <h3 class="text-xl font-semibold mb-4">แก้ไขข้อมูลสินค้า</h3>
+            <form id="edit-form">
                 <input type="hidden" id="lot_product_id" name="lot_product_id">
                 <input type="hidden" name="action" value="update">
                 <input type="hidden" name="barcode" id="product_barcode_hidden">
+
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">บาร์โค้ด:</label>
-                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" id="product_barcode" readonly>
+                    <label class="block mb-2">บาร์โค้ด:</label>
+                    <input type="text" class="w-full p-2 border rounded bg-gray-100" id="product_barcode" readonly>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">ชื่อสินค้า:</label>
-                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="product_name" name="product_name">
+                    <label class="block mb-2">ชื่อสินค้า:</label>
+                    <input type="text" class="w-full p-2 border rounded" id="product_name" name="product_name">
                 </div>
+
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">จำนวน:</label>
-                    <input type="number" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="qty" name="qty" required min="1">
+                    <label class="block mb-2">จำนวน:</label>
+                    <input type="number" class="w-full p-2 border rounded" id="qty" name="qty" required min="1">
                 </div>
+
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">ราคาทุน:</label>
-                    <input type="number" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="capital" name="capital" required min="0" step="0.01">
+                    <label class="block mb-2">ราคาทุน:</label>
+                    <input type="number" class="w-full p-2 border rounded" id="capital" name="capital" required min="0"
+                        step="0.01">
                 </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" class="btn bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium" onclick="closeEditModal()">ยกเลิก</button>
-                    <button type="button" class="btn bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium" id="save-edit">บันทึก</button>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded"
+                        onclick="closeEditModal()">ยกเลิก</button>
+                    <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded"
+                        id="save-edit">บันทึก</button>
                 </div>
             </form>
         </div>
     </div>
-
     <script>
         function validateForm(event) {
             event.preventDefault(); // Prevent form submission before validation
 
             // Select only product rows, not the summary row
-            const productRows = document.querySelectorAll('#products-table tbody tr:not(.total-row)');
+            const productRows = document.querySelectorAll('#products-table tbody tr:not(.bg-gradient-to-r):not(.h-16)');
 
             if (productRows.length === 0) {
                 Swal.fire({
@@ -720,36 +611,29 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
             return false; // Prevent automatic form submission
         }
+    </script>
 
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
-        }
-
-        // Close modal
-        $('#cancel-edit, #close-modal').on('click', function() {
-            $('#editModal').fadeOut(200);
-        });
-
+    <script>
         const inputField = document.getElementById('inputField');
 
         // ฟังก์ชันสำหรับการเปลี่ยนสีพื้นหลังตามการกดปุ่ม
         function changeInputBackground(event) {
-            if (event.keyCode === 46) { // 46 = Delete
-                inputField.classList.remove('bg-white');
-                inputField.classList.add('bg-pink-100'); // เพิ่มคลาสสำหรับการลบข้อมูล
+            if (event.keyCode === 46) { // 8 = Backspace, 46 = Delete
+                inputField.classList.remove('input-normal');
+                inputField.classList.add('input-delete'); // เพิ่มคลาสสำหรับการลบข้อมูล
             }
 
-            if (event.keyCode === 45) { // 45 = Insert
-                inputField.classList.remove('bg-white');
-                inputField.classList.add('bg-green-100'); // เพิ่มคลาสสำหรับการเพิ่มข้อมูล
+            if (event.keyCode === 45) { // 13 = Enter // 45 = insert
+                inputField.classList.remove('input-normal');
+                inputField.classList.add('input-add'); // เพิ่มคลาสสำหรับการเพิ่มข้อมูล
             }
         }
 
         // ฟังก์ชันสำหรับการรีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
         function resetInputBackground() {
-            inputField.classList.remove('bg-pink-100');
-            inputField.classList.remove('bg-green-100');
-            inputField.classList.add('bg-white');
+            inputField.classList.remove('input-delete');
+            inputField.classList.remove('input-add');
+            inputField.classList.add('input-normal');
         }
 
         // ฟังการกดปุ่มและการเริ่มกรอกข้อมูล
@@ -761,6 +645,12 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
         inputField.addEventListener('focus', function() {
             resetInputBackground(); // รีเซ็ตพื้นหลังเมื่อเริ่มกรอกข้อมูล
         });
+    </script>
+
+    <script>
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
 
         $(document).ready(function() {
             // Shared state
@@ -858,13 +748,13 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                     $('.toggle-delete-mode')
                         .removeClass('bg-pink-500')
                         .addClass('bg-red-500')
-                        .html('<i class="fas fa-trash-alt"></i>');
+                        .text('ลบ');
 
                     if (!isActive) {
                         $target
                             .removeClass('bg-red-500')
                             .addClass('bg-pink-500')
-                            .html('<i class="fas fa-times"></i>');
+                            .text('ยกเลิกลบ');
                         state.barcodeInput.addClass('bg-pink-100');
                         state.activeDeleteBarcode = barcode;
                     } else {
@@ -942,8 +832,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                     $('#qty').val(productData.qty);
                     $('#capital').val(productData.capital);
 
-                    $('#editModal').fadeIn(200);
-                    $('#product_name').focus();
+                    $('#editModal').removeClass('hidden');
                 },
 
                 handleSaveEdit: function(e) {
@@ -972,6 +861,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         url: window.location.href,
                         method: 'POST',
                         data: formData,
+                        dataType: 'json',
                         success: function(response) {
                             utils.handleServerResponse(response);
                             closeEditModal();
@@ -988,7 +878,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                 handleInputValidation: function(e) {
                     const $input = $(e.target);
                     const value = parseFloat($input.val());
-                    const minValue = $input.attr($input.attr('id') === 'qty' ? 0 : -1);
+                    const minValue = $input.attr('id') === 'qty' ? 0 : -1;
 
                     $input.toggleClass('border-red-500', value <= minValue);
                 }
@@ -1005,15 +895,36 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
             $('#editModal').on('click', function(e) {
                 if (e.target === this) closeEditModal();
             });
-
-            // Close modal on Escape key
-            $(document).keydown(function(e) {
-                if (e.key === "Escape" && $('#editModal').is(':visible')) {
-                    closeEditModal();
-                }
-            });
         });
     </script>
+
+    <style>
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Add the styles for delete mode */
+        .bg-pink-100 {
+            background-color: #fbcfe8 !important;
+        }
+
+        .bg-pink-500 {
+            background-color: #ec4899 !important;
+        }
+
+        /* Override hover behavior when in pink-100 mode */
+        .bg-pink-100:hover {
+            background-color: #fbcfe8 !important;
+        }
+    </style>
+
 </body>
 
 </html>

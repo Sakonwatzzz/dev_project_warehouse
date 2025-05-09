@@ -42,8 +42,7 @@ try {
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
         LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
         LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
-        WHERE lot.warehouse_inout = 1
-        ORDER BY lot.lot_id DESC";
+        WHERE lot.warehouse_inout = 1";
     $result_lot_list = fetchData($pdo, $query);
 
     // Store result for later use in warehouse cards
@@ -324,7 +323,7 @@ ob_end_flush();
                                 </div>
                             </div>
                             <input type="hidden" name="lot_status_id" value="<?= $selected_status_id ?>">
-                        </div>
+                        </div> 
 
                         <div class="form-group">
                             <label for="warehouse_inout"
@@ -385,172 +384,159 @@ ob_end_flush();
         </div> -->
 
         <!-- Recent Lots Table Section -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-list mr-2"></i>รายการรอบสินค้าล่าสุด
-                </h2>
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b]">
+                <h2 class="text-2xl font-semibold text-gray-800">รายการ Lot ล่าสุด</h2>
             </div>
-            <div class="p-6">
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50">
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัส Lot</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อ Lot</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังต้นทาง</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังปลายทาง</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">เจ้าหน้าที่</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
-                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
+            <div class="overflow-x-auto">
+                <table class="w-full" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th class="bg-gray-100 text-gray-700 px-6 py-3 text-left border-b">ชื่อ Lot สินค้า</th>
+                            <th class="bg-gray-100 text-gray-700 px-6 py-3 text-left border-b">วันที่และเวลาที่ล็อต</th>
+                            <th class="bg-gray-100 text-gray-700 px-6 py-3 text-left border-b">นำมาจากคลัง</th>
+                            <th class="bg-gray-100 text-gray-700 px-6 py-3 text-left border-b">ลงคลัง</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($lot_list = $result_lot_list->fetch(PDO::FETCH_ASSOC)): ?>
+                            <tr class="hover:bg-[#aec5e366] cursor-pointer border-b"
+                                onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']) ?>'">
+                                <td class="px-6 py-4">
+                                    <?php echo htmlspecialchars($lot_list['lot_name']) ?>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <?php echo date('d/m/Y H:i', strtotime($lot_list['lot_date'])) ?>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <?php
+                                    $from_warehouse = "";
+                                    foreach ($warehouse_lot as $warehouse) {
+                                        if ($warehouse['warehouse_id'] == $lot_list['warehouse_from_id']) {
+                                            $from_warehouse = $warehouse['warehouse_name'];
+                                            break;
+                                        }
+                                    }
+                                    echo !empty($from_warehouse) ? htmlspecialchars($from_warehouse) : "ยังไม่ระบุ";
+                                    ?>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <?php echo htmlspecialchars($lot_list['warehouse_name']) ?>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($lots)): ?>
-                                <tr>
-                                    <td colspan="7" class="text-center py-4 text-gray-600">ไม่มีรายการรอบสินค้า</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($lots as $lot): ?>
-                                    <tr class="hover:bg-gray-100">
-                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['lot_id']) ?></td>
-                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['lot_name']) ?></td>
-                                        <td class="px-6 py-2 border">
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this new page template for viewing lots in a specific warehouse -->
+    <?php if (isset($_GET['page']) && $_GET['page'] === 'warehouse_lot' && isset($_GET['warehouse_id'])): ?>
+        <?php
+        $warehouse_id = $_GET['warehouse_id'];
+        $warehouse_name = "";
+
+        // Get warehouse name
+        foreach ($warehouse_lot as $warehouse) {
+            if ($warehouse['warehouse_id'] == $warehouse_id) {
+                $warehouse_name = $warehouse['warehouse_name'];
+                break;
+            }
+        }
+
+        // Get lots in this warehouse
+        $warehouse_lot = [];
+        foreach ($lots as $lot) {
+            if ($lot['warehouse_id'] == $warehouse_id) {
+                $warehouse_lot[] = $lot;
+            }
+        }
+        ?>
+
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" id="warehouseLotsModal">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+                <div
+                    class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold text-gray-800">
+                        <i class="fas fa-warehouse mr-2"></i>Lots ในคลัง: <?= htmlspecialchars($warehouse_name) ?>
+                    </h2>
+                    <button onclick="window.history.back()" class="text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 120px);">
+                    <?php if (empty($warehouse_lot)): ?>
+                        <div class="text-center py-8">
+                            <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
+                            <p class="text-gray-500 text-xl">ไม่พบ Lot ในคลังนี้</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="grid grid-cols-1 gap-4">
+                            <?php foreach ($warehouse_lot as $lot): ?>
+                                <div class="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer"
+                                    onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="text-lg font-medium text-blue-600"><?= htmlspecialchars($lot['lot_name']) ?></h3>
+                                        <span
+                                            class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>
+                                    </div>
+
+                                    <p class="text-gray-600 mt-2">
+                                        <?= !empty($lot['lot_detail']) ? htmlspecialchars($lot['lot_detail']) : "ไม่มีรายละเอียด" ?>
+                                    </p>
+
+                                    <div class="mt-3 flex items-center text-sm">
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                             <?php
-                                            $from_warehouse = "";
-                                            foreach ($warehouse_lot as $warehouse) {
-                                                if ($warehouse['warehouse_id'] == $lot['warehouse_from_id']) {
-                                                    $from_warehouse = $warehouse['warehouse_name'];
+                                            foreach ($status_lot as $status) {
+                                                if ($status['lot_status_id'] == $lot['lot_status_id']) {
+                                                    echo htmlspecialchars($status['lot_status_name']);
                                                     break;
                                                 }
                                             }
-                                            echo !empty($from_warehouse) ? htmlspecialchars($from_warehouse) : "ไม่ระบุ";
                                             ?>
-                                        </td>
-                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_name']) ?></td>
-                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['supplier_name'] ?? 'ไม่ระบุ') ?></td>
-                                        <td class="px-6 py-2 border"><?= htmlspecialchars(date('d/m/Y H:i:s', strtotime($lot['lot_date']))) ?></td>
-                                        <td class="px-6 py-2 border text-center">
-                                            <a href="index.php?page=lot_listdetail&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
-                                                class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition">
-                                                <i class="fas fa-eye mr-1"></i>ดูรายละเอียด
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                                        </span>
+
+                                        <?php if (!empty($lot['supplier_name'])): ?>
+                                            <span class="ml-2 text-gray-500">
+                                                <i class="fas fa-truck mr-1"></i><?= htmlspecialchars($lot['supplier_name']) ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="bg-gray-50 px-6 py-3 border-t text-right">
+                    <button onclick="window.history.back()"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">
+                        <i class="fas fa-arrow-left mr-2"></i>กลับ
+                    </button>
                 </div>
             </div>
         </div>
+    <?php endif; ?>
 
-        <!-- Add this new page template for viewing lots in a specific warehouse -->
-        <?php if (isset($_GET['page']) && $_GET['page'] === 'warehouse_lot' && isset($_GET['warehouse_id'])): ?>
-            <?php
-            $warehouse_id = $_GET['warehouse_id'];
-            $warehouse_name = "";
-
-            // Get warehouse name
-            foreach ($warehouse_lot as $warehouse) {
-                if ($warehouse['warehouse_id'] == $warehouse_id) {
-                    $warehouse_name = $warehouse['warehouse_name'];
-                    break;
-                }
+    <!-- JavaScript functions -->
+    <script>
+        // Alert handling
+        document.addEventListener('DOMContentLoaded', function () {
+            const alert = document.getElementById('success-alert');
+            if (alert) {
+                setTimeout(function () {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(function () {
+                        alert.remove();
+                    }, 500);
+                }, 2000);
             }
-
-            // Get lots in this warehouse
-            $warehouse_lot = [];
-            foreach ($lots as $lot) {
-                if ($lot['warehouse_id'] == $warehouse_id) {
-                    $warehouse_lot[] = $lot;
-                }
-            }
-            ?>
-
-            <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" id="warehouseLotsModal">
-                <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-                    <div
-                        class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] px-6 py-4 border-b border-[#8f959b] flex justify-between items-center">
-                        <h2 class="text-2xl font-semibold text-gray-800">
-                            <i class="fas fa-warehouse mr-2"></i>Lots ในคลัง: <?= htmlspecialchars($warehouse_name) ?>
-                        </h2>
-                        <button onclick="window.history.back()" class="text-gray-600 hover:text-gray-900">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
-
-                    <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 120px);">
-                        <?php if (empty($warehouse_lot)): ?>
-                            <div class="text-center py-8">
-                                <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
-                                <p class="text-gray-500 text-xl">ไม่พบ Lot ในคลังนี้</p>
-                            </div>
-                        <?php else: ?>
-                            <div class="grid grid-cols-1 gap-4">
-                                <?php foreach ($warehouse_lot as $lot): ?>
-                                    <div class="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer"
-                                        onclick="window.location.href='?page=lot_listdetail&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
-                                        <div class="flex justify-between items-center">
-                                            <h3 class="text-lg font-medium text-blue-600"><?= htmlspecialchars($lot['lot_name']) ?></h3>
-                                            <span
-                                                class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>
-                                        </div>
-
-                                        <p class="text-gray-600 mt-2">
-                                            <?= !empty($lot['lot_detail']) ? htmlspecialchars($lot['lot_detail']) : "ไม่มีรายละเอียด" ?>
-                                        </p>
-
-                                        <div class="mt-3 flex items-center text-sm">
-                                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                                <?php
-                                                foreach ($status_lot as $status) {
-                                                    if ($status['lot_status_id'] == $lot['lot_status_id']) {
-                                                        echo htmlspecialchars($status['lot_status_name']);
-                                                        break;
-                                                    }
-                                                }
-                                                ?>
-                                            </span>
-
-                                            <?php if (!empty($lot['supplier_name'])): ?>
-                                                <span class="ml-2 text-gray-500">
-                                                    <i class="fas fa-truck mr-1"></i><?= htmlspecialchars($lot['supplier_name']) ?>
-                                                </span>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="bg-gray-50 px-6 py-3 border-t text-right">
-                        <button onclick="window.history.back()"
-                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">
-                            <i class="fas fa-arrow-left mr-2"></i>กลับ
-                        </button>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <!-- JavaScript functions -->
-        <script>
-            // Alert handling
-            document.addEventListener('DOMContentLoaded', function() {
-                const alert = document.getElementById('success-alert');
-                if (alert) {
-                    setTimeout(function() {
-                        alert.style.transition = 'opacity 0.5s';
-                        alert.style.opacity = '0';
-                        setTimeout(function() {
-                            alert.remove();
-                        }, 500);
-                    }, 2000);
-                }
-            });
-        </script>
+        });
+    </script>
 </body>
 
 </html>
