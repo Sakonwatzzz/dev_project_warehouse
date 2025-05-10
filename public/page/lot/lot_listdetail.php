@@ -404,7 +404,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 </head>
 
 <body class="min-h-screen">
-    <div class="mx-auto px-4 py-8 container max-w-6xl">
+    <div class="mx-auto px-4 py-8 container max-w-8xl">
         <h1 class="text-4xl font-bold text-gray-800 mb-6">รายละเอียดล็อตสินค้า</h1>
         <?php if ($lot_data): ?>
             <div class="card mb-6">

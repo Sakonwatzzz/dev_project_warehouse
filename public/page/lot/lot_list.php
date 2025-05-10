@@ -190,20 +190,22 @@ ob_end_flush();
                                         </td>
                                         <td class="px-6 py-2 border cursor-pointer hover:underline text-green-600" onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>'"><?php echo htmlspecialchars($lot_list['lot_status_name']); ?></td>
                                         <td class="px-6 py-2 border text-center">
-                                            <div class="flex justify-center space-x-2">
-                                                <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
-                                                    class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition flex items-center">
-                                                    <i class="fas fa-eye mr-1"></i>ดูรายละเอียด
-                                                </a>
+                                            <div class="flex flex-wrap justify-center gap-2">
+                                                <?php if ($lot_list['lot_status_id'] == 2): ?>
+                                                    <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
+                                                        class="bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600 transition flex items-center whitespace-nowrap">
+                                                        <i class="fas fa-eye mr-1"></i> ดูรายละเอียด
+                                                    </a>
+                                                <?php endif; ?>
                                                 <?php if ($lot_list['lot_status_name'] !== 'ยืนยันแล้ว' && $lot_list['lot_status_id'] != 2): ?>
                                                     <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
-                                                        class="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600 transition flex items-center">
-                                                        <i class="fas fa-edit mr-1"></i>แก้ไข
+                                                        class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
+                                                        <i class="fas fa-edit mr-1"></i> แก้ไข
                                                     </a>
                                                     <a href="?page=lot_list&id=<?php echo htmlspecialchars($lot_list['lot_id']); ?>"
                                                         onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')"
-                                                        class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition flex items-center">
-                                                        <i class="fas fa-trash-alt mr-1"></i>ลบ
+                                                        class="bg-red-500 text-white text-sm px-3 py-1 rounded hover:bg-red-600 transition flex items-center whitespace-nowrap">
+                                                        <i class="fas fa-trash-alt mr-1"></i> ลบ
                                                     </a>
                                                 <?php endif; ?>
                                             </div>
@@ -314,5 +316,3 @@ ob_end_flush();
 </body>
 
 </html>
-
-
