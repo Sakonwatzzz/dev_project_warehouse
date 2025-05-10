@@ -240,7 +240,7 @@ try {
 </head>
 
 <body class="min-h-screen">
-    <div class="mx-auto px-4 py-8 container max-w-6xl">
+    <div class="mx-auto px-4 py-8 container max-w-7xl">
         <h4 class=" md:text-4xl font-bold text-gray-800 mb-6 ">รายละเอียดการย้ายคลังสินค้า</h4>
 
         <!-- Lot Details Card -->
@@ -294,6 +294,7 @@ try {
                 </div>
             </div>
         </div>
+
         <!-- Barcode Scanner Section -->
         <?php if (!$is_confirmed): ?>
             <div class="card mb-6">
@@ -374,7 +375,7 @@ try {
                                     <td class="px-4 py-3 text-center">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full <?php echo $is_confirmed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'; ?>">
                                             <i class="fas <?php echo $is_confirmed ? 'fa-check mr-1' : 'fa-clock mr-1'; ?>"></i>
-                                            <?php echo $is_confirmed ? 'ยืนยันแล้ว' : 'รอดำเนินการ'; ?>
+                                            <?php echo htmlspecialchars($lot['lot_status_name']); ?>
                                         </span>
                                     </td>
                                     <?php if (!$is_confirmed): ?>

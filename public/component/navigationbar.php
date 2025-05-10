@@ -22,6 +22,8 @@ $product_section_pages = [
     'lot_list',
     'lot_productlist',
     'lot_productinsert',
+    'lot_insertout',
+    'lot_warehouseinout',
 ];
 
 // Check if we're in dashboard section (for highlighting both home and dashboard)
@@ -36,7 +38,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="../style/navbar.css">
-
     <title>Admin System</title>
 </head>
 
@@ -44,22 +45,42 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
     <div class="header">
         <p>Admin Management system</p>
 
+        <!-- Hamburger Menu for Mobile/Tablet -->
+        <button class="hamburger" aria-expanded="false" aria-controls="sidebar" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar for Mobile/Tablet -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <p>Admin Management system</p>
+                <button class="close-sidebar" onclick="toggleSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <ul>
+                <li><a href="?page=bar_index" class="<?php echo $is_dashboard ? 'active' : ''; ?>">หน้าแรก</a></li>
+                <li><a href="?page=bar_product" class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a></li>
+                <li><a href="?page=bar_personnel" class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
+                <li><a href="?page=bar_member" class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
+                <li><a href="?page=bar_supplier" class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
+                <li><a href="?page=bar_sale" class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a></li>
+            </ul>
+        </div>
+
+        <!-- Overlay for Mobile Sidebar -->
+        <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Navbar for Desktop -->
         <div class="navbar">
             <div class="link">
                 <ul>
-                    <li><a href="?page=bar_index"
-                            class="<?php echo $is_dashboard ? 'active' : ''; ?>">หน้าแรก</a></li>
-                    <li><a href="?page=bar_product"
-                            class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a></li>
-                    <li><a href="?page=bar_personnel"
-                            class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
-                    <li><a href="?page=bar_member"
-                            class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
-                    <li><a href="?page=bar_supplier"
-                            class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
-                    <li><a href="?page=bar_sale"
-                            class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a></li>
-                   
+                    <li><a href="?page=bar_index" class="<?php echo $is_dashboard ? 'active' : ''; ?>">หน้าแรก</a></li>
+                    <li><a href="?page=bar_product" class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a></li>
+                    <li><a href="?page=bar_personnel" class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
+                    <li><a href="?page=bar_member" class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
+                    <li><a href="?page=bar_supplier" class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
+                    <li><a href="?page=bar_sale" class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a></li>
                 </ul>
             </div>
         </div>
@@ -110,7 +131,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'lot_insertout',
             'lot_insertdetailout',
             'lot_warehouseinout'
-
         ];
         $member_pages = [
             'member_list',
@@ -137,7 +157,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'supplier_update',
             'supplier_insert',
             'supplier_detail',
-            
         ];
         $sale_pages = [
             'sale_add',
@@ -150,14 +169,12 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         ];
 
         if ($page) {
-
             $parts = explode('_', $page);
             $prefix = $parts[0] ?? null;  // 'bar' หรือ 'member'
             $module = $parts[1] ?? null;  // 'product', 'supplier', 'list', 'insert','add', etc.
 
             // If no page is specified or it's the homepage/bar_index, show dashboard
             if ($page == 'dashboard' || $page == 'bar_index') {
-                // Load bar_index.php first
                 $barfile = __DIR__ . "/bar_index.php";
                 if (file_exists($barfile)) {
                     include $barfile;
@@ -166,10 +183,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 if (file_exists($filepath)) {
                     include $filepath;
                 }
-            }
-            // Process other pages as normal
-            else {
-                // ขั้นแรก ให้รวมไฟล์แถบนำทางหากเป็นหน้าที่ได้รับอนุญาต
+            } else {
                 if (in_array($page, $allowed_pages)) {
                     $basefile = __DIR__ . "/$page.php";
                     if (file_exists($basefile)) {
@@ -177,11 +191,9 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     }
                 }
 
-                // ตรวจสอบและโหลดหน้าต่างๆ
                 $basePath = __DIR__ . "/../page";
 
                 if ($prefix === 'bar') {
-                    // แมปชื่อโมดูลกับชื่อโฟลเดอร์ที่ถูกต้อง
                     $folderMapping = [
                         'product' => 'product',
                         'supplier' => 'supplier',
@@ -195,7 +207,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $folderName = $folderMapping[$module];
 
                         if ($module === 'product') {
-                            // Special handling for product pages
                             $action = $parts[2] ?? 'list';
                             $subaction = $parts[3] ?? null;
 
@@ -206,12 +217,10 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                                 $filepath .= "{$folderName}_{$action}.php";
                             }
                         } else {
-                            // For all other modules
                             $filepath = "$basePath/$folderName/{$folderName}_list.php";
                         }
                     }
                 } elseif ($prefix === 'dashboard' && in_array($page, $dashboard_pages)) {
-                    // โหลด bar_index.php ก่อน
                     $barfile = __DIR__ . "/bar_index.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -223,7 +232,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['id'] = $_GET['id'];
                     }
                 } elseif ($prefix === 'member' && in_array($page, $member_pages)) {
-                    // โหลด bar_member.php ก่อน
                     $barfile = __DIR__ . "/bar_member.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -235,7 +243,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['id'] = $_GET['id'];
                     }
                 } elseif ($prefix === 'product' && in_array($page, $product_pages)) {
-                    // โหลด bar_product.php ก่อน
                     $barfile = __DIR__ . "/bar_product.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -248,7 +255,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['id'] = $_GET['id'];
                     }
                 } elseif ($prefix === 'warehouse' && in_array($page, $warehouse_page)) {
-                    // โหลด bar_product.php ก่อน
                     $barfile = __DIR__ . "/bar_product.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -260,7 +266,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['id'] = $_GET['id'];
                     }
                 } elseif ($prefix === 'lot' && in_array($page, $lot_pages)) {
-                    // โหลด bar_product.php ก่อน
                     $barfile = __DIR__ . "/bar_product.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -272,7 +277,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['id'] = $_GET['id'];
                     }
                 } elseif ($prefix === 'warehouse' && $page === 'warehouse_lot') {
-                    // โหลด bar_product.php ก่อน
                     $barfile = __DIR__ . "/bar_product.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -283,7 +287,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
                     }
                 } elseif ($prefix === 'warehouse' && $page === 'warehouse_move') {
-                    // โหลด bar_product.php ก่อน
                     $barfile = __DIR__ . "/bar_product.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -294,7 +297,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
                     }
                 } elseif ($prefix === 'supplier' && $page === 'supplier_lot') {
-                    // โหลด bar_product.php ก่อน
                     $barfile = __DIR__ . "/bar_product.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -305,7 +307,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['supplier_id'] = $_GET['supplier_id'];
                     }
                 } elseif ($prefix === 'supplier' && $page === 'supplier_movelot') {
-                    // โหลด bar_product.php ก่อน
                     $barfile = __DIR__ . "/bar_product.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -316,7 +317,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['supplier_id'] = $_GET['supplier_id'];
                     }
                 } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
-                    // โหลด bar_personnel.php ก่อน
                     $barfile = __DIR__ . "/bar_personnel.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -328,7 +328,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['id'] = $_GET['id'];
                     }
                 } elseif ($prefix === 'supplier' && in_array($page, $supplier_pages)) {
-                    // โหลด bar_supplier.php ก่อน
                     $barfile = __DIR__ . "/bar_supplier.php";
                     if (file_exists($barfile)) {
                         include $barfile;
@@ -340,28 +339,18 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         $_REQUEST['id'] = $_GET['id'];
                     }
                 } elseif ($prefix === 'sale' && in_array($page, $sale_pages)) {
-                    // โหลด bar_sale.php ก่อน
-                    // สร้าง path ไปยังไฟล์ bar_sale.php
-                    $barfile = __DIR__ . "/bar_sale.php"; //__DIR__ คือ directory ของไฟล์ที่โค้ดนี้อยู่ 
-                    
-                    //ถ้าไฟล์ bar_sale.php มีอยู่จริง ให้ include มันเข้าไป
+                    $barfile = __DIR__ . "/bar_sale.php";
                     if (file_exists($barfile)) {
                         include $barfile;
                     }
-                    // ดึงค่าที่สองจาก $parts array (เช่น URL ที่แบ่งโดย /) มาเก็บใน $action
-                    // ถ้าไม่มี ให้ใช้ 'add' เป็นค่าเริ่มต้น
                     $action = $parts[1] ?? 'add';
-
-                    //สร้าง path ไปยังไฟล์ PHP ของหน้า sale เช่น sale_add.php
                     $filepath = "$basePath/sale/sale_{$action}.php";
 
-                    //ถ้ามี id ใน URL (?id=123)
-                    // ให้เพิ่มเข้าไปใน $_REQUEST['id'] ด้วย เพื่อให้สามารถเรียกใช้ได้จากทั้ง $_GET และ $_POST ปกติใช้เพื่อโหลดข้อมูล sale ตาม ID นั้น
                     if (isset($_GET['id'])) {
                         $_REQUEST['id'] = $_GET['id'];
                     }
                 }
-                // Include the file if it exists
+
                 if (isset($filepath) && file_exists($filepath)) {
                     include $filepath;
                 } else if (isset($filepath)) {
@@ -374,6 +363,31 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         ?>
     </div>
 
+    <!-- JavaScript for Sidebar Toggle -->
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            const hamburger = document.querySelector('.hamburger');
+            const isOpen = sidebar.classList.toggle('active');
+            overlay.classList.toggle('active', isOpen);
+            hamburger.setAttribute('aria-expanded', isOpen);
+        }
+
+        // Close sidebar when pressing Esc key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('overlay');
+                const hamburger = document.querySelector('.hamburger');
+                if (sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    hamburger.setAttribute('aria-expanded', 'false');
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>

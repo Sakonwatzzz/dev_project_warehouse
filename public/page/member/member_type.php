@@ -101,7 +101,7 @@ try {
             COALESCE(COUNT(m.member_id), 0) as member_count
         FROM member_type mb
         LEFT JOIN member m ON mb.member_type_id = m.member_type_id";
-    
+
     $params = [];
     if (!empty($search)) {
         $query .= " WHERE mb.member_type_name LIKE :search OR mb.member_type_id LIKE :search";
@@ -110,7 +110,7 @@ try {
 
     $query .= " GROUP BY mb.member_type_id, mb.member_type_name 
         LIMIT :offset, :records_per_page";
-    
+
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -209,12 +209,13 @@ try {
                                             required />
                                     </td>
                                     <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">-</td>
-                                    <td class="px-4 py-2 border bg-white text-center">
+                                    <td class="w-[120px] px-4 py-2 border bg-white text-center">
                                         <button type="submit"
-                                            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center mx-auto text-sm md:text-base">
+                                            class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex justify-center items-center text-sm md:text-base">
                                             <i class="fas fa-plus mr-1"></i>เพิ่ม
                                         </button>
                                     </td>
+
                                 </form>
                             </tr>
                             <!-- Data Rows -->

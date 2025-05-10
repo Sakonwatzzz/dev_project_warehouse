@@ -185,7 +185,7 @@ try {
                                 <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">รหัสประเภท</th>
                                 <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">ชื่อประเภทสินค้า</th>
                                 <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">จำนวนสินค้า</th>
-                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">การจัดการ</th>
+                                <th class="w-[80px] px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -202,7 +202,7 @@ try {
                                     <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">-</td>
                                     <td class="px-4 py-2 border bg-white text-center">
                                         <button type="submit"
-                                            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center mx-auto text-sm md:text-base">
+                                            class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex justify-center items-center text-sm md:text-base">
                                             <i class="fas fa-plus mr-1"></i>เพิ่ม
                                         </button>
                                     </td>
