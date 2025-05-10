@@ -216,14 +216,14 @@ $(document).ready(function () {
         console.log("Update product table response:", response); // Debug
         if (response.status === "success") {
           $("#product_table_body").html(response.html);
-          $(".total-amount").text(response.total_amount + " บาท");
+          $(".total-amount").text(response.sale_total_amount + " บาท");
           $(".total-items").text(response.total_items + " รายการ");
           $(".total-qty").text(response.total_qty + " ชิ้น");
           const hasProducts = !response.html.includes("ไม่พบสินค้า");
           $("#confirm-sale-btn")
             .prop("disabled", !hasProducts)
             .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
-          $(document).trigger("productListUpdated", [response.total_amount]);
+          $(document).trigger("productListUpdated", [response.sale_total_amount]);
           bindEditProductEvents();
           $(".main-body").removeAttr("aria-hidden");
         } else {

@@ -490,9 +490,9 @@ try {
     $stmt->execute([$sale_id]);
     $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $total_amount = 0;
+    $sale_total_amount = 0;
     foreach ($sale_products as $product) {
-        $total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+        $sale_total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
     }
 } catch (PDOException $e) {
     error_log("Database query error: " . $e->getMessage());
@@ -822,23 +822,23 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                     <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                         <div class="flex justify-between text-gray-800">
                             <span class="font-medium">ยอดรวมสินค้า:</span>
-                            <span><?php echo number_format($total_amount, 2); ?> บาท</span>
+                            <span><?php echo number_format($sale_total_amount, 2); ?> บาท</span>
                         </div>
                         <div class="border-t border-gray-200 mt-3 pt-3 flex justify-between font-semibold text-lg">
                             <span>ยอดรวมสุทธิ:</span>
-                            <span class="text-blue-700"><?php echo number_format($total_amount, 2); ?> บาท</span>
+                            <span class="text-blue-700"><?php echo number_format($sale_total_amount, 2); ?> บาท</span>
                         </div>
                     </div>
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 gap-2">
                             <label class="text-sm font-medium text-gray-700">เงินที่ชำระ (บาท):</label>
-                            <input type="number" id="paid_amount"
+                            <input type="number" id="sale_paid_amount"
                                 class="p-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 step="0.01" placeholder="ป้อนจำนวนเงิน">
                         </div>
                         <div class="grid grid-cols-1 gap-2">
                             <label class="text-sm font-medium text-gray-700">เงินทอน (บาท):</label>
-                            <input type="text" id="change_amount"
+                            <input type="text" id="sale_change_amount"
                                 class="p-3 text-lg bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
                                 readonly>
                         </div>
@@ -942,7 +942,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
         $(document).ready(function () {
             const Swal = window.Swal;
-            const totalAmount = <?php echo $total_amount; ?>;
+            const totalAmount = <?php echo $sale_total_amount; ?>;
             const currentSaleId = <?php echo json_encode($sale_id); ?>;
 
             // Toggle delete mode
@@ -978,7 +978,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
             // Calculate change
             $('#calculate_change').click(function () {
-                let paidAmount = parseFloat($('#paid_amount').val()) || 0;
+                let paidAmount = parseFloat($('#sale_paid_amount').val()) || 0;
                 if (paidAmount < totalAmount) {
                     Swal.fire({
                         icon: 'warning',
@@ -986,17 +986,17 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                         text: 'เงินที่ชำระไม่เพียงพอกับยอดรวม',
                         confirmButtonText: 'ตกลง'
                     });
-                    $('#change_amount').val('');
+                    $('#sale_change_amount').val('');
                     $('#print_receipt').prop('disabled', true);
                     return;
                 }
                 let change = paidAmount - totalAmount;
-                $('#change_amount').val(change.toFixed(2));
+                $('#sale_change_amount').val(change.toFixed(2));
                 $('#print_receipt').prop('disabled', false);
             });
 
             // Calculate change on Enter
-            $('#paid_amount').on('keypress', function (e) {
+            $('#sale_paid_amount').on('keypress', function (e) {
                 if (e.which == 13) {
                     $('#calculate_change').click();
                 }
@@ -1162,8 +1162,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
 
             // Print receipt
             $('#print_receipt').click(function () {
-                let paidAmount = parseFloat($('#paid_amount').val()) || 0;
-                let changeAmount = parseFloat($('#change_amount').val()) || 0;
+                let paidAmount = parseFloat($('#sale_paid_amount').val()) || 0;
+                let changeAmount = parseFloat($('#sale_change_amount').val()) || 0;
                 let receiptWindow = window.open('', '_blank');
                 let html = `
                     <html>
@@ -1228,7 +1228,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'รอดำเนิน�
                                 </div>
                                 <div class="grand-total">
                                     <span>ยอดรวมทั้งสิ้น:</span>
-                                    <span><?php echo number_format($total_amount, 2); ?> บาท</span>
+                                    <span><?php echo number_format($sale_total_amount, 2); ?> บาท</span>
                                 </div>
                             </div>
                             <div class="payment-info">

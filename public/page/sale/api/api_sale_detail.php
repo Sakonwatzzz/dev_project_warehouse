@@ -42,17 +42,17 @@ try {
     $stmt->execute([$sale_id]);
     $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $total_amount = 0;
+    $sale_total_amount = 0;
     $total_qty = 0;
     foreach ($sale_products as $product) {
-        $total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+        $sale_total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
         $total_qty += $product['sale_product_qty'];
     }
 
     // Get payment details from session
     $payment_details = $_SESSION['payment_details'][$sale_id] ?? [
-        'paid_amount' => 0,
-        'change_amount' => 0
+        'sale_paid_amount' => 0,
+        'sale_change_amount' => 0
     ];
 
     // Return JSON response
@@ -61,10 +61,10 @@ try {
         'data' => [
             'sale' => $sale_data,
             'products' => $sale_products,
-            'total_amount' => $total_amount,
+            'sale_total_amount' => $sale_total_amount,
             'total_qty' => $total_qty,
-            'paid_amount' => $payment_details['paid_amount'],
-            'change_amount' => $payment_details['change_amount']
+            'sale_paid_amount' => $payment_details['sale_paid_amount'],
+            'sale_change_amount' => $payment_details['sale_change_amount']
         ]
     ]);
 } catch (Exception $e) {

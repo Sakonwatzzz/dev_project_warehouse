@@ -75,7 +75,7 @@ $(document).ready(function () {
             $("#product_table_body").html('<tr><td colspan="7" class="text-center py-8 text-gray-500">ไม่พบสินค้า</td></tr>');
           } else {
             $("#product_table_body").html(response.html);
-            $(".total-amount").text(response.total_amount + " บาท");
+            $(".total-amount").text(response.sale_total_amount + " บาท");
             $(".total-items").text(response.total_items + " รายการ");
             $(".total-qty").text(response.total_qty + " ชิ้น");
             const hasProducts = !response.html.includes("ไม่พบสินค้า");

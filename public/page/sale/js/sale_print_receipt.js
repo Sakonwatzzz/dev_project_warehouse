@@ -1,8 +1,8 @@
 $(document).ready(function () {
     // Print receipt
     $('#print_receipt').on('click', function () {
-        const paid = parseFloat($('#paid_amount').val()) || 0;
-        const change = parseFloat($('#change_amount').val()) || 0;
+        const paid = parseFloat($('#sale_paid_amount').val()) || 0;
+        const change = parseFloat($('#sale_change_amount').val()) || 0;
         const sale_id = $('#confirm-sale-form input[name="sale_id"]').val(); // ดึง sale_id จากฟอร์ม
         if (!sale_id) {
             Swal.fire({
@@ -18,8 +18,8 @@ $(document).ready(function () {
             data: {
                 action: 'print_receipt',
                 sale_id: sale_id,
-                paid_amount: paid,
-                change_amount: change
+                sale_paid_amount: paid,
+                sale_change_amount: change
             },
             dataType: 'json',
             success: function (response) {
@@ -74,15 +74,15 @@ $(document).ready(function () {
                                 </div>
                                 <div class="flex justify-between text-sm font-semibold">
                                     <span>ยอดรวมสุทธิ:</span>
-                                    <span>${parseFloat(receipt.total_amount).toFixed(2)} บาท</span>
+                                    <span>${parseFloat(receipt.sale_total_amount).toFixed(2)} บาท</span>
                                 </div>
                                 <div class="flex justify-between text-sm">
                                     <span>เงินที่ชำระ:</span>
-                                    <span>${parseFloat(receipt.paid_amount).toFixed(2)} บาท</span>
+                                    <span>${parseFloat(receipt.sale_paid_amount).toFixed(2)} บาท</span>
                                 </div>
                                 <div class="flex justify-between text-sm">
                                     <span>เงินทอน:</span>
-                                    <span>${parseFloat(receipt.change_amount).toFixed(2)} บาท</span>
+                                    <span>${parseFloat(receipt.sale_change_amount).toFixed(2)} บาท</span>
                                 </div>
                                 <p class="text-center text-sm mt-4">ขอบคุณที่ใช้บริการ</p>
                                 <button onclick="window.print()" class="no-print w-full py-2 mt-4 bg-blue-600 text-white rounded hover:bg-blue-700">พิมพ์</button>
