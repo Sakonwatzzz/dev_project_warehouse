@@ -73,7 +73,7 @@ $(document).ready(function () {
                                     <span>${receipt.total_qty} ชิ้น</span>
                                 </div>
                                 <div class="flex justify-between text-sm font-semibold">
-                                    <span>ยอดรวมสุทธิ:</span>
+                                    <span>ราคารวมทั้งบิล (รวม VAT) :</span>
                                     <span>${parseFloat(receipt.sale_total_amount).toFixed(2)} บาท</span>
                                 </div>
                                 <div class="flex justify-between text-sm">

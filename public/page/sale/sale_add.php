@@ -195,6 +195,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $total_qty += $product['sale_product_qty'];
         }
 
+        $sale_net_amount = 0;
+        $sale_net_amount = $sale_product_qty * $sale_product_price;
+        $sale_vat_amount = $sale_net_amount * 0.07;
+        $sale_total_amount = $sale_net_amount + $sale_vat_amount;
+
+
         // Prepare receipt data
         $receipt_data = [
             'sale_id' => $sale_data['sale_id'],
@@ -642,22 +648,29 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                             <span class="total-qty text-sm"><?php echo $total_qty; ?> ชิ้น</span>
                         </div>
 
-                        <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
-                            <span>ยอดรวมสุทธิ:</span>
-                            <span type="number" id="sale_total_amount" class="text-blue-700 total-amount"><?php echo number_format($sale_total_amount, 2); ?>
-                            บาท</span>
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">ราคารวมทั้งบิลไม่รวม VAT :</span>
+                            <span class="text-sm"> บาท</span>
                         </div>
-
-                        <div class="flex flex-row space-x-4 items-end pb-6">
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">จำนวน VAT รวมทั้งบิล :</span>
+                            <span class="text-sm"> 7%</span>
+                        </div>
+                        <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
+                            <span>ราคารวมทั้งบิล (รวม VAT) :</span>
+                            <span type="number" id="sale_total_amount" class="text-blue-700 total-amount"><?php echo number_format($sale_total_amount, 2); ?>
+                                บาท</span>
+                        </div>
+                        <div class="flex flex-row space-x-4 items-end pb-6 pt-2">
                             <div class="flex-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ
+                                <label class="block text-xs font-medium text-gray-700 mb-1 pb-2">เงินที่ชำระ
                                     (บาท):</label>
                                 <input type="number" id="sale_paid_amount" value="" min="1"
                                     class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     step="0.01" placeholder="ป้อนจำนวนเงิน">
                             </div>
                             <div class="flex-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
+                                <label class="block text-xs font-medium text-gray-700 mb-1 pb-2">เงินทอน (บาท):</label>
                                 <input type="text" id="sale_change_amount"
                                     class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
                                     readonly>
@@ -860,31 +873,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         }
                     });
                 });
-
-                // // คำนวณเงินทอน
-                // $('#calculate_change').on('click', function() {
-                //     const paid = parseFloat($('#sale_paid_amount').val()) || 0;
-                //     const total = dynamicTotalAmount;
-                //     const change = paid - total;
-                //     //console.log เพื่อดีบักตรวจสอบการใช้งานว่าล้มเหลวหรือไม่ ใช้ตอนพัฒนาเท่านั้น!!!
-                //     console.log("Calculate change: ", {
-                //         paid,
-                //         total
-                //     });
-                //     $('#sale_change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
-                //     $('#print_receipt').prop('disabled', change < 0);
-                // });
-
-
-                // // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
-                // $('#sale_paid_amount').off('input').on('input', function() {
-                //     $('#calculate_change').click();
-                // });
-
-                // function refreshSummary() {
-                //     $('.total-amount').text(dynamicTotalAmount.toFixed(2) + ' บาท');
-                //     $('#calculate_change').click();
-                // }
             });
 
             // Array to track bills in client-side
