@@ -4,16 +4,16 @@ $(document).ready(function() {
 
   // Function to calculate change
   function calculateChange() {
-      const paid = parseFloat($('#paid_amount').val()) || 0;
+      const paid = parseFloat($('#sale_paid_amount').val()) || 0;
       const total = dynamicTotalAmount;
       let change = paid - total;
 
       // Ensure change is not negative
       if (change < 0) {
-          $('#change_amount').val('เงินไม่พอ');
+          $('#sale_change_amount').val('เงินไม่พอ');
           $('#print_receipt').prop('disabled', true);
       } else {
-          $('#change_amount').val(change.toFixed(2));
+          $('#sale_change_amount').val(change.toFixed(2));
           $('#print_receipt').prop('disabled', false);
       }
 
@@ -32,8 +32,8 @@ $(document).ready(function() {
       const requestData = {
           sale_id: saleId,
           total_amount: total,
-          paid_amount: paid,
-          change_amount: change >= 0 ? change : 0
+          sale_paid_amount: paid,
+          sale_change_amount: change >= 0 ? change : 0
       };
       console.log('Sending Ajax request with data:', requestData);
 
@@ -59,7 +59,7 @@ $(document).ready(function() {
 
   // Event listeners
   $('#calculate_change').off('click').on('click', calculateChange);
-  $('#paid_amount').off('input').on('input', calculateChange);
+  $('#sale_paid_amount').off('input').on('input', calculateChange);
 
   // Update total amount when product list changes
   $(document).on('productListUpdated', function(e, newTotal) {

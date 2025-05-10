@@ -115,7 +115,7 @@ if (!$sale_id) {
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="flex justify-between text-gray-800 mb-2">
                     <span class="font-medium text-sm">ยอดรวมสินค้า:</span>
-                    <span class="text-sm" id="total_amount">0.00 บาท</span>
+                    <span class="text-sm" id="sale_total_amount">0.00 บาท</span>
                 </div>
                 <div class="border-t border-gray-200 pt-2 flex justify-between font-semibold text-2xl">
                     <span>ยอดรวมสุทธิที่ต้องชำระ:</span>
@@ -123,11 +123,11 @@ if (!$sale_id) {
                 </div>
                 <div class="flex justify-between text-gray-800 mt-2">
                     <span class="font-medium text-sm">เงินที่ชำระ:</span>
-                    <span class="text-sm" id="paid_amount_display">0.00 บาท</span>
+                    <span class="text-sm" id="sale_paid_amount_display">0.00 บาท</span>
                 </div>
                 <div class="flex justify-between text-gray-800 mt-2">
                     <span class="font-medium text-sm">เงินทอน:</span>
-                    <span class="text-sm text-blue-700 font-semibold" id="change_amount_display">0.00 บาท</span>
+                    <span class="text-sm text-blue-700 font-semibold" id="sale_change_amount_display">0.00 บาท</span>
                 </div>
             </div>
         </div>
@@ -197,10 +197,10 @@ if (!$sale_id) {
                 }
 
                 // Update payment summary
-                $('#total_amount').text(data.total_amount.toFixed(2) + ' บาท');
-                $('#total_net').text(data.total_amount.toFixed(2) + ' บาท');
-                $('#paid_amount_display').text(parseFloat(data.paid_amount).toFixed(2) + ' บาท');
-                $('#change_amount_display').text(parseFloat(data.change_amount).toFixed(2) + ' บาท');
+                $('#sale_total_amount').text(data.sale_total_amount.toFixed(2) + ' บาท');
+                $('#total_net').text(data.sale_total_amount.toFixed(2) + ' บาท');
+                $('#sale_paid_amount_display').text(parseFloat(data.sale_paid_amount).toFixed(2) + ' บาท');
+                $('#sale_change_amount_display').text(parseFloat(data.sale_change_amount).toFixed(2) + ' บาท');
             }
 
             // Fetch data initially and every 2 seconds

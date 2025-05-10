@@ -49,7 +49,7 @@ $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id']
 if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
     try {
         $pdo->beginTransaction();
-        $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id) VALUES (?, 2, ?, ?)");
+        $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id, sale_net_amount, sale_vat_amount, sale_paid_amount, sale_change_amount, sale_total_amount) VALUES (?, 2, ?, ?, ?, ?, ?, ?, ?)");
         $insertSale->execute([$currentDateTime, null, null]);
         $sale_id = $pdo->lastInsertId();
         $_SESSION['active_sales'][] = $sale_id;
@@ -188,10 +188,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute([$sale_id]);
         $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $total_amount = 0;
+        $sale_total_amount = 0;
         $total_qty = 0;
         foreach ($sale_products as $product) {
-            $total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+            $sale_total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
             $total_qty += $product['sale_product_qty'];
         }
 
@@ -203,9 +203,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             'personnel_name' => $sale_data['personnel_name'] ?? 'ไม่ระบุ',
             'products' => $sale_products,
             'total_qty' => $total_qty,
-            'total_amount' => $total_amount,
-            'paid_amount' => $_POST['paid_amount'] ?? 0,
-            'change_amount' => $_POST['change_amount'] ?? 0
+            'sale_total_amount' => $sale_total_amount,
+            'sale_paid_amount' => $_POST['sale_paid_amount'] ?? 0,
+            'sale_change_amount' => $_POST['sale_change_amount'] ?? 0
         ];
 
         echo json_encode(['status' => 'success', 'receipt' => $receipt_data]);
@@ -241,11 +241,11 @@ try {
     $stmt->execute([$sale_id]);
     $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $total_amount = 0;
+    $sale_total_amount = 0;
     $total_items = 0;
     $total_qty = 0;
     foreach ($sale_products as $product) {
-        $total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+        $sale_total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
         $total_items++;
         $total_qty += $product['sale_product_qty'];
     }
@@ -644,7 +644,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
 
                         <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
                             <span>ยอดรวมสุทธิ:</span>
-                            <span type="number" id="total_amount" class="text-blue-700 total-amount"><?php echo number_format($total_amount, 2); ?>
+                            <span type="number" id="sale_total_amount" class="text-blue-700 total-amount"><?php echo number_format($sale_total_amount, 2); ?>
                             บาท</span>
                         </div>
 
@@ -652,13 +652,13 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                             <div class="flex-1">
                                 <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ
                                     (บาท):</label>
-                                <input type="number" id="paid_amount" value="" min="1"
+                                <input type="number" id="sale_paid_amount" value="" min="1"
                                     class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     step="0.01" placeholder="ป้อนจำนวนเงิน">
                             </div>
                             <div class="flex-1">
                                 <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
-                                <input type="text" id="change_amount"
+                                <input type="text" id="sale_change_amount"
                                     class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
                                     readonly>
                             </div>
@@ -813,7 +813,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     $('#print_receipt').addClass('hidden');
                 }
 
-                let dynamicTotalAmount = <?php echo $total_amount; ?>; // ค่าเริ่มต้น
+                let dynamicTotalAmount = <?php echo $sale_total_amount; ?>; // ค่าเริ่มต้น
 
 
                 $('#member_search').on('input', function() {
@@ -863,7 +863,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
 
                 // // คำนวณเงินทอน
                 // $('#calculate_change').on('click', function() {
-                //     const paid = parseFloat($('#paid_amount').val()) || 0;
+                //     const paid = parseFloat($('#sale_paid_amount').val()) || 0;
                 //     const total = dynamicTotalAmount;
                 //     const change = paid - total;
                 //     //console.log เพื่อดีบักตรวจสอบการใช้งานว่าล้มเหลวหรือไม่ ใช้ตอนพัฒนาเท่านั้น!!!
@@ -871,13 +871,13 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 //         paid,
                 //         total
                 //     });
-                //     $('#change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
+                //     $('#sale_change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
                 //     $('#print_receipt').prop('disabled', change < 0);
                 // });
 
 
                 // // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
-                // $('#paid_amount').off('input').on('input', function() {
+                // $('#sale_paid_amount').off('input').on('input', function() {
                 //     $('#calculate_change').click();
                 // });
 

@@ -38,11 +38,11 @@ try {
     error_log("ajax_get_sale_product: found " . count($sale_products) . " products");
 
     // คำนวณยอดรวม, จำนวนรายการ, และจำนวนชิ้น
-    $total_amount = 0;
+    $sale_total_amount = 0;
     $total_items = 0;
     $total_qty = 0;
     foreach ($sale_products as $product) {
-        $total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+        $sale_total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
         $total_items++;
         $total_qty += $product['sale_product_qty'];
     }
@@ -98,7 +98,7 @@ try {
     echo json_encode([
         'status' => 'success',
         'html' => $html,
-        'total_amount' => number_format($total_amount, 2),
+        'sale_total_amount' => number_format($sale_total_amount, 2),
         'total_items' => $total_items,
         'total_qty' => $total_qty,
         'sale_status_name' => $sale_status_name
