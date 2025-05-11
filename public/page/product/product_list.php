@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
@@ -268,7 +267,7 @@ try {
             </div>
 
             <div class="w-full sm:w-auto">
-                <input type="text" id="searchInput" 
+                <input type="text" id="searchInput"
                     placeholder="ค้นหาสินค้า..."
                     class="w-full sm:w-[250px] lg:w-[350px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                     value="<?php echo htmlspecialchars($search); ?>">
@@ -368,11 +367,27 @@ try {
             <!-- Table Section -->
             <div class="w-full lg:w-4/5">
                 <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6 sm:mb-8">
-                    <div class="flex justify-between bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                    <div class="flex justify-between items-center bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                        <!-- หัวข้อ -->
                         <h2 class="text-lg sm:text-2xl font-bold text-gray-800 flex items-center">
                             <i class="fas fa-list mr-2"></i>รายการสินค้า
                         </h2>
+
+                        <!-- ปุ่มดาวน์โหลดรายงาน -->
+                        <div class="flex space-x-2">
+                            <a href="/page/product/report/export_product_pdf.php<?php echo $incomplete_mode ? '?mode=incomplete' : '?mode=complete'; ?>" target="_blank">
+                                <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center text-sm md:text-base">
+                                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                                </button>
+                            </a>
+                            <a href="/page/product/report/export_product_excel.php<?php echo $incomplete_mode ? '?mode=incomplete' : '?mode=complete'; ?>" target="_blank">
+                                <button class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
+                                    <i class="fas fa-file-excel mr-2"></i>Export Excel
+                                </button>
+                            </a>
+                        </div>
                     </div>
+
                     <div class="p-4 sm:p-6">
                         <div class="flex items-center space-x-3 sm:space-x-4 mb-4">
                             <a href="?page=product_list"

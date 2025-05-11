@@ -147,6 +147,21 @@ try {
 
 <body class="font-sans bg-gray-100">
     <div class="container mx-auto px-4 py-8 md:px-8 lg:px-16">
+
+        <!-- ปุ่มดาวน์โหลดรายงาน -->
+        <div class="mb-4 flex space-x-2">
+            <a href="/page/product/report/export_product_brand_pdf.php" target="_blank">
+                <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center text-sm md:text-base">
+                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                </button>
+            </a>
+            <a href="/page/product/report/export_product_brand_excel.php" target="_blank">
+                <button class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
+                    <i class="fas fa-file-excel mr-2"></i>Export Excel
+                </button>
+            </a>
+        </div>
+
         <!-- Table Section -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
