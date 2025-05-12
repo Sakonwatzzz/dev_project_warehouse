@@ -10,24 +10,48 @@ function thai($text)
 
 class THPDF extends FPDF
 {
+    protected $start_date;
+    protected $end_date;
+    protected $mode;
+
+    // Constructor รับพารามิเตอร์วันที่และโหมด
+    function __construct($start_date = null, $end_date = null, $mode = 'complete')
+    {
+        parent::__construct('P');
+        $this->start_date = $start_date;
+        $this->end_date = $end_date;
+        $this->mode = $mode;
+    }
+
     function Header()
     {
         $this->AddFont('THSarabunNew', '', 'THSarabunNew.php');
         $this->AddFont('THSarabunNew', 'B', 'THSarabunNew_b.php');
 
+        // หัวข้อตามโหมด
         $this->SetFont('THSarabunNew', 'B', 18);
-        // กำหนดหัวข้อตามโหมด
-        $title = isset($_GET['mode']) && $_GET['mode'] === 'incomplete'
-            ? 'รายงานสินค้าที่ยังไม่ระบุ'
-            : 'รายงานสินค้า';
+        $title = $this->mode === 'incomplete' ? 'รายงานสินค้าที่ยังไม่ระบุ' : 'รายงานสินค้า';
         $this->Cell(0, 10, thai($title), 0, 1, 'C');
 
+        // วันที่ออกรายงานและช่วงวันที่
         $this->SetFont('THSarabunNew', '', 12);
         $this->Cell(0, 8, thai('วันที่ออกรายงาน: ') . date('d/m/Y H:i:s'), 0, 1, 'C');
+
+        // แสดงช่วงวันที่
+        if ($this->start_date && $this->end_date) {
+            $this->Cell(0, 8, thai('ช่วงวันที่: ') . date('d/m/Y', strtotime($this->start_date)) . thai(' ถึง ') . date('d/m/Y', strtotime($this->end_date)), 0, 1, 'C');
+        } elseif ($this->start_date) {
+            $this->Cell(0, 8, thai('ตั้งแต่วันที่: ') . date('d/m/Y', strtotime($this->start_date)), 0, 1, 'C');
+        } elseif ($this->end_date) {
+            $this->Cell(0, 8, thai('จนถึงวันที่: ') . date('d/m/Y', strtotime($this->end_date)), 0, 1, 'C');
+        } else {
+            $this->Cell(0, 8, thai('ข้อมูลทั้งหมด'), 0, 1, 'C');
+        }
 
         $this->Line(10, $this->GetY(), 200, $this->GetY());
         $this->Ln(5);
 
+        // หัวตาราง
         $this->SetFont('THSarabunNew', 'B', 11);
         $this->SetFillColor(200, 216, 237);
         $this->Cell(20, 8, thai('รหัส'), 1, 0, 'C', true);
@@ -97,15 +121,18 @@ class THPDF extends FPDF
     }
 }
 
-$pdf = new THPDF('P'); // ใช้โหมดแนวตั้ง (Portrait)
-$pdf->SetMargins(10, 10); // ตั้งระยะขอบ
+// รับพารามิเตอร์จาก GET
+$start_date = isset($_GET['start_date']) ? filter_var($_GET['start_date'], FILTER_SANITIZE_STRING) : null;
+$end_date = isset($_GET['end_date']) ? filter_var($_GET['end_date'], FILTER_SANITIZE_STRING) : null;
+$mode = isset($_GET['mode']) ? filter_var($_GET['mode'], FILTER_SANITIZE_STRING) : 'complete';
+
+// สร้าง PDF พร้อมส่งวันที่และโหมด
+$pdf = new THPDF($start_date, $end_date, $mode);
+$pdf->SetMargins(10, 10);
 $pdf->AliasNbPages();
 $pdf->AddPage();
 
 try {
-    // ตรวจสอบโหมด
-    $mode = isset($_GET['mode']) ? $_GET['mode'] : 'complete'; // ค่าเริ่มต้นเป็น complete
-
     // สร้างคำสั่ง SQL
     $query = "SELECT 
         product.product_id, 
@@ -121,12 +148,20 @@ try {
         COALESCE(product_type.product_type_name, 'ไม่มีข้อมูล') AS product_type_name
     FROM product
     LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
-    LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id";
+    LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id
+    LEFT JOIN lot_product ON product.product_id = lot_product.product_id
+    LEFT JOIN lot ON lot.lot_id = lot_product.lot_id
+    LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id";
 
-    // เพิ่มเงื่อนไขตามโหมด
+    // ตัวแปรสำหรับ bind parameters
+    $bind_params = [];
+
+    // เพิ่มเงื่อนไข WHERE
+    $where_conditions = [];
+
+    // เงื่อนไขตามโหมด
     if ($mode === 'incomplete') {
-        // สินค้าที่ยังไม่ระบุ (ข้อมูลไม่ครบถ้วน)
-        $query .= " WHERE (
+        $where_conditions[] = "(
             product.product_name IS NULL OR TRIM(product.product_name) = '' OR 
             product.product_price1 IS NULL OR product.product_price1 = '' OR product.product_price1 = 0 OR 
             product.product_price2 IS NULL OR product.product_price2 = '' OR product.product_price2 = 0 OR 
@@ -137,8 +172,7 @@ try {
             product.product_brand_id IS NULL OR product.product_brand_id = 0
         )";
     } else {
-        // สินค้าที่ระบุแล้ว (ข้อมูลครบถ้วน)
-        $query .= " WHERE 
+        $where_conditions[] = "
             product.product_name IS NOT NULL AND TRIM(product.product_name) != '' AND 
             product.product_price1 IS NOT NULL AND product.product_price1 != '' AND product.product_price1 != 0 AND 
             product.product_price2 IS NOT NULL AND product.product_price2 != '' AND product.product_price2 != 0 AND 
@@ -149,7 +183,28 @@ try {
             product.product_brand_id IS NOT NULL AND product.product_brand_id != 0";
     }
 
+    // เพิ่มเงื่อนไขวันที่
+    if ($start_date) {
+        $where_conditions[] = "lot_product.lot_product_date >= ?";
+        $bind_params[] = $start_date;
+    }
+    if ($end_date) {
+        $where_conditions[] = "lot_product.lot_product_date <= ?";
+        $bind_params[] = $end_date;
+    }
+
+    // รวมเงื่อนไข WHERE
+    if (!empty($where_conditions)) {
+        $query .= " WHERE " . implode(" AND ", $where_conditions);
+    }
+
     $stmt = $pdo->prepare($query);
+
+    // Bind ค่าพารามิเตอร์
+    foreach ($bind_params as $index => $param) {
+        $stmt->bindValue($index + 1, $param, PDO::PARAM_STR);
+    }
+
     $stmt->execute();
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -170,10 +225,10 @@ try {
 
             // หาจำนวนบรรทัดสูงสุดเพื่อกำหนดความสูงของแถว
             $max_nb = max($nb_name, $nb_type, $nb_brand);
-            $row_height = 8 * $max_nb; // ความสูงต่อบรรทัด = 8 มม.
+            $row_height = 8 * $max_nb;
 
             // ตรวจสอบพื้นที่ในหน้านี้
-            if ($pdf->GetY() + $row_height > 270) { // ปรับสำหรับ A4 แนวตั้ง
+            if ($pdf->GetY() + $row_height > 270) {
                 $pdf->AddPage();
             }
 
@@ -181,30 +236,17 @@ try {
             $y_start = $pdf->GetY();
 
             // วาดคอลัมน์ทั้งหมดในแถว
-            // คอลัมน์รหัส
             $pdf->Cell(20, $row_height, $product['product_id'], 1, 0, 'C');
-
-            // คอลัมน์ชื่อสินค้า
             $x = $pdf->GetX();
             $pdf->MultiCell(50, 8, thai($name_text), 1, 'L');
             $pdf->SetXY($x + 50, $y_start);
-
-            // คอลัมน์ราคาขาย
             $pdf->Cell(20, $row_height, number_format($product['product_price4'] ?: 0, 2), 1, 0, 'C');
-
-            // คอลัมน์ราคาทุน
             $pdf->Cell(20, $row_height, number_format($product['product_capital'] ?: 0, 2), 1, 0, 'C');
-
-            // คอลัมน์ประเภท
             $x = $pdf->GetX();
             $pdf->MultiCell(35, 8, thai($type_text), 1, 'L');
             $pdf->SetXY($x + 35, $y_start);
-
-            // คอลัมน์ยี่ห้อ
             $x = $pdf->GetX();
             $pdf->MultiCell(35, 8, thai($brand_text), 1, 'L');
-
-            // ย้ายตำแหน่ง Y ไปที่ด้านล่างของแถว
             $pdf->SetY($y_start + $row_height);
         }
     } else {
@@ -229,5 +271,5 @@ try {
 
 // ตั้งชื่อไฟล์ตามโหมด
 $filename = $mode === 'incomplete' ? 'IncompleteProductReport_' . date('Ymd_His') . '.pdf' : 'CompleteProductReport_' . date('Ymd_His') . '.pdf';
-ob_end_clean(); // เคลียร์ output buffer
+ob_end_clean();
 $pdf->Output('I', $filename);

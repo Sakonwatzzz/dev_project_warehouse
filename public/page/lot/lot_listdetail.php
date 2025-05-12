@@ -233,6 +233,10 @@ $query = "SELECT
     w2.warehouse_name,  -- ดึงชื่อคลังปลายทาง
     sup.supplier_id,
     sup.supplier_name,
+    per.personnel_id, 
+    per.personnel_name, 
+    st.store_id, 
+    st.store_name, 
     ls.lot_status_id,
     ls.lot_status_name
 FROM
@@ -240,6 +244,8 @@ FROM
     LEFT JOIN warehouse w1 ON l.warehouse_from_id = w1.warehouse_id  -- คลังต้นทาง
     LEFT JOIN warehouse w2 ON l.warehouse_id = w2.warehouse_id  -- คลังปลายทาง
     INNER JOIN supplier sup ON l.supplier_id = sup.supplier_id
+    INNER JOIN personnel per ON l.personnel_id = per.personnel_id
+    INNER JOIN store st ON l.store_id = st.store_id
     INNER JOIN lot_status ls ON l.lot_status_id = ls.lot_status_id
 WHERE l.lot_id = :lot_id";
 
@@ -303,7 +309,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -450,6 +456,16 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         </span>
                     </div>
                     <div class="flex items-center">
+                        <span class="text-gray-600 font-medium w-40">รับมาจากร้าน:</span>
+                        <span><?php echo htmlspecialchars($lot_data['store_name']); ?></span>
+                    </div>
+                    <div class="flex items-center"></div>
+                    <div class="flex items-center">
+                        <span class="text-gray-600 font-medium w-40">พนักงาน:</span>
+                        <span><?php echo htmlspecialchars($lot_data['personnel_name']); ?></span>
+                    </div>
+                    <div class="flex items-center"></div>
+                    <div class="flex items-center">
                         <?php
                         if (!empty($lot_data['warehouse_inout'])) {
                             if ($lot_data['warehouse_inout'] == 1) {
@@ -464,6 +480,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
                         }
                         ?>
                     </div>
+
                 </div>
             </div>
         <?php endif; ?>
@@ -720,6 +737,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
 
             return false; // Prevent automatic form submission
         }
+
         function closeEditModal() {
             document.getElementById('editModal').style.display = 'none';
         }
@@ -728,7 +746,7 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
         $('#cancel-edit, #close-modal').on('click', function() {
             $('#editModal').fadeOut(200);
         });
-      
+
         const inputField = document.getElementById('inputField');
 
         // ฟังก์ชันสำหรับการเปลี่ยนสีพื้นหลังตามการกดปุ่ม
@@ -1015,4 +1033,5 @@ $lot_status_name = $lot_data['lot_status_name'] ?? null;
         });
     </script>
 </body>
+
 </html>

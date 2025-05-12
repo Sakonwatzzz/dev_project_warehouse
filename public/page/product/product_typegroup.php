@@ -11,7 +11,7 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 try {
     $count_query = "SELECT COUNT(*) as total_count FROM product WHERE product_type_id = :product_type_id";
     $params = [':product_type_id' => $productTypeId];
-    
+
     if (!empty($search)) {
         $count_query .= " AND (product_name LIKE :search OR product_id LIKE :search)";
         $params[':search'] = "%$search%";
@@ -48,7 +48,7 @@ $offset = ($page - 1) * $records_per_page;
 try {
     $count_query = "SELECT COUNT(*) FROM product WHERE product_type_id = :product_type_id";
     $params = [':product_type_id' => $productTypeId];
-    
+
     if (!empty($search)) {
         $count_query .= " AND (product_name LIKE :search OR product_id LIKE :search)";
         $params[':search'] = "%$search%";
@@ -85,15 +85,15 @@ try {
             product_type ON product.product_type_id = product_type.product_type_id
         WHERE 
             product.product_type_id = :product_type_id";
-    
+
     $params = [':product_type_id' => $productTypeId];
     if (!empty($search)) {
         $query .= " AND (product.product_name LIKE :search OR product.product_id LIKE :search)";
         $params[':search'] = "%$search%";
     }
-    
+
     $query .= " ORDER BY product.product_name LIMIT :offset, :records_per_page";
-    
+
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -111,23 +111,36 @@ try {
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <title>กลุ่มสินค้า</title>
     <style>
         @media (max-width: 768px) {
-            .table-responsive { display: none; }
-            .card-responsive { display: block; }
+            .table-responsive {
+                display: none;
+            }
+
+            .card-responsive {
+                display: block;
+            }
         }
+
         @media (min-width: 769px) {
-            .table-responsive { display: block; }
-            .card-responsive { display: none; }
+            .table-responsive {
+                display: block;
+            }
+
+            .card-responsive {
+                display: none;
+            }
         }
     </style>
 </head>
+
 <body class="font-sans bg-gray-100">
     <div class="container mx-auto px-4 py-8 md:px-8 lg:px-16">
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
@@ -321,6 +334,7 @@ try {
                 localStorage.removeItem('searchPreserve');
             }
         });
+
         function showNotification(message, headerClass) {
             const notification = document.getElementById('notification');
             const header = document.getElementById('notification-header');
@@ -335,4 +349,5 @@ try {
         }
     </script>
 </body>
+
 </html>
