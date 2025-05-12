@@ -1,253 +1,447 @@
-<!-- PHP Handler for switch_sale (ต้องอยู่ใน sale_add.php) -->
-<?php
-// ต้องเรียก ob_start() ที่ต้นไฟล์
-ob_start();
-session_start();
+<!DOCTYPE html>
+<html lang="th">
 
-// ตั้งค่า error reporting เพื่อป้องกัน output ไม่พึงประสงค์
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/logs/php_errors.log');
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบตรวจสอบสต๊อกสินค้า</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.0/cdn.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <style>
 
-// Handler สำหรับ switch_sale
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'switch_sale') {
-    header('Content-Type: application/json; charset=utf-8');
-    ob_clean(); // ล้าง output buffer
-    error_log("Switch sale request: " . json_encode($_POST)); // Log request
-    $new_sale_id = $_POST['sale_id'] ?? null;
-    if ($new_sale_id && in_array($new_sale_id, $_SESSION['active_sales'] ?? [])) {
-        $_SESSION['current_sale_id'] = $new_sale_id;
-        $response = ['status' => 'success', 'sale_id' => $new_sale_id, 'message' => 'เปลี่ยนไปใช้บิล #' . $new_sale_id];
-        error_log("Switch sale success: " . json_encode($response)); // Log success
-        echo json_encode($response);
-    } else {
-        $response = ['status' => 'error', 'message' => 'บิลไม่ถูกต้องหรือไม่พบ'];
-        error_log("Switch sale error: " . json_encode($response)); // Log error
-        echo json_encode($response);
-    }
-    exit(); // หยุดการประมวลผลทันที
-}
-?>
+    </style>
+</head>
 
-<!-- HTML for billTabs -->
-<div class="flex items-center space-x-2 mb-6">
-    <button id="new_sale" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        เปิดบิลใหม่
-    </button>
-    <div id="billTabs" class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full">
-        <?php foreach ($valid_active_sales as $active_sale_id): ?>
-            <div id="tab_<?php echo $active_sale_id; ?>" class="px-4 py-2 rounded <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap" onclick="switchBill(<?php echo $active_sale_id; ?>)">
-                บิล #<?php echo $active_sale_id; ?> <span onclick="cancelSale(<?php echo $active_sale_id; ?>)">×</span>
+<body class="bg-gray-50">
+    <div x-data="stockCheckApp()" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-blue-600 shadow-md">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-white">ระบบตรวจสอบสต๊อกสินค้า</h1>
+                <div class="flex items-center space-x-4">
+                    <span class="text-white" x-text="currentDateTime"></span>
+                    <div class="bg-white rounded-full p-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                </div>
             </div>
-        <?php endforeach; ?>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="-mb-px flex space-x-8">
+                    <button @click="activeTab = 'new'"
+                        :class="activeTab === 'new' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="py-4 px-1 border-b-2 font-medium text-lg">
+                        สร้างรายการตรวจสอบใหม่
+                    </button>
+                    <button @click="activeTab = 'history'"
+                        :class="activeTab === 'history' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="py-4 px-1 border-b-2 font-medium text-lg">
+                        ประวัติการตรวจสอบ
+                    </button>
+                </nav>
+            </div>
+
+            <!-- New Stock Check Form -->
+            <div x-show="activeTab === 'new'" x-cloak>
+                <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+                    <h2 class="text-xl font-semibold mb-4">ข้อมูลการตรวจสอบสต๊อก</h2>
+
+                    <!-- Warehouse Selection -->
+                    <div class="mb-4">
+                        <label for="warehouse" class="block text-gray-700 font-medium mb-2">คลังสินค้า</label>
+                        <select id="warehouse" x-model="formData.warehouseId"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" disabled selected>เลือกคลังสินค้า</option>
+                            <template x-for="warehouse in warehouses" :key="warehouse.id">
+                                <option :value="warehouse.id" x-text="warehouse.name"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Product Scanning -->
+                    <div class="mb-4">
+                        <label for="product-scan"
+                            class="block text-gray-700 font-medium mb-2">สแกนบาร์โค้ดสินค้า</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="product-scan" x-model="scanInput" @keydown.enter="scanProduct"
+                                placeholder="สแกนหรือป้อนรหัสสินค้า"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <button @click="scanProduct"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                สแกน
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lot Selection (shows after product scan) -->
+                    <div x-show="currentProduct" class="mb-4">
+                        <label for="lot" class="block text-gray-700 font-medium mb-2">เลือกล็อตสินค้า</label>
+                        <select id="lot" x-model="formData.lotId" @change="selectLot"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" disabled selected>เลือกล็อตสินค้า</option>
+                            <template x-for="lot in availableLots" :key="lot.lotId">
+                                <option :value="lot.lotId"
+                                    x-text="`ล็อต ${lot.lotId} - ${lot.lotCode} (จำนวนคงเหลือ: ${lot.quantity})`">
+                                </option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Product Details -->
+                    <div x-show="currentProduct && selectedLot" class="mb-6 bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-medium text-lg mb-2">ข้อมูลสินค้า</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-gray-600">รหัสสินค้า:</p>
+                                <p class="font-medium" x-text="currentProduct.productId"></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">ชื่อสินค้า:</p>
+                                <p class="font-medium" x-text="currentProduct.name"></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">จำนวนในระบบ:</p>
+                                <p class="font-medium" x-text="selectedLot ? selectedLot.quantity : '-'"></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">หน่วย:</p>
+                                <p class="font-medium" x-text="currentProduct.unit"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actual Quantity Input -->
+                    <div x-show="currentProduct && selectedLot" class="mb-4">
+                        <label for="actual-quantity"
+                            class="block text-gray-700 font-medium mb-2">จำนวนจริงที่นับได้</label>
+                        <input type="number" id="actual-quantity" x-model="formData.actualQuantity" min="0"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Difference Calculation -->
+                    <div x-show="currentProduct && selectedLot && formData.actualQuantity !== ''"
+                        class="mb-4 p-3 rounded-lg" :class="getDifferenceClass()">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">ผลต่าง:</span>
+                            <span class="font-bold text-lg" x-text="calculateDifference()"></span>
+                        </div>
+                    </div>
+
+                    <!-- Remarks -->
+                    <div x-show="currentProduct && selectedLot" class="mb-6">
+                        <label for="remarks" class="block text-gray-700 font-medium mb-2">หมายเหตุ (ถ้ามี)</label>
+                        <textarea id="remarks" x-model="formData.remarks" rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="ระบุสาเหตุของความคลาดเคลื่อน หรือข้อมูลเพิ่มเติม"></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end">
+                        <button @click="submitStockCheck" :disabled="!isFormValid()"
+                            :class="isFormValid() ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
+                            class="px-6 py-3 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            บันทึกการตรวจสอบ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stock Check Queue -->
+                <div x-show="stockCheckQueue.length > 0" class="bg-white shadow-md rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">รายการตรวจสอบ</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        รหัสสินค้า</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        ชื่อสินค้า</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        ล็อต</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        จำนวนในระบบ</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        จำนวนจริง</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        ผลต่าง</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        หมายเหตุ</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <template x-for="(check, index) in stockCheckQueue">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                           ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button
+                                                class="text-red-600 hover:text-red-900">ลบ</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button @click="submitAllChecks"
+                            class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                            บันทึกทั้งหมด
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Check History -->
+            <div>
+                <div class="bg-white shadow-md rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">ประวัติการตรวจสอบสต๊อก</h2>
+
+                    <!-- Filter Controls -->
+                    <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="date-filter" class="block text-gray-700 text-sm font-medium mb-2">วันที่</label>
+                            <input type="date"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="warehouse-filter"
+                                class="block text-gray-700 text-sm font-medium mb-2">คลังสินค้า</label>
+                            <select
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">ทั้งหมด</option>
+                                <template x-for="warehouse in warehouses" :key="warehouse.id">
+                                    <option :value="warehouse.id" x-text="warehouse.name"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="status-filter"
+                                class="block text-gray-700 text-sm font-medium mb-2">สถานะ</label>
+                            <select id="status-filter" x-model="filters.status"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">ทั้งหมด</option>
+                                <option value="pending">รอดำเนินการ</option>
+                                <option value="approved">อนุมัติแล้ว</option>
+                                <option value="rejected">ปฏิเสธ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- History Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        รหัสตรวจสอบ</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        วันที่ตรวจสอบ</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        คลังสินค้า</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        รหัสสินค้า</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        ชื่อสินค้า</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        ล็อต</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        จำนวนในระบบ</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        จำนวนจริง</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        ผลต่าง</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        สถานะ</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <template x-for="(check, index) in filteredHistory" :key="index">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                                           ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                           ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                                            ></td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                                >
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button @click="viewCheckDetails(check)"
+                                                class="text-blue-600 hover:text-blue-900">รายละเอียด</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- No Results Message -->
+                    <div x-show="filteredHistory.length === 0" class="py-8 text-center text-gray-500">
+                        ไม่พบข้อมูลการตรวจสอบสต๊อก
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Stock Check Details Modal -->
+        <div x-show="showDetailModal" x-cloak class="fixed inset-0 overflow-y-auto" aria-labelledby="modal-title"
+            role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
+                <!-- Modal panel -->
+                <div
+                    class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                    รายละเอียดการตรวจสอบสต๊อก
+                                </h3>
+                                <div class="mt-4 space-y-3">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-sm text-gray-500">รหัสตรวจสอบ:</p>
+                                            <p class="font-medium"></p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-500">วันที่ตรวจสอบ:</p>
+                                            <p class="font-medium"></p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-500">คลังสินค้า:</p>
+                                            <p class="font-medium">
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-500">ผู้ตรวจสอบ:</p>
+                                            <p class="font-medium"></p>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-t border-gray-200 pt-3">
+                                        <h4 class="font-medium">ข้อมูลสินค้า</h4>
+                                        <div class="grid grid-cols-2 gap-4 mt-2">
+                                            <div>
+                                                <p class="text-sm text-gray-500">รหัสสินค้า:</p>
+                                                <p class="font-medium"></p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-500">ชื่อสินค้า:</p>
+                                                <p class="font-medium"></p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-500">ล็อต:</p>
+                                                <p class="font-medium"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-t border-gray-200 pt-3">
+                                        <h4 class="font-medium">ข้อมูลการตรวจสอบ</h4>
+                                        <div class="grid grid-cols-3 gap-4 mt-2">
+                                            <div>
+                                                <p class="text-sm text-gray-500">จำนวนในระบบ:</p>
+                                                <p class="font-medium"></p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-500">จำนวนจริง:</p>
+                                                <p class="font-medium"></p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-500">ผลต่าง:</p>
+                                                <p class="font-medium"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-t border-gray-200 pt-3">
+                                        <h4 class="font-medium">สถานะ</h4>
+                                        <div class="mt-2">
+                                            <span
+                                                class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-t border-gray-200 pt-3">
+                                        <h4 class="font-medium">หมายเหตุ</h4>
+                                        <p class="mt-1 text-gray-700"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+                            @click="approveCheck">
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</body>
 
-<!-- CSS for billTabs -->
-<style>
-    .tab-active { background-color: #3b82f6; color: white; }
-    .tab-inactive { background-color: #e5e7eb; color: black; }
-    #billTabs::-webkit-scrollbar {
-        height: 8px;
-    }
-    #billTabs::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-    #billTabs::-webkit-scrollbar-thumb {
-        background: #3b82f6;
-        border-radius: 4px;
-    }
-    #billTabs::-webkit-scrollbar-thumb:hover {
-        background: #2563eb;
-    }
-</style>
-
-<!-- JavaScript/Ajax for billTabs -->
-<script>
-    // Array to track bills in client-side
-    let bills = <?php echo json_encode($valid_active_sales); ?>;
-    let currentSaleId = <?php echo json_encode($sale_id); ?>;
-
-    // Function to create a new sale
-    function createNewSale() {
-        $.ajax({
-            url: window.location.pathname,
-            type: 'POST',
-            data: {
-                action: 'new_sale'
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    bills.push(response.sale_id);
-                    currentSaleId = response.sale_id;
-                    addBillTab(response.sale_id);
-                    switchBill(response.sale_id);
-                    Swal.fire({
-                        toast: true,
-                        position: 'center',
-                        icon: 'success',
-                        title: response.message,
-                        showConfirmButton: false,
-                        timer: 1500,
-                        timerProgressBar: true
-                    });
-                    window.location.href = response.redirect;
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'ข้อผิดพลาด',
-                        text: response.message,
-                        confirmButtonText: 'ตกลง'
-                    });
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('New sale error:', xhr.responseText); // Log raw response
-                Swal.fire({
-                    icon: 'error',
-                    title: 'ข้อผิดพลาด',
-                    text: 'เกิดข้อผิดพลาดในการสร้างบิลใหม่: ' + error,
-                    confirmButtonText: 'ตกลง'
-                });
-            }
-        });
-    }
-
-    // Function to add a bill tab to the UI
-    function addBillTab(saleId) {
-        const tab = `<div id="tab_${saleId}" class="px-4 py-2 rounded tab-active cursor-pointer whitespace-nowrap" onclick="switchBill(${saleId})">
-            บิล #${saleId} <span onclick="cancelSale(${saleId})">×</span>
-        </div>`;
-        $('#billTabs').append(tab);
-        updateTabStyles();
-    }
-
-    // Function to switch to a different bill
-    function switchBill(saleId) {
-        if (saleId === currentSaleId) return;
-        $.ajax({
-            url: window.location.pathname,
-            type: 'POST',
-            data: {
-                action: 'switch_sale',
-                sale_id: saleId
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    currentSaleId = saleId;
-                    updateTabStyles();
-                    window.location.href = `?page=sale_add&sale_id=${saleId}`;
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'ข้อผิดพลาด',
-                        text: response.message,
-                        confirmButtonText: 'ตกลง'
-                    });
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Switch bill error:', xhr.responseText); // Log raw response
-                let errorMessage = 'เกิดข้อผิดพลาดในการสลับบิล: ' + error;
-                try {
-                    // พยายาม parse JSON ถ้าเป็นไปได้
-                    const parsed = JSON.parse(xhr.responseText);
-                    errorMessage = parsed.message || errorMessage;
-                } catch (e) {
-                    // ถ้า parse ไม่ได้ แสดงว่าเป็น HTML หรือข้อผิดพลาดอื่น
-                    errorMessage = 'เซิร์ฟเวอร์ส่งข้อมูลไม่ถูกต้อง (อาจเป็น HTML)';
-                }
-                Swal.fire({
-                    icon: 'error',
-                    title: 'ข้อผิดพลาด',
-                    text: errorMessage,
-                    confirmButtonText: 'ตกลง'
-                });
-            }
-        });
-    }
-
-    // Function to cancel a sale
-    function cancelSale(saleId) {
-        event.stopPropagation(); // Prevent triggering switchBill
-        Swal.fire({
-            title: 'ยืนยันการยกเลิก?',
-            text: `คุณต้องการยกเลิกบิล #${saleId} หรือไม่?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'ยืนยัน',
-            cancelButtonText: 'ยกเลิก'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: window.location.pathname,
-                    type: 'POST',
-                    data: {
-                        action: 'cancel_sale',
-                        sale_id: saleId
-                    },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.status === 'success') {
-                            bills = bills.filter(id => id != saleId);
-                            $(`#tab_${saleId}`).remove();
-                            if (currentSaleId == saleId) {
-                                currentSaleId = bills.length > 0 ? bills[0] : null;
-                            }
-                            updateTabStyles();
-                            Swal.fire({
-                                toast: true,
-                                position: 'center',
-                                icon: 'success',
-                                title: response.message,
-                                showConfirmButton: false,
-                                timer: 1500,
-                                timerProgressBar: true
-                            });
-                            if (response.redirect) {
-                                window.location.href = response.redirect;
-                            }
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'ข้อผิดพลาด',
-                                text: response.message,
-                                confirmButtonText: 'ตกลง'
-                            });
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Cancel sale error:', xhr.responseText); // Log raw response
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'ข้อผิดพลาด',
-                            text: 'เกิดข้อผิดพลาดในการยกเลิกบิล: ' + error,
-                            confirmButtonText: 'ตกลง'
-                        });
-                    }
-                });
-            }
-        });
-    }
-
-    // Function to update tab styles based on currentSaleId
-    function updateTabStyles() {
-        $('#billTabs > div').each(function() {
-            const tabId = $(this).attr('id').replace('tab_', '');
-            if (tabId == currentSaleId) {
-                $(this).removeClass('tab-inactive').addClass('tab-active');
-            } else {
-                $(this).removeClass('tab-active').addClass('tab-inactive');
-            }
-        });
-    }
-
-    // Event listener for new sale button
-    $('#new_sale').on('click', createNewSale);
-</script>
+</html>
