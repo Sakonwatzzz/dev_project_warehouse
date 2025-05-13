@@ -45,9 +45,11 @@ $(document).ready(function () {
           return;
         }
         info.html(`
-            <p><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
-            <p><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
-            <p><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
+           <div class="bg-white rounded-b-lg p-2">
+            <p class="text-xl"><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
+            <p class="text-xl"><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
+            <p class="text-xl"><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
+           </div>
         `);
       },
       error: function (xhr) {
@@ -223,7 +225,9 @@ $(document).ready(function () {
           $("#confirm-sale-btn")
             .prop("disabled", !hasProducts)
             .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
-          $(document).trigger("productListUpdated", [response.sale_total_amount]);
+          $(document).trigger("productListUpdated", [
+            response.sale_total_amount,
+          ]);
           bindEditProductEvents();
           $(".main-body").removeAttr("aria-hidden");
         } else {

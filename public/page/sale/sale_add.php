@@ -462,7 +462,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                     placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off" autofocus
                                     <?php echo ($sale_status_id === 1) ? 'disable' : ''; ?>>
                                 <div id="barcode_suggestions"
-                                    class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
+                                    class="z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                 </div>
                             </div>
                             <div>
