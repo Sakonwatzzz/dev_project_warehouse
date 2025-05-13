@@ -5,7 +5,6 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
 // รับพารามิเตอร์จาก GET
@@ -18,21 +17,15 @@ try {
     $query = "SELECT 
         product.product_id, 
         product.product_name, 
-        product.product_price1, 
-        product.product_price2, 
-        product.product_price3, 
         product.product_price4, 
         product.product_capital, 
-        product.product_type_id, 
-        product.product_brand_id,
-        COALESCE(product_brand.product_brand_name, 'ไม่มีข้อมูล') AS product_brand_name, 
-        COALESCE(product_type.product_type_name, 'ไม่มีข้อมูล') AS product_type_name
+        COALESCE(product_type.product_type_name, 'ไม่มีข้อมูล') AS product_type_name, 
+        COALESCE(product_brand.product_brand_name, 'ไม่มีข้อมูล') AS product_brand_name
     FROM product
-    LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
     LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id
+    LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
     LEFT JOIN lot_product ON product.product_id = lot_product.product_id
-    LEFT JOIN lot ON lot.lot_id = lot_product.lot_id
-    LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id";
+    LEFT JOIN lot ON lot.lot_id = lot_product.lot_id";
 
     $bind_params = [];
     $where_conditions = [];
@@ -41,9 +34,6 @@ try {
     if ($mode === 'incomplete') {
         $where_conditions[] = "(
             product.product_name IS NULL OR TRIM(product.product_name) = '' OR 
-            product.product_price1 IS NULL OR product.product_price1 = '' OR product.product_price1 = 0 OR 
-            product.product_price2 IS NULL OR product.product_price2 = '' OR product.product_price2 = 0 OR 
-            product.product_price3 IS NULL OR product.product_price3 = '' OR product.product_price3 = 0 OR 
             product.product_price4 IS NULL OR product.product_price4 = '' OR product.product_price4 = 0 OR 
             product.product_capital IS NULL OR product.product_capital = '' OR product.product_capital = 0 OR 
             product.product_type_id IS NULL OR product.product_type_id = 0 OR 
@@ -52,9 +42,6 @@ try {
     } else {
         $where_conditions[] = "
             product.product_name IS NOT NULL AND TRIM(product.product_name) != '' AND 
-            product.product_price1 IS NOT NULL AND product.product_price1 != '' AND product.product_price1 != 0 AND 
-            product.product_price2 IS NOT NULL AND product.product_price2 != '' AND product.product_price2 != 0 AND 
-            product.product_price3 IS NOT NULL AND product.product_price3 != '' AND product.product_price3 != 0 AND 
             product.product_price4 IS NOT NULL AND product.product_price4 != '' AND product.product_price4 != 0 AND 
             product.product_capital IS NOT NULL AND product.product_capital != '' AND product.product_capital != 0 AND 
             product.product_type_id IS NOT NULL AND product.product_type_id != 0 AND 
@@ -86,7 +73,7 @@ try {
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
 
-    // ตั้งค่ารูปแบบคอลัมน์ A เป็น Text
+    // ตั้งคอลัมน์ A เป็น Text
     $sheet->getStyle('A')->getNumberFormat()->setFormatCode('@');
 
     // หัวข้อรายงาน
@@ -94,39 +81,21 @@ try {
     $sheet->setCellValue('A1', $report_title);
     $sheet->mergeCells('A1:F1');
     $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-    $sheet->getRowDimension(1)->setRowHeight(30);
+    $sheet->getStyle('A1')->getFont()->setBold(true);
+    $sheet->getRowDimension(1)->setRowHeight(25);
 
+    // วันที่ออกรายงาน
     $sheet->setCellValue('A2', 'วันที่ออกรายงาน: ' . date('d/m/Y H:i:s'));
     $sheet->mergeCells('A2:F2');
     $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-    $sheet->getRowDimension(2)->setRowHeight(25);
-
-    $row = 3;
-    if ($start_date && $end_date) {
-        $sheet->setCellValue('A' . $row, 'ช่วงวันที่: ' . date('d/m/Y', strtotime($start_date)) . ' ถึง ' . date('d/m/Y', strtotime($end_date)));
-        $sheet->mergeCells('A' . $row . ':F' . $row);
-        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getRowDimension($row)->setRowHeight(25);
-        $row++;
-    } elseif ($start_date) {
-        $sheet->setCellValue('A' . $row, 'ตั้งแต่วันที่: ' . date('d/m/Y', strtotime($start_date)));
-        $sheet->mergeCells('A' . $row . ':F' . $row);
-        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getRowDimension($row)->setRowHeight(25);
-        $row++;
-    } elseif ($end_date) {
-        $sheet->setCellValue('A' . $row, 'จนถึงวันที่: ' . date('d/m/Y', strtotime($end_date)));
-        $sheet->mergeCells('A' . $row . ':F' . $row);
-        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getRowDimension($row)->setRowHeight(25);
-        $row++;
-    }
+    $sheet->getRowDimension(2)->setRowHeight(20);
 
     // แถวว่าง
-    $row++;
-    $sheet->getRowDimension($row)->setRowHeight(20);
+    $row = 3;
+    $sheet->getRowDimension($row)->setRowHeight(15);
 
     // หัวตาราง
+    $row++;
     $sheet->setCellValueExplicit('A' . $row, 'รหัสสินค้า', DataType::TYPE_STRING);
     $sheet->setCellValue('B' . $row, 'ชื่อสินค้า');
     $sheet->setCellValue('C' . $row, 'ราคาขาย');
@@ -134,16 +103,15 @@ try {
     $sheet->setCellValue('E' . $row, 'ประเภทสินค้า');
     $sheet->setCellValue('F' . $row, 'ยี่ห้อ');
 
-    // เพิ่มสีพื้นหลังและสไตล์ให้หัวตาราง
+    // สไตล์หัวตาราง (คัดลอกจาก product_type)
     $headerStyle = [
-        'fill' => [
-            'fillType' => Fill::FILL_SOLID,
-            'startColor' => ['argb' => 'FFD3D3D3'], // สีเทาอ่อน
+        'font' => [
+            'bold' => true,
         ],
         'borders' => [
             'allBorders' => [
                 'borderStyle' => Border::BORDER_THIN,
-                'color' => ['argb' => 'FF000000'],
+                'color' => ['argb' => 'FF000000'], // เส้นขอบสีดำ
             ],
         ],
         'alignment' => [
@@ -152,7 +120,7 @@ try {
         ],
     ];
     $sheet->getStyle('A' . $row . ':F' . $row)->applyFromArray($headerStyle);
-    $sheet->getRowDimension($row)->setRowHeight(30);
+    $sheet->getRowDimension($row)->setRowHeight(20);
 
     // ข้อมูล
     $totalProducts = 0;
@@ -161,14 +129,13 @@ try {
     if (count($products) > 0) {
         foreach ($products as $product) {
             $row++;
-            // บันทึก product_id เป็นสตริงอย่างชัดเจน
             $sheet->setCellValueExplicit('A' . $row, $product['product_id'], DataType::TYPE_STRING);
             $sheet->setCellValue('B' . $row, $product['product_name'] ?: 'ไม่มีข้อมูล');
             $sheet->setCellValue('C' . $row, number_format($product['product_price4'] ?: 0, 2));
             $sheet->setCellValue('D' . $row, number_format($product['product_capital'] ?: 0, 2));
             $sheet->setCellValue('E' . $row, $product['product_type_name']);
             $sheet->setCellValue('F' . $row, $product['product_brand_name']);
-            $sheet->getRowDimension($row)->setRowHeight(25);
+            $sheet->getRowDimension($row)->setRowHeight(20);
             $totalProducts++;
         }
     } else {
@@ -177,18 +144,18 @@ try {
         $sheet->setCellValue('A' . $row, $message);
         $sheet->mergeCells('A' . $row . ':F' . $row);
         $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getRowDimension($row)->setRowHeight(25);
+        $sheet->getRowDimension($row)->setRowHeight(20);
     }
 
-    // แถวสรุป
+    // แถวสรุป (คัดลอกสไตล์จาก product_type)
     $row++;
     $sheet->setCellValue('A' . $row, 'รวมจำนวนสินค้า');
-    $sheet->getStyle('A' . $row)->getFont()->setBold(true);
     $sheet->mergeCells('A' . $row . ':E' . $row);
-    $sheet->setCellValue('F' . $row, $totalProducts . ' รายการ');
-    $sheet->getRowDimension($row)->setRowHeight(25);
+    $sheet->setCellValue('F' . $row, number_format($totalProducts) . ' รายการ');
+    $sheet->getStyle('A' . $row . ':F' . $row)->getFont()->setBold(true);
+    $sheet->getRowDimension($row)->setRowHeight(20);
 
-    // ใช้เส้นขอบทุกช่องในตารางข้อมูลและสรุป (ยกเว้นหัวตาราง)
+    // ใช้เส้นขอบทุกช่องในตารางข้อมูลและสรุป
     $styleArray = [
         'borders' => [
             'allBorders' => [
@@ -199,13 +166,13 @@ try {
     ];
     $sheet->getStyle('A' . $dataStartRow . ':F' . $row)->applyFromArray($styleArray);
 
-    // กำหนดความกว้างคอลัมน์คงที่เพื่อให้ตารางใหญ่ขึ้น
-    $sheet->getColumnDimension('A')->setWidth(20); // รหัสสินค้า
-    $sheet->getColumnDimension('B')->setWidth(50); // ชื่อสินค้า
-    $sheet->getColumnDimension('C')->setWidth(25); // ราคาขาย
-    $sheet->getColumnDimension('D')->setWidth(25); // ราคาทุน
-    $sheet->getColumnDimension('E')->setWidth(30); // ประเภทสินค้า
-    $sheet->getColumnDimension('F')->setWidth(30); // ยี่ห้อ
+    // กำหนดความกว้างคอลัมน์ (ปรับให้ใกล้เคียง product_type)
+    $sheet->getColumnDimension('A')->setWidth(15); // รหัสสินค้า
+    $sheet->getColumnDimension('B')->setWidth(40); // ชื่อสินค้า
+    $sheet->getColumnDimension('C')->setWidth(20); // ราคาขาย
+    $sheet->getColumnDimension('D')->setWidth(20); // ราคาทุน
+    $sheet->getColumnDimension('E')->setWidth(25); // ประเภทสินค้า
+    $sheet->getColumnDimension('F')->setWidth(25); // ยี่ห้อ
 
     // ตั้งค่า header สำหรับดาวน์โหลด
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -224,7 +191,8 @@ try {
     $sheet->setCellValue('A1', 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' . $e->getMessage());
     $sheet->mergeCells('A1:F1');
     $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-    $sheet->getRowDimension(1)->setRowHeight(30);
+    $sheet->getStyle('A1')->getFont()->setBold(true);
+    $sheet->getRowDimension(1)->setRowHeight(25);
 
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="ErrorReport_' . date('Ymd_His') . '.xlsx"');

@@ -4,6 +4,18 @@ require_once __DIR__ . '../../../../config/database_server.php';
 // เพิ่มตัวแปรสำหรับการค้นหา
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
+// Function to fetch data from database
+function fetchData($pdo, $query, $params = [])
+{
+    try {
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt;
+    } catch (PDOException $e) {
+        throw new Exception("Database error: " . $e->getMessage());
+    }
+}
+
 // Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -65,7 +77,7 @@ try {
     $params = [];
 
     if (!empty($search)) {
-        $count_query .= " WHERE product_brand_name LIKE :search OR product_brand_id LIKE :search";
+        $count_query .= " WHERE product_brand_name LIKE :search OR product_brand_id LIKE :search OR product_brand_date LIKE :search";
         $params[':search'] = "%$search%";
     }
 
@@ -81,22 +93,30 @@ try {
     echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// ดึงข้อมูลตามเงื่อนไขการค้นหา
+
 try {
+    // Fetch personnel data
+    $query = "SELECT personnel_id, personnel_name FROM personnel";
+    $personnels = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
     $query = "SELECT 
-        pt.product_brand_id,
-        pt.product_brand_name,
+        pb.product_brand_id,
+        pb.product_brand_name,
+        DATE_FORMAT(pb.product_brand_date, '%Y-%m-%d %H:%i:%s') as product_brand_date,
+        per.personnel_id,
+        per.personnel_name,
         COALESCE(COUNT(p.product_id), 0) as product_count
-        FROM product_brand pt
-        LEFT JOIN product p ON pt.product_brand_id = p.product_brand_id";
+        FROM product_brand pb
+        LEFT JOIN product p ON pb.product_brand_id = p.product_brand_id
+        LEFT JOIN personnel per ON pb.personnel_id = per.personnel_id";
 
     $params = [];
     if (!empty($search)) {
-        $query .= " WHERE pt.product_brand_name LIKE :search OR pt.product_brand_id LIKE :search";
+        $query .= " WHERE pb.product_brand_name LIKE :search OR pb.product_brand_id LIKE :search";
         $params[':search'] = "%$search%";
     }
 
-    $query .= " GROUP BY pt.product_brand_id, pt.product_brand_name 
+    $query .= " GROUP BY pb.product_brand_id, pb.product_brand_name 
         LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);
@@ -146,18 +166,18 @@ try {
 </head>
 
 <body class="font-sans bg-gray-100">
-    <div class="container mx-auto px-4 py-8 md:px-8 lg:px-16">
+    <div class=" mx-auto px-4 py-8 md:px-8 lg:px-16">
 
         <!-- ปุ่มดาวน์โหลดรายงาน -->
         <div class="mb-4 flex space-x-2">
             <a href="/page/product/report/export_product_brand_pdf.php" target="_blank">
                 <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center text-sm md:text-base">
-                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                    <i class="fas fa-file-pdf mr-2"></i> PDF
                 </button>
             </a>
             <a href="/page/product/report/export_product_brand_excel.php" target="_blank">
                 <button class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
-                    <i class="fas fa-file-excel mr-2"></i>Export Excel
+                    <i class="fas fa-file-excel mr-2"></i> Excel
                 </button>
             </a>
         </div>
@@ -167,7 +187,10 @@ try {
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div class="flex items-center gap-4">
-                        <h2 class="text-xl md:text-2 pobli            <span class=" px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2"></i>รายการแบรนด์สินค้า
+                        </h2>
+                        <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
                     </div>
 
                     <!-- แก้ไขส่วน input search ให้ส่งค่าไปยัง GET -->
@@ -193,9 +216,11 @@ try {
                     <table class="w-full border-collapse" id="dataTable">
                         <thead>
                             <tr class="bg-gray-50">
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">รหัสแบรนด์</th>
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">ชื่อแบรนด์สินค้า</th>
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">จำนวนสินค้า</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">รหัสแบรนด์</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">ชื่อแบรนด์สินค้า</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">พนักงาน</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">วันที่</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">จำนวนสินค้า</th>
                                 <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">การจัดการ</th>
                             </tr>
                         </thead>
@@ -210,6 +235,17 @@ try {
                                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
                                             required />
                                     </td>
+                                    <td class="px-4 py-2 border bg-white">
+                                        <select name="personnel_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" required>
+                                            <option value="">เลือกพนักงาน</option>
+                                            <?php foreach ($personnels as $personnel): ?>
+                                                <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>">
+                                                    <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">อัตโนมัติ</td>
                                     <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">-</td>
                                     <td class="w-[120px] px-4 py-2 border bg-white text-center">
                                         <button type="submit"
@@ -226,6 +262,8 @@ try {
                                     <tr class="hover:bg-gray-100" data-id="<?php echo htmlspecialchars($brand['product_brand_id']); ?>">
                                         <td class="px-4 py-1 border text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_id']); ?></td>
                                         <td class="px-4 py-1 border brand-name text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_name']); ?></td>
+                                        <td class="px-4 py-1 border brand-name text-sm md:text-base"><?php echo htmlspecialchars($brand['personnel_name']); ?></td>
+                                        <td class="px-4 py-1 border brand-name text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_date']); ?></td>
                                         <td class="px-4 py-1 border text-center cursor-pointer">
                                             <a href="?page=product_brandgroup&tabel=product_brand&id=<?php echo $brand['product_brand_id']; ?>&product_brand_name=<?php echo urlencode($brand['product_brand_name']); ?>"
                                                 class="text-orange-600 text-sm md:text-base">

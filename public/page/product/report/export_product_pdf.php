@@ -122,9 +122,9 @@ class THPDF extends FPDF
 }
 
 // รับพารามิเตอร์จาก GET
-$start_date = isset($_GET['start_date']) ? filter_var($_GET['start_date'], FILTER_SANITIZE_STRING) : null;
-$end_date = isset($_GET['end_date']) ? filter_var($_GET['end_date'], FILTER_SANITIZE_STRING) : null;
-$mode = isset($_GET['mode']) ? filter_var($_GET['mode'], FILTER_SANITIZE_STRING) : 'complete';
+$start_date = isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : null;
+$end_date = isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : null;
+$mode = isset($_GET['mode']) ? htmlspecialchars($_GET['mode']) : 'complete';
 
 // สร้าง PDF พร้อมส่งวันที่และโหมด
 $pdf = new THPDF($start_date, $end_date, $mode);

@@ -2,30 +2,54 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 require_once __DIR__ . '../../../fpdf186/fpdf.php';
 
-// เพิ่มตัวแปรสำหรับการค้นหา
+// เพิ่มตัวแปรสำหรับการค้นหาและกรองวันที่
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+
+// Function to fetch data from database
+function fetchData($pdo, $query, $params = [])
+{
+    try {
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt;
+    } catch (PDOException $e) {
+        throw new Exception("Database error: " . $e->getMessage());
+    }
+}
 
 // Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        if (isset($_POST['typename']) && !empty(trim($_POST['typename']))) {
+        if (isset($_POST['typename']) && !empty(trim($_POST['typename'])) && isset($_POST['personnel_id'])) {
             $typename = trim($_POST['typename']);
-            $stmt = $pdo->prepare('INSERT INTO product_type (product_type_name) VALUES (?)');
-            $stmt->execute([$typename]);
-            header('Location: ?page=product_type&add_success=1');
-            exit;
-        } elseif (isset($_POST['update_typename']) && isset($_POST['id'])) {
+            $personnelId = filter_var($_POST['personnel_id'], FILTER_VALIDATE_INT);
+            $date = date('Y-m-d H:i:s');
+            if ($personnelId) {
+                $stmt = $pdo->prepare('INSERT INTO product_type (product_type_name, product_type_date, personnel_id) VALUES (?, ?, ?)');
+                $stmt->execute([$typename, $date, $personnelId]);
+                header('Location: ?page=product_type&add_success=1');
+                exit;
+            } else {
+                throw new Exception("Invalid personnel ID");
+            }
+        } elseif (isset($_POST['update_typename']) && isset($_POST['id']) && isset($_POST['personnel_id'])) {
             $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
             $newTypeName = trim($_POST['update_typename']);
-            if ($id && !empty($newTypeName)) {
-                $stmt = $pdo->prepare("UPDATE product_type SET product_type_name = ? WHERE product_type_id = ?");
-                $stmt->execute([$newTypeName, $id]);
+            $personnelId = filter_var($_POST['personnel_id'], FILTER_VALIDATE_INT);
+            $date = date('Y-m-d H:i:s');
+            if ($id && !empty($newTypeName) && $personnelId) {
+                $stmt = $pdo->prepare("UPDATE product_type SET product_type_name = ?, product_type_date = ?, personnel_id = ? WHERE product_type_id = ?");
+                $stmt->execute([$newTypeName, $date, $personnelId, $id]);
                 header('Location: ?page=product_type&edit_success=1');
                 exit;
+            } else {
+                throw new Exception("Invalid input data");
             }
         }
-    } catch (PDOException $e) {
-        echo 'Database error: ' . htmlspecialchars($e->getMessage());
+    } catch (Exception $e) {
+        echo 'Error: ' . htmlspecialchars($e->getMessage());
         exit;
     }
 }
@@ -48,7 +72,28 @@ if (isset($_GET['id']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
 
 // Total count
 try {
-    $stmt = $pdo->query("SELECT COUNT(*) as total_count FROM product_type");
+    $count_query = "SELECT COUNT(*) as total_count FROM product_type";
+    $params = [];
+    if ($start_date || $end_date || !empty($search)) {
+        $count_query .= " WHERE 1=1";
+        if ($start_date) {
+            $count_query .= " AND product_type_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND product_type_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        if (!empty($search)) {
+            $count_query .= " AND (product_type_name LIKE :search OR product_type_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+    }
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
     $count = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
 } catch (PDOException $e) {
     $count = 0;
@@ -61,15 +106,23 @@ $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
 try {
-    // สร้าง SQL query สำหรับนับรายการทั้งหมด ตามเงื่อนไขการค้นหา
     $count_query = "SELECT COUNT(*) FROM product_type";
     $params = [];
-
-    if (!empty($search)) {
-        $count_query .= " WHERE product_type_name LIKE :search OR product_type_id LIKE :search";
-        $params[':search'] = "%$search%";
+    if ($start_date || $end_date || !empty($search)) {
+        $count_query .= " WHERE 1=1";
+        if ($start_date) {
+            $count_query .= " AND product_type_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND product_type_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        if (!empty($search)) {
+            $count_query .= " AND (product_type_name LIKE :search OR product_type_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
     }
-
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -82,22 +135,42 @@ try {
     echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// ดึงข้อมูลตามเงื่อนไขการค้นหา
+// ดึงข้อมูลตามเงื่อนไขการค้นหาและวันที่
 try {
+    // Fetch personnel data
+    $query = "SELECT personnel_id, personnel_name FROM personnel";
+    $personnels = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
     $query = "SELECT 
         pt.product_type_id,
         pt.product_type_name,
+        DATE_FORMAT(pt.product_type_date, '%Y-%m-%d %H:%i:%s') as product_type_date,
+        per.personnel_id,
+        per.personnel_name,
         COALESCE(COUNT(p.product_id), 0) as product_count
         FROM product_type pt
-        LEFT JOIN product p ON pt.product_type_id = p.product_type_id";
+        LEFT JOIN product p ON pt.product_type_id = p.product_type_id
+        LEFT JOIN personnel per ON pt.personnel_id = per.personnel_id";
 
     $params = [];
-    if (!empty($search)) {
-        $query .= " WHERE pt.product_type_name LIKE :search OR pt.product_type_id LIKE :search";
-        $params[':search'] = "%$search%";
+    if ($start_date || $end_date || !empty($search)) {
+        $query .= " WHERE 1=1";
+        if ($start_date) {
+            $query .= " AND pt.product_type_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND pt.product_type_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        if (!empty($search)) {
+            $query .= " AND (pt.product_type_name LIKE :search OR pt.product_type_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
     }
 
     $query .= " GROUP BY pt.product_type_id, pt.product_type_name 
+        ORDER BY pt.product_type_id
         LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);
@@ -147,21 +220,28 @@ try {
 </head>
 
 <body class="font-sans bg-gray-100">
-    <div class="container mx-auto px-4 py-8 md:px-8 lg:px-16">
-
+    <div class=" mx-auto px-4 py-8 md:px-8 lg:px-16">
 
         <!-- ปุ่มดาวน์โหลดรายงาน -->
-        <div class="mb-4 flex space-x-2">
-            <a href="/page/product/report/export_product_type_pdf.php" target="_blank">
-                <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center text-sm md:text-base">
-                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
+        <div class="flex flex-col md:flex-row md:space-x-4 mb-4">
+            <!-- เลือกช่วงวันที่ -->
+            <div class="flex items-center space-x-2 mb-2 md:mb-0">
+                <label for="start_date" class="text-sm font-medium">วันที่เริ่มต้น</label>
+                <input type="date" id="start_date" name="start_date" class="border rounded px-2 py-1"
+                    value="<?php echo htmlspecialchars($start_date); ?>">
+                <label for="end_date" class="text-sm font-medium">ถึง</label>
+                <input type="date" id="end_date" name="end_date" class="border rounded px-2 py-1"
+                    value="<?php echo htmlspecialchars($end_date); ?>">
+            </div>
+            <!-- ปุ่มดาวน์โหลด -->
+            <div class="flex space-x-2">
+                <button onclick="exportPDF()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center text-sm md:text-base">
+                    <i class="fas fa-file-pdf mr-2"></i> PDF
                 </button>
-            </a>
-            <a href="/page/product/report/export_product_type_excel.php" target="_blank">
-                <button class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
-                    <i class="fas fa-file-excel mr-2"></i>Export Excel
+                <button onclick="exportExcel()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
+                    <i class="fas fa-file-excel mr-2"></i> Excel
                 </button>
-            </a>
+            </div>
         </div>
 
         <!-- Table Section -->
@@ -174,11 +254,11 @@ try {
                         </h2>
                         <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
                     </div>
-
-                    <!-- แก้ไขส่วน input search ให้ส่งค่าไปยัง GET -->
                     <div class="w-full md:w-1/2">
                         <form action="" method="GET" class="w-full" id="searchForm">
                             <input type="hidden" name="page" value="product_type">
+                            <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>">
+                            <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>">
                             <div class="relative">
                                 <input type="text" name="search" id="searchInput"
                                     placeholder="ค้นหาประเภทสินค้า..." value="<?php echo htmlspecialchars($search); ?>"
@@ -198,9 +278,11 @@ try {
                     <table class="w-full border-collapse" id="dataTable">
                         <thead>
                             <tr class="bg-gray-50">
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">รหัสประเภท</th>
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">ชื่อประเภทสินค้า</th>
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">จำนวนสินค้า</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">รหัสประเภท</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">ชื่อประเภทสินค้า</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">พนักงาน</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">วันที่</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">จำนวนสินค้า</th>
                                 <th class="w-[80px] px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">การจัดการ</th>
                             </tr>
                         </thead>
@@ -210,11 +292,21 @@ try {
                                 <form action="" method="POST">
                                     <td class="px-4 py-2 border bg-white text-center text-gray-600 text-sm md:text-base">อัตโนมัติ</td>
                                     <td class="px-4 py-2 border bg-white">
-                                        <input type="text" id="typename" name="typename"
-                                            placeholder="ชื่อประเภทสินค้า"
+                                        <input type="text" name="typename" placeholder="ชื่อประเภทสินค้า"
                                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
                                             required />
                                     </td>
+                                    <td class="px-4 py-2 border bg-white">
+                                        <select name="personnel_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" required>
+                                            <option value="">เลือกพนักงาน</option>
+                                            <?php foreach ($personnels as $personnel): ?>
+                                                <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>">
+                                                    <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">อัตโนมัติ</td>
                                     <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">-</td>
                                     <td class="px-4 py-2 border bg-white text-center">
                                         <button type="submit"
@@ -228,8 +320,14 @@ try {
                             <?php if (count($producttypes) > 0): ?>
                                 <?php foreach ($producttypes as $type): ?>
                                     <tr class="hover:bg-gray-100" data-id="<?php echo htmlspecialchars($type['product_type_id']); ?>">
-                                        <td class="px-4 py-1 border   text-sm md:text-base"><?php echo htmlspecialchars($type['product_type_id']); ?></td>
-                                        <td class="px-4 py-1 border   type-name text-sm md:text-base"><?php echo htmlspecialchars($type['product_type_name']); ?></td>
+                                        <td class="px-4 py-1 border text-sm md:text-base"><?php echo htmlspecialchars($type['product_type_id']); ?></td>
+                                        <td class="type-name px-4 py-1 border text-sm md:text-base"><?php echo htmlspecialchars($type['product_type_name']); ?></td>
+                                        <td class="type-personnel px-4 py-1 border text-sm md:text-base" data-personnel-id="<?php echo htmlspecialchars($type['personnel_id']); ?>">
+                                            <?php echo htmlspecialchars($type['personnel_name']); ?>
+                                        </td>
+                                        <td class="type-date px-4 py-1 border text-center text-sm md:text-base" data-date="<?php echo date('Y-m-d', strtotime($type['product_type_date'])); ?>">
+                                            <?php echo htmlspecialchars($type['product_type_date']); ?>
+                                        </td>
                                         <td class="px-4 py-1 border text-center cursor-pointer">
                                             <a href="?page=product_typegroup&tabel=product_type&id=<?php echo $type['product_type_id']; ?>&product_type_name=<?php echo urlencode($type['product_type_name']); ?>"
                                                 class="text-orange-600 text-sm md:text-base">
@@ -247,7 +345,7 @@ try {
                                                     class="delete-btn bg-red-500 text-white px-4 py-1 rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
                                                     <i class="fas fa-trash-alt mr-1"></i>ลบ
                                                 </a>
-                                                <button class="save-btn hidden bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600 transition  items-center text-sm md:text-base"
+                                                <button class="save-btn hidden bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600 transition items-center text-sm md:text-base"
                                                     onclick="saveEdit(this)">
                                                     <i class="fas fa-save mr-1"></i>บันทึก
                                                 </button>
@@ -257,7 +355,7 @@ try {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-gray-600 text-sm md:text-base">ไม่มีข้อมูล</td>
+                                    <td colspan="6" class="text-center py-4 text-gray-600 text-sm md:text-base">ไม่มีข้อมูล</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -271,10 +369,20 @@ try {
                         <form action="" method="POST">
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-semibold mb-2 text-sm">ชื่อประเภทสินค้า</label>
-                                <input type="text" id="typename_mobile" name="typename"
-                                    placeholder="ชื่อประเภทสินค้า"
+                                <input type="text" name="typename" placeholder="ชื่อประเภทสินค้า"
                                     class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                     required />
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 font-semibold mb-2 text-sm">พนักงาน</label>
+                                <select name="personnel_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" required>
+                                    <option value="">เลือกพนักงาน</option>
+                                    <?php foreach ($personnels as $personnel): ?>
+                                        <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>">
+                                            <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <button type="submit"
                                 class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center text-sm">
@@ -295,6 +403,18 @@ try {
                                     <span class="text-sm"><?php echo htmlspecialchars($type['product_type_name']); ?></span>
                                 </div>
                                 <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 font-semibold text-sm type-personnel" data-personnel-id="<?php echo htmlspecialchars($type['personnel_id']); ?>">
+                                        พนักงาน:
+                                    </span>
+                                    <span class="text-sm"><?php echo htmlspecialchars($type['personnel_name']); ?></span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 font-semibold text-sm type-date" data-date="<?php echo date('Y-m-d', strtotime($type['product_type_date'])); ?>">
+                                        วันที่:
+                                    </span>
+                                    <span class="text-sm"><?php echo htmlspecialchars($type['product_type_date']); ?></span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
                                     <span class="text-gray-700 font-semibold text-sm">จำนวนสินค้า:</span>
                                     <a href="?page=product_typegroup&tabel=product_type&id=<?php echo $type['product_type_id']; ?>&product_type_name=<?php echo urlencode($type['product_type_name']); ?>"
                                         class="text-orange-600 hover:underline text-sm">
@@ -311,7 +431,7 @@ try {
                                         class="delete-btn bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center text-sm">
                                         <i class="fas fa-trash-alt mr-1"></i>ลบ
                                     </a>
-                                    <button class="save-btn hidden bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition  items-center text-sm"
+                                    <button class="save-btn hidden bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition items-center text-sm"
                                         onclick="saveEditMobile(this)">
                                         <i class="fas fa-save mr-1"></i>บันทึก
                                     </button>
@@ -325,12 +445,12 @@ try {
             </div>
         </div>
 
-        <!-- แก้ไขส่วน Pagination ให้รองรับการค้นหา -->
+        <!-- Pagination -->
         <div class="pagination mt-5 flex flex-wrap justify-center items-center gap-2">
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=product_type&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_type&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         « ก่อนหน้า
                     </a>
@@ -341,7 +461,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=product_type&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_type&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         1
                     </a>
@@ -351,7 +471,7 @@ try {
                 <?php endif; ?>
 
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=product_type&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_type&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 rounded-md transition-colors text-sm md:text-base <?= $i == $page ? 'bg-gray-800 text-white' : 'bg-blue-100 text-black hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -361,7 +481,7 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
                     <?php endif; ?>
-                    <a href="?page=product_type&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_type&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         <?= $total_pages ?>
                     </a>
@@ -369,14 +489,13 @@ try {
 
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=product_type&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_type&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         ถัดไป »
                     </a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-
     </div>
 
     <!-- Notification -->
@@ -386,11 +505,12 @@ try {
     </div>
 
     <script>
-        // ฟังก์ชันตรวจสอบเมื่อลบข้อความค้นหาจนหมด
         function checkEmptySearch(input) {
             if (input.value.trim() === '') {
-                // ถ้าช่องค้นหาว่างเปล่า ให้เปลี่ยนเส้นทางไปยังหน้าแสดงข้อมูลทั้งหมด
-                window.location.href = '?page=product_type';
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'product_type');
+                urlParams.delete('search');
+                window.location.search = urlParams.toString();
             }
         }
 
@@ -404,46 +524,53 @@ try {
                 showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
             }
 
-            // ถ้ามีการค้นหา ให้ focus ที่ช่องค้นหา
             if (urlParams.has('search')) {
                 document.getElementById('searchInput').focus();
             }
 
-            // เพิ่ม event listener สำหรับการกด Escape เพื่อยกเลิกการค้นหา
             document.getElementById('searchInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    window.location.href = '?page=product_type';
+                    const urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('page', 'product_type');
+                    urlParams.delete('search');
+                    window.location.search = urlParams.toString();
                 }
             });
-        });
 
-        // ก่อน reload ให้เก็บไว้
-        document.getElementById('searchInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                localStorage.setItem('searchPreserve', this.value);
-            }
-        });
+            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    localStorage.setItem('searchPreserve', this.value);
+                }
+            });
 
-        // หลังโหลดหน้า
-        document.addEventListener('DOMContentLoaded', () => {
             const preserved = localStorage.getItem('searchPreserve');
             if (preserved) {
                 const input = document.getElementById('searchInput');
                 input.value = preserved;
                 input.focus();
-                // เคลื่อนเคอร์เซอร์ไปหลังข้อความ
                 input.selectionStart = input.selectionEnd = preserved.length;
                 localStorage.removeItem('searchPreserve');
             }
         });
 
-
         function enableEdit(button) {
             const row = button.closest('tr');
             const typeNameCell = row.querySelector('.type-name');
+            const typePersonnelCell = row.querySelector('.type-personnel');
             const originalName = typeNameCell.textContent.trim();
+            const originalPersonnelId = typePersonnelCell.dataset.personnelId;
 
-            typeNameCell.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" value="${originalName}" />`;
+            typeNameCell.innerHTML = `<input type="text" class="edit-name w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" value="${originalName}" />`;
+            typePersonnelCell.innerHTML = `
+                <select class="edit-personnel w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                    <option value="">เลือกพนักงาน</option>
+                    <?php foreach ($personnels as $personnel): ?>
+                        <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>" 
+                            ${originalPersonnelId === '<?php echo $personnel['personnel_id']; ?>' ? 'selected' : ''}>
+                            <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>`;
             button.classList.add('hidden');
             row.querySelector('.delete-btn').classList.add('hidden');
             row.querySelector('.save-btn').classList.remove('hidden');
@@ -452,9 +579,21 @@ try {
         function enableEditMobile(button) {
             const card = button.closest('div[data-id]');
             const typeNameSpan = card.querySelector('.type-name + span');
+            const typePersonnelSpan = card.querySelector('.type-personnel + span');
             const originalName = typeNameSpan.textContent.trim();
+            const originalPersonnelId = typePersonnelSpan.dataset.personnelId;
 
-            typeNameSpan.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value="${originalName}" />`;
+            typeNameSpan.innerHTML = `<input type="text" class="edit-name w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value="${originalName}" />`;
+            typePersonnelSpan.innerHTML = `
+                <select class="edit-personnel w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="">เลือกพนักงาน</option>
+                    <?php foreach ($personnels as $personnel): ?>
+                        <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>" 
+                            ${originalPersonnelId === '<?php echo $personnel['personnel_id']; ?>' ? 'selected' : ''}>
+                            <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>`;
             button.classList.add('hidden');
             card.querySelector('.delete-btn').classList.add('hidden');
             card.querySelector('.save-btn').classList.remove('hidden');
@@ -463,11 +602,17 @@ try {
         function saveEdit(button) {
             const row = button.closest('tr');
             const typeId = row.getAttribute('data-id');
-            const newName = row.querySelector('.edit-input').value.trim();
+            const newName = row.querySelector('.edit-name').value.trim();
+            const newPersonnelId = row.querySelector('.edit-personnel').value;
             const typeNameCell = row.querySelector('.type-name');
+            const typePersonnelCell = row.querySelector('.type-personnel');
 
             if (!newName) {
                 alert('กรุณากรอกชื่อประเภทสินค้า');
+                return;
+            }
+            if (!newPersonnelId) {
+                alert('กรุณาเลือกพนักงาน');
                 return;
             }
 
@@ -476,11 +621,13 @@ try {
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: `id=${typeId}&update_typename=${encodeURIComponent(newName)}`
+                    body: `id=${typeId}&update_typename=${encodeURIComponent(newName)}&personnel_id=${newPersonnelId}`
                 })
                 .then(response => {
                     if (response.ok) {
                         typeNameCell.textContent = newName;
+                        typePersonnelCell.textContent = row.querySelector('.edit-personnel option:checked').text;
+                        typePersonnelCell.dataset.personnelId = newPersonnelId;
                         const editBtn = row.querySelector('.edit-btn');
                         const deleteBtn = row.querySelector('.delete-btn');
                         editBtn.classList.remove('hidden');
@@ -500,11 +647,17 @@ try {
         function saveEditMobile(button) {
             const card = button.closest('div[data-id]');
             const typeId = card.getAttribute('data-id');
-            const newName = card.querySelector('.edit-input').value.trim();
+            const newName = card.querySelector('.edit-name').value.trim();
+            const newPersonnelId = card.querySelector('.edit-personnel').value;
             const typeNameSpan = card.querySelector('.type-name + span');
+            const typePersonnelSpan = card.querySelector('.type-personnel + span');
 
             if (!newName) {
                 alert('กรุณากรอกชื่อประเภทสินค้า');
+                return;
+            }
+            if (!newPersonnelId) {
+                alert('กรุณาเลือกพนักงาน');
                 return;
             }
 
@@ -513,11 +666,13 @@ try {
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: `id=${typeId}&update_typename=${encodeURIComponent(newName)}`
+                    body: `id=${typeId}&update_typename=${encodeURIComponent(newName)}&personnel_id=${newPersonnelId}`
                 })
                 .then(response => {
                     if (response.ok) {
                         typeNameSpan.textContent = newName;
+                        typePersonnelSpan.textContent = card.querySelector('.edit-personnel option:checked').text;
+                        typePersonnelSpan.dataset.personnelId = newPersonnelId;
                         const editBtn = card.querySelector('.edit-btn');
                         const deleteBtn = card.querySelector('.delete-btn');
                         editBtn.classList.remove('hidden');
@@ -549,17 +704,47 @@ try {
             }, 1000);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/product/report/export_product_type_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/product/report/export_product_type_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        document.getElementById('start_date').addEventListener('change', updateDateFilter);
+        document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+        function updateDateFilter() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('add_success')) {
-                showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-cyan-200');
-            } else if (urlParams.has('edit_success')) {
-                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
-            } else if (urlParams.has('delete_success')) {
-                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
+            urlParams.set('page', 'product_type');
+
+            if (startDate) {
+                urlParams.set('start_date', startDate);
+            } else {
+                urlParams.delete('start_date');
             }
-            document.getElementById('searchInput').focus();
-        });
+
+            if (endDate) {
+                urlParams.set('end_date', endDate);
+            } else {
+                urlParams.delete('end_date');
+            }
+
+            window.location.search = urlParams.toString();
+        }
     </script>
 </body>
 

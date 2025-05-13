@@ -392,21 +392,22 @@ try {
             <!-- Table Section -->
             <div class="w-full lg:w-4/5">
                 <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6 sm:mb-8">
-                    <div class="flex justify-between items-center bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b] space-y-4 sm:space-y-0">
                         <!-- หัวข้อ -->
                         <h2 class="text-lg sm:text-2xl font-bold text-gray-800 flex items-center">
                             <i class="fas fa-list mr-2"></i>รายการสินค้า
                         </h2>
 
-                        <div class="flex space-x-2">
+                        <!-- กลุ่ม filter + ปุ่ม -->
+                        <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 w-full sm:w-auto">
                             <!-- เลือกช่วงวันที่ -->
-                            <div class="flex items-center space-x-2">
+                            <div class="flex flex-wrap items-center space-x-2">
                                 <label for="start_date" class="text-sm font-medium">วันที่นำเข้า</label>
                                 <input type="date" id="start_date" name="start_date" class="border rounded px-2 py-1"
-                                       value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
+                                    value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
                                 <label for="end_date" class="text-sm font-medium">ถึง</label>
                                 <input type="date" id="end_date" name="end_date" class="border rounded px-2 py-1"
-                                       value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
+                                    value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
                             </div>
 
                             <!-- ปุ่มดาวน์โหลดรายงาน -->
@@ -420,6 +421,7 @@ try {
                             </div>
                         </div>
                     </div>
+
 
                     <div class="p-4 sm:p-6">
                         <div class="flex items-center space-x-3 sm:space-x-4 mb-4">
@@ -657,9 +659,6 @@ try {
                 window.location.search = urlParams.toString();
             }
         </script>
-
-
-
 </body>
 
 </html>
