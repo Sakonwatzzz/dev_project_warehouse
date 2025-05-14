@@ -235,11 +235,11 @@ try {
             </div>
             <!-- ปุ่มดาวน์โหลด -->
             <div class="flex space-x-2">
-                <button onclick="exportPDF()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center text-sm md:text-base">
-                    <i class="fas fa-file-pdf mr-2"></i> PDF
+                <button onclick="exportPDF()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center text-sm md:text-base">
+                    <i class="fas fa-file-pdf mr-2"></i>ดาวน์โหลด PDF
                 </button>
                 <button onclick="exportExcel()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
-                    <i class="fas fa-file-excel mr-2"></i> Excel
+                    <i class="fas fa-file-excel mr-2"></i>ดาวน์โหลด Excel
                 </button>
             </div>
         </div>

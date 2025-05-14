@@ -1,17 +1,14 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 
-// กำหนด header สำหรับไฟล์ Excel
-header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-header('Content-Disposition: attachment; filename="รายงานแบรนด์สินค้า_' . date('Ymd_His') . '.xls"');
-header('Pragma: no-cache');
-header('Expires: 0');
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
-// เพิ่ม BOM เพื่อรองรับภาษาไทย
-echo "\xEF\xBB\xBF";
-
-// ดึงข้อมูลแบรนด์สินค้า
 try {
+    // Query to fetch product brand data
     $query = "SELECT 
         b.product_brand_id,
         b.product_brand_name,
@@ -25,87 +22,125 @@ try {
     $stmt->execute();
     $productbrands = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // เริ่มสร้างไฟล์ Excel ด้วย HTML Table
-    echo '<html>';
-    echo '<head>';
-    echo '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />';
-    echo '<style>';
-    // สไตล์ที่ปรับปรุงใหม่
-    echo 'body { font-family: Arial, Tahoma, sans-serif; font-size: 14px; }';
-    echo 'table { border-collapse: collapse; width: 100%; margin: 10px 0; }';
-    echo 'th, td { border: 1px solid #2c3e50; padding: 10px; }';
-    echo 'th { background-color: #3498db; color: white; font-weight: bold; text-align: center; }';
-    echo 'td { background-color: #ffffff; }';
-    echo '.title { font-size: 20px; color: #2c3e50; text-align: center; margin: 20px 0; font-weight: bold; }';
-    echo '.subtitle { color: #34495e; text-align: center; margin-bottom: 20px; }';
-    echo '.right { text-align: right; }';
-    echo '.left { text-align: left; }';
-    echo '.center { text-align: center; }';
-    echo '.summary { background-color: #ecf0f1; font-weight: bold; }';
-    echo '.summary-table { width: 50%; margin: 20px auto; background-color: #f8f9fa; }';
-    echo '.summary-table th { background-color: #2ecc71; }';
-    echo '.even-row { background-color: #f5f6fa; }';
-    echo '.number { color: #e74c3c; font-weight: bold; }';
-    echo '@media print { .no-print { display: none; } }';
-    echo '</style>';
-    echo '</head>';
-    echo '<body>';
+    // Create new Spreadsheet object
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
 
-    // หัวข้อรายงาน
-    echo '<div class="title">รายงานแบรนด์สินค้า</div>';
-    echo '<div class="subtitle">วันที่ออกรายงาน: ' . date('d/m/Y H:i:s') . '</div>';
+    // Set column A as text
+    $sheet->getStyle('A')->getNumberFormat()->setFormatCode('@');
 
-    // ตารางข้อมูลหลัก
-    echo '<table>';
-    echo '<tr>';
-    echo '<th style="width: 15%;">รหัสแบรนด์</th>';
-    echo '<th style="width: 50%;">ชื่อแบรนด์สินค้า</th>';
-    echo '<th style="width: 35%;">จำนวนสินค้า</th>';
-    echo '</tr>';
+    // Report title
+    $sheet->setCellValue('A1', 'รายงานแบรนด์สินค้า');
+    $sheet->mergeCells('A1:C1');
+    $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle('A1')->getFont()->setBold(true);
+    $sheet->getRowDimension(1)->setRowHeight(25);
 
-    // วนลูปแสดงข้อมูล
+    // Report date
+    $sheet->setCellValue('A2', 'วันที่ออกรายงาน: ' . date('d/m/Y H:i:s'));
+    $sheet->mergeCells('A2:C2');
+    $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getRowDimension(2)->setRowHeight(20);
+
+    // Empty row
+    $row = 3;
+    $sheet->getRowDimension($row)->setRowHeight(15);
+
+    // Table headers
+    $row++;
+    $sheet->setCellValueExplicit('A' . $row, 'รหัสแบรนด์', DataType::TYPE_STRING);
+    $sheet->setCellValue('B' . $row, 'ชื่อแบรนด์สินค้า');
+    $sheet->setCellValue('C' . $row, 'จำนวนสินค้า');
+
+    // Header styling
+    $headerStyle = [
+        'font' => [
+            'bold' => true,
+        ],
+        'borders' => [
+            'allBorders' => [
+                'borderStyle' => Border::BORDER_THIN,
+                'color' => ['argb' => 'FF000000'], // Black border
+            ],
+        ],
+        'alignment' => [
+            'horizontal' => Alignment::HORIZONTAL_CENTER,
+            'vertical' => Alignment::VERTICAL_CENTER,
+        ],
+    ];
+    $sheet->getStyle('A' . $row . ':C' . $row)->applyFromArray($headerStyle);
+    $sheet->getRowDimension($row)->setRowHeight(20);
+
+    // Data rows
     $totalProducts = 0;
-    $rowCount = 0;
+    $dataStartRow = $row + 1;
 
-    foreach ($productbrands as $brand) {
-        $rowClass = ($rowCount % 2 == 0) ? 'even-row' : '';
-        echo '<tr class="' . $rowClass . '">';
-        echo '<td class="center">' . $brand['product_brand_id'] . '</td>';
-        echo '<td class="left">' . htmlspecialchars($brand['product_brand_name']) . '</td>';
-        echo '<td class="center"><span class="number">' . number_format($brand['product_count']) . '</span> รายการ</td>';
-        echo '</tr>';
-
-        $totalProducts += $brand['product_count'];
-        $rowCount++;
+    if (count($productbrands) > 0) {
+        foreach ($productbrands as $brand) {
+            $row++;
+            $sheet->setCellValueExplicit('A' . $row, $brand['product_brand_id'], DataType::TYPE_STRING);
+            $sheet->setCellValue('B' . $row, $brand['product_brand_name']);
+            $sheet->setCellValue('C' . $row, number_format($brand['product_count']) . ' รายการ');
+            $sheet->getRowDimension($row)->setRowHeight(20);
+            $totalProducts += $brand['product_count'];
+        }
+    } else {
+        $row++;
+        $sheet->setCellValue('A' . $row, 'ไม่พบข้อมูลแบรนด์สินค้า');
+        $sheet->mergeCells('A' . $row . ':C' . $row);
+        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getRowDimension($row)->setRowHeight(20);
     }
 
-    // แถวสรุปผลรวม
-    echo '<tr class="summary">';
-    echo '<td colspan="2" class="right">รวมทั้งหมด</td>';
-    echo '<td class="center"><span class="number">' . number_format($totalProducts) . '</span> รายการ</td>';
-    echo '</tr>';
-    echo '</table>';
+    // Summary row
+    $row++;
+    $sheet->setCellValue('A' . $row, 'รวมทั้งหมด');
+    $sheet->mergeCells('A' . $row . ':B' . $row);
+    $sheet->setCellValue('C' . $row, number_format($totalProducts) . ' รายการ');
+    $sheet->getStyle('A' . $row . ':C' . $row)->getFont()->setBold(true);
+    $sheet->getRowDimension($row)->setRowHeight(20);
 
-    // ตารางสรุป
-    echo '<br>';
-    echo '<table class="summary-table">';
-    echo '<tr><th colspan="2">สรุปรายงาน</th></tr>';
-    echo '<tr>';
-    echo '<td class="left" style="width: 70%;">จำนวนแบรนด์สินค้าทั้งหมด</td>';
-    echo '<td class="center"><span class="number">' . count($productbrands) . '</span> แบรนด์</td>';
-    echo '</tr>';
-    echo '<tr>';
-    echo '<td class="left">จำนวนสินค้าทั้งหมด</td>';
-    echo '<td class="center"><span class="number">' . number_format($totalProducts) . '</span> รายการ</td>';
-    echo '</tr>';
-    echo '</table>';
+    // Apply borders to data and summary
+    $styleArray = [
+        'borders' => [
+            'allBorders' => [
+                'borderStyle' => Border::BORDER_THIN,
+                'color' => ['argb' => 'FF000000'], // Black border
+            ],
+        ],
+    ];
+    $sheet->getStyle('A' . $dataStartRow . ':C' . $row)->applyFromArray($styleArray);
 
-    echo '</body>';
-    echo '</html>';
+    // Set column widths
+    $sheet->getColumnDimension('A')->setWidth(15); // รหัสแบรนด์
+    $sheet->getColumnDimension('B')->setWidth(40); // ชื่อแบรนด์สินค้า
+    $sheet->getColumnDimension('C')->setWidth(20); // จำนวนสินค้า
+
+    // Set headers for download
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="ProductBrandReport_' . date('Ymd_His') . '.xlsx"');
+    header('Cache-Control: max-age=0');
+
+    $writer = new Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
 
 } catch (PDOException $e) {
-    // กรณีเกิดข้อผิดพลาด
-    echo '<div style="color: #e74c3c; font-weight: bold; text-align: center; margin: 20px; padding: 15px; background-color: #ffebee;">';
-    echo 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' . htmlspecialchars($e->getMessage());
-    echo '</div>';
+    // Create error spreadsheet
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setCellValue('A1', 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' . $e->getMessage());
+    $sheet->mergeCells('A1:C1');
+    $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle('A1')->getFont()->setBold(true);
+    $sheet->getRowDimension(1)->setRowHeight(25);
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="ErrorReport_' . date('Ymd_His') . '.xlsx"');
+    header('Cache-Control: max-age=0');
+
+    $writer = new Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
 }
+?>
