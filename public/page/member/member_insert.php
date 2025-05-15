@@ -1,26 +1,79 @@
 <?php
 ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
+session_start();
+date_default_timezone_set('Asia/Bangkok');
+
+// สร้าง CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// ดึงประเภทสมาชิก
+try {
+    $queryTypes = "SELECT member_type_id, member_type_name FROM member_type";
+    $typeResults = $pdo->query($queryTypes);
+} catch (PDOException $e) {
+    die("Member type fetch error: " . htmlspecialchars($e->getMessage()));
+}
+
+// ดึงรายชื่อพนักงาน
+try {
+    $queryPersonnels = "SELECT personnel_id, personnel_name FROM personnel";
+    $personnelResults = $pdo->query($queryPersonnels);
+} catch (PDOException $e) {
+    die("Personnel fetch error: " . htmlspecialchars($e->getMessage()));
+}
 
 // Handle POST request for inserting a new member
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = $_POST['name'];
-    $address = $_POST['address'];
-    $phone = $_POST['phone'];
-    $registerdate = $_POST['registerdate'];
-    $typename = $_POST['typename'];
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        header('Location: ?page=member_add&error=' . urlencode('Invalid CSRF token'));
+        exit;
+    }
 
-    $stmt = $pdo->prepare('INSERT INTO member (member_name, member_address, member_phone, member_register_date, member_type_id) VALUES (?, ?, ?, ?, ?)');
-    $stmt->execute([$name, $address, $phone, $registerdate, $typename]);
+    $name = trim($_POST['name'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $registerdate = date('Y-m-d H:i:s'); // ใช้เวลาปัจจุบันในรูปแบบ DATETIME
+    $typename = filter_var($_POST['typename'] ?? 0, FILTER_VALIDATE_INT);
+    $personnel = filter_var($_POST['personnel'] ?? 0, FILTER_VALIDATE_INT);
 
-    $member_id = $pdo->lastInsertId();
-    header("Location: /?page=member_detail&tabel=member&id=$member_id");
-    exit;
+    // ตรวจสอบข้อมูล
+    $errors = [];
+    if (empty($name) || strlen($name) > 255) {
+        $errors[] = 'ชื่อ-สกุลต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร';
+    }
+    if (empty($address) || strlen($address) > 500) {
+        $errors[] = 'ที่อยู่ต้องไม่ว่างและมีความยาวไม่เกิน 500 ตัวอักษร';
+    }
+    if (!empty($phone) && !preg_match('/^[0-9]{10}$/', $phone)) {
+        $errors[] = 'เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 ตัว';
+    }
+    if (!$typename) {
+        $errors[] = 'กรุณาเลือกประเภทสมาชิก';
+    }
+    if (!$personnel) {
+        $errors[] = 'กรุณาเลือกพนักงาน';
+    }
+
+    if (!empty($errors)) {
+        header('Location: ?page=member_add&error=' . urlencode(implode(', ', $errors)));
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare('INSERT INTO member (member_name, member_address, member_phone, member_register_date, member_type_id, personnel_id) VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$name, $address, $phone, $registerdate, $typename, $personnel]);
+
+        $member_id = $pdo->lastInsertId();
+        header("Location: /?page=member_detail&tabel=member&id=$member_id&success=1");
+        exit;
+    } catch (PDOException $e) {
+        header('Location: ?page=member_add&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
+        exit;
+    }
 }
-
-// Fetch member types for dropdown
-$queryTypes = "SELECT member_type_id, member_type_name FROM member_type";
-$results = $pdo->query($queryTypes);
 
 ob_end_flush();
 ?>
@@ -31,92 +84,292 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="../../output.css" rel="stylesheet">
-    <title>เพิ่มสมาชิก</title>
+    <link href="/output.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>เพิ่มสมาชิก | ระบบจัดการข้อมูล</title>
 </head>
 
-<body class="bg-gray-100 font-sans">
-    <div class="container mx-auto xl:max-w-4xl p-4">
-        <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">เพิ่มสมาชิกใหม่</h2>
-        <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Member Insert Section -->
-            <div class="w-full">
-                <div class="bg-gray-50 border-2 border-gray-300 shadow-md rounded-lg">
-                    <h3 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-xl font-bold p-4 border-b-2 border-gray-400 rounded-t-lg">
-                        ข้อมูลสมาชิก
-                    </h3>
-                    <form class="p-6 space-y-1" action="" method="POST">
-                        <!-- Member Fields -->
-                        <?php
-                        $fields = [
-                            ['label' => 'ชื่อ-สกุล', 'name' => 'name', 'value' => '', 'id' => 'member-name', 'required' => true],
-                            ['label' => 'ที่อยู่', 'name' => 'address', 'value' => ''],
-                            ['label' => 'เบอร์โทร', 'name' => 'phone', 'value' => ''],
-                            ['label' => 'วันที่สมัคร', 'name' => 'registerdate', 'value' => date('Y-m-d'), 'readonly' => true, 'type' => 'date'],
-                        ];
-                        foreach ($fields as $field): ?>
-                            <div class="flex items-center gap-4">
-                                <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700"><?php echo $field['label']; ?>:</label>
-                                <div class="w-7/12 lg:w-8/12">
-                                    <?php if (!($field['readonly'] ?? false)): ?>
-                                        <input type="<?php echo $field['type'] ?? 'text'; ?>"
-                                               name="<?php echo $field['name']; ?>"
-                                               id="<?php echo $field['id'] ?? ''; ?>"
-                                               value="<?php echo htmlspecialchars($field['value']); ?>"
-                                               class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                               <?php echo ($field['required'] ?? false) ? 'required' : ''; ?>>
-                                    <?php else: ?>
-                                        <input type="<?php echo $field['type'] ?? 'text'; ?>"
-                                               name="<?php echo $field['name']; ?>"
-                                               value="<?php echo htmlspecialchars($field['value']); ?>"
-                                               class="w-full p-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600"
-                                               readonly>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+<body class="font-sans bg-gray-50 text-gray-800">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header Section -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-indigo-900">เพิ่มสมาชิก</h1>
+            <p class="text-gray-600">กรอกข้อมูลเพื่อเพิ่มสมาชิกใหม่ลงในระบบ</p>
+        </div>
 
-                        <!-- Member Type -->
-                        <div class="flex items-center gap-4">
-                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
-                                <a href="?page=member_type" class="text-blue-600 hover:underline">ประเภทสมาชิก:</a>
-                            </label>
-                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
-                                <?php if ($results->rowCount() > 0): ?>
-                                    <select name="typename" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                                        <?php while ($typeRow = $results->fetch(PDO::FETCH_ASSOC)): ?>
-                                            <option value="<?php echo htmlspecialchars($typeRow['member_type_id']); ?>">
-                                                <?php echo htmlspecialchars($typeRow['member_type_name']); ?>
-                                            </option>
-                                        <?php endwhile; ?>
-                                    </select>
-                                <?php else: ?>
-                                    <span class="text-gray-600">ไม่พบข้อมูลประเภทสมาชิก</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+        <!-- Form Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <form id="memberForm" class="space-y-4" action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
-                        <!-- Buttons -->
-                        <div class="flex justify-end gap-4 mt-6">
-                            <a href="/?page=member_list"
-                               class="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-200">
-                                ยกเลิก
-                            </a>
-                            <button type="submit"
-                                    class="mt-4 bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition duration-200">
-                                บันทึก
-                            </button>
-                        </div>
-                    </form>
+                <!-- ชื่อ-สกุล -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <label for="member-name" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">ชื่อ-สกุล:</label>
+                    <div class="w-full sm:w-3/4">
+                        <input type="text" name="name" id="member-name" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <span id="nameError" class="text-rose-500 text-xs mt-1 hidden">ชื่อ-สกุลต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร</span>
+                    </div>
+                </div>
+
+                <!-- ที่อยู่ -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <label for="member-address" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">ที่อยู่:</label>
+                    <div class="w-full sm:w-3/4">
+                        <textarea name="address" id="member-address" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none" rows="3"></textarea>
+                        <span id="addressError" class="text-rose-500 text-xs mt-1 hidden">ที่อยู่ต้องไม่ว่างและมีความยาวไม่เกิน 500 ตัวอักษร</span>
+                    </div>
+                </div>
+
+                <!-- เบอร์โทร -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <label for="member-phone" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">เบอร์โทร:</label>
+                    <div class="w-full sm:w-3/4">
+                        <input type="text" name="phone" id="member-phone" maxlength="10" pattern="[0-9]{10}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <span id="phoneError" class="text-rose-500 text-xs mt-1 hidden">เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 ตัว</span>
+                    </div>
+                </div>
+
+                <!-- วันที่สมัคร -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <label for="member-registerdate" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">วันที่สมัคร:</label>
+                    <div class="w-full sm:w-3/4">
+                        <input type="text" name="registerdate" id="member-registerdate" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600 cursor-not-allowed">
+                    </div>
+                </div>
+
+                <!-- ประเภทสมาชิก -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <label for="member-typename" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">
+                        <a href="?page=member_type" class="text-indigo-600 hover:underline">ประเภทสมาชิก:</a>
+                    </label>
+                    <div class="w-full sm:w-3/4">
+                        <?php if ($typeResults->rowCount() > 0): ?>
+                            <select name="typename" id="member-typename" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" required>
+                                <option value="" disabled selected>เลือกประเภทสมาชิก</option>
+                                <?php while ($typeRow = $typeResults->fetch(PDO::FETCH_ASSOC)): ?>
+                                    <option value="<?php echo htmlspecialchars($typeRow['member_type_id']); ?>">
+                                        <?php echo htmlspecialchars($typeRow['member_type_name']); ?>
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                            <span id="typenameError" class="text-rose-500 text-xs mt-1 hidden">กรุณาเลือกประเภทสมาชิก</span>
+                        <?php else: ?>
+                            <span class="text-gray-600">ไม่พบข้อมูลประเภทสมาชิก</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- พนักงาน -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <label for="member-personnel" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">
+                        <a href="?page=personnel_list" class="text-indigo-600 hover:underline">พนักงาน:</a>
+                    </label>
+                    <div class="w-full sm:w-3/4">
+                        <?php if ($personnelResults->rowCount() > 0): ?>
+                            <select name="personnel" id="member-personnel" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" required>
+                                <option value="" disabled selected>เลือกพนักงาน</option>
+                                <?php while ($person = $personnelResults->fetch(PDO::FETCH_ASSOC)): ?>
+                                    <option value="<?php echo htmlspecialchars($person['personnel_id']); ?>">
+                                        <?php echo htmlspecialchars($person['personnel_name']); ?>
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                            <span id="personnelError" class="text-rose-500 text-xs mt-1 hidden">กรุณาเลือกพนักงาน</span>
+                        <?php else: ?>
+                            <span class="text-gray-600">ไม่พบข้อมูลพนักงาน</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- ปุ่ม -->
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" onclick="showCancelModal()"
+                        class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        ยกเลิก
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Cancel Confirmation Modal -->
+        <div id="cancelModal"
+            class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 opacity-0 invisible transition-all duration-300 backdrop-blur-sm">
+            <div class="bg-white rounded-lg w-full max-w-md p-6 relative transform scale-95 transition-all duration-300">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">ยืนยันการยกเลิก</h3>
+                    <p class="text-sm text-gray-500 mb-6">คุณแน่ใจหรือไม่ว่าต้องการยกเลิก? ข้อมูลที่กรอกจะไม่ถูกบันทึก</p>
+
+                    <div class="flex justify-center gap-3">
+                        <button type="button" onclick="closeCancelModal()"
+                            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            อยู่ต่อ
+                        </button>
+                        <a href="/?page=member_list"
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+                            ยกเลิก
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Toast Notification -->
+        <div id="notification"
+            class="fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 transform translate-x-full transition-transform duration-300 z-50 flex items-center">
+            <div id="notification-header" class="flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg">
+                <i id="notificationIcon" class="fas fa-check-circle text-2xl"></i>
+            </div>
+            <div class="flex-1 ml-4 pr-4 py-4">
+                <p id="notificationTitle" class="text-sm font-medium text-gray-900"></p>
+                <p id="notificationMessage" class="mt-1 text-sm text-gray-500"></p>
+            </div>
+            <button onclick="hideNotification()" class="mr-4 text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
     </div>
 
-    <!-- Focus on name field when page loads -->
     <script>
+        function showCancelModal() {
+            const modal = document.getElementById('cancelModal');
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.querySelector('.transform').classList.remove('scale-95');
+            modal.querySelector('.transform').classList.add('scale-100');
+        }
+
+        function closeCancelModal() {
+            const modal = document.getElementById('cancelModal');
+            modal.classList.add('invisible', 'opacity-0');
+            modal.querySelector('.transform').classList.remove('scale-100');
+            modal.querySelector('.transform').classList.add('scale-95');
+        }
+
+        function showNotification(message, headerClass) {
+            const notification = document.getElementById('notification');
+            const header = document.getElementById('notification-header');
+            const title = document.getElementById('notificationTitle');
+            const body = document.getElementById('notificationMessage');
+            const icon = document.getElementById('notificationIcon');
+
+            header.className = `flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg ${headerClass}`;
+            title.textContent = 'แจ้งเตือน';
+            body.textContent = message;
+            icon.className = `fas ${headerClass.includes('bg-green') ? 'fa-check-circle' : 'fa-exclamation-circle'} text-2xl`;
+            notification.classList.remove('translate-x-full');
+
+            setTimeout(() => {
+                hideNotification();
+            }, 5000);
+        }
+
+        function hideNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.add('translate-x-full');
+        }
+
+        // อัปเดตวันที่และเวลาแบบเรียลไทม์
+        function updateDateTime() {
+            const dateInput = document.getElementById('member-registerdate');
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        document.getElementById('memberForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('member-name').value.trim();
+            const address = document.getElementById('member-address').value.trim();
+            const phone = document.getElementById('member-phone').value.trim();
+            const typename = document.getElementById('member-typename').value;
+            const personnel = document.getElementById('member-personnel').value;
+            const nameError = document.getElementById('nameError');
+            const addressError = document.getElementById('addressError');
+            const phoneError = document.getElementById('phoneError');
+            const typenameError = document.getElementById('typenameError');
+            const personnelError = document.getElementById('personnelError');
+
+            let hasError = false;
+
+            if (!name || name.length > 255) {
+                nameError.textContent = 'ชื่อ-สกุลต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร';
+                nameError.classList.remove('hidden');
+                hasError = true;
+            } else {
+                nameError.classList.add('hidden');
+            }
+
+            if (!address || address.length > 500) {
+                addressError.textContent = 'ที่อยู่ต้องไม่ว่างและมีความยาวไม่เกิน 500 ตัวอักษร';
+                addressError.classList.remove('hidden');
+                hasError = true;
+            } else {
+                addressError.classList.add('hidden');
+            }
+
+            if (phone && !/^[0-9]{10}$/.test(phone)) {
+                phoneError.textContent = 'เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 ตัว';
+                phoneError.classList.remove('hidden');
+                hasError = true;
+            } else {
+                phoneError.classList.add('hidden');
+            }
+
+            if (!typename) {
+                typenameError.classList.remove('hidden');
+                hasError = true;
+            } else {
+                typenameError.classList.add('hidden');
+            }
+
+            if (!personnel) {
+                personnelError.classList.remove('hidden');
+                hasError = true;
+            } else {
+                personnelError.classList.add('hidden');
+            }
+
+            if (!hasError) {
+                this.submit();
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
             document.getElementById('member-name').focus();
+            updateDateTime(); // อัปเดตวันที่และเวลาเมื่อโหลดหน้า
+            setInterval(updateDateTime, 1000); // อัปเดตทุกวินาที
+
+            if (urlParams.has('error')) {
+                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                showCancelModal();
+            }
+        });
+
+        document.getElementById('cancelModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCancelModal();
+            }
         });
     </script>
 </body>
