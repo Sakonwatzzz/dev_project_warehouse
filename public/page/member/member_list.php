@@ -784,29 +784,29 @@ ob_end_flush();
             document.getElementById('confirmDeleteBtn').onclick = () => {
                 const formData = new FormData(form);
                 fetch('', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = response.url;
-                    } else if (response.ok) {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                        } else if (response.ok) {
+                            closeDeleteModal();
+                            showNotification('ลบข้อมูลสำเร็จ', 'bg-green-500');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            return response.text().then(text => {
+                                throw new Error(text || 'Failed to delete');
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
                         closeDeleteModal();
-                        showNotification('ลบข้อมูลสำเร็จ', 'bg-green-500');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        return response.text().then(text => {
-                            throw new Error(text || 'Failed to delete');
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    closeDeleteModal();
-                    showNotification('เกิดข้อผิดพลาดในการลบ: ' + error.message, 'bg-red-500');
-                });
+                        showNotification('เกิดข้อผิดพลาดในการลบ: ' + error.message, 'bg-red-500');
+                    });
             };
         }
 
@@ -1000,11 +1000,10 @@ ob_end_flush();
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById('searchInput').focus();
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return; // ป้องกัน error ถ้า element ไม่มีจริง
+            searchInput.focus();
 
-            if (urlParams.has('search')) {
-                searchInput.focus();
-            }
 
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {

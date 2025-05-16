@@ -854,10 +854,8 @@ try {
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
-
-            if (urlParams.has('search')) {
-                searchInput.focus();
-            }
+            if (!searchInput) return; // ป้องกัน error ถ้า element ไม่มีจริง
+            searchInput.focus();
 
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
