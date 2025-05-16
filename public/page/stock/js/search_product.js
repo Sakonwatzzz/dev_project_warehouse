@@ -21,7 +21,7 @@ $(document).ready(function () {
             return;
         }
         $.ajax({
-            url: "page/stock/ajax/ajax_search_product.php",
+            url: "page/stock/api/api_search_product.php",
             method: "GET",
             data: { query: query, warehouse_id: warehouse_id },
             dataType: "json",
@@ -60,7 +60,7 @@ $(document).ready(function () {
 
     function fetchProductInfo(product_id, lot_id, lot_product_id) {
         $.ajax({
-            url: "page/stock/ajax/ajax_get_product.php",
+            url: "page/stock/api/api_get_product.php",
             method: "GET",
             data: { product_id, lot_id, lot_product_id },
             dataType: "json",
@@ -70,10 +70,10 @@ $(document).ready(function () {
                         <div class="bg-white rounded-lg p-4 shadow">
                             <p><strong>สินค้า:</strong> ${product.product_name}</p>
                             <p><strong>ล็อต:</strong> ${product.lot_name || 'N/A'}</p>
-                            <p><strong>จำนวนในระบบ:</strong> ${product.lot_product_remain}</p>
+                            <p><strong>จำนวนสินค้าในระบบ:</strong> ${product.lot_product_remain}</p>
                             <div class="mt-2">
-                                <label class="block text-sm font-medium text-gray-700">จำนวนจริง</label>
-                                <input type="number" id="actual_quantity" class="w-32 border rounded px-2 py-1" min="0" value="${product.lot_product_remain}">
+                                <label class="block text-sm font-medium text-gray-700">จำนวนสินค้าที่นับได้จริง</label>
+                                <input type="number" id="stock_check_actual" class="w-32 border rounded px-2 py-1" min="0" value="${product.lot_product_remain}">
                             </div>
                             <div class="mt-2">
                                 <label class="block text-sm font-medium text-gray-700">หมายเหตุ</label>
@@ -92,8 +92,8 @@ $(document).ready(function () {
                         isProcessing = true;
                         $(this).prop('disabled', true);
 
-                        const actual_quantity = parseFloat($('#actual_quantity').val());
-                        if (isNaN(actual_quantity) || actual_quantity < 0) {
+                        const stock_check_actual = parseFloat($('#stock_check_actual').val());
+                        if (isNaN(stock_check_actual) || stock_check_actual < 0) {
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'ข้อผิดพลาด',
@@ -110,15 +110,15 @@ $(document).ready(function () {
                             lot_product_id: $(this).data('lot-product-id'),
                             product_id: $(this).data('product-id'),
                             warehouse_id: $(this).data('warehouse-id'),
-                            system_quantity: $(this).data('system-quantity'),
-                            actual_quantity: actual_quantity,
+                            stock_check_system: $(this).data('system-quantity'),
+                            stock_check_actual: stock_check_actual,
                             stock_check_date: luxon.DateTime.local().toFormat('yyyy-MM-dd HH:mm:ss'),
                             stock_check_remark: $('#stock_check_remark').val(),
-                            personnel_id: 1 // Replace with actual personnel_id
+                            personnel_id: 1 
                         };
 
                         $.ajax({
-                            url: 'page/stock/ajax/ajax_insert_stock.php',
+                            url: 'page/stock/api/api_insert_stock.php',
                             method: 'POST',
                             data: data,
                             dataType: 'json',

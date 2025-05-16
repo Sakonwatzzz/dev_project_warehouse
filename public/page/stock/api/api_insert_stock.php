@@ -10,20 +10,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $lot_product_id = $_POST['lot_product_id'] ?? null;
             $product_id = $_POST['product_id'] ?? null;
             $warehouse_id = $_POST['warehouse_id'] ?? null;
-            $system_quantity = $_POST['system_quantity'] ?? null;
-            $actual_quantity = $_POST['actual_quantity'] ?? null;
+            $stock_check_system = $_POST['stock_check_system'] ?? null;
+            $stock_check_actual = $_POST['stock_check_actual'] ?? null;
             $stock_check_date = $_POST['stock_check_date'] ?? null;
             $stock_check_remark = $_POST['stock_check_remark'] ?? '';
             $personnel_id = $_POST['personnel_id'] ?? null;
             $check_status_id = 1; // Default to 'pending'
 
             // Validation
-            if (!$lot_id || !$lot_product_id || !$product_id || !$warehouse_id || $system_quantity === null || $actual_quantity === null || !$stock_check_date || !$personnel_id) {
+            if (!$lot_id || !$lot_product_id || !$product_id || !$warehouse_id || $stock_check_system === null || $stock_check_actual === null || !$stock_check_date || !$personnel_id) {
                 echo json_encode(['status' => 'error', 'message' => 'กรุณากรอกข้อมูลให้ครบถ้วน']);
                 exit;
             }
 
-            if (!is_numeric($system_quantity) || !is_numeric($actual_quantity) || $actual_quantity < 0) {
+            if (!is_numeric($stock_check_system) || !is_numeric($stock_check_actual) || $stock_check_actual < 0) {
                 echo json_encode(['status' => 'error', 'message' => 'จำนวนต้องเป็นตัวเลขและไม่ติดลบ']);
                 exit;
             }
@@ -42,10 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // Insert into stock_check
             $stmt = $pdo->prepare("
-                INSERT INTO stock_check (lot_id, lot_product_id, product_id, warehouse_id, system_quantity, actual_quantity, stock_check_date, stock_check_remark, personnel_id, check_status_id)
+                INSERT INTO stock_check (lot_id, lot_product_id, product_id, warehouse_id, stock_check_system, stock_check_actual, stock_check_date, stock_check_remark, personnel_id, check_status_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $system_quantity, $actual_quantity, $stock_check_date, $stock_check_remark, $personnel_id, $check_status_id]);
+            $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $stock_check_system, $stock_check_actual, $stock_check_date, $stock_check_remark, $personnel_id, $check_status_id]);
 
             echo json_encode(['status' => 'success', 'message' => 'บันทึกสำเร็จ']);
         } elseif ($_POST['action'] === 'insert_check_products') {
@@ -68,14 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $lot_id = $product['lot_id'] ?? null;
                     $lot_product_id = $product['lot_product_id'] ?? null;
                     $product_id = $product['product_id'] ?? null;
-                    $system_quantity = $product['system_quantity'] ?? null;
-                    $actual_quantity = $product['actual_quantity'] ?? null;
+                    $stock_check_system = $product['stock_check_system'] ?? null;
+                    $stock_check_actual = $product['stock_check_actual'] ?? null;
 
-                    if (!$lot_id || !$lot_product_id || !$product_id || $system_quantity === null || $actual_quantity === null) {
+                    if (!$lot_id || !$lot_product_id || !$product_id || $stock_check_system === null || $stock_check_actual === null) {
                         throw new Exception('ข้อมูลสินค้าไม่ครบถ้วน');
                     }
 
-                    if (!is_numeric($system_quantity) || !is_numeric($actual_quantity) || $actual_quantity < 0) {
+                    if (!is_numeric($stock_check_system) || !is_numeric($stock_check_actual) || $stock_check_actual < 0) {
                         throw new Exception('จำนวนต้องเป็นตัวเลขและไม่ติดลบ');
                     }
 
@@ -92,10 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                     // Insert into stock_check
                     $stmt = $pdo->prepare("
-                        INSERT INTO stock_check (lot_id, lot_product_id, product_id, warehouse_id, system_quantity, actual_quantity, stock_check_date, stock_check_remark, personnel_id, check_status_id)
+                        INSERT INTO stock_check (lot_id, lot_product_id, product_id, warehouse_id, stock_check_system, stock_check_actual, stock_check_date, stock_check_remark, personnel_id, check_status_id)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
-                    $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $system_quantity, $actual_quantity, $stock_check_date, $stock_check_remark, $personnel_id, $check_status_id]);
+                    $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $stock_check_system, $stock_check_actual, $stock_check_date, $stock_check_remark, $personnel_id, $check_status_id]);
                 }
                 $pdo->commit();
                 echo json_encode(['status' => 'success', 'message' => 'บันทึกสำเร็จ']);

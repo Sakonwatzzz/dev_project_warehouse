@@ -15,7 +15,7 @@ try {
         warehouse.warehouse_id, 
         warehouse.warehouse_name, 
         stock_check.warehouse_id, 
-        stock_check.system_quantity, 
+        stock_check.stock_check_system, 
         stock_check.stock_check_date, 
         stock_check.stock_check_remark, 
         personnel.personnel_id, 
@@ -171,9 +171,10 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
 
             <div id="tab-content">
                 <div class="flex mb-4">
-                    <button id="active-tab-btn" class="px-4 py-2 bg-blue-500 text-white rounded-l-md">Active</button>
-                    <button id="history-tab-btn"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-r-md">History</button>
+                    <button id="active-tab-btn" class="px-4 py-2 bg-blue-500 text-white rounded-l-md"
+                        hidden>Active</button>
+                    <!-- <button id="history-tab-btn"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-r-md">History</button> -->
                 </div>
                 <div id="active-tab" class="tab-content">
                     <div class="bg-white overflow-hidden shadow-md rounded-lg">
@@ -181,12 +182,22 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <input type="checkbox" id="select-all-list"
+                                                class="rounded text-blue-500 focus:ring-blue-400">
+                                        </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                             รหัสเช็คสต๊อก</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                             วันที่</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                             คลังสินค้า</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            รหัสสินค้า</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            จำนวนสินค้าจากระบบ</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            จำนวนสินค้าที่นับได้จริง</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                             จำนวนรายการ</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -199,9 +210,9 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                                             การจัดการ</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200" id="active-stock-checks">
+                                <tbody class="bg-white divide-y divide-gray-200" id="active-stock-check">
                                     <tr>
-                                        <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">ไม่มีข้อมูล
+                                        <td colspan="12" class="px-6 py-4 text-center text-sm text-gray-500">ไม่มีข้อมูล
                                         </td>
                                     </tr>
                                 </tbody>
@@ -209,40 +220,7 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                         </div>
                     </div>
                 </div>
-                <div id="history-tab" class="tab-content hidden">
-                    <div class="bg-white overflow-hidden shadow-md rounded-lg">
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                            รหัสเช็คสต๊อก</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                            วันที่</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                            คลังสินค้า</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                            จำนวนรายการ</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                            พนักงาน</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                            ผู้อนุมัติ</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                            สถานะ</th>
-                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                                            การจัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200" id="history-stock-checks">
-                                    <tr>
-                                        <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">ไม่มีข้อมูล
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+
             </div>
         </main>
     </div>
@@ -310,7 +288,8 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                                         <tr>
                                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 <input type="checkbox" id="select-all-products"
-                                                    class="rounded text-blue-500 focus:ring-blue-400"></th>
+                                                    class="rounded text-blue-500 focus:ring-blue-400">
+                                            </th>
                                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 รหัส</th>
                                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
@@ -322,7 +301,7 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                                                 จำนวนในระบบ</th>
                                             <th
                                                 class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                                                จำนวนจริง</th>
+                                                จำนวนที่นับได้จริง</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-200" id="product-list"></tbody>
@@ -334,11 +313,12 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
             </div>
             <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-4">
                 <button
-                    class="close-modal px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none">ยกเลิก</button>
+                    class="close-modal px-4 py-2 bg-amber-500 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none">ยกเลิก</button>
                 <button id="btn-create-stock-check"
                     class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none">สร้างรายการเช็คสต๊อก</button>
             </div>
         </div>
+
     </div>
 
     <script>
@@ -405,10 +385,15 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
             $('#product-list input[type="checkbox"]').prop('checked', this.checked);
         });
 
+
+        $('#select-all-list').change(function(){
+            $('#active-stock-check input[type="checkbox"]');
+        });
+        
         // Load products via Ajax
         function loadProducts(warehouse_id, query = '') {
             $.ajax({
-                url: 'page/stock/ajax/ajax_search_product.php',
+                url: 'page/stock/api/api_search_product.php',
                 method: 'GET',
                 data: { warehouse_id: warehouse_id, query: query },
                 dataType: 'json',
@@ -451,8 +436,8 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
 
             $('#product-list .product-select:checked').each(function () {
                 const row = $(this).closest('tr');
-                const actual_quantity = parseFloat(row.find('.actual-quantity').val());
-                if (isNaN(actual_quantity) || actual_quantity < 0) {
+                const stock_check_actual = parseFloat(row.find('.actual-quantity').val());
+                if (isNaN(stock_check_actual) || stock_check_actual < 0) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'ข้อผิดพลาด',
@@ -466,8 +451,8 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                     product_id: $(this).data('product-id'),
                     lot_id: $(this).data('lot-id'),
                     lot_product_id: $(this).data('lot-product-id'),
-                    system_quantity: parseFloat($(this).data('system-quantity')),
-                    actual_quantity: actual_quantity
+                    stock_check_system: parseFloat($(this).data('system-quantity')),
+                    stock_check_actual: stock_check_actual
                 });
             });
 
@@ -483,7 +468,7 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
             }
 
             $.ajax({
-                url: 'page/stock/ajax/ajax_insert_stock.php',
+                url: 'page/stock/api/api_insert_stock.php',
                 method: 'POST',
                 data: {
                     action: 'insert_check_products',
@@ -529,19 +514,19 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
         // Tab switching
         $('#active-tab-btn').click(function () {
             $('#active-tab').removeClass('hidden');
-            $('#history-tab').addClass('hidden');
+            // $('#history-tab').addClass('hidden');
             $(this).addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-700');
-            $('#history-tab-btn').addClass('bg-gray-200 text-gray-700').removeClass('bg-blue-500 text-white');
+            // $('#history-tab-btn').addClass('bg-gray-200 text-gray-700').removeClass('bg-blue-500 text-white');
             updateStockTable('active');
         });
 
-        $('#history-tab-btn').click(function () {
-            $('#history-tab').removeClass('hidden');
-            $('#active-tab').addClass('hidden');
-            $(this).addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-700');
-            $('#active-tab-btn').addClass('bg-gray-200 text-gray-700').removeClass('bg-blue-500 text-white');
-            updateStockTable('history');
-        });
+        // $('#history-tab-btn').click(function () {
+        //     $('#history-tab').removeClass('hidden');
+        //     $('#active-tab').addClass('hidden');
+        //     $(this).addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-700');
+        //     $('#active-tab-btn').addClass('bg-gray-200 text-gray-700').removeClass('bg-blue-500 text-white');
+        //     updateStockTable('history');
+        // });
 
         // Search and update table
         $('#btn-search').click(function () {
@@ -550,34 +535,45 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
 
         function updateStockTable(tab) {
             const warehouse_id = $('#warehouse_id').val();
+            const product_id = $('#product_id').val();
             const status = $('#status').val();
             const date_range = $('#date_range').val();
             const isHistory = tab === 'history';
             $.ajax({
-                url: 'page/stock/ajax/ajax_stock_list.php',
+                url: 'page/stock/api/api_stock_list.php',
                 method: 'GET',
-                data: { warehouse_id, status, date_range, tab },
+                data: { warehouse_id, product_id, status, date_range, tab },
                 dataType: 'json',
                 success: function (data) {
                     const tbody = $(`#${tab}-stock-checks`).empty();
+                    if (!Array.isArray(data)) {
+                        tbody.append(`<tr><td colspan="${isHistory ? 8 : 7}" class="px-6 py-4 text-center text-sm text-gray-500">ไม่มีข้อมูลหรือรูปแบบข้อมูลไม่ถูกต้อง</td></tr>`);
+                        console.error('Response is not an array:', data);
+                        return;
+                    }
                     if (data.length === 0) {
                         tbody.append(`<tr><td colspan="${isHistory ? 8 : 7}" class="px-6 py-4 text-center text-sm text-gray-500">ไม่มีข้อมูล</td></tr>`);
                         return;
                     }
                     data.forEach(item => {
+                        console.log('Rendering iten :' , item)
                         const row = `
                             <tr>
+                                <td class="px-3 py-2">
+                                    <input type="checkbox" class="stock-check-select rounded text-blue-500 focus:ring-blue-400" 
+                                    data-stock-check-id="${item.stock_check_id}">
+                                </td>
                                 <td class="px-6 py-4">${item.stock_check_id}</td>
                                 <td class="px-6 py-4">${item.stock_check_date}</td>
                                 <td class="px-6 py-4">${item.warehouse_name}</td>
+                                <td class="px-6 py-4">${item.product_id}</td>
+                                <td class="px-6 py-4">${item.stock_check_system}</td>
+                                <td class="px-6 py-4">${item.stock_check_actual}</td>
                                 <td class="px-6 py-4">${item.item_count}</td>
                                 <td class="px-6 py-4">${item.personnel_name}</td>
-                                ${isHistory ? `<td class="px-6 py-4">${item.approver_name || 'N/A'}</td>` : ''}
                                 <td class="px-6 py-4">${item.check_status_name}</td>
                                 <td class="px-6 py-4">${item.stock_check_remark || ''}</td>
-                                <td class="px-6 py-4 text-right">
-                                    <button class="text-blue-500 hover:underline edit-stock-check" data-id="${item.stock_check_id}">แก้ไข</button>
-                                </td>
+                         
                             </tr>`;
                         tbody.append(row);
                     });

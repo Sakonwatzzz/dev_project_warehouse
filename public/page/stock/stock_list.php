@@ -15,7 +15,7 @@ try {
     warehouse.warehouse_id, 
     warehouse.warehouse_name, 
     stock_check.warehouse_id, 
-    stock_check.system_quantity, 
+    stock_check.stock_check_system, 
     stock_check.stock_check_date, 
     stock_check.stock_check_remark, 
     personnel.personnel_id, 

@@ -29,7 +29,7 @@ $(document).ready(function () {
 
   function fetchProductInfo(barcode) {
     $.ajax({
-      url: "page/sale/ajax/ajax_get_product.php",
+      url: "page/sale/api/api_get_product.php",
       method: "GET",
       data: {
         barcode: barcode,
@@ -75,7 +75,7 @@ $(document).ready(function () {
       return;
     }
     $.ajax({
-      url: "page/sale/ajax/ajax_search_product.php",
+      url: "page/sale/api/api_search_product.php",
       method: "GET",
       data: {
         query: query,

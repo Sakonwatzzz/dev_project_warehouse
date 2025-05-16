@@ -15,7 +15,7 @@ try {
         warehouse.warehouse_id, 
         warehouse.warehouse_name, 
         stock_check.warehouse_id, 
-        stock_check.system_quantity, 
+        stock_check.stock_check_system, 
         stock_check.stock_check_date, 
         stock_check.stock_check_remark, 
         personnel.personnel_id, 
@@ -221,7 +221,7 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                                                     <td class="px-6 py-4 text-sm text-gray-900">
                                                         <?php echo $check_stock_list['warehouse_id']; ?></td>
                                                     <td class="px-6 py-4 text-sm text-gray-900">
-                                                        <?php echo $check_stock_list['system_quantity']; ?></td>
+                                                        <?php echo $check_stock_list['stock_check_system']; ?></td>
                                                     <td class="px-6 py-4 text-sm text-gray-900">
                                                         <?php echo $check_stock_list['stock_check_date']; ?></td>
                                                     <td class="px-6 py-4 text-sm text-gray-900">
@@ -493,8 +493,8 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                     product_id: $(this).data('product-id'),
                     lot_id: $(this).data('lot-id'),
                     lot_product_id: $(this).data('lot-product-id'),
-                    system_quantity: $(this).data('system-quantity'),
-                    actual_quantity: row.find('.actual-quantity').val()
+                    stock_check_system: $(this).data('system-quantity'),
+                    stock_check_actual: row.find('.actual-quantity').val()
                 });
             });
 
@@ -513,8 +513,8 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                         lot_product_id: product.lot_product_id,
                         product_id: product.product_id,
                         warehouse_id: warehouse_id,
-                        system_quantity: product.system_quantity,
-                        actual_quantity: product.actual_quantity,
+                        stock_check_system: product.stock_check_system,
+                        stock_check_actual: product.stock_check_actual,
                         stock_check_date: stock_check_date,
                         stock_check_remark: stock_check_remark,
                         personnel_id: personnel_id
