@@ -83,7 +83,7 @@ try {
         ), 0) as source_qty_remaining
     FROM lot_product lp
     LEFT JOIN product p ON lp.product_id = p.product_id
-    WHERE lp.lot_id = :lot_id";
+    WHERE lp.lot_id = :lot_id AND lp.lot_product_qty > 0";
     $stmt = $pdo->prepare($query_products);
     $stmt->execute(['lot_id' => $lot_id, 'warehouse_from_id' => $lot['warehouse_from_id']]);
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -99,13 +99,10 @@ try {
     echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-center my-4">เกิดข้อผิดพลาด: ' . htmlspecialchars($e->getMessage()) . '</div>';
     exit;
 }
-
-
 ?>
 
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -116,132 +113,29 @@ try {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-
-        .card {
-            background-color: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .highlight-row {
-            background-color: #fff3cd;
-        }
-
-        .status-pending {
-            color: #f59e0b;
-            font-weight: 600;
-        }
-
-        .status-confirmed {
-            color: #10b981;
-            font-weight: 600;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background-color: #f3f4f6;
-            text-align: left;
-            padding: 0.75rem;
-            font-weight: 600;
-            color: #374151;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        td {
-            padding: 0.75rem;
-            border-bottom: 1px solid #e5e7eb;
-            vertical-align: middle;
-        }
-
-        .total-row {
-            background-color: #f9fafb;
-            font-weight: 500;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            margin: 15% auto;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal-content {
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        .bg-pink-100 {
-            background-color: #fbcfe8 !important;
-        }
-
-        .bg-pink-500 {
-            background-color: #ec4899 !important;
-        }
-
-        .bg-red-100 {
-            background-color: #fee2e2 !important;
-        }
-
-        table {
-            table-layout: fixed;
-        }
-
-        th,
-        td {
-            word-wrap: break-word;
-        }
-
-        .loading {
-            pointer-events: none;
-            opacity: 0.7;
-        }
+        body { background-color: #f8f9fa; }
+        .card { background-color: white; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 1.5rem; }
+        .highlight-row { background-color: #fff3cd; }
+        .status-pending { color: #f59e0b; font-weight: 600; }
+        .status-confirmed { color: #10b981; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th { background-color: #f3f4f6; text-align: left; padding: 0.75rem; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; }
+        td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; vertical-align: middle; word-wrap: break-word; }
+        .total-row { background-color: #f9fafb; font-weight: 500; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
+        .modal-content { background: white; margin: 15% auto; padding: 2rem; border-radius: 0.5rem; width: 90%; max-width: 500px; box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); max-height: 90vh; overflow-y: auto; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .bg-pink-100 { background-color: #fbcfe8 !important; }
+        .bg-pink-500 { background-color: #ec4899 !important; }
+        .bg-red-100 { background-color: #fee2e2 !important; }
+        .loading { pointer-events: none; opacity: 0.7; }
     </style>
 </head>
-
 <body class="min-h-screen">
     <div class="mx-auto px-4 py-8 container max-w-7xl">
-        <h4 class=" md:text-4xl font-bold text-gray-800 mb-6 ">รายละเอียดการย้ายคลังสินค้า</h4>
+        <h4 class="md:text-4xl font-bold text-gray-800 mb-6">รายละเอียดการย้ายคลังสินค้า</h4>
 
         <!-- Lot Details Card -->
         <div class="card mb-6">
@@ -290,7 +184,6 @@ try {
                         echo "ยังไม่ระบุ";
                     }
                     ?>
-
                 </div>
             </div>
         </div>
@@ -313,9 +206,8 @@ try {
                         <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all">
                             <i class="fas fa-plus mr-2"></i>เพิ่ม/ลบ
                         </button>
-
                     </div>
-                    <div class=" flex flex-row space-x-8">
+                    <div class="flex flex-row space-x-8">
                         <p class="text-sm text-green-700 mt-1">
                             <i class="fas fa-info-circle mr-1"></i>
                             รูปแบบการย้าย: รหัส หรือ จำนวน*รหัส
@@ -331,10 +223,6 @@ try {
 
         <!-- Product Table -->
         <div class="card">
-            <div class="flex justify-between items-center mb-4">
-                <!-- <h3 class="text-xl font-semibold text-gray-800">รายการสินค้าที่ย้ายคลัง</h3> -->
-            </div>
-
             <div class="overflow-x-auto">
                 <table class="w-full" id="products-table">
                     <thead>
@@ -348,8 +236,6 @@ try {
                             <th class="px-4 py-3 text-center">สถานะ</th>
                             <?php if (!$is_confirmed): ?>
                                 <th class="px-4 py-3 text-center">การจัดการ</th>
-
-
                             <?php endif; ?>
                         </tr>
                     </thead>
@@ -401,13 +287,13 @@ try {
                                 <td class="px-4 py-3 text-center font-bold"><?php echo number_format($total_qty, 0); ?></td>
                                 <td class="px-4 py-3"></td>
                                 <td class="px-4 py-3 text-right font-bold"><?php echo number_format($total_value, 2); ?> บาท</td>
-                                <td colspan="<?php echo (!is_null($lot_status_id) && $lot_status_id != 2 && $lot_status_name !== "ยืนยันแล้ว" ? 2 : 1); ?>" class="px-4 py-3"></td>
+                                <td colspan="<?php echo $is_confirmed ? 1 : 2; ?>" class="px-4 py-3"></td>
                             </tr>
                         <?php } ?>
                     </tbody>
                 </table>
             </div>
-            <?php if (!$is_confirmed && count($products) > 0): ?>
+            <?php if (!$is_confirmed): ?>
                 <div class="mt-6 text-center sm:text-right">
                     <button class="btn bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-all confirm-transfer"
                         data-lot-id="<?php echo $lot['lot_id']; ?>">
@@ -457,7 +343,6 @@ try {
 
             // Utility functions
             const utils = {
-                // Refresh product table without reloading page
                 refreshProductTable: function() {
                     $.ajax({
                         url: 'page/lot/ajax/move_product/ajax_get_product_table.php',
@@ -473,13 +358,6 @@ try {
                                 utils.updateRowHighlighting();
                                 state.barcodeInput.focus();
                                 utils.rebindTableEvents();
-                                // Show success notification
-                                // Swal.fire({
-                                //     icon: 'success',
-                                //     title: 'อัปเดตตารางสำเร็จ',
-                                //     showConfirmButton: false,
-                                //     timer: 1500
-                                // });
                             } else {
                                 Swal.fire({
                                     icon: 'error',
@@ -518,12 +396,6 @@ try {
                 handleServerResponse: function(response) {
                     if (response.success) {
                         utils.refreshProductTable();
-                        // Swal.fire({
-                        //     icon: 'success',
-                        //     title: 'สำเร็จ',
-                        //     showConfirmButton: false,
-                        //     timer: 1500
-                        // });
                     } else {
                         Swal.fire({
                             icon: 'warning',
@@ -689,25 +561,34 @@ try {
                     $('#edit-modal').fadeOut(200);
                 });
 
-                // Confirm transfer (แบบฮาๆ หลายขั้น)
+                // Confirm transfer
                 $('.confirm-transfer').on('click', function() {
                     const lot_id = $(this).data('lot-id');
 
-                    const confirmations = [
-                        // 'เอาจริงดิ? จะย้ายแล้วนะ!',
-                        // 'จะย้ายจริง ๆ เหรอ? กดยืนยันสิ',
-                        // 'ขอย้ายเหอะ นะ ๆ 😅',
-                        // 'พร้อมย้าย กดเลย ไม่งั้นก็อยู่ต่อไปเถอะ!',
-                        // 'จะย้ายละนะ อย่ามาเสียใจทีหลังล่ะ',
-                        // 'นี่มันไม่ใช่การย้ายบ้านนะ แต่ก็ต้องยืนยันอยู่ดี!',
-                        // 'โอเคมั้ย? กำลังจะย้ายของแล้วนะ',
-                        // 'ย้ายสิ ย้ายเลย อย่าให้เสียของ!',
-                        'ยืนยันสิ อย่าลังเล ย้ายมันซะ!'
-                    ];
+                    // ตรวจสอบว่ามีสินค้าหรือไม่
+                    const hasProducts = $('#products-table tbody tr').length > 1 || !$('#products-table tbody tr').hasClass('total-row');
 
-                    const showConfirmStep = (index) => {
-                        if (index >= confirmations.length) {
-                            // ส่ง AJAX หลังจาก confirm สุดท้าย
+                    if (!hasProducts) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ไม่มีสินค้า',
+                            text: 'ต้องมีสินค้าอย่างน้อย 1 ชิ้นเพื่อยืนยันการย้าย',
+                            confirmButtonText: 'ตกลง'
+                        });
+                        return;
+                    }
+
+                    Swal.fire({
+                        icon: 'question',
+                        title: 'ยืนยันการย้ายคลังสินค้า',
+                        text: 'คุณต้องการยืนยันการย้ายสินค้าใน Lot นี้หรือไม่?',
+                        showCancelButton: true,
+                        confirmButtonText: 'ยืนยัน',
+                        cancelButtonText: 'ยกเลิก',
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
                             $.ajax({
                                 url: 'page/lot/ajax/move_product/ajax_move_lot.php',
                                 type: 'POST',
@@ -716,11 +597,16 @@ try {
                                     action: 'confirm_transfer'
                                 },
                                 dataType: 'json',
+                                beforeSend: function() {
+                                    $('.confirm-transfer').addClass('loading').prop('disabled', true);
+                                },
                                 success: function(response) {
+                                    $('.confirm-transfer').removeClass('loading').prop('disabled', false);
                                     if (response.success) {
                                         Swal.fire({
                                             icon: 'success',
                                             title: 'ยืนยันสำเร็จ',
+                                            text: response.message || 'การย้ายคลังสินค้าสำเร็จ',
                                             showConfirmButton: false,
                                             timer: 1500
                                         }).then(() => {
@@ -729,38 +615,22 @@ try {
                                     } else {
                                         Swal.fire({
                                             icon: 'error',
-                                            title: 'เกิดข้อผิดพลาด',
+                                            title: '⚠️ ไม่สามารถยืนยันได้',
                                             text: response.error || 'กรุณาลองใหม่อีกครั้ง'
                                         });
                                     }
                                 },
-                                error: function() {
+                                error: function(xhr) {
+                                    $('.confirm-transfer').removeClass('loading').prop('disabled', false);
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'ข้อผิดพลาด',
-                                        text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'
+                                        text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: ' + (xhr.responseJSON?.error || 'กรุณาลองใหม่')
                                     });
                                 }
                             });
-                            return;
                         }
-
-                        Swal.fire({
-                            icon: 'question',
-                            title: confirmations[index],
-                            showCancelButton: true,
-                            confirmButtonText: 'ยืนยัน',
-                            cancelButtonText: 'ยกเลิก',
-                            confirmButtonColor: '#3085d6',
-                            cancelButtonColor: '#d33'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                showConfirmStep(index + 1);
-                            }
-                        });
-                    };
-
-                    showConfirmStep(0); // เริ่มจากขั้นแรก
+                    });
                 });
 
                 // Close modal on Escape key
@@ -779,5 +649,4 @@ try {
         });
     </script>
 </body>
-
 </html>

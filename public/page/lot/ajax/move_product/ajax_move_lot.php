@@ -78,9 +78,9 @@ try {
         $current_qty = $lot_product ? $lot_product['lot_product_qty'] : 0;
         $new_qty = $current_qty + $quantity;
 
-        // ตรวจสอบการลบโดยเทียบกับสต็อกต้นทาง
-        if ($is_delete && abs($quantity) > $source_qty) {
-            throw new Exception("ไม่สามารถลบได้ เนื่องจากจำนวนที่ต้องการลบ (" . abs($quantity) . ") เกินจำนวนที่มีในคลังต้นทาง (" . $source_qty . ")");
+       // ตรวจสอบการลบโดยเทียบกับจำนวนที่ต้องการย้ายใน lot
+        if ($is_delete && abs($quantity) > $current_qty) {
+            throw new Exception("ไม่สามารถลบได้ เนื่องจากจำนวนที่ต้องการลบ (" . abs($quantity) . ") เกินจำนวนที่ต้องการย้ายใน Lot (" . $current_qty . ")");
         }
 
         // ตรวจสอบการเพิ่มโดยเทียบกับสต็อกต้นทาง
@@ -88,7 +88,11 @@ try {
             throw new Exception("จำนวนที่ต้องการย้าย ($quantity) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง (" . $source_qty . ")");
         }
 
-        if ($lot_product) {
+        if ($new_qty <= 0) {
+            // ลบสินค้าถ้าจำนวนน้อยกว่าหรือเท่ากับ 0
+            $stmt = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
+            $stmt->execute([$lot_id, $product['product_id']]);
+        } elseif ($lot_product) {
             $stmt = $pdo->prepare("
                 UPDATE lot_product 
                 SET lot_product_qty = ?, lot_product_remain = ?, lot_product_capital = ? 
@@ -131,13 +135,13 @@ try {
         $lot_product_id = isset($_POST['lot_product_id']) ? (int)$_POST['lot_product_id'] : 0;
         $qty = isset($_POST['qty']) ? (int)$_POST['qty'] : 0;
 
-        if ($lot_product_id <= 0 || $qty <= 0) {
-            throw new Exception('ข้อมูลไม่ครบถ้วนหรือจำนวนต้องมากกว่า 0');
+        if ($lot_product_id <= 0) {
+            throw new Exception('ข้อมูลไม่ครบถ้วน');
         }
 
         // ตรวจสอบสถานะ lot และดึง product_id
         $stmt = $pdo->prepare("
-            SELECT l.lot_status_id, lp.product_id 
+            SELECT l.lot_status_id, lp.product_id, lp.lot_id 
             FROM lot l
             JOIN lot_product lp ON l.lot_id = lp.lot_id
             WHERE lp.lot_product_id = ?
@@ -159,24 +163,28 @@ try {
             FROM lot_product lp
             JOIN lot l ON lp.lot_id = l.lot_id
             WHERE lp.product_id = ? AND l.warehouse_id = (
-                SELECT warehouse_from_id FROM lot WHERE lot_id = (
-                    SELECT lot_id FROM lot_product WHERE lot_product_id = ?
-                )
+                SELECT warehouse_from_id FROM lot WHERE lot_id = ?
             ) AND l.lot_status_id = 2
         ");
-        $stmt->execute([$lot_data['product_id'], $lot_product_id]);
+        $stmt->execute([$lot_data['product_id'], $lot_data['lot_id']]);
         $source_qty = $stmt->fetchColumn();
 
         if ($qty > $source_qty) {
             throw new Exception("จำนวนที่ต้องการย้าย ($qty) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง (" . $source_qty . ")");
         }
 
-        $stmt = $pdo->prepare("
-            UPDATE lot_product 
-            SET lot_product_qty = ?, lot_product_remain = ?, lot_product_capital = ? 
-            WHERE lot_product_id = ?
-        ");
-        $stmt->execute([$qty, $qty, $capital, $lot_product_id]);
+        if ($qty <= 0) {
+            // ลบสินค้าถ้าจำนวนน้อยกว่าหรือเท่ากับ 0
+            $stmt = $pdo->prepare("DELETE FROM lot_product WHERE lot_product_id = ?");
+            $stmt->execute([$lot_product_id]);
+        } else {
+            $stmt = $pdo->prepare("
+                UPDATE lot_product 
+                SET lot_product_qty = ?, lot_product_remain = ?, lot_product_capital = ? 
+                WHERE lot_product_id = ?
+            ");
+            $stmt->execute([$qty, $qty, $capital, $lot_product_id]);
+        }
 
         $response['success'] = true;
     } elseif ($action === 'confirm_transfer') {
@@ -199,11 +207,24 @@ try {
             throw new Exception('Lot นี้ยืนยันแล้ว');
         }
 
+        // ตรวจสอบว่ามีสินค้าอย่างน้อย 1 ชิ้น
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM lot_product lp 
+            WHERE lp.lot_id = ? AND lp.lot_product_qty > 0
+        ");
+        $stmt->execute([$lot_id]);
+        $product_count = $stmt->fetchColumn();
+
+        if ($product_count == 0) {
+            throw new Exception('ต้องมีสินค้าอย่างน้อย 1 ชิ้นเพื่อยืนยันการย้าย');
+        }
+
         // ดึงรายการสินค้าใน lot
         $stmt = $pdo->prepare("
             SELECT lp.product_id, lp.lot_product_qty 
             FROM lot_product lp 
-            WHERE lp.lot_id = ?
+            WHERE lp.lot_id = ? AND lp.lot_product_qty > 0
         ");
         $stmt->execute([$lot_id]);
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);

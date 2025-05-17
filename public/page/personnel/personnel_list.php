@@ -63,13 +63,15 @@ function validatePersonnelData($name, $username, $type_id, $pdo, $exclude_id = n
         }
     }
     if (!$type_id) {
-        $errors[] = 'กรุณาเลือกประเภทบุคลากร';
+        $errors[] = 'กรุณาเลือกประเภทบุคลเอก';
     }
     return $errors;
 }
 
-// Handle search parameter
+// Handle search and date parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 
 // Handle POST requests for adding personnel
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
@@ -91,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("INSERT INTO personnel (personnel_name, personnel_username, personnel_type_id) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO personnel (personnel_name, personnel_username, personnel_type_id, personnel_create_date) VALUES (?, ?, ?, NOW())");
         $stmt->execute([$name, $username, $type_id]);
         $pdo->commit();
         header('Location: index.php?page=personnel_list&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
@@ -189,6 +191,17 @@ try {
         $count_query .= " WHERE personnel_id LIKE :search OR personnel_name LIKE :search OR personnel_username LIKE :search";
         $params[':search'] = "%$search%";
     }
+    if ($start_date || $end_date) {
+        $count_query .= (!empty($search) ? " AND" : " WHERE") . " 1=1";
+        if ($start_date) {
+            $count_query .= " AND personnel_create_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND personnel_create_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+    }
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -228,9 +241,20 @@ try {
         FROM personnel p
         INNER JOIN personnel_type pt ON p.personnel_type_id = pt.personnel_type_id";
     $params = [];
-    if (!empty($search)) {
-        $query .= " WHERE p.personnel_id LIKE :search OR p.personnel_name LIKE :search OR p.personnel_username LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $query .= " AND (p.personnel_id LIKE :search OR p.personnel_name LIKE :search OR p.personnel_username LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $query .= " AND p.personnel_create_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND p.personnel_create_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
     $query .= " ORDER BY p.personnel_id DESC LIMIT :offset, :limit";
     $stmt = $pdo->prepare($query);
@@ -285,8 +309,7 @@ try {
                         <input type="text" name="search" id="searchInput"
                             placeholder="ค้นหาบุคลากร..."
                             value="<?php echo htmlspecialchars($search); ?>"
-                            class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            oninput="checkEmptySearch(this)">
+                            class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-search"></i>
                         </button>
@@ -305,9 +328,41 @@ try {
         <!-- Table -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-users mr-2"></i>รายการบุคลากร
-                </h2>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                    <!-- หัวข้อ -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2"></i> รายการบุคลากร
+                        </h2>
+                    </div>
+
+                    <!-- ปุ่มดาวน์โหลดรายงาน -->
+                    <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+                        <!-- เลือกช่วงวันที่ -->
+                        <div class="flex items-center space-x-2">
+                            <label for="start_date" class="text-sm font-medium">วันที่เริ่มต้น</label>
+                            <input type="date" id="start_date" name="start_date"
+                                class="border rounded px-2 py-1"
+                                value="<?php echo htmlspecialchars($start_date); ?>">
+                            <label for="end_date" class="text-sm font-medium">ถึง</label>
+                            <input type="date" id="end_date" name="end_date"
+                                class="border rounded px-2 py-1"
+                                value="<?php echo htmlspecialchars($end_date); ?>">
+                        </div>
+
+                        <!-- ปุ่มดาวน์โหลด -->
+                        <div class="flex space-x-2">
+                            <button onclick="exportPDF()"
+                                class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-pdf mr-2"></i> ดาวน์โหลด PDF
+                            </button>
+                            <button onclick="exportExcel()"
+                                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-excel mr-2"></i> ดาวน์โหลด Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="p-6">
                 <div class="overflow-x-auto">
@@ -369,7 +424,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=personnel_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
@@ -379,7 +434,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=personnel_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         1
                     </a>
@@ -388,7 +443,7 @@ try {
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=personnel_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -397,14 +452,14 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=personnel_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=personnel_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
@@ -531,7 +586,10 @@ try {
     <script>
         function checkEmptySearch(input) {
             if (input.value.trim() === '') {
-                window.location.href = '?page=personnel_list';
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'personnel_list');
+                urlParams.delete('search');
+                window.location.search = urlParams.toString();
             }
         }
 
@@ -589,13 +647,32 @@ try {
             notification.classList.remove('hidden');
             setTimeout(() => {
                 notification.classList.add('hidden');
-            }, 5000); // Increased to 5 seconds
+            }, 5000);
+        }
+
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/personnel/report/export_personnel_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/personnel/report/export_personnel_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
-            if (!searchInput) return; // ป้องกัน error ถ้า element ไม่มีจริง
+            if (!searchInput) return;
+
             searchInput.focus();
 
             searchInput.addEventListener('keydown', function(e) {
@@ -628,7 +705,6 @@ try {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
 
-            // Simplified client-side validation
             function validateForm(formId, fields) {
                 let hasError = false;
                 fields.forEach(field => {
@@ -651,24 +727,10 @@ try {
 
             document.getElementById('addForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const fields = [{
-                        id: 'addPersonnelName',
-                        errorId: 'addNameError',
-                        label: 'ชื่อ-นามสกุล',
-                        maxLength: 255
-                    },
-                    {
-                        id: 'addPersonnelUsername',
-                        errorId: 'addUsernameError',
-                        label: 'ชื่อผู้ใช้',
-                        maxLength: 100
-                    },
-                    {
-                        id: 'addPersonnelTypeId',
-                        errorId: 'addTypeError',
-                        label: 'ประเภทบุคลากร',
-                        maxLength: Infinity
-                    }
+                const fields = [
+                    { id: 'addPersonnelName', errorId: 'addNameError', label: 'ชื่อ-นามสกุล', maxLength: 255 },
+                    { id: 'addPersonnelUsername', errorId: 'addUsernameError', label: 'ชื่อผู้ใช้', maxLength: 100 },
+                    { id: 'addPersonnelTypeId', errorId: 'addTypeError', label: 'ประเภทบุคลากร', maxLength: Infinity }
                 ];
                 if (validateForm('addForm', fields)) {
                     this.submit();
@@ -677,29 +739,39 @@ try {
 
             document.getElementById('editForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const fields = [{
-                        id: 'editPersonnelName',
-                        errorId: 'editNameError',
-                        label: 'ชื่อ-นามสกุล',
-                        maxLength: 255
-                    },
-                    {
-                        id: 'editPersonnelUsername',
-                        errorId: 'editUsernameError',
-                        label: 'ชื่อผู้ใช้',
-                        maxLength: 100
-                    },
-                    {
-                        id: 'editPersonnelTypeId',
-                        errorId: 'editTypeError',
-                        label: 'ประเภทบุคลากร',
-                        maxLength: Infinity
-                    }
+                const fields = [
+                    { id: 'editPersonnelName', errorId: 'editNameError', label: 'ชื่อ-นามสกุล', maxLength: 255 },
+                    { id: 'editPersonnelUsername', errorId: 'editUsernameError', label: 'ชื่อผู้ใช้', maxLength: 100 },
+                    { id: 'editPersonnelTypeId', errorId: 'editTypeError', label: 'ประเภทบุคลากร', maxLength: Infinity }
                 ];
                 if (validateForm('editForm', fields)) {
                     this.submit();
                 }
             });
+
+            document.getElementById('start_date').addEventListener('change', updateDateFilter);
+            document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+            function updateDateFilter() {
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'personnel_list');
+
+                if (startDate) {
+                    urlParams.set('start_date', startDate);
+                } else {
+                    urlParams.delete('start_date');
+                }
+
+                if (endDate) {
+                    urlParams.set('end_date', endDate);
+                } else {
+                    urlParams.delete('end_date');
+                }
+
+                window.location.search = urlParams.toString();
+            }
         });
     </script>
 </body>

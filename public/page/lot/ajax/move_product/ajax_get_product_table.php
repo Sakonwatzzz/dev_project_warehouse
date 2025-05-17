@@ -48,7 +48,7 @@ try {
         ), 0) as source_qty_remaining
     FROM lot_product lp
     LEFT JOIN product p ON lp.product_id = p.product_id
-    WHERE lp.lot_id = :lot_id
+    WHERE lp.lot_id = :lot_id AND lp.lot_product_qty > 0
     ORDER BY lp.lot_product_id DESC";    
     $stmt = $pdo->prepare($query_products);
     $stmt->execute(['lot_id' => $lot_id, 'warehouse_from_id' => $lot['warehouse_from_id']]);
