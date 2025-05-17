@@ -465,6 +465,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                     class="z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                 </div>
                             </div>
+                            
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
                                 <input type="number" name="qty" value="1" min="1" id="barcode-qty"

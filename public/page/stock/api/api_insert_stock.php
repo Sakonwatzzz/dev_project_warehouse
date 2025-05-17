@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $stock_check_system, $stock_check_actual, $stock_check_date, $stock_check_remark, $personnel_id, $check_status_id]);
 
             echo json_encode(['status' => 'success', 'message' => 'บันทึกสำเร็จ']);
-        } elseif ($_POST['action'] === 'insert_check_products') {
+        } elseif ($_POST['action'] === 'insert_check_product') {
             $warehouse_id = $_POST['warehouse_id'] ?? null;
             $stock_check_date = $_POST['stock_check_date'] ?? null;
             $stock_check_remark = $_POST['stock_check_remark'] ?? '';
