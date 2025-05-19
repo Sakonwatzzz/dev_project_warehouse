@@ -72,7 +72,7 @@ $(document).ready(function () {
 
   function fetchProductInfo(product_id, lot_id, lot_product_id) {
     $.ajax({
-      url: "page/stock/api/api_get_product.php",
+      url: "page/stock/api/get_product.php",
       method: "GET",
       data: { product_id, lot_id, lot_product_id },
       dataType: "json",
@@ -150,7 +150,7 @@ $(document).ready(function () {
             };
 
             $.ajax({
-              url: "page/stock/api/api_insert_stock.php",
+              url: "page/stock/api/insert_stock.php",
               method: "POST",
               data: data,
               dataType: "json",
@@ -206,7 +206,7 @@ $(document).ready(function () {
   const stock_check_id = $('input[name="stock_check_id"]').val();
   function updateStockTable() {
     $.ajax({
-      url: "page/stock/api/api_get_product.php",
+      url: "page/stock/api/get_product.php",
       method: "GET",
       data: { stock_check_id },
       dataType: "json",
