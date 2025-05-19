@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 session_start();
-date_default_timezone_set('Asia/Bangkok'); 
+date_default_timezone_set('Asia/Bangkok');
 
 // สร้าง CSRF token
 if (empty($_SESSION['csrf_token'])) {
@@ -226,19 +226,42 @@ try {
 
         <!-- Search and Count Section -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-100">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div class="flex items-center space-x-4">
-                    <span class="bg-indigo-100 text-indigo-800 font-medium px-4 py-2 rounded-lg flex items-center">
-                        <i class="fas fa-users mr-2"></i>
-                        <span class="font-bold"><?php echo number_format($total_records); ?></span>
-                        <span class="ml-1">รายการ</span>
-                    </span>
-                    <button onclick="showAddModal()"
-                        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center">
-                        <i class="fas fa-plus mr-2"></i>เพิ่มผู้ส่งมอบ
-                    </button>
-                </div>
+            <div class="flex items-center space-x-4 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 font-medium px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-users mr-2"></i>
+                    <span class="font-bold"><?php echo number_format($total_records); ?></span>
+                    <span class="ml-1">รายการ</span>
+                </span>
+                <button onclick="showAddModal()"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center">
+                    <i class="fas fa-plus mr-2"></i>เพิ่มผู้ส่งมอบ
+                </button>
+            </div>
 
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <!-- Date Range Selection and Export Buttons -->
+                <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+                    <div class="flex items-center space-x-2">
+                        <label for="start_date" class="text-sm font-medium text-gray-700">วันที่เริ่มต้น</label>
+                        <input type="date" id="start_date" name="start_date"
+                            class="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            value="<?php echo htmlspecialchars($start_date); ?>">
+                        <label for="end_date" class="text-sm font-medium text-gray-700">ถึง</label>
+                        <input type="date" id="end_date" name="end_date"
+                            class="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            value="<?php echo htmlspecialchars($end_date); ?>">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="exportPDF()"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm md:text-base">
+                            <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
+                        </button>
+                        <button onclick="exportExcel()"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm md:text-base">
+                            <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
+                        </button>
+                    </div>
+                </div>
                 <div class="w-full lg:w-1/2 xl:w-1/3">
                     <form action="" method="GET" id="searchForm" class="relative">
                         <input type="hidden" name="page" value="supplier_list">

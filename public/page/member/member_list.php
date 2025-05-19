@@ -154,7 +154,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         $pdo->beginTransaction();
 
         // Check for foreign key constraints (e.g., orders table, if applicable)
-        // Uncomment and adjust table name as needed
         /*
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE member_id = ?");
         $stmt->execute([$id]);
@@ -185,16 +184,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
     }
 }
 
-// Search
+// Handle search and date parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 
 // Total member count
 try {
     $count_query = "SELECT COUNT(*) as total_count FROM member";
     $params = [];
-    if (!empty($search)) {
-        $count_query .= " WHERE member_id LIKE :search OR member_name LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $count_query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $count_query .= " AND (member_id LIKE :search OR member_name LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $count_query .= " AND member_register_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND member_register_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
@@ -204,7 +216,8 @@ try {
     $total_records = (int)$stmt->fetchColumn();
 } catch (PDOException $e) {
     error_log("Count member error: " . $e->getMessage());
-    die("Count error: " . htmlspecialchars($e->getMessage()));
+    header('Location: index.php?page=member_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
+    exit;
 }
 
 // Pagination
@@ -218,7 +231,8 @@ try {
     $member_types = fetchData($pdo, "SELECT member_type_id, member_type_name FROM member_type")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Fetch member types error: " . $e->getMessage());
-    die("Member types fetch error: " . htmlspecialchars($e->getMessage()));
+    header('Location: index.php?page=member_list&error=' . urlencode('Member types fetch error: ' . htmlspecialchars($e->getMessage())));
+    exit;
 }
 
 // Fetch personnel
@@ -226,7 +240,8 @@ try {
     $personnels = fetchData($pdo, "SELECT personnel_id, personnel_name FROM personnel")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Fetch personnel error: " . $e->getMessage());
-    die("Personnel fetch error: " . htmlspecialchars($e->getMessage()));
+    header('Location: index.php?page=member_list&error=' . urlencode('Personnel fetch error: ' . htmlspecialchars($e->getMessage())));
+    exit;
 }
 
 // Fetch members
@@ -246,11 +261,22 @@ try {
         INNER JOIN member_type mt ON m.member_type_id = mt.member_type_id
         INNER JOIN personnel per ON m.personnel_id = per.personnel_id";
     $params = [];
-    if (!empty($search)) {
-        $query .= " WHERE m.member_id LIKE :search OR m.member_name LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $query .= " AND (m.member_id LIKE :search OR m.member_name LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $query .= " AND m.member_register_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND m.member_register_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
-    $query .= " LIMIT :offset, :limit";
+    $query .= " ORDER BY m.member_id DESC LIMIT :offset, :limit";
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -261,7 +287,8 @@ try {
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Fetch member error: " . $e->getMessage());
-    die("Fetch error: " . htmlspecialchars($e->getMessage()));
+    header('Location: index.php?page=member_list&error=' . urlencode('Fetch error: ' . htmlspecialchars($e->getMessage())));
+    exit;
 }
 ob_end_flush();
 ?>
@@ -287,19 +314,42 @@ ob_end_flush();
 
         <!-- Search and Count Section -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-100">
+            <div class="flex items-center space-x-4 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 font-medium px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-users mr-2"></i>
+                    <span class="font-bold"><?php echo number_format($total_records); ?></span>
+                    <span class="ml-1">รายการ</span>
+                </span>
+                <button onclick="showAddModal()"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center">
+                    <i class="fas fa-plus mr-2"></i>เพิ่มสมาชิก
+                </button>
+            </div>
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div class="flex items-center space-x-4">
-                    <span class="bg-indigo-100 text-indigo-800 font-medium px-4 py-2 rounded-lg flex items-center">
-                        <i class="fas fa-users mr-2"></i>
-                        <span class="font-bold"><?php echo number_format($total_records); ?></span>
-                        <span class="ml-1">รายการ</span>
-                    </span>
-                    <button onclick="showAddModal()"
-                        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center">
-                        <i class="fas fa-plus mr-2"></i>เพิ่มสมาชิก
-                    </button>
+                <!-- Date Range Selection and Export Buttons -->
+                <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+                    <div class="flex items-center space-x-2">
+                        <label for="start_date" class="text-sm font-medium text-gray-700">วันที่เริ่มต้น</label>
+                        <input type="date" id="start_date" name="start_date"
+                            class="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            value="<?php echo htmlspecialchars($start_date); ?>">
+                        <label for="end_date" class="text-sm font-medium text-gray-700">ถึง</label>
+                        <input type="date" id="end_date" name="end_date"
+                            class="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            value="<?php echo htmlspecialchars($end_date); ?>">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="exportPDF()"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm md:text-base">
+                            <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
+                        </button>
+                        <button onclick="exportExcel()"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm md:text-base">
+                            <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
+                        </button>
+                    </div>
                 </div>
-
+                <!-- Search Form -->
                 <div class="w-full lg:w-1/2 xl:w-1/3">
                     <form action="" method="GET" id="searchForm" class="relative">
                         <input type="hidden" name="page" value="member_list">
@@ -308,14 +358,12 @@ ob_end_flush();
                             placeholder="ค้นหารหัส หรือชื่อสมาชิก..."
                             value="<?php echo htmlspecialchars($search); ?>"
                             class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition-all">
-
                         <?php if (!empty($search)): ?>
                             <button type="button" onclick="clearSearch()"
                                 class="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-times"></i>
                             </button>
                         <?php endif; ?>
-
                         <button type="submit"
                             class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-indigo-600">
                             <i class="fas fa-search"></i>
@@ -411,7 +459,7 @@ ob_end_flush();
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                                 <button type="button" onclick="confirmDelete(this.parentElement)"
-                                                    class="bg-rose-500 text-white px-3 py-1.5 rounded-md hover:bg-rose-600 transition flex items-center text-sm">
+                                                    class="bg-rose-500 text-white px-3 py-1.5 rounded-md hover:bg-rose-600 transition">
                                                     <i class="fas fa-trash-alt mr-1"></i>ลบ
                                                 </button>
                                             </form>
@@ -425,7 +473,7 @@ ob_end_flush();
                                     <div class="flex flex-col items-center justify-center py-6">
                                         <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
                                         <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
-                                        <?php if (!empty($search)): ?>
+                                        <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
                                             <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
                                                 <a href="?page=member_list" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
                                             </p>
@@ -446,7 +494,7 @@ ob_end_flush();
             <div class="flex justify-center mt-6">
                 <nav class="inline-flex rounded-md shadow">
                     <?php if ($page > 1): ?>
-                        <a href="?page=member_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        <a href="?page=member_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                             class="relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                             <i class="fas fa-chevron-left mr-1"></i> ก่อนหน้า
                         </a>
@@ -462,7 +510,7 @@ ob_end_flush();
                         $end_page = min($total_pages, $page + 2);
 
                         if ($start_page > 1): ?>
-                            <a href="?page=member_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                            <a href="?page=member_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                                 class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 1
                             </a>
@@ -474,7 +522,7 @@ ob_end_flush();
                         <?php endif; ?>
 
                         <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                            <a href="?page=member_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                            <a href="?page=member_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                                 class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium <?= $i == $page ? 'text-indigo-700 z-10 border-indigo-500' : 'text-gray-700 hover:bg-gray-50' ?>">
                                 <?= $i ?>
                             </a>
@@ -486,7 +534,7 @@ ob_end_flush();
                                     ...
                                 </span>
                             <?php endif; ?>
-                            <a href="?page=member_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                            <a href="?page=member_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                                 class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 <?= $total_pages ?>
                             </a>
@@ -498,7 +546,7 @@ ob_end_flush();
                     </span>
 
                     <?php if ($page < $total_pages): ?>
-                        <a href="?page=member_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        <a href="?page=member_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                             class="relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                             ถัดไป <i class="fas fa-chevron-right ml-1"></i>
                         </a>
@@ -782,31 +830,7 @@ ob_end_flush();
         function confirmDelete(form) {
             showDeleteModal();
             document.getElementById('confirmDeleteBtn').onclick = () => {
-                const formData = new FormData(form);
-                fetch('', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (response.redirected) {
-                            window.location.href = response.url;
-                        } else if (response.ok) {
-                            closeDeleteModal();
-                            showNotification('ลบข้อมูลสำเร็จ', 'bg-green-500');
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1000);
-                        } else {
-                            return response.text().then(text => {
-                                throw new Error(text || 'Failed to delete');
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        closeDeleteModal();
-                        showNotification('เกิดข้อผิดพลาดในการลบ: ' + error.message, 'bg-red-500');
-                    });
+                form.submit();
             };
         }
 
@@ -837,13 +861,31 @@ ob_end_flush();
             document.getElementById('searchForm').submit();
         }
 
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/member/report/export_member_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/member/report/export_member_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
         document.getElementById('addForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const name = document.getElementById('addMemberName').value.trim();
             const address = document.getElementById('addMemberAddress').value.trim();
             const phone = document.getElementById('addMemberPhone').value.trim();
             const memberTypeId = document.getElementById('addMemberTypeId').value;
-            const personnelId = DOCUMENT.getElementById('addPersonnelId').value;
+            const personnelId = document.getElementById('addPersonnelId').value;
             const nameError = document.getElementById('addNameError');
             const addressError = document.getElementById('addAddressError');
             const phoneError = document.getElementById('addPhoneError');
@@ -899,14 +941,13 @@ ob_end_flush();
                 personnelError.classList.add('hidden');
             }
 
-            if (hasError) return;
-
-            this.submit();
+            if (!hasError) {
+                this.submit();
+            }
         });
 
         document.getElementById('editForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const memberId = document.getElementById('editMemberId').value;
             const name = document.getElementById('editMemberName').value.trim();
             const address = document.getElementById('editMemberAddress').value.trim();
             const phone = document.getElementById('editMemberPhone').value.trim();
@@ -967,9 +1008,9 @@ ob_end_flush();
                 personnelError.classList.add('hidden');
             }
 
-            if (hasError) return;
-
-            this.submit();
+            if (!hasError) {
+                this.submit();
+            }
         });
 
         document.addEventListener('keydown', function(e) {
@@ -998,12 +1039,36 @@ ob_end_flush();
             }
         });
 
+        document.getElementById('start_date').addEventListener('change', updateDateFilter);
+        document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+        function updateDateFilter() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', 'member_list');
+
+            if (startDate) {
+                urlParams.set('start_date', startDate);
+            } else {
+                urlParams.delete('start_date');
+            }
+
+            if (endDate) {
+                urlParams.set('end_date', endDate);
+            } else {
+                urlParams.delete('end_date');
+            }
+
+            window.location.search = urlParams.toString();
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
-            if (!searchInput) return; // ป้องกัน error ถ้า element ไม่มีจริง
-            searchInput.focus();
+            if (!searchInput) return;
 
+            searchInput.focus();
 
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
@@ -1041,6 +1106,8 @@ ob_end_flush();
                 showNotification(decodeURIComponent(urlParams.get('edit_error')), 'bg-red-500');
             } else if (urlParams.has('delete_error')) {
                 showNotification(decodeURIComponent(urlParams.get('delete_error')), 'bg-red-500');
+            } else if (urlParams.has('error')) {
+                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
         });
     </script>

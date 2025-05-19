@@ -50,6 +50,11 @@ function validatePersonnelTypeData($personnel_type)
     return $errors;
 }
 
+// Handle search and date parameters
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+
 // Handle Add Personnel Type
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
@@ -66,9 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     try {
+        $personnel_type_date = date('Y-m-d H:i:s');
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare('INSERT INTO personnel_type (personnel_type_name) VALUES (?)');
-        $stmt->execute([$personnel_type]);
+        $stmt = $pdo->prepare('INSERT INTO personnel_type (personnel_type_name, personnel_type_date) VALUES (?, ?)');
+        $stmt->execute([$personnel_type, $personnel_type_date]);
         $pdo->commit();
         header('Location: index.php?page=personnel_type&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
         exit;
@@ -163,16 +169,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 }
 
 // Search and Pagination
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
 try {
     $count_query = "SELECT COUNT(*) FROM personnel_type";
     $params = [];
     if (!empty($search)) {
-        $count_query .= " WHERE personnel_type_name LIKE :search OR personnel_type_id LIKE :search";
+        $count_query .= " WHERE personnel_type_name LIKE :search OR_SEQUENCE_type_id LIKE :search";
         $params[':search'] = "%$search%";
     }
-
+    if ($start_date || $end_date) {
+        $count_query .= (!empty($search) ? " AND" : " WHERE") . " 1=1";
+        if ($start_date) {
+            $count_query .= " AND personnel_type_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND personnel_type_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+    }
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -195,15 +209,27 @@ try {
         SELECT 
             pn.personnel_type_id,
             pn.personnel_type_name,
+            pn.personnel_type_date,
             COALESCE(COUNT(p.personnel_id), 0) as personnel_count
         FROM personnel_type pn
         LEFT JOIN personnel p ON pn.personnel_type_id = p.personnel_type_id";
     $params = [];
-    if (!empty($search)) {
-        $query .= " WHERE pn.personnel_type_name LIKE :search OR pn.personnel_type_id LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $query .= " AND (pn.personnel_type_name LIKE :search OR pn.personnel_type_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $query .= " AND pn.personnel_type_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND pn.personnel_type_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
-    $query .= " GROUP BY pn.personnel_type_id, pn.personnel_type_name 
+    $query .= " GROUP BY pn.personnel_type_id, pn.personnel_type_name, pn.personnel_type_date 
         ORDER BY pn.personnel_type_id DESC LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);
@@ -233,18 +259,22 @@ try {
         body {
             background-color: #f8f9fa;
         }
+
         @media (max-width: 768px) {
             .table-responsive {
                 display: none;
             }
+
             .card-responsive {
                 display: block;
             }
         }
+
         @media (min-width: 769px) {
             .table-responsive {
                 display: block;
             }
+
             .card-responsive {
                 display: none;
             }
@@ -294,9 +324,41 @@ try {
         <!-- Table Section -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-list mr-2"></i>รายการประเภทบุคลากร
-                </h2>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                    <!-- หัวข้อ -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2"></i> รายการประเภทบุคลากร
+                        </h2>
+                    </div>
+
+                    <!-- ปุ่มดาวน์โหลดรายงาน -->
+                    <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+                        <!-- เลือกช่วงวันที่ -->
+                        <div class="flex items-center space-x-2">
+                            <label for="start_date" class="text-sm font-medium">วันที่เริ่มต้น</label>
+                            <input type="date" id="start_date" name="start_date"
+                                class="border rounded px-2 py-1"
+                                value="<?php echo htmlspecialchars($start_date); ?>">
+                            <label for="end_date" class="text-sm font-medium">ถึง</label>
+                            <input type="date" id="end_date" name="end_date"
+                                class="border rounded px-2 py-1"
+                                value="<?php echo htmlspecialchars($end_date); ?>">
+                        </div>
+
+                        <!-- ปุ่มดาวน์โหลด -->
+                        <div class="flex space-x-2">
+                            <button onclick="exportPDF()"
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
+                            </button>
+                            <button onclick="exportExcel()"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="p-6">
                 <div class="overflow-x-auto table-responsive">
@@ -305,6 +367,7 @@ try {
                             <tr class="bg-gray-50">
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสประเภท</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อประเภท</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่และเวลา</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนบุคลากร</th>
                                 <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
                             </tr>
@@ -315,6 +378,7 @@ try {
                                     <tr class="hover:bg-gray-100" data-id="<?php echo htmlspecialchars($personneltype['personnel_type_id']); ?>">
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($personneltype['personnel_type_id']); ?></td>
                                         <td class="px-6 py-2 border type-name"><?php echo htmlspecialchars($personneltype['personnel_type_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($personneltype['personnel_type_date']); ?></td>
                                         <td class="px-6 py-2 border">
                                             <a href="?page=personnel_group&type=<?php echo urlencode($personneltype['personnel_type_name']); ?>"
                                                 class="text-blue-600 hover:underline cursor-pointer">
@@ -342,7 +406,7 @@ try {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-gray-600">ไม่มีข้อมูลประเภทบุคลากร</td>
+                                    <td colspan="5" class="text-center py-4 text-gray-600">ไม่มีข้อมูลประเภทบุคลากร</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -361,6 +425,10 @@ try {
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-gray-700 font-semibold text-sm type-name">ชื่อประเภท:</span>
                                     <span class="text-sm"><?php echo htmlspecialchars($personneltype['personnel_type_name']); ?></span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 font-semibold text-sm">วันที่และเวลา:</span>
+                                    <span class="text-sm"><?php echo htmlspecialchars($personneltype['personnel_type_date']); ?></span>
                                 </div>
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-gray-700 font-semibold text-sm">จำนวนบุคลากร:</span>
@@ -398,7 +466,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=personnel_type&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_type&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
@@ -408,7 +476,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=personnel_type&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_type&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         1
                     </a>
@@ -417,7 +485,7 @@ try {
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=personnel_type&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_type&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -426,14 +494,14 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=personnel_type&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_type&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=personnel_type&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=personnel_type&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
@@ -454,6 +522,12 @@ try {
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required>
                         <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label for="personnel_type_date" class="block text-sm font-medium text-gray-700">วันที่และเวลา</label>
+                        <input type="text" id="addPersonnelTypedate" name="personnel_type_date" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly
+                            class="w-full px-3 py-2 border border-gray-300 bg-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-not-allowed">
+                        <span id="addDateError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div class="flex justify-end gap-2">
                         <button type="button" onclick="closeAddModal()"
@@ -518,13 +592,18 @@ try {
     <script>
         function checkEmptySearch(input) {
             if (input.value.trim() === '') {
-                window.location.href = '?page=personnel_type';
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'personnel_type');
+                urlParams.delete('search');
+                window.location.search = urlParams.toString();
             }
         }
 
         function showAddModal() {
             document.getElementById('addPersonnelType').value = '';
+            document.getElementById('addPersonnelTypedate').value = '<?php echo date('Y-m-d H:i:s'); ?>';
             document.getElementById('addNameError').classList.add('hidden');
+            document.getElementById('addDateError').classList.add('hidden');
             document.getElementById('addModal').classList.remove('invisible', 'opacity-0');
         }
 
@@ -571,10 +650,29 @@ try {
             }, 5000);
         }
 
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/personnel/report/export_personnel_type_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/personnel/report/export_personnel_type_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
-            if (!searchInput) return; // ป้องกัน error ถ้า element ไม่มีจริง
+            if (!searchInput) return;
+
             searchInput.focus();
 
             searchInput.addEventListener('keydown', function(e) {
@@ -607,7 +705,6 @@ try {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
 
-            // Client-side validation
             function validateForm(formId, fields) {
                 let hasError = false;
                 fields.forEach(field => {
@@ -630,9 +727,12 @@ try {
 
             document.getElementById('addForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const fields = [
-                    { id: 'addPersonnelType', errorId: 'addNameError', label: 'ชื่อประเภทบุคลากร', maxLength: 255 }
-                ];
+                const fields = [{
+                    id: 'addPersonnelType',
+                    errorId: 'addNameError',
+                    label: 'ชื่อประเภทบุคลากร',
+                    maxLength: 255
+                }];
                 if (validateForm('addForm', fields)) {
                     this.submit();
                 }
@@ -640,13 +740,40 @@ try {
 
             document.getElementById('editForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const fields = [
-                    { id: 'editPersonnelType', errorId: 'editNameError', label: 'ชื่อประเภทบุคลากร', maxLength: 255 }
-                ];
+                const fields = [{
+                    id: 'editPersonnelType',
+                    errorId: 'editNameError',
+                    label: 'ชื่อประเภทบุคลากร',
+                    maxLength: 255
+                }];
                 if (validateForm('editForm', fields)) {
                     this.submit();
                 }
             });
+
+            document.getElementById('start_date').addEventListener('change', updateDateFilter);
+            document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+            function updateDateFilter() {
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'personnel_type');
+
+                if (startDate) {
+                    urlParams.set('start_date', startDate);
+                } else {
+                    urlParams.delete('start_date');
+                }
+
+                if (endDate) {
+                    urlParams.set('end_date', endDate);
+                } else {
+                    urlParams.delete('end_date');
+                }
+
+                window.location.search = urlParams.toString();
+            }
         });
     </script>
 </body>

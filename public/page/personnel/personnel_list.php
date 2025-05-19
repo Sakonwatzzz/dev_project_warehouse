@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Handle DELETE request
+// Handle DELETE request - เวอร์ชันที่แก้ไข
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token']) && $_POST['action'] === 'delete') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
         header('Location: index.php?page=personnel_list&error=Invalid CSRF token');
@@ -163,6 +163,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     try {
         $pdo->beginTransaction();
+        
+        // ตรวจสอบว่ามีข้อมูลที่เชื่อมโยงในตารางอื่นหรือไม่
+        $check_query = "SELECT COUNT(*) FROM product_type WHERE personnel_id = ?";
+        $check_stmt = $pdo->prepare($check_query);
+        $check_stmt->execute([$id]);
+        $related_count = $check_stmt->fetchColumn();
+        
+        if ($related_count > 0) {
+            $pdo->rollBack();
+            header('Location: index.php?page=personnel_list&error=' . urlencode("ไม่สามารถลบบุคลากรได้ เนื่องจากมีข้อมูลประเภทสินค้า {$related_count} รายการที่เชื่อมโยงอยู่"));
+            exit;
+        }
+        
+        // ถ้าไม่มีข้อมูลที่เชื่อมโยง ให้ทำการลบ
         $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
         $stmt->execute([$id]);
 
@@ -178,7 +192,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Delete personnel error: Personnel ID=$id, Error=" . $e->getMessage());
-        header("Location: index.php?page=personnel_list&error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())));
+        
+        // ตรวจสอบประเภทของ error
+        if (strpos($e->getMessage(), '1451') !== false) {
+            $error_message = 'ไม่สามารถลบบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่ในระบบ';
+        } else {
+            $error_message = 'เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage());
+        }
+        
+        header("Location: index.php?page=personnel_list&error=" . urlencode($error_message));
+        exit;
+    }
+}
+?>
+
+<?php
+// ฟังก์ชันสำหรับตรวจสอบการเชื่อมโยงข้อมูลแบบครอบคลุม
+function checkPersonnelDependencies($pdo, $personnel_id) {
+    $dependencies = [];
+    
+    // ตรวจสอบตาราง product_type
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM product_type WHERE personnel_id = ?");
+    $stmt->execute([$personnel_id]);
+    $count = $stmt->fetchColumn();
+    if ($count > 0) {
+        $dependencies[] = "ประเภทสินค้า ({$count} รายการ)";
+    }
+    
+    // เพิ่มการตรวจสอบตารางอื่นๆ ตามความจำเป็น
+    // เช่น orders, reports, หรือตารางอื่นที่อาจจะมี foreign key
+    
+    return $dependencies;
+}
+
+// การใช้งานในส่วนการลบ
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    // ... (การตรวจสอบ CSRF และ validation)
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // ตรวจสอบการเชื่อมโยงข้อมูล
+        $dependencies = checkPersonnelDependencies($pdo, $id);
+        
+        if (!empty($dependencies)) {
+            $pdo->rollBack();
+            $dependency_list = implode(', ', $dependencies);
+            header('Location: index.php?page=personnel_list&error=' . urlencode("ไม่สามารถลบบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: {$dependency_list}"));
+            exit;
+        }
+        
+        // ดำเนินการลบ
+        $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
+        $stmt->execute([$id]);
+        
+        if ($stmt->rowCount() === 0) {
+            $pdo->rollBack();
+            header('Location: index.php?page=personnel_list&error=ไม่พบข้อมูลบุคลากรที่ต้องการลบ');
+            exit;
+        }
+        
+        $pdo->commit();
+        header("Location: index.php?page=personnel_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        exit;
+        
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log("Delete personnel error: " . $e->getMessage());
+        header("Location: index.php?page=personnel_list&error=" . urlencode('เกิดข้อผิดพลาดในการลบข้อมูล'));
         exit;
     }
 }
@@ -236,6 +317,7 @@ try {
             p.personnel_id,
             p.personnel_name,
             p.personnel_username,
+            p.personnel_create_date,
             p.personnel_type_id,
             pt.personnel_type_name
         FROM personnel p
@@ -353,12 +435,12 @@ try {
                         <!-- ปุ่มดาวน์โหลด -->
                         <div class="flex space-x-2">
                             <button onclick="exportPDF()"
-                                class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
-                                <i class="fas fa-file-pdf mr-2"></i> ดาวน์โหลด PDF
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
                             </button>
                             <button onclick="exportExcel()"
-                                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
-                                <i class="fas fa-file-excel mr-2"></i> ดาวน์โหลด Excel
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
                             </button>
                         </div>
                     </div>
@@ -373,6 +455,7 @@ try {
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อ-นามสกุล</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อผู้ใช้</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ประเภทบุคลากร</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่และเวลา</th>
                                 <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
                             </tr>
                         </thead>
@@ -389,6 +472,7 @@ try {
                                         </td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($person['personnel_username']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($person['personnel_type_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($person['personnel_create_date']); ?></td>
                                         <td class="px-6 py-2 border text-center">
                                             <div class="flex flex-wrap justify-center gap-2">
                                                 <button onclick="showEditModal('<?php echo htmlspecialchars($person['personnel_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_name'])); ?>', '<?php echo htmlspecialchars($person['personnel_username']); ?>', '<?php echo htmlspecialchars($person['personnel_type_id']); ?>')"
@@ -727,10 +811,24 @@ try {
 
             document.getElementById('addForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const fields = [
-                    { id: 'addPersonnelName', errorId: 'addNameError', label: 'ชื่อ-นามสกุล', maxLength: 255 },
-                    { id: 'addPersonnelUsername', errorId: 'addUsernameError', label: 'ชื่อผู้ใช้', maxLength: 100 },
-                    { id: 'addPersonnelTypeId', errorId: 'addTypeError', label: 'ประเภทบุคลากร', maxLength: Infinity }
+                const fields = [{
+                        id: 'addPersonnelName',
+                        errorId: 'addNameError',
+                        label: 'ชื่อ-นามสกุล',
+                        maxLength: 255
+                    },
+                    {
+                        id: 'addPersonnelUsername',
+                        errorId: 'addUsernameError',
+                        label: 'ชื่อผู้ใช้',
+                        maxLength: 100
+                    },
+                    {
+                        id: 'addPersonnelTypeId',
+                        errorId: 'addTypeError',
+                        label: 'ประเภทบุคลากร',
+                        maxLength: Infinity
+                    }
                 ];
                 if (validateForm('addForm', fields)) {
                     this.submit();
@@ -739,10 +837,24 @@ try {
 
             document.getElementById('editForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const fields = [
-                    { id: 'editPersonnelName', errorId: 'editNameError', label: 'ชื่อ-นามสกุล', maxLength: 255 },
-                    { id: 'editPersonnelUsername', errorId: 'editUsernameError', label: 'ชื่อผู้ใช้', maxLength: 100 },
-                    { id: 'editPersonnelTypeId', errorId: 'editTypeError', label: 'ประเภทบุคลากร', maxLength: Infinity }
+                const fields = [{
+                        id: 'editPersonnelName',
+                        errorId: 'editNameError',
+                        label: 'ชื่อ-นามสกุล',
+                        maxLength: 255
+                    },
+                    {
+                        id: 'editPersonnelUsername',
+                        errorId: 'editUsernameError',
+                        label: 'ชื่อผู้ใช้',
+                        maxLength: 100
+                    },
+                    {
+                        id: 'editPersonnelTypeId',
+                        errorId: 'editTypeError',
+                        label: 'ประเภทบุคลากร',
+                        maxLength: Infinity
+                    }
                 ];
                 if (validateForm('editForm', fields)) {
                     this.submit();

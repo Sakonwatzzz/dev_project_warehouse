@@ -132,15 +132,6 @@ ob_end_flush();
                     </div>
                 </div>
 
-                <!-- วันที่สมัคร -->
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <label for="member-registerdate" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">วันที่สมัคร:</label>
-                    <div class="w-full sm:w-3/4">
-                        <input type="text" name="registerdate" id="member-registerdate" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600 cursor-not-allowed">
-                    </div>
-                </div>
-
                 <!-- ประเภทสมาชิก -->
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                     <label for="member-typename" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">
@@ -182,6 +173,15 @@ ob_end_flush();
                         <?php else: ?>
                             <span class="text-gray-600">ไม่พบข้อมูลพนักงาน</span>
                         <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- วันที่สมัคร -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <label for="member-registerdate" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">วันที่สมัคร:</label>
+                    <div class="w-full sm:w-3/4">
+                        <input type="text" name="registerdate" id="member-registerdate" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600 cursor-not-allowed">
                     </div>
                 </div>
 

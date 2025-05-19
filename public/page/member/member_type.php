@@ -17,8 +17,10 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
-// Add search variable
+// Handle search and date parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 
 function fetchData($pdo, $query, $params = [])
 {
@@ -41,7 +43,7 @@ function verifyCsrfToken($token)
 // Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: ?page=member_type&error=' . urlencode('Invalid CSRF token'));
+        header('Location: ?page=member_type&error=' . urlencode('Invalid CSRF token') . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
         exit;
     }
 
@@ -59,18 +61,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!empty($errors)) {
-            header('Location: ?page=member_type&add_error=' . urlencode(implode(', ', $errors)) . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header('Location: ?page=member_type&add_error=' . urlencode(implode(', ', $errors)) . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         }
 
         try {
             $stmt = $pdo->prepare('INSERT INTO member_type (member_type_name, member_type_date, personnel_id) VALUES (?, ?, ?)');
             $stmt->execute([$member_type, $current_timestamp, $personnel_id]);
-            header('Location: ?page=member_type&add_success=1' . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header('Location: ?page=member_type&add_success=1' . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         } catch (PDOException $e) {
             error_log("Add member type error: " . $e->getMessage());
-            header('Location: ?page=member_type&add_error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header('Location: ?page=member_type&add_error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         }
     } elseif (isset($_POST['action'], $_POST['id']) && $_POST['action'] === 'update') {
@@ -86,25 +88,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!empty($errors)) {
-            header('Location: ?page=member_type&edit_error=' . urlencode(implode(', ', $errors)) . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header('Location: ?page=member_type&edit_error=' . urlencode(implode(', ', $errors)) . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         }
 
         try {
             $stmt = $pdo->prepare("UPDATE member_type SET member_type_name = ? WHERE member_type_id = ?");
             $stmt->execute([$new_member_type, $id]);
-            header('Location: ?page=member_type&edit_success=1' . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header('Location: ?page=member_type&edit_success=1' . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         } catch (PDOException $e) {
             error_log("Update member type error: " . $e->getMessage());
-            header('Location: ?page=member_type&edit_error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header('Location: ?page=member_type&edit_error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         }
     } elseif (isset($_POST['action'], $_POST['id']) && $_POST['action'] === 'delete') {
         $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
 
         if (!$id) {
-            header('Location: ?page=member_type&delete_error=' . urlencode('Invalid member type ID') . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header('Location: ?page=member_type&delete_error=' . urlencode('Invalid member type ID') . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         }
 
@@ -114,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$id]);
             if ($stmt->fetchColumn() > 0) {
                 $pdo->rollBack();
-                header('Location: ?page=member_type&delete_error=' . urlencode('ไม่สามารถลบได้เนื่องจากมีสมาชิกที่เกี่ยวข้อง') . (!empty($search) ? '&search=' . urlencode($search) : ''));
+                header('Location: ?page=member_type&delete_error=' . urlencode('ไม่สามารถลบได้เนื่องจากมีสมาชิกที่เกี่ยวข้อง') . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
                 exit;
             }
 
@@ -123,17 +125,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($stmt->rowCount() === 0) {
                 $pdo->rollBack();
-                header('Location: ?page=member_type&delete_error=' . urlencode('ไม่พบข้อมูลประเภทสมาชิกที่ต้องการลบ') . (!empty($search) ? '&search=' . urlencode($search) : ''));
+                header('Location: ?page=member_type&delete_error=' . urlencode('ไม่พบข้อมูลประเภทสมาชิกที่ต้องการลบ') . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
                 exit;
             }
 
             $pdo->commit();
-            header("Location: ?page=member_type&delete_success=1" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header("Location: ?page=member_type&delete_success=1" . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         } catch (PDOException $e) {
             $pdo->rollBack();
             error_log("Delete member type error: Member Type ID=$id, Error=" . $e->getMessage());
-            header("Location: ?page=member_type&delete_error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            header("Location: ?page=member_type&delete_error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
             exit;
         }
     }
@@ -143,9 +145,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 try {
     $count_query = "SELECT COUNT(*) FROM member_type";
     $params = [];
-    if (!empty($search)) {
-        $count_query .= " WHERE member_type_name LIKE :search OR member_type_id LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $count_query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $count_query .= " AND (member_type_name LIKE :search OR member_type_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $count_query .= " AND member_type_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND member_type_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
 
     $stmt = $pdo->prepare($count_query);
@@ -156,7 +169,8 @@ try {
     $total_records = (int)$stmt->fetchColumn();
 } catch (PDOException $e) {
     error_log("Count member type error: " . $e->getMessage());
-    die("Count error: " . htmlspecialchars($e->getMessage()));
+    header('Location: ?page=member_type&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
+    exit;
 }
 
 // Pagination
@@ -171,7 +185,8 @@ try {
     $personnels = fetchData($pdo, $personnel_query)->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Fetch personnel error: " . $e->getMessage());
-    die("Personnel fetch error: " . htmlspecialchars($e->getMessage()));
+    header('Location: ?page=member_type&error=' . urlencode('Personnel fetch error: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
+    exit;
 }
 
 // Fetch member types
@@ -189,9 +204,20 @@ try {
         LEFT JOIN personnel per ON mb.personnel_id = per.personnel_id";
 
     $params = [];
-    if (!empty($search)) {
-        $query .= " WHERE mb.member_type_name LIKE :search OR mb.member_type_id LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $query .= " AND (mb.member_type_name LIKE :search OR mb.member_type_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $query .= " AND mb.member_type_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND mb.member_type_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
 
     $query .= " GROUP BY mb.member_type_id, mb.member_type_name, mb.member_type_date, mb.personnel_id, per.personnel_name
@@ -207,7 +233,8 @@ try {
     $member_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Fetch member type error: " . $e->getMessage());
-    die("Fetch error: " . htmlspecialchars($e->getMessage()));
+    header('Location: ?page=member_type&error=' . urlencode('Fetch error: ' . htmlspecialchars($e->getMessage())) . (!empty($search) ? '&search=' . urlencode($search) : '') . ($start_date ? '&start_date=' . urlencode($start_date) : '') . ($end_date ? '&end_date=' . urlencode($end_date) : ''));
+    exit;
 }
 ?>
 
@@ -225,8 +252,8 @@ try {
         .table-responsive {
             display: block;
             width: 100%;
-            overflow-x: auto; /* Enable horizontal scrolling on small screens */
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         /* Hide card view completely */
@@ -236,27 +263,27 @@ try {
 
         /* Table styling */
         table {
-            min-width: 800px; /* Prevent table from squeezing too much */
+            min-width: 800px;
             width: 100%;
         }
 
         th,
         td {
-            font-size: 14px; /* Smaller font for mobile */
-            padding: 8px; /* Compact padding */
+            font-size: 14px;
+            padding: 8px;
             text-align: left;
         }
 
         th {
             position: sticky;
             top: 0;
-            background: #f9fafb; /* Match bg-gray-50 */
+            background: #f9fafb;
             z-index: 10;
         }
 
         /* Ensure buttons are touch-friendly */
         td button {
-            padding: 8px 12px; /* Larger touch target */
+            padding: 8px 12px;
             font-size: 14px;
         }
 
@@ -264,7 +291,7 @@ try {
         @media (max-width: 768px) {
             th,
             td {
-                font-size: 12px; /* Even smaller font for mobile */
+                font-size: 12px;
                 padding: 6px;
             }
 
@@ -286,19 +313,41 @@ try {
 
         <!-- Search and Count Section -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-100">
+            <div class="flex items-center space-x-4 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 font-medium px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-users mr-2"></i>
+                    <span class="font-bold"><?php echo number_format($total_records); ?></span>
+                    <span class="ml-1">รายการ</span>
+                </span>
+                <button onclick="showAddModal()"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center">
+                    <i class="fas fa-plus mr-2"></i>เพิ่มประเภท
+                </button>
+            </div>
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div class="flex items-center space-x-4">
-                    <span class="bg-indigo-100 text-indigo-800 font-medium px-4 py-2 rounded-lg flex items-center">
-                        <i class="fas fa-users mr-2"></i>
-                        <span class="font-bold"><?php echo number_format($total_records); ?></span>
-                        <span class="ml-1">รายการ</span>
-                    </span>
-                    <button onclick="showAddModal()"
-                        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center">
-                        <i class="fas fa-plus mr-2"></i>เพิ่มประเภท
-                    </button>
+                <!-- Date Range Selection and Export Buttons -->
+                <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+                    <div class="flex items-center space-x-2">
+                        <label for="start_date" class="text-sm font-medium text-gray-700">วันที่เริ่มต้น</label>
+                        <input type="date" id="start_date" name="start_date"
+                            class="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            value="<?php echo htmlspecialchars($start_date); ?>">
+                        <label for="end_date" class="text-sm font-medium text-gray-700">ถึง</label>
+                        <input type="date" id="end_date" name="end_date"
+                            class="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            value="<?php echo htmlspecialchars($end_date); ?>">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="exportPDF()"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm md:text-base">
+                            <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
+                        </button>
+                        <button onclick="exportExcel()"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm md:text-base">
+                            <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
+                        </button>
+                    </div>
                 </div>
-
                 <div class="w-full lg:w-1/2 xl:w-1/3">
                     <form action="" method="GET" id="searchForm" class="relative">
                         <input type="hidden" name="page" value="member_type">
@@ -307,14 +356,12 @@ try {
                             placeholder="ค้นหารหัส หรือชื่อประเภทสมาชิก..."
                             value="<?php echo htmlspecialchars($search); ?>"
                             class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition-all">
-
                         <?php if (!empty($search)): ?>
                             <button type="button" onclick="clearSearch()"
                                 class="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-times"></i>
                             </button>
                         <?php endif; ?>
-
                         <button type="submit"
                             class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-indigo-600">
                             <i class="fas fa-search"></i>
@@ -349,7 +396,10 @@ try {
                                         <?php echo htmlspecialchars($membertype['member_type_name']); ?>
                                     </td>
                                     <td class="px-6 py-4 type-name">
-                                        <?php echo htmlspecialchars($membertype['member_type_date']); ?>
+                                        <?php
+                                        $date = new DateTime($membertype['member_type_date']);
+                                        echo $date->format('d/m/Y H:i:s');
+                                        ?>
                                     </td>
                                     <td class="px-6 py-4 personnel-name">
                                         <span class="inline-flex items-center bg-blue-50 text-blue-800 px-2 py-1 rounded-md text-xs">
@@ -388,7 +438,7 @@ try {
                                     <div class="flex flex-col items-center justify-center py-6">
                                         <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
                                         <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
-                                        <?php if (!empty($search)): ?>
+                                        <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
                                             <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
                                                 <a href="?page=member_type" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
                                             </p>
@@ -409,7 +459,7 @@ try {
             <div class="flex justify-center mt-6">
                 <nav class="inline-flex rounded-md shadow">
                     <?php if ($page > 1): ?>
-                        <a href="?page=member_type&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        <a href="?page=member_type&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= $start_date ? '&start_date=' . urlencode($start_date) : '' ?><?= $end_date ? '&end_date=' . urlencode($end_date) : '' ?>"
                             class="relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                             <i class="fas fa-chevron-left mr-1"></i> ก่อนหน้า
                         </a>
@@ -425,7 +475,7 @@ try {
                         $end_page = min($total_pages, $page + 2);
 
                         if ($start_page > 1): ?>
-                            <a href="?page=member_type&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                            <a href="?page=member_type&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= $start_date ? '&start_date=' . urlencode($start_date) : '' ?><?= $end_date ? '&end_date=' . urlencode($end_date) : '' ?>"
                                 class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 1
                             </a>
@@ -437,7 +487,7 @@ try {
                         <?php endif; ?>
 
                         <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                            <a href="?page=member_type&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                            <a href="?page=member_type&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= $start_date ? '&start_date=' . urlencode($start_date) : '' ?><?= $end_date ? '&end_date=' . urlencode($end_date) : '' ?>"
                                 class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium <?= $i == $page ? 'text-indigo-700 z-10 border-indigo-500' : 'text-gray-700 hover:bg-gray-50' ?>">
                                 <?= $i ?>
                             </a>
@@ -449,7 +499,7 @@ try {
                                     ...
                                 </span>
                             <?php endif; ?>
-                            <a href="?page=member_type&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                            <a href="?page=member_type&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= $start_date ? '&start_date=' . urlencode($start_date) : '' ?><?= $end_date ? '&end_date=' . urlencode($end_date) : '' ?>"
                                 class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 <?= $total_pages ?>
                             </a>
@@ -461,7 +511,7 @@ try {
                     </span>
 
                     <?php if ($page < $total_pages): ?>
-                        <a href="?page=member_type&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        <a href="?page=member_type&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= $start_date ? '&start_date=' . urlencode($start_date) : '' ?><?= $end_date ? '&end_date=' . urlencode($end_date) : '' ?>"
                             class="relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                             ถัดไป <i class="fas fa-chevron-right ml-1"></i>
                         </a>
@@ -661,31 +711,7 @@ try {
         function confirmDelete(form) {
             showDeleteModal();
             document.getElementById('confirmDeleteBtn').onclick = () => {
-                const formData = new FormData(form);
-                fetch('', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = response.url;
-                    } else if (response.ok) {
-                        closeDeleteModal();
-                        showNotification('ลบข้อมูลสำเร็จ', 'bg-green-500');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        return response.text().then(text => {
-                            throw new Error(text || 'Failed to delete');
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    closeDeleteModal();
-                    showNotification('เกิดข้อผิดพลาดในการลบ: ' + error.message, 'bg-red-500');
-                });
+                form.submit();
             };
         }
 
@@ -708,13 +734,30 @@ try {
         }
 
         function hideNotification() {
-            const notification = document.getElementById('notification');
-            notification.classList.add('translate-x-full');
+            document.getElementById('notification').classList.add('translate-x-full');
         }
 
         function clearSearch() {
             document.getElementById('searchInput').value = '';
             document.getElementById('searchForm').submit();
+        }
+
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/member/report/export_member_type_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/member/report/export_member_type_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
         }
 
         document.getElementById('addForm').addEventListener('submit', function(e) {
@@ -745,49 +788,22 @@ try {
                 personnelError.classList.add('hidden');
             }
 
-            if (hasError) return;
-
-            const formData = new FormData();
-            formData.append('action', 'add');
-            formData.append('member_type', name);
-            formData.append('personnel_id', personnelId);
-            formData.append('csrf_token', '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>');
-
-            fetch('', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else if (response.ok) {
-                    closeAddModal();
-                    showNotification('เพิ่มข้อมูลสำเร็จ', 'bg-green-500');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    throw new Error('Failed to add member type');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('เกิดข้อผิดพลาดในการเพิ่มข้อมูล: ' + error.message, 'bg-red-500');
-            });
+            if (!hasError) {
+                this.submit();
+            }
         });
 
         document.getElementById('editForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const memberTypeId = document.getElementById('editMemberTypeId').value;
-            const newName = document.getElementById('editMemberTypeName').value.trim();
+            const name = document.getElementById('editMemberTypeName').value.trim();
             const nameError = document.getElementById('nameError');
 
             let hasError = false;
-            if (!newName) {
+            if (!name) {
                 nameError.classList.remove('hidden');
                 nameError.textContent = 'กรุณากรอกชื่อประเภทสมาชิก';
                 hasError = true;
-            } else if (newName.length > 255) {
+            } else if (name.length > 255) {
                 nameError.classList.remove('hidden');
                 nameError.textContent = 'ชื่อประเภทสมาชิกยาวเกิน 255 ตัวอักษร';
                 hasError = true;
@@ -795,34 +811,9 @@ try {
                 nameError.classList.add('hidden');
             }
 
-            if (hasError) return;
-
-            const formData = new FormData();
-            formData.append('action', 'update');
-            formData.append('id', memberTypeId);
-            formData.append('update_member_type', newName);
-            formData.append('csrf_token', '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>');
-
-            fetch('', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else if (response.ok) {
-                    const row = document.querySelector(`tr[data-id="${memberTypeId}"]`);
-                    if (row) row.querySelector('.type-name').textContent = newName;
-                    closeEditModal();
-                    showNotification('แก้ไขสำเร็จ', 'bg-green-500');
-                } else {
-                    throw new Error('Failed to save');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('เกิดข้อผิดพลาดในการบันทึก: ' + error.message, 'bg-red-500');
-            });
+            if (!hasError) {
+                this.submit();
+            }
         });
 
         document.addEventListener('keydown', function(e) {
@@ -851,10 +842,35 @@ try {
             }
         });
 
+        document.getElementById('start_date').addEventListener('change', updateDateFilter);
+        document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+        function updateDateFilter() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', 'member_type');
+
+            if (startDate) {
+                urlParams.set('start_date', startDate);
+            } else {
+                urlParams.delete('start_date');
+            }
+
+            if (endDate) {
+                urlParams.set('end_date', endDate);
+            } else {
+                urlParams.delete('end_date');
+            }
+
+            window.location.search = urlParams.toString();
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
-            if (!searchInput) return; // ป้องกัน error ถ้า element ไม่มีจริง
+            if (!searchInput) return;
+
             searchInput.focus();
 
             searchInput.addEventListener('keydown', function(e) {
@@ -893,6 +909,8 @@ try {
                 showNotification(decodeURIComponent(urlParams.get('edit_error')), 'bg-red-500');
             } else if (urlParams.has('delete_error')) {
                 showNotification(decodeURIComponent(urlParams.get('delete_error')), 'bg-red-500');
+            } else if (urlParams.has('error')) {
+                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
         });
     </script>

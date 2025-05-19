@@ -10,7 +10,8 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // Function to check for duplicate usernames
-function checkUsernameExists($pdo, $username) {
+function checkUsernameExists($pdo, $username)
+{
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM personnel WHERE personnel_username = ?");
     $stmt->execute([$username]);
     return $stmt->fetchColumn() > 0;
@@ -83,12 +84,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $hashed_password = password_hash($personnel_password, PASSWORD_DEFAULT);
+        $personnel_create_date = date('Y-m-d H:i:s');
         $stmt = $pdo->prepare('
-            INSERT INTO personnel (personnel_name, personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password) 
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO personnel (personnel_name, personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password, personnel_create_date) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ');
-        $stmt->execute([$personnel_name, $personnel_type_id, $personnel_address, $personnel_phone, $personnel_username, $hashed_password]);
+        $stmt->execute([$personnel_name, $personnel_type_id, $personnel_address, $personnel_phone, $personnel_username, $personnel_password, $personnel_create_date ]);
 
         $personnel_id = $pdo->lastInsertId();
         header("Location: /?page=personnel_detail&tabel=personnel&id=$personnel_id");
@@ -106,6 +107,7 @@ ob_end_flush();
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -129,12 +131,12 @@ ob_end_flush();
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อ-สกุล:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="text" 
-                                    name="personnel_name" 
-                                    id="personnel_name" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                                    required 
-                                    autocomplete="off" 
+                                <input type="text"
+                                    name="personnel_name"
+                                    id="personnel_name"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    required
+                                    autocomplete="off"
                                     autofocus>
                             </div>
                         </div>
@@ -142,10 +144,10 @@ ob_end_flush();
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ที่อยู่:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <textarea name="personnel_address" 
-                                    id="personnel_address" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none" 
-                                    rows="3" 
+                                <textarea name="personnel_address"
+                                    id="personnel_address"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                                    rows="3"
                                     required></textarea>
                             </div>
                         </div>
@@ -153,11 +155,11 @@ ob_end_flush();
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">เบอร์โทร:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="text" 
-                                    name="personnel_phone" 
-                                    id="personnel_phone" 
-                                    maxlength="10" 
-                                    pattern="[0-9]{10}" 
+                                <input type="text"
+                                    name="personnel_phone"
+                                    id="personnel_phone"
+                                    maxlength="10"
+                                    pattern="[0-9]{10}"
                                     class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             </div>
                         </div>
@@ -165,11 +167,11 @@ ob_end_flush();
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อผู้ใช้:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="text" 
-                                    name="personnel_username" 
-                                    id="personnel_username" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                                    required 
+                                <input type="text"
+                                    name="personnel_username"
+                                    id="personnel_username"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    required
                                     autocomplete="new-username">
                             </div>
                         </div>
@@ -177,11 +179,11 @@ ob_end_flush();
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">รหัสผ่าน:</label>
                             <div class="w-7/12 lg:w-8/12">
-                                <input type="password" 
-                                    name="personnel_password" 
-                                    id="personnel_password" 
-                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                                    required 
+                                <input type="password"
+                                    name="personnel_password"
+                                    id="personnel_password"
+                                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    required
                                     autocomplete="new-password">
                             </div>
                         </div>
@@ -210,9 +212,18 @@ ob_end_flush();
                             </div>
                         </div>
 
+                        <!-- วันที่สมัคร -->
+                        <div class="flex items-center  flex-col sm:flex-row sm:items-center gap-4">
+                            <label for="personnel_create_date" class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">วันที่และเวลา</label>
+                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
+                                <input type="text" name="personnel_create_date" id="personnel_create_date" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly
+                                    class="w-full p-2 border border-gray-300 bg-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-not-allowed">
+                            </div>
+                        </div>
+
                         <!-- Buttons -->
                         <div class="flex justify-end gap-4 mt-6">
-                            <a href="/?page=personnel_list" 
+                            <a href="/?page=personnel_list"
                                 class="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-200">
                                 ยกเลิก
                             </a>
@@ -253,9 +264,9 @@ ob_end_flush();
             function showModal(title, message, isError = false) {
                 modalTitle.textContent = title;
                 modalMessage.textContent = message;
-                modalButton.className = isError 
-                    ? 'bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-200'
-                    : 'bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200';
+                modalButton.className = isError ?
+                    'bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-200' :
+                    'bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200';
                 modalContainer.classList.remove('hidden');
             }
 
@@ -362,4 +373,5 @@ ob_end_flush();
         });
     </script>
 </body>
+
 </html>
