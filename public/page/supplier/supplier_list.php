@@ -36,7 +36,6 @@ function verifyCsrfToken($token)
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-
 // ======= ส่วนการเพิ่ม Supplier =======
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
@@ -82,6 +81,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// ======= ส่วนการแก้ไข Supplier =======
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
+    if (!verifyCsrfToken($_POST['csrf_token'])) {
+        header('Location: index.php?page=supplier_list&edit_error=' . urlencode('Invalid CSRF token'));
+        exit;
+    }
+
+    $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+    $name = trim($_POST['update_supplier_name']);
+    $address = trim($_POST['update_supplier_address']);
+
+    // Validation
+    $errors = [];
+    if (!$id) {
+        $errors[] = 'Invalid supplier ID';
+    }
+    if (empty($name) || strlen($name) > 255) {
+        $errors[] = 'ชื่อผู้ส่งมอบต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร';
+    }
+    if (empty($address) || strlen($address) > 500) {
+        $errors[] = 'ที่อยู่ต้องไม่ว่างและมีความยาวไม่เกิน 500 ตัวอักษร';
+    }
+
+    if (!empty($errors)) {
+        header('Location: index.php?page=supplier_list&edit_error=' . urlencode(implode(', ', $errors)));
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("UPDATE supplier SET supplier_name = ?, supplier_address = ? WHERE supplier_id = ?");
+        $stmt->execute([$name, $address, $id]);
+        header('Location: index.php?page=supplier_list&edit_success=1');
+        exit;
+    } catch (PDOException $e) {
+        error_log("Update supplier error: " . $e->getMessage());
+        header('Location: index.php?page=supplier_list&edit_error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
+        exit;
+    }
+}
+
 // ======= ส่วนการลบ Supplier =======
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token']) && $_POST['action'] === 'delete') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
@@ -97,15 +136,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     try {
         $pdo->beginTransaction();
-
-        // // ตรวจสอบ Foreign Key Constraint (ปรับชื่อตารางให้ถูกต้อง หรือลบถ้าไม่มี)
-        // $stmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE supplier_id = ?");
-        // $stmt->execute([$id]);
-        // if ($stmt->fetchColumn() > 0) {
-        //     $pdo->rollBack();
-        //     header('Location: index.php?page=supplier_list&delete_error=' . urlencode('ไม่สามารถลบได้เนื่องจากมีข้อมูลที่เกี่ยวข้องในตาราง orders'));
-        //     exit;
-        // }
 
         $stmt = $pdo->prepare("DELETE FROM supplier WHERE supplier_id = ?");
         $stmt->execute([$id]);
@@ -127,19 +157,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
     }
 }
 
-// ======= ค้นหาข้อมูล Supplier =======
+// ======= ค้นหาและกรองข้อมูล Supplier =======
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 
 // ======= นับจำนวน Supplier ทั้งหมด (สำหรับ pagination) =======
 try {
     $count_query = "SELECT COUNT(*) as total_count FROM supplier";
     $params = [];
-
-    if (!empty($search)) {
-        $count_query .= " WHERE supplier_id LIKE :search OR supplier_name LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $count_query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $count_query .= " AND (supplier_id LIKE :search OR supplier_name LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $count_query .= " AND supplier_create_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND supplier_create_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
-
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -148,7 +189,8 @@ try {
     $total_records = (int)$stmt->fetchColumn();
 } catch (PDOException $e) {
     error_log("Count supplier error: " . $e->getMessage());
-    die("Count error: " . htmlspecialchars($e->getMessage()));
+    header('Location: index.php?page=supplier_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
+    exit;
 }
 
 // ======= Pagination =======
@@ -163,7 +205,8 @@ try {
     $personnels = fetchData($pdo, $personnel_query)->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Fetch personnel error: " . $e->getMessage());
-    die("Personnel fetch error: " . htmlspecialchars($e->getMessage()));
+    header('Location: index.php?page=supplier_list&error=' . urlencode('Personnel fetch error: ' . htmlspecialchars($e->getMessage())));
+    exit;
 }
 
 // ======= ดึงข้อมูล Supplier =======
@@ -180,28 +223,35 @@ try {
             per.personnel_name
         FROM supplier sup
         INNER JOIN personnel per ON sup.personnel_id = per.personnel_id";
-
     $params = [];
-    if (!empty($search)) {
-        $query .= " WHERE sup.supplier_id LIKE :search OR sup.supplier_name LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $query .= " AND (sup.supplier_id LIKE :search OR sup.supplier_name LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $query .= " AND sup.supplier_create_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND sup.supplier_create_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
-
-    $query .= " LIMIT :offset, :limit";
+    $query .= " ORDER BY sup.supplier_id DESC LIMIT :offset, :limit";
     $stmt = $pdo->prepare($query);
-
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
-
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':limit', $records_per_page, PDO::PARAM_INT);
-
     $stmt->execute();
     $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Fetch supplier error: " . $e->getMessage());
-    die("Fetch error: " . htmlspecialchars($e->getMessage()));
+    header('Location: index.php?page=supplier_list&error=' . urlencode('Fetch error: ' . htmlspecialchars($e->getMessage())));
+    exit;
 }
 ?>
 
@@ -292,7 +342,7 @@ try {
             <div class="overflow-x-auto">
                 <table class="w-full table-auto">
                     <thead>
-                        <tr class="bg-gray-50 text-left ">
+                        <tr class="bg-gray-50 text-left">
                             <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700 border-b">
                                 รหัสผู้ส่งมอบ
                             </th>
@@ -316,13 +366,13 @@ try {
                             </th>
                         </tr>
                     </thead>
-                    <tbody class=" divide-y divide-gray-100">
+                    <tbody class="divide-y divide-gray-100">
                         <?php if (count($suppliers) > 0): ?>
                             <?php foreach ($suppliers as $supplier): ?>
                                 <tr data-id="<?php echo htmlspecialchars($supplier['supplier_id']); ?>"
-                                    class="hover:bg-indigo-50/30 transition-colors ">
+                                    class="hover:bg-indigo-50/30 transition-colors">
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="font-medium "><?php echo htmlspecialchars($supplier['supplier_id']); ?></span>
+                                        <span class="font-medium"><?php echo htmlspecialchars($supplier['supplier_id']); ?></span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <a href="?page=supplier_detail&tabel=supplier&id=<?php echo htmlspecialchars($supplier['supplier_id']); ?>"
@@ -337,9 +387,7 @@ try {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <?php if (!empty($supplier['supplier_phone'])): ?>
-                                            <p>
-                                                <?php echo htmlspecialchars($supplier['supplier_phone']); ?>
-                                            </p>
+                                            <p><?php echo htmlspecialchars($supplier['supplier_phone']); ?></p>
                                         <?php else: ?>
                                             <span class="text-gray-400">-</span>
                                         <?php endif; ?>
@@ -381,7 +429,7 @@ try {
                                     <div class="flex flex-col items-center justify-center py-6">
                                         <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
                                         <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
-                                        <?php if (!empty($search)): ?>
+                                        <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
                                             <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
                                                 <a href="?page=supplier_list" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
                                             </p>
@@ -402,7 +450,7 @@ try {
             <div class="flex justify-center mt-6">
                 <nav class="inline-flex rounded-md shadow">
                     <?php if ($page > 1): ?>
-                        <a href="?page=supplier_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        <a href="?page=supplier_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                             class="relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                             <i class="fas fa-chevron-left mr-1"></i> ก่อนหน้า
                         </a>
@@ -418,7 +466,7 @@ try {
                         $end_page = min($total_pages, $page + 2);
 
                         if ($start_page > 1): ?>
-                            <a href="?page=supplier_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                            <a href="?page=supplier_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                                 class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 1
                             </a>
@@ -430,8 +478,8 @@ try {
                         <?php endif; ?>
 
                         <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                            <a href="?page=supplier_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
-                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium <?= $i == $page ? 'text-indigo-700  z-10 border-indigo-500' : 'text-gray-700 hover:bg-gray-50' ?>">
+                            <a href="?page=supplier_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium <?= $i == $page ? 'text-indigo-700 z-10 border-indigo-500' : 'text-gray-700 hover:bg-gray-50' ?>">
                                 <?= $i ?>
                             </a>
                         <?php endfor; ?>
@@ -442,7 +490,7 @@ try {
                                     ...
                                 </span>
                             <?php endif; ?>
-                            <a href="?page=supplier_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                            <a href="?page=supplier_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                                 class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 <?= $total_pages ?>
                             </a>
@@ -454,7 +502,7 @@ try {
                     </span>
 
                     <?php if ($page < $total_pages): ?>
-                        <a href="?page=supplier_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                        <a href="?page=supplier_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                             class="relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                             ถัดไป <i class="fas fa-chevron-right ml-1"></i>
                         </a>
@@ -507,6 +555,7 @@ try {
                     <label for="addSupplierPhone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
                     <input type="text" id="addSupplierPhone" name="add_supplier_phone" maxlength="10" pattern="[0-9]{10}"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <span id="addPhoneError" class="text-rose-500 text-xs mt-1 hidden">เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 ตัว</span>
                 </div>
 
                 <div>
@@ -556,22 +605,21 @@ try {
 
             <form id="editForm" method="POST" class="space-y-4">
                 <input type="hidden" id="editSupplierId" name="id">
+                <input type="hidden" name="action" value="update">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                <input type="hidden" name="update_supplier_name" id="hiddenEditSupplierName">
-                <input type="hidden" name="update_supplier_address" id="hiddenEditSupplierAddress">
 
                 <div>
                     <label for="editSupplierName" class="block text-sm font-medium text-gray-700">ชื่อผู้ส่งมอบ</label>
-                    <input type="text" id="editSupplierName"
+                    <input type="text" id="editSupplierName" name="update_supplier_name"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
-                    <span id="nameError" class="text-rose-500 text-xs mt-1 hidden">กรุณากรอกชื่อผู้ส่งมอบ</span>
+                    <span id="editNameError" class="text-rose-500 text-xs mt-1 hidden">กรุณากรอกชื่อผู้ส่งมอบ</span>
                 </div>
 
                 <div>
                     <label for="editSupplierAddress" class="block text-sm font-medium text-gray-700">ที่อยู่</label>
-                    <textarea id="editSupplierAddress"
+                    <textarea id="editSupplierAddress" name="update_supplier_address"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 resize-none" rows="3" required></textarea>
-                    <span id="addressError" class="text-rose-500 text-xs mt-1 hidden">กรุณากรอกที่อยู่</span>
+                    <span id="editAddressError" class="text-rose-500 text-xs mt-1 hidden">กรุณากรอกที่อยู่</span>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-4">
@@ -636,6 +684,7 @@ try {
             document.getElementById('addPersonnelId').value = '';
             document.getElementById('addNameError').classList.add('hidden');
             document.getElementById('addAddressError').classList.add('hidden');
+            document.getElementById('addPhoneError').classList.add('hidden');
             document.getElementById('addPersonnelError').classList.add('hidden');
             document.getElementById('addModal').classList.remove('invisible', 'opacity-0');
             document.getElementById('addModal').querySelector('.transform').classList.remove('scale-95');
@@ -652,8 +701,8 @@ try {
             document.getElementById('editSupplierId').value = id;
             document.getElementById('editSupplierName').value = name;
             document.getElementById('editSupplierAddress').value = address;
-            document.getElementById('nameError').classList.add('hidden');
-            document.getElementById('addressError').classList.add('hidden');
+            document.getElementById('editNameError').classList.add('hidden');
+            document.getElementById('editAddressError').classList.add('hidden');
             document.getElementById('editModal').classList.remove('invisible', 'opacity-0');
             document.getElementById('editModal').querySelector('.transform').classList.remove('scale-95');
             document.getElementById('editModal').querySelector('.transform').classList.add('scale-100');
@@ -680,31 +729,7 @@ try {
         function confirmDelete(form) {
             showDeleteModal();
             document.getElementById('confirmDeleteBtn').onclick = () => {
-                const formData = new FormData(form);
-                fetch('', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (response.redirected) {
-                            window.location.href = response.url;
-                        } else if (response.ok) {
-                            closeDeleteModal();
-                            showNotification('ลบข้อมูลสำเร็จ', 'bg-green-500');
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1000);
-                        } else {
-                            return response.text().then(text => {
-                                throw new Error(text || 'Failed to delete');
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        closeDeleteModal();
-                        showNotification('เกิดข้อผิดพลาดในการลบ: ' + error.message, 'bg-red-500');
-                    });
+                form.submit();
             };
         }
 
@@ -727,13 +752,30 @@ try {
         }
 
         function hideNotification() {
-            const notification = document.getElementById('notification');
-            notification.classList.add('translate-x-full');
+            document.getElementById('notification').classList.add('translate-x-full');
         }
 
         function clearSearch() {
             document.getElementById('searchInput').value = '';
             document.getElementById('searchForm').submit();
+        }
+
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/supplier/report/export_supplier_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/supplier/report/export_supplier_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
         }
 
         document.getElementById('addForm').addEventListener('submit', function(e) {
@@ -744,7 +786,7 @@ try {
             const personnelId = document.getElementById('addPersonnelId').value;
             const nameError = document.getElementById('addNameError');
             const addressError = document.getElementById('addAddressError');
-            const phoneError = document.getElementById('addAddressError');
+            const phoneError = document.getElementById('addPhoneError');
             const personnelError = document.getElementById('addPersonnelError');
 
             let hasError = false;
@@ -773,8 +815,8 @@ try {
             }
 
             if (phone && !/^[0-9]{10}$/.test(phone)) {
-                phoneError.textContent = 'เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 ตัว';
                 phoneError.classList.remove('hidden');
+                phoneError.textContent = 'เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 ตัว';
                 hasError = true;
             } else {
                 phoneError.classList.add('hidden');
@@ -788,47 +830,24 @@ try {
                 personnelError.classList.add('hidden');
             }
 
-            if (hasError) return;
-
-            const formData = new FormData();
-            formData.append('action', 'add');
-            formData.append('add_supplier_name', name);
-            formData.append('add_supplier_address', address);
-            formData.append('add_supplier_phone', phone);
-            formData.append('personnel_id', personnelId);
-            formData.append('csrf_token', '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>');
-
-            fetch('', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (response.ok) {
-                        window.location.href = '?page=supplier_list&add_success=1';
-                    } else {
-                        throw new Error('Failed to add supplier');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('เกิดข้อผิดพลาดในการเพิ่มข้อมูล: ' + error.message, 'bg-red-500');
-                });
+            if (!hasError) {
+                this.submit();
+            }
         });
 
         document.getElementById('editForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const supplierId = document.getElementById('editSupplierId').value;
-            const newName = document.getElementById('editSupplierName').value.trim();
-            const newAddress = document.getElementById('editSupplierAddress').value.trim();
-            const nameError = document.getElementById('nameError');
-            const addressError = document.getElementById('addressError');
+            const name = document.getElementById('editSupplierName').value.trim();
+            const address = document.getElementById('editSupplierAddress').value.trim();
+            const nameError = document.getElementById('editNameError');
+            const addressError = document.getElementById('editAddressError');
 
             let hasError = false;
-            if (!newName) {
+            if (!name) {
                 nameError.classList.remove('hidden');
                 nameError.textContent = 'กรุณากรอกชื่อผู้ส่งมอบ';
                 hasError = true;
-            } else if (newName.length > 255) {
+            } else if (name.length > 255) {
                 nameError.classList.remove('hidden');
                 nameError.textContent = 'ชื่อผู้ส่งมอบยาวเกิน 255 ตัวอักษร';
                 hasError = true;
@@ -836,11 +855,11 @@ try {
                 nameError.classList.add('hidden');
             }
 
-            if (!newAddress) {
+            if (!address) {
                 addressError.classList.remove('hidden');
                 addressError.textContent = 'กรุณากรอกที่อยู่';
                 hasError = true;
-            } else if (newAddress.length > 500) {
+            } else if (address.length > 500) {
                 addressError.classList.remove('hidden');
                 addressError.textContent = 'ที่อยู่ยาวเกิน 500 ตัวอักษร';
                 hasError = true;
@@ -848,30 +867,9 @@ try {
                 addressError.classList.add('hidden');
             }
 
-            if (hasError) return;
-
-            fetch('', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `id=${encodeURIComponent(supplierId)}&update_supplier_name=${encodeURIComponent(newName)}&update_supplier_address=${encodeURIComponent(newAddress)}&csrf_token=${encodeURIComponent('<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>')}`
-                })
-                .then(response => {
-                    if (response.ok) {
-                        const row = document.querySelector(`tr[data-id="${supplierId}"]`);
-                        row.querySelector('.supplier-name').textContent = newName;
-                        row.querySelector('.supplier-address div').textContent = newAddress;
-                        closeEditModal();
-                        showNotification('แก้ไขสำเร็จ', 'bg-green-500');
-                    } else {
-                        throw new Error('Failed to save');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('เกิดข้อผิดพลาดในการบันทึก: ' + error.message, 'bg-red-500');
-                });
+            if (!hasError) {
+                this.submit();
+            }
         });
 
         document.addEventListener('keydown', function(e) {
@@ -900,13 +898,36 @@ try {
             }
         });
 
+        document.getElementById('start_date').addEventListener('change', updateDateFilter);
+        document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+        function updateDateFilter() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', 'supplier_list');
+
+            if (startDate) {
+                urlParams.set('start_date', startDate);
+            } else {
+                urlParams.delete('start_date');
+            }
+
+            if (endDate) {
+                urlParams.set('end_date', endDate);
+            } else {
+                urlParams.delete('end_date');
+            }
+
+            window.location.search = urlParams.toString();
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById('searchInput').focus();
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return;
 
-            if (urlParams.has('search')) {
-                searchInput.focus();
-            }
+            searchInput.focus();
 
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
@@ -944,6 +965,8 @@ try {
                 showNotification(decodeURIComponent(urlParams.get('edit_error')), 'bg-red-500');
             } else if (urlParams.has('delete_error')) {
                 showNotification(decodeURIComponent(urlParams.get('delete_error')), 'bg-red-500');
+            } else if (urlParams.has('error')) {
+                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
         });
     </script>

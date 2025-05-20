@@ -208,12 +208,12 @@ ob_end_flush();
                         <!-- ปุ่มดาวน์โหลด -->
                         <div class="flex space-x-2">
                             <button onclick="exportPDF()"
-                                class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
-                                <i class="fas fa-file-pdf mr-2"></i> ดาวน์โหลด PDF
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-pdf mr-2"></i>ส่งออก PDF
                             </button>
                             <button onclick="exportExcel()"
-                                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
-                                <i class="fas fa-file-excel mr-2"></i> ดาวน์โหลด Excel
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-excel mr-2"></i>ส่งออก Excel
                             </button>
                         </div>
                     </div>
