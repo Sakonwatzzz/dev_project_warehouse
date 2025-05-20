@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     ob_clean();
     try {
-        if ($_POST['action'] === 'insert_check_product') {
+        if ($_POST['action'] === 'form_insert_stock') {
             $lot_id = $_POST['lot_id'] ?? null;
             $lot_product_id = $_POST['lot_product_id'] ?? null;
             $product_id = $_POST['product_id'] ?? null;
@@ -15,20 +15,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stock_check_date = $_POST['stock_check_date'] ?? null;
             $stock_check_remark = $_POST['stock_check_remark'] ?? '';
             $personnel_id = $_POST['personnel_id'] ?? null;
-            $check_status_id = 1; // Default to 'pending'
+            $check_status_id = 1;
 
-            // Validation
             if (!$lot_id || !$lot_product_id || !$product_id || !$warehouse_id || $stock_check_system === null || $stock_check_actual === null || !$stock_check_date || !$personnel_id) {
                 echo json_encode(['status' => 'error', 'message' => 'กรุณากรอกข้อมูลให้ครบถ้วน']);
                 exit;
             }
 
-            if (!is_numeric($stock_check_system) || !is_numeric($stock_check_actual) || $stock_check_actual < 0) {
-                echo json_encode(['status' => 'error', 'message' => 'จำนวนต้องเป็นตัวเลขและไม่ติดลบ']);
+            if (!is_numeric($stock_check_system) || !is_numeric($stock_check_actual)) {
+                echo json_encode(['status' => 'error', 'message' => 'จำนวนต้องเป็นตัวเลข']);
                 exit;
             }
 
-            // Verify product and lot
+            if ($stock_check_date) {
+                try {
+                    $dateTime = new DateTime($stock_check_date, new DateTimeZone('Asia/Bangkok'));
+                    $stock_check_date = $dateTime->format('Y-m-d H:i:s');
+                } catch (Exception $e) {
+                    echo json_encode(['status' => 'error', 'message' => 'รูปแบบวันที่ไม่ถูกต้อง']);
+                    exit;
+                }
+            }
+
             $stmt = $pdo->prepare("
                 SELECT 1 FROM lot_product lp
                 JOIN lot l ON lp.lot_id = l.lot_id
@@ -40,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
 
-            // Insert into stock_check
             $stmt = $pdo->prepare("
                 INSERT INTO stock_check (lot_id, lot_product_id, product_id, warehouse_id, stock_check_system, stock_check_actual, stock_check_date, stock_check_remark, personnel_id, check_status_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -48,61 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $stock_check_system, $stock_check_actual, $stock_check_date, $stock_check_remark, $personnel_id, $check_status_id]);
 
             echo json_encode(['status' => 'success', 'message' => 'บันทึกสำเร็จ']);
-        } elseif ($_POST['action'] === 'insert_check_product') {
-            $warehouse_id = $_POST['warehouse_id'] ?? null;
-            $stock_check_date = $_POST['stock_check_date'] ?? null;
-            $stock_check_remark = $_POST['stock_check_remark'] ?? '';
-            $personnel_id = $_POST['personnel_id'] ?? null;
-            $products = json_decode($_POST['products'] ?? '[]', true);
-            $check_status_id = 1; // Default to 'pending'
-
-            // Validation
-            if (!$warehouse_id || !$stock_check_date || !$personnel_id || empty($products)) {
-                echo json_encode(['status' => 'error', 'message' => 'กรุณากรอกข้อมูลให้ครบถ้วน']);
-                exit;
-            }
-
-            $pdo->beginTransaction();
-            try {
-                foreach ($products as $product) {
-                    $lot_id = $product['lot_id'] ?? null;
-                    $lot_product_id = $product['lot_product_id'] ?? null;
-                    $product_id = $product['product_id'] ?? null;
-                    $stock_check_system = $product['stock_check_system'] ?? null;
-                    $stock_check_actual = $product['stock_check_actual'] ?? null;
-
-                    if (!$lot_id || !$lot_product_id || !$product_id || $stock_check_system === null || $stock_check_actual === null) {
-                        throw new Exception('ข้อมูลสินค้าไม่ครบถ้วน');
-                    }
-
-                    if (!is_numeric($stock_check_system) || !is_numeric($stock_check_actual) || $stock_check_actual < 0) {
-                        throw new Exception('จำนวนต้องเป็นตัวเลขและไม่ติดลบ');
-                    }
-
-                    // Verify product and lot
-                    $stmt = $pdo->prepare("
-                        SELECT 1 FROM lot_product lp
-                        JOIN lot l ON lp.lot_id = l.lot_id
-                        WHERE lp.lot_product_id = ? AND lp.product_id = ? AND lp.lot_id = ? AND l.warehouse_id = ?
-                    ");
-                    $stmt->execute([$lot_product_id, $product_id, $lot_id, $warehouse_id]);
-                    if (!$stmt->fetch()) {
-                        throw new Exception("ข้อมูลสินค้าหรือล็อตไม่ถูกต้อง: $product_id");
-                    }
-
-                    // Insert into stock_check
-                    $stmt = $pdo->prepare("
-                        INSERT INTO stock_check (lot_id, lot_product_id, product_id, warehouse_id, stock_check_system, stock_check_actual, stock_check_date, stock_check_remark, personnel_id, check_status_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ");
-                    $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $stock_check_system, $stock_check_actual, $stock_check_date, $stock_check_remark, $personnel_id, $check_status_id]);
-                }
-                $pdo->commit();
-                echo json_encode(['status' => 'success', 'message' => 'บันทึกสำเร็จ']);
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-            }
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
         }

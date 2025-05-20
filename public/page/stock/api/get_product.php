@@ -1,12 +1,18 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 
+// รับและตรวจสอบ input
 $product_id = isset($_GET['product_id']) ? trim($_GET['product_id']) : '';
 $warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;
 $lot_id = isset($_GET['lot_id']) ? $_GET['lot_id'] : null;
 $lot_product_id = isset($_GET['lot_product_id']) ? $_GET['lot_product_id'] : null;
 
-$product_query = null;
+
+if (!$product_id || !$lot_id || !$lot_product_id) {
+    header('Content-Type: application/json');
+    echo json_encode([]);
+    exit;
+}
 
 if ($product_id && $lot_id && $lot_product_id) {
     $query = "
@@ -18,20 +24,8 @@ if ($product_id && $lot_id && $lot_product_id) {
         JOIN warehouse w ON l.warehouse_id = w.warehouse_id
         WHERE p.product_id = ? AND lp.lot_id = ? AND lp.lot_product_id = ? AND lp.lot_product_status = 1 AND l.lot_status_id = 2
     ";
-    $params = [];
+    $params = [$product_id, $lot_id, $lot_product_id];
 
-    if ($product_id) {
-        $query .= " AND p.product_id = ?";
-        $params[] = $product_id;
-    }
-    if ($lot_id) {
-        $query .= " AND lp.lot_id = ?";
-        $params[] = $lot_id;
-    }
-    if ($lot_product_id) {
-        $query .= " AND lp.lot_product_id = ?";
-        $params[] = $lot_product_id;
-    }
     if ($warehouse_id) {
         $query .= " AND w.warehouse_id = ?";
         $params[] = $warehouse_id;

@@ -42,6 +42,9 @@ try {
 
 $warehouse_check = $pdo->query("SELECT warehouse_id, warehouse_name FROM warehouse");
 $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stock_check_status");
+
+$dateTime = new DateTime('now', new DateTimeZone('Asia/Bangkok'));
+$defaultDateTime = $dateTime->format('d-m-Y\TH:i');
 ?>
 
 <!DOCTYPE html>
@@ -71,6 +74,29 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                 transform: rotate(360deg);
             }
         }
+
+        .small-toast {
+            font-size: 14px !important;
+            /* ลดขนาดตัวอักษร */
+            padding: 8px 12px !important;
+            /* ลด padding */
+            max-width: 300px !important;
+            /* จำกัดความกว้าง */
+            line-height: 1.4 !important;
+            /* ปรับระยะห่างบรรทัด */
+        }
+
+        .small-toast .swal2-title {
+            font-size: 16px !important;
+            /* ขนาดหัวข้อ */
+            margin: 0 !important;
+            /* ลบ margin */
+        }
+
+        .small-toast .swal2-timer-progress-bar {
+            height: 3px !important;
+            /* ลดความสูงของ progress bar */
+        }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -82,9 +108,8 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
     <div class="min-h-screen flex flex-col">
         <header class="bg-blue-600 text-white shadow-lg">
             <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-                <h1 class="text-2xl font-semibold">ระบบบริหารจัดการคลังสินค้า</h1>
+                <h1 class="text-2xl font-semibold">เช็คสต๊อกสินค้า</h1>
                 <div class="flex items-center space-x-4">
-                    <span id="current-time" name="stock_check_date" class="hidden md:block"></span>
                     <div class="relative group">
                         <button class="flex items-center space-x-2 focus:outline-none">
                             <span class="md:block">ชื่อผู้ใช้งาน</span>
@@ -100,7 +125,7 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
         </header>
 
         <main class="flex-grow container mx-auto px-4 py-8">
-            <div class="flex justify-between items-center mb-6">
+            <!-- <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-gray-800">เช็คสต๊อกสินค้า</h2>
                 <div>
                     <button id="btn-new-stock-check"
@@ -113,11 +138,11 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                         สร้างรายการเช็คสต๊อกใหม่
                     </button>
                 </div>
-            </div>
+            </div> -->
             <div class="bg-white p-4 rounded-lg shadow-md mb-6">
                 <form action="" method="POST" id="form_insert_stock">
                     <input type="text" name="stock_check_id">
-                    <input type="hidden" name="personnel_id" value="1">
+                    <!-- <input type="hidden" name="personnel_id" value="1"> -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label for="warehouse_id"
@@ -141,6 +166,13 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                             <div id="barcode_suggestions"
                                 class="z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden"></div>
                         </div>
+                        <div>
+                            <label for="stock_check_actual"
+                                class="block text-sm font-medium text-gray-700 mb-1">จำนวนที่นับได้จริง</label>
+                            <input type="number" id="stock_check_actual" name="stock_check_actual"
+                                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="ป้อนจำนวน..." min="0">
+                        </div>
                         <div class="block pr-2 p-2">
                             <p class="text-sm text-green-700 mt-1">
                                 <i class="fas fa-info-circle mr-1"></i>
@@ -151,13 +183,7 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                                 รูปแบบการลบ: -รหัส*จำนวน (เช่น -12345*3)
                             </p>
                         </div>
-                        <div>
-                            <label for="stock_check_actual"
-                                class="block text-sm font-medium text-gray-700 mb-1">จำนวนที่นับได้จริง</label>
-                            <input type="number" id="stock_check_actual" name="stock_check_actual"
-                                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="ป้อนจำนวน..." min="0">
-                        </div>
+
                         <div>
                             <label for="stock-check-remark"
                                 class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
@@ -170,9 +196,10 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                                 class="block text-sm font-medium text-gray-700 mb-1">วันที่ตรวจนับ<span
                                     class="text-red-600">*</span></label>
                             <input type="datetime-local" id="stock-check-date" name="stock_check_date"
+                                value="<?php echo ($defaultDateTime); ?>"
                                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
-                        <div>
+                        <div hidden>
                             <label for="status" class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
                             <select id="status"
                                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -295,7 +322,7 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
                                 class="block text-sm font-medium text-gray-700 mb-1">วันที่ตรวจนับ<span
                                     class="text-red-600">*</span></label>
                             <input type="datetime-local" id="stock-check-date" name="stock_check_date"
-                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                         </div>
                     </div>
                     <div class="mb-4">
@@ -352,6 +379,27 @@ $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stoc
             </div>
         </div>
     </div>
+    <script>
+        flatpickr('#stock-check-date', {
+            enableTime: true,
+            dateFormat: 'd-m-Y H:i', // แสดงใน UI เป็น 20-05-2025 14:03
+            altInput: true,
+            altFormat: 'd-m-Y H:i', // รูปแบบที่ผู้ใช้เห็น
+            time_24hr: true,
+            defaultDate: '<?php echo $defaultDateTime; ?>',
+            locale: {
+                firstDayOfWeek: 1 // เริ่มสัปดาห์วันจันทร์
+            },
+            onChange: function (selectedDates, dateStr, instance) {
+                // แปลงกลับเป็น Y-m-d H:i สำหรับ value
+                if (selectedDates.length) {
+                    const date = new Date(selectedDates[0]);
+                    const formatted = date.toISOString().slice(0, 16); // ได้ 2025-05-20T14:03
+                    instance.element.value = formatted;
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>
