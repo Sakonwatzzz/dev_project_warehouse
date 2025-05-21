@@ -3,9 +3,10 @@ require_once __DIR__ . '../../../../../config/database_server.php';
 
 // รับและตรวจสอบ input
 $product_id = isset($_GET['product_id']) ? trim($_GET['product_id']) : '';
-$warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;
 $lot_id = isset($_GET['lot_id']) ? $_GET['lot_id'] : null;
 $lot_product_id = isset($_GET['lot_product_id']) ? $_GET['lot_product_id'] : null;
+$warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;
+
 
 
 if (!$product_id || !$lot_id || !$lot_product_id) {

@@ -67,6 +67,42 @@ $(document).ready(function () {
       }
     });
 
+    
+    $("#product_id_input")
+    .on("keydown", changeInputBackgroud)
+    .on("focus", resetInputBackgroud)
+    .on("keypress", function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            if (!$("#btn-submit").prop("disabled")) {
+                $("#form_insert_stock").submit();
+            } else {
+                Toast.fire({
+                    icon: "warning",
+                    title: "กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง",
+                });
+            }
+        }
+    })
+    .on("input", function () {
+        console.log("stock_insert_list input:", $(this).val());
+        let input = $(this).val().trim();
+        if (input.includes("*")) {
+            let [stock_check_id, stock_check_actual] = input.split("*");
+            let isDelete = stock_check_id.startsWith("-");
+            stock_check_id = stock_check_id.replace(/^-/, "").trim();
+            $(this).val(stock_check_id);
+            stock_check_actual = stock_check_actual.trim() || "0";
+            if (isDelete) {
+                stock_check_actual = `-${stock_check_actual}`;
+            }
+            $("#stock_check_actual").val(stock_check_actual);
+            const product_id_input = document.getElementById("product_id_input");
+            product_id_input.classList.remove("bg-white", "bg-red-500", "bg-green-600");
+            product_id_input.classList.add(isDelete ? "bg-red-500" : "bg-green-600");
+        }
+    });
+
   function validateForm() {
     const product_id = $("#product_id_input").val().trim();
     const warehouse_id = $("#warehouse_id").val().trim();
@@ -82,6 +118,30 @@ $(document).ready(function () {
       isNumeric(stock_check_actual);
     $("#btn-submit").prop("disabled", !isValid);
   }
+
+  function validateForm() {
+    const product_id = $("#product_id_input").val().trim();
+    const warehouse_id = $("#warehouse_id").val().trim();
+    let stock_check_actual = $("#stock_check_actual").val().trim();
+    const stock_check_date = $("#stock-check-date").val().trim();
+    const personnel_id = $("#personnel_id").val().trim() || "1";
+
+    // ตั้งค่าเริ่มต้นถ้า stock_check_actual ว่าง
+    if (!stock_check_actual) {
+        stock_check_actual = "0";
+        $("#stock_check_actual").val(stock_check_actual);
+    }
+
+    const isValid =
+        product_id &&
+        warehouse_id &&
+        stock_check_actual &&
+        stock_check_date &&
+        personnel_id &&
+        /^\d+$/.test(product_id) && // ตรวจสอบ product_id เป็นตัวเลข
+        isNumeric(stock_check_actual);
+    $("#btn-submit").prop("disabled", !isValid);
+}
 
   $(
     "#product_id_input, #warehouse_id, #stock_check_actual, #stock-check-date, #stock-check-remark"

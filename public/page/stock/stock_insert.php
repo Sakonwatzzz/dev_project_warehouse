@@ -32,7 +32,9 @@ try {
         LEFT JOIN lot ON stock_check.lot_id = lot.lot_id
         LEFT JOIN warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
         LEFT JOIN personnel ON stock_check.personnel_id = personnel.personnel_id
-        LEFT JOIN lot_product ON stock_check.lot_product_id = lot_product.lot_product_id";
+        LEFT JOIN lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
+        WHERE stock_check.check_status_id = 1
+        ";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $check_stock = $stmt;
@@ -43,8 +45,9 @@ try {
 $warehouse_check = $pdo->query("SELECT warehouse_id, warehouse_name FROM warehouse");
 $status_check = $pdo->query("SELECT check_status_id, check_status_name FROM stock_check_status");
 
-$dateTime = new DateTime('now', new DateTimeZone('Asia/Bangkok'));
-$defaultDateTime = $dateTime->format('d-m-Y\TH:i');
+date_default_timezone_set('Asia/Bangkok');
+$currentDateTime = date("Y-m-d H:i:s");
+$displayDateTime = date("d/m/Y H:i:s");
 ?>
 
 <!DOCTYPE html>
@@ -54,7 +57,7 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบเช็คสต๊อกสินค้า</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.3.0/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -77,31 +80,24 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
 
         .small-toast {
             font-size: 14px !important;
-            /* ลดขนาดตัวอักษร */
             padding: 8px 12px !important;
-            /* ลด padding */
             max-width: 300px !important;
-            /* จำกัดความกว้าง */
             line-height: 1.4 !important;
-            /* ปรับระยะห่างบรรทัด */
         }
 
         .small-toast .swal2-title {
             font-size: 16px !important;
-            /* ขนาดหัวข้อ */
             margin: 0 !important;
-            /* ลบ margin */
         }
 
         .small-toast .swal2-timer-progress-bar {
             height: 3px !important;
-            /* ลดความสูงของ progress bar */
         }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="page/stock/js/search_product.js"></script>
-    <script src="page/stock/js/stock_insert_list.js"></script>
+    <script src="page/stock/js/stock_insert_list.js?t=<?= time() ?>"></script>
 </head>
 
 <body class="main-body bg-gray-50">
@@ -109,8 +105,11 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
         <header class="bg-blue-600 text-white shadow-lg">
             <div class="container mx-auto px-4 py-4 flex justify-between items-center">
                 <h1 class="text-2xl font-semibold">เช็คสต๊อกสินค้า</h1>
-                <div class="flex items-center space-x-4">
-                    <div class="relative group">
+                <div class="flex gap-2">
+                    <div class="items-center">
+                        <i class="far fa-clock mr-2"></i><?= $displayDateTime ?>
+                    </div>
+                    <div>
                         <button class="flex items-center space-x-2 focus:outline-none">
                             <span class="md:block">ชื่อผู้ใช้งาน</span>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
@@ -125,38 +124,10 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
         </header>
 
         <main class="flex-grow container mx-auto px-4 py-8">
-            <!-- <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">เช็คสต๊อกสินค้า</h2>
-                <div>
-                    <button id="btn-new-stock-check"
-                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        สร้างรายการเช็คสต๊อกใหม่
-                    </button>
-                </div>
-            </div> -->
             <div class="bg-white p-4 rounded-lg shadow-md mb-6">
-                <form action="" method="POST" id="form_insert_stock">
-                    <input type="text" name="stock_check_id">
-                    <!-- <input type="hidden" name="personnel_id" value="1"> -->
+                <form id="form_insert_stock">
+                    <input type="hidden" name="personnel_id" id="personnel_id" value="1">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <label for="warehouse_id"
-                                class="block text-sm font-medium text-gray-700 mb-1">คลังสินค้า</label>
-                            <select id="warehouse_id" name="warehouse_id"
-                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="">ทั้งหมด</option>
-                                <?php while ($warehouse_list_check = $warehouse_check->fetch(PDO::FETCH_ASSOC)): ?>
-                                    <option value="<?php echo $warehouse_list_check['warehouse_id']; ?>">
-                                        <?php echo $warehouse_list_check['warehouse_name']; ?>
-                                    </option>
-                                <?php endwhile; ?>
-                            </select>
-                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1"
                                 for="product_id">แสกนรหัสสินค้า</label>
@@ -171,9 +142,24 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
                                 class="block text-sm font-medium text-gray-700 mb-1">จำนวนที่นับได้จริง</label>
                             <input type="number" id="stock_check_actual" name="stock_check_actual"
                                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="ป้อนจำนวน..." min="0">
+                                placeholder="ป้อนจำนวน..." min="0" value="0">
                         </div>
-                        <div class="block pr-2 p-2">
+                        <div hidden>
+                            <label for="warehouse_name"
+                                class="block text-sm font-medium text-gray-700 mb-1">จำนวนในระบบ</label>
+                            <input type="text" id="warehouse_name" name="warehouse_name" readonly
+                                class="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-100"
+                                placeholder="กรุณากรอกรหัสสินค้าเพื่อแสดงคลัง">
+                            <input type="hidden" id="warehouse_id" name="warehouse_id">
+                        </div>
+                        <div hidden>
+                            <label for="stock_check_system"
+                                class="block text-sm font-medium text-gray-700 mb-1">คลังสินค้า</label>
+                            <input type="number" id="stock_check_system" name="stock_check_system" readonly
+                                class="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-100" placeholder="">
+                        </div>
+
+                        <div class="block pt-2">
                             <p class="text-sm text-green-700 mt-1">
                                 <i class="fas fa-info-circle mr-1"></i>
                                 รูปแบบการเพิ่ม: รหัส*จำนวน (เช่น 12345*2)
@@ -184,24 +170,17 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
                             </p>
                         </div>
 
-                        <div>
+                        <div hidden>
                             <label for="stock-check-remark"
                                 class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
                             <textarea id="stock-check-remark" name="stock_check_remark" rows="3"
                                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="ระบุหมายเหตุ (ถ้ามี)"></textarea>
                         </div>
-                        <div>
-                            <label for="stock-check-date"
-                                class="block text-sm font-medium text-gray-700 mb-1">วันที่ตรวจนับ<span
-                                    class="text-red-600">*</span></label>
-                            <input type="datetime-local" id="stock-check-date" name="stock_check_date"
-                                value="<?php echo ($defaultDateTime); ?>"
-                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
                         <div hidden>
-                            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                            <select id="status"
+                            <label for="check_status_id"
+                                class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                            <select id="check_status_id"
                                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <?php while ($status = $status_check->fetch(PDO::FETCH_ASSOC)): ?>
                                     <option value="<?php echo $status['check_status_id']; ?>">
@@ -219,70 +198,54 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
                             <span class="text">บันทึก</span>
                         </button>
                     </div>
+                    <input type="hidden" name="stock_check_date" id="stock_check_date" value="<?= $currentDateTime ?>">
                 </form>
-
             </div>
 
-            <div id="tab-content">
-                <div class="flex mb-4">
-                    <button id="active-tab-btn" class="px-4 py-2 bg-blue-500 text-white rounded-l-md"
-                        hidden>Active</button>
-                    <!-- <button id="history-tab-btn"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-r-md">History</button> -->
+            <div class="bg-white overflow-hidden shadow-md rounded-lg">
+                <div class="flex justify-end">
+                    <button id="btn-confirm-check"
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer disabled:bg-gray-400"
+                        disabled>
+                        <span class="spinner hidden">กำลังยืนยัน...</span>
+                        <span class="text">ยืนยันรายการตรวจสอบ</span>
+                    </button>
                 </div>
-                <div id="active-tab" class="tab-content">
-                    <div class="bg-white overflow-hidden shadow-md rounded-lg">
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-100">
-                                    <tr>
-                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
-                                            <input type="checkbox" id="select-all-list"
-                                                class="rounded text-blue-500 focus:ring-blue-400">
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            รหัสเช็คสต๊อก</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            วันที่</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            คลังสินค้า</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            รหัสสินค้า</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            ชื่อสินค้า</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            จำนวนสินค้าจากระบบ</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            จำนวนสินค้าที่นับได้จริง</th>
-                                        <!-- <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            จำนวนรายการ</th> -->
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            พนักงาน</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            สถานะ</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            หมายเหตุ</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
-                                            การจัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="stock_check_table" class="bg-white divide-y divide-gray-200"></tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                                    <input type="checkbox" id="select-all-list"
+                                        class="rounded text-blue-500 focus:ring-blue-400">
+                                </th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    รหัสเช็คสต๊อก</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    วันที่</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    คลังสินค้า</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    รหัสสินค้า</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    ชื่อสินค้า</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    จำนวนสินค้าจากระบบ</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    จำนวนสินค้าที่นับได้จริง</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    พนักงาน</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    สถานะ</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    หมายเหตุ</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                    การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock_check_table" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
                 </div>
-
             </div>
         </main>
     </div>
@@ -316,13 +279,6 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
                                     </option>
                                 <?php endwhile; ?>
                             </select>
-                        </div>
-                        <div>
-                            <label for="stock-check-date"
-                                class="block text-sm font-medium text-gray-700 mb-1">วันที่ตรวจนับ<span
-                                    class="text-red-600">*</span></label>
-                            <input type="datetime-local" id="stock-check-date" name="stock_check_date"
-                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                         </div>
                     </div>
                     <div class="mb-4">
@@ -379,27 +335,6 @@ $defaultDateTime = $dateTime->format('d-m-Y\TH:i');
             </div>
         </div>
     </div>
-    <script>
-        flatpickr('#stock-check-date', {
-            enableTime: true,
-            dateFormat: 'd-m-Y H:i', // แสดงใน UI เป็น 20-05-2025 14:03
-            altInput: true,
-            altFormat: 'd-m-Y H:i', // รูปแบบที่ผู้ใช้เห็น
-            time_24hr: true,
-            defaultDate: '<?php echo $defaultDateTime; ?>',
-            locale: {
-                firstDayOfWeek: 1 // เริ่มสัปดาห์วันจันทร์
-            },
-            onChange: function (selectedDates, dateStr, instance) {
-                // แปลงกลับเป็น Y-m-d H:i สำหรับ value
-                if (selectedDates.length) {
-                    const date = new Date(selectedDates[0]);
-                    const formatted = date.toISOString().slice(0, 16); // ได้ 2025-05-20T14:03
-                    instance.element.value = formatted;
-                }
-            }
-        });
-    </script>
 </body>
 
 </html>

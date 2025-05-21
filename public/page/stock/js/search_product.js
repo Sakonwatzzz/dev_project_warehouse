@@ -13,16 +13,17 @@ $(document).ready(function () {
 
   $("#product_id_input").on("input", function () {
     const query = $(this).val();
-    const warehouse_id = $("#warehouse_id").val();
     if (query.length < 2) {
       $("#barcode_suggestions").addClass("hidden").empty();
       $("#product_info").addClass("hidden").empty();
+      $("#warehouse_name").val("");
+      $("#warehouse_id").val("");
       return;
     }
     $.ajax({
       url: "page/stock/api/api_search_product.php",
       method: "GET",
-      data: { query: query, warehouse_id: warehouse_id },
+      data: { query: query },
       dataType: "json",
       success: function (response) {
         const products = response;
@@ -37,26 +38,30 @@ $(document).ready(function () {
         }
         products.forEach((product) => {
           suggestions.append(`
-                        <div class="p-2 hover:bg-gray-100 cursor-pointer" data-product-id="${
-                          product.product_id
-                        }" data-lot-id="${
-            product.lot_id
-          }" data-lot-product-id="${product.lot_product_id}">
-                            ${product.product_id} - ${
-            product.product_name
-          } (ล็อต: ${product.lot_name || "N/A"}, สต็อก: ${
-            product.lot_product_remain
-          })
-                        </div>
-                    `);
+            <div class="p-2 hover:bg-gray-100 cursor-pointer" 
+                 data-product-id="${product.product_id}" 
+                 data-lot-id="${product.lot_id}" 
+                 data-lot-product-id="${product.lot_product_id}"
+                 data-warehouse-id="${product.warehouse_id}"
+                 data-warehouse-name="${product.warehouse_name}">
+              ${product.product_id} - ${product.product_name} 
+              (ล็อต: ${product.lot_name || "N/A"}, สต็อก: ${product.lot_product_remain}, คลัง: ${product.warehouse_name})
+            </div>
+          `);
         });
         suggestions.find("div").on("click", function () {
           const product_id = $(this).data("product-id");
           const lot_id = $(this).data("lot-id");
           const lot_product_id = $(this).data("lot-product-id");
+          const warehouse_id = $(this).data("warehouse-id");
+          const warehouse_name = $(this).data("warehouse-name");
           $("#product_id_input").val(product_id);
+          $("#form_insert_stock").data("lot_id", lot_id);
+          $("#form_insert_stock").data("lot_product_id", lot_product_id);
+          $("#warehouse_id").val(warehouse_id);
+          $("#warehouse_name").val(warehouse_name);
           suggestions.addClass("hidden").empty();
-          fetchProductInfo(product_id, lot_id, lot_product_id);
+          fetchProductInfo(product_id, lot_id, lot_product_id, warehouse_id);
         });
       },
       error: function () {
@@ -69,12 +74,11 @@ $(document).ready(function () {
     });
   });
 
-  // แสดงข้อมูลสินค้าใน #product_info
-  function fetchProductInfo(product_id, lot_id, lot_product_id) {
+  function fetchProductInfo(product_id, lot_id, lot_product_id, warehouse_id) {
     $.ajax({
       url: "page/stock/api/get_product.php",
       method: "GET",
-      data: { product_id, lot_id, lot_product_id },
+      data: { product_id, lot_id, lot_product_id, warehouse_id },
       dataType: "json",
       headers: {
         "X-Requested-With": "XMLHttpRequest",
@@ -83,22 +87,19 @@ $(document).ready(function () {
         if (product && product.length > 0) {
           const item = product[0];
           $("#product_info").removeClass("hidden").html(`
-                        <div class="bg-white rounded-lg p-4 shadow">
-                            <p><strong>สินค้า:</strong> ${
-                              item.product_name
-                            }</p>
-                            <p><strong>ล็อต:</strong> ${
-                              item.lot_name || "N/A"
-                            }</p>
-                            <p><strong>จำนวนสินค้าในระบบ:</strong> ${
-                              item.lot_product_remain
-                            }</p>
-                        </div>
-                    `);
-          // อัปเดต input ในฟอร์มหลัก
-          $("#stock_check_actual").val(item.lot_product_remain);
+            <div class="bg-white rounded-lg p-4 shadow">
+              <p><strong>สินค้า:</strong> ${item.product_name}</p>
+              <p><strong>คลัง:</strong> ${item.warehouse_name}</p>
+              <p><strong>จำนวนสินค้าในระบบ:</strong> ${item.lot_product_remain}</p>
+            </div>
+          `);
+          $("#stock_check_system").val(item.lot_product_remain);
+          $("#warehouse_id").val(item.warehouse_id);
+          $("#warehouse_name").val(item.warehouse_name);
         } else {
           $("#product_info").addClass("hidden").empty();
+          $("#warehouse_id").val("");
+          $("#warehouse_name").val("");
           Swal.fire({
             icon: "warning",
             title: "ข้อผิดพลาด",
@@ -108,6 +109,8 @@ $(document).ready(function () {
       },
       error: function () {
         $("#product_info").addClass("hidden").empty();
+        $("#warehouse_id").val("");
+        $("#warehouse_name").val("");
         Swal.fire({
           icon: "error",
           title: "ข้อผิดพลาด",
