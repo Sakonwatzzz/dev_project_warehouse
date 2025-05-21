@@ -103,36 +103,131 @@ try {
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายละเอียดการย้ายคลังสินค้า</title>
+    <link href="../../output.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { background-color: #f8f9fa; }
-        .card { background-color: white; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 1.5rem; }
-        .highlight-row { background-color: #fff3cd; }
-        .status-pending { color: #f59e0b; font-weight: 600; }
-        .status-confirmed { color: #10b981; font-weight: 600; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background-color: #f3f4f6; text-align: left; padding: 0.75rem; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; }
-        td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; vertical-align: middle; word-wrap: break-word; }
-        .total-row { background-color: #f9fafb; font-weight: 500; }
-        .btn { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
-        .modal-content { background: white; margin: 15% auto; padding: 2rem; border-radius: 0.5rem; width: 90%; max-width: 500px; box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); max-height: 90vh; overflow-y: auto; }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .bg-pink-100 { background-color: #fbcfe8 !important; }
-        .bg-pink-500 { background-color: #ec4899 !important; }
-        .bg-red-100 { background-color: #fee2e2 !important; }
-        .loading { pointer-events: none; opacity: 0.7; }
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .highlight-row {
+            background-color: #fff3cd;
+        }
+
+        .status-pending {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .status-confirmed {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th {
+            background-color: #f3f4f6;
+            text-align: left;
+            padding: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: middle;
+            word-wrap: break-word;
+        }
+
+        .total-row {
+            background-color: #f9fafb;
+            font-weight: 500;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .bg-pink-100 {
+            background-color: #fbcfe8 !important;
+        }
+
+        .bg-pink-500 {
+            background-color: #ec4899 !important;
+        }
+
+        .bg-red-100 {
+            background-color: #fee2e2 !important;
+        }
+
+        .loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
     </style>
 </head>
+
 <body class="min-h-screen">
     <div class="mx-auto px-4 py-8 container max-w-7xl">
         <h4 class="md:text-4xl font-bold text-gray-800 mb-6">รายละเอียดการย้ายคลังสินค้า</h4>
@@ -649,4 +744,5 @@ try {
         });
     </script>
 </body>
+
 </html>

@@ -1,5 +1,17 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
+require_once __DIR__ . '../../../fpdf186/fpdf.php';
+
+function fetchData($pdo, $query, $params = [])
+{
+    try {
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt;
+    } catch (PDOException $e) {
+        throw new Exception("Database error: " . $e->getMessage());
+    }
+}
 
 try {
     // นับจำนวนสินค้าทั้งหมดในตาราง product
@@ -11,10 +23,11 @@ try {
     // ตรวจสอบโหมดการแสดงผล (แสดงข้อมูลไม่ครบถ้วนหรือทั้งหมด)
     $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
 
-    // ทำความสะอาดและตรวจสอบข้อมูลตัวกรอง
-    $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
-    $start_date = isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : null;
-    $end_date = isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : null;
+    // เพิ่มตัวแปรสำหรับการค้นหาและกรองวันที่
+    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+    $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+    $end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+
     $selected_types = isset($_GET['product_type']) && !empty($_GET['product_type'])
         ? array_filter(array_map('intval', explode(',', $_GET['product_type'])))
         : [];
@@ -90,7 +103,7 @@ try {
     }
 
     // ตั้งค่าการแบ่งหน้า
-    $records_per_page = 5;
+    $records_per_page = 15;
     $page = isset($_GET['page_num']) ? max(1, (int) $_GET['page_num']) : 1;
     $offset = ($page - 1) * $records_per_page;
 
@@ -156,9 +169,9 @@ try {
         COALESCE(product_brand.product_brand_name, 'ไม่มีข้อมูล') AS product_brand_name, 
         COALESCE(product_type.product_type_name, 'ไม่มีข้อมูล') AS product_type_name,
         (SELECT lot_product_date FROM lot_product 
-         WHERE lot_product.product_id = product.product_id 
-         ORDER BY lot_product_date DESC LIMIT 1) AS lot_product_date,
-        COALESCE(personnel.personnel_name, 'ไม่มีข้อมูล') AS personnel_name
+        WHERE lot_product.product_id = product.product_id 
+        ORDER BY lot_product_date DESC LIMIT 1) AS lot_product_date,
+        MAX(COALESCE(personnel.personnel_name, 'ไม่มีข้อมูล')) AS personnel_name
     FROM product
     LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
     LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id
@@ -166,7 +179,10 @@ try {
     LEFT JOIN lot ON lot.lot_id = lot_product.lot_id
     LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id
     $where_clause
-    GROUP BY product.product_id
+    GROUP BY product.product_id, product.product_name, product.product_price1, product.product_price2, 
+            product.product_price3, product.product_price4, product.product_capital, 
+            product.product_type_id, product.product_brand_id,
+            product_brand.product_brand_name, product_type.product_type_name
     LIMIT ?, ?";
 
     $stmt = $pdo->prepare($query);
@@ -233,9 +249,10 @@ try {
     $brand_stmt->bindValue(1, $brandLimit, PDO::PARAM_INT);
     $brand_stmt->execute();
     $brandResults = $brand_stmt->fetchAll(PDO::FETCH_ASSOC);
+
 } catch (PDOException $e) {
     error_log("ข้อผิดพลาดฐานข้อมูล: " . $e->getMessage());
-    die("เกิดข้อผิดพลาดขณะประมวลผลคำขอของคุณ");
+    die("เกิดข้อผิดพลาดขณะประมวลผลคำขอของคุณ: " . htmlspecialchars($e->getMessage()));
 }
 ?>
 

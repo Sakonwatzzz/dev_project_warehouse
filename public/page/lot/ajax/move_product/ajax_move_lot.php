@@ -9,6 +9,7 @@ try {
     $action = isset($_POST['action']) ? $_POST['action'] : '';
 
     if ($action === 'scan_product') {
+        // คงโค้ดเดิมไว้ ไม่มีการเปลี่ยนแปลง
         $barcode = isset($_POST['barcode']) ? trim($_POST['barcode']) : '';
         $lot_id = isset($_POST['lot_id']) ? (int)$_POST['lot_id'] : 0;
 
@@ -78,7 +79,7 @@ try {
         $current_qty = $lot_product ? $lot_product['lot_product_qty'] : 0;
         $new_qty = $current_qty + $quantity;
 
-       // ตรวจสอบการลบโดยเทียบกับจำนวนที่ต้องการย้ายใน lot
+        // ตรวจสอบการลบโดยเทียบกับจำนวนที่ต้องการย้ายใน lot
         if ($is_delete && abs($quantity) > $current_qty) {
             throw new Exception("ไม่สามารถลบได้ เนื่องจากจำนวนที่ต้องการลบ (" . abs($quantity) . ") เกินจำนวนที่ต้องการย้ายใน Lot (" . $current_qty . ")");
         }
@@ -109,6 +110,7 @@ try {
 
         $response['success'] = true;
     } elseif ($action === 'delete_product') {
+        // คงโค้ดเดิมไว้
         $lot_product_id = isset($_POST['lot_product_id']) ? (int)$_POST['lot_product_id'] : 0;
 
         if ($lot_product_id <= 0) {
@@ -132,6 +134,7 @@ try {
 
         $response['success'] = true;
     } elseif ($action === 'edit_product') {
+        // คงโค้ดเดิมไว้
         $lot_product_id = isset($_POST['lot_product_id']) ? (int)$_POST['lot_product_id'] : 0;
         $qty = isset($_POST['qty']) ? (int)$_POST['qty'] : 0;
 
@@ -247,13 +250,12 @@ try {
                     throw new Exception("สินค้า {$product['product_id']} มีจำนวนไม่เพียงพอในคลังต้นทาง");
                 }
 
-                // ลดสต็อกต้นทาง
+                // อัปเดตสต็อกต้นทางโดยไม่ใช้ LIMIT
                 $stmt = $pdo->prepare("
                     UPDATE lot_product lp
                     JOIN lot l ON lp.lot_id = l.lot_id
                     SET lp.lot_product_remain = lp.lot_product_remain - ?
                     WHERE lp.product_id = ? AND l.warehouse_id = ? AND l.lot_status_id = 2
-                    LIMIT 1
                 ");
                 $stmt->execute([$product['lot_product_qty'], $product['product_id'], $lot['warehouse_from_id']]);
             }
