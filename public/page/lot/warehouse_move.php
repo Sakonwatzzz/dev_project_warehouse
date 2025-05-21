@@ -47,12 +47,12 @@ try {
             lot_product.lot_product_status,  
             lot_product.product_id, 
             product.product_name,
-            supplier.supplier_name
+            personnel.personnel_name
         FROM
             lot_product
             LEFT JOIN lot ON lot_product.lot_id = lot.lot_id
             LEFT JOIN product ON lot_product.product_id = product.product_id
-            LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+            LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id
         " . $where_clause . "
         LIMIT :offset, :records_per_page";
 
@@ -163,7 +163,7 @@ ob_end_flush();
                                         <td class="px-1 py-2 border text-end"><?php echo htmlspecialchars($lot_product_list['lot_product_qty']); ?></td>
                                         <td class="px-1 py-2 border text-end"><?php echo htmlspecialchars($lot_product_list['lot_product_remain']); ?></td>
                                         <td class="px-1 py-2 border text-center"><?php echo htmlspecialchars($lot_product_list['lot_product_status']); ?></td>
-                                        <td class="px-1 py-2 border"><?php echo htmlspecialchars($lot_product_list['supplier_name']); ?></td>
+                                        <td class="px-1 py-2 border"><?php echo htmlspecialchars($lot_product_list['personnel_name']); ?></td>
                                         <td class="px-1 py-2 border text-center"><?php echo htmlspecialchars($lot_product_list['lot_product_date']); ?></td>
                                     </tr>
                                 <?php endwhile; ?>

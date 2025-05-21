@@ -28,9 +28,9 @@ try {
     $query = "SELECT warehouse_id, warehouse_name, warehouse_status FROM warehouse ORDER BY warehouse_id";
     $warehouse_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
 
-    // Fetch supplier data
-    $query = "SELECT supplier_id, supplier_name FROM supplier";
-    $supplier_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+    // Fetch personnel data
+    $query = "SELECT personnel_id, personnel_name FROM personnel";
+    $personnel_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
 
     // Generate new lot_name
     $query = "SELECT lot_name FROM lot WHERE lot_name LIKE 'WT-%' ORDER BY lot_id DESC LIMIT 1";
@@ -45,8 +45,8 @@ try {
             l.lot_name,
             l.lot_date,
             l.lot_status_id,
-            s.supplier_id,
-            s.supplier_name,
+            pn.personnel_id,
+            pn.personnel_name,
             ls.lot_status_name,
             w1.warehouse_name AS warehouse_from_name,
             w2.warehouse_name AS warehouse_name
@@ -54,7 +54,7 @@ try {
         LEFT JOIN warehouse w1 ON l.warehouse_from_id = w1.warehouse_id
         LEFT JOIN warehouse w2 ON l.warehouse_id = w2.warehouse_id
         INNER JOIN lot_status ls ON l.lot_status_id = ls.lot_status_id
-        LEFT JOIN supplier s ON l.supplier_id = s.supplier_id
+        LEFT JOIN personnel pn ON l.personnel_id = pn.personnel_id
         WHERE l.warehouse_inout = 2
         ORDER BY l.lot_id DESC
         ";
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $warehouse_id = $_POST['warehouse_id'] ?? '';
     $warehouse_from_id = $_POST['warehouse_from_id'] ?? '';
     $warehouse_inout = $_POST['warehouse_inout'] ?? '2';
-    $supplier_id = $_POST['supplier_id'] ?? null;
+    $personnel_id = $_POST['personnel_id'] ?? null;
 
     // Validate form data
     if (empty($lot_name) || empty($warehouse_id) || empty($warehouse_from_id)) {
@@ -88,10 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Insert new lot
             $stmt = $pdo->prepare(
-                'INSERT INTO lot (lot_name, lot_detail, lot_date, lot_status_id, warehouse_id, supplier_id, warehouse_from_id, warehouse_inout) 
+                'INSERT INTO lot (lot_name, lot_detail, lot_date, lot_status_id, warehouse_id, personnel_id, warehouse_from_id, warehouse_inout) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
             );
-            $stmt->execute([$lot_name, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $supplier_id, $warehouse_from_id, $warehouse_inout]);
+            $stmt->execute([$lot_name, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $personnel_id, $warehouse_from_id, $warehouse_inout]);
 
             $lot_id = $pdo->lastInsertId();
             if (!$lot_id) {
@@ -174,16 +174,16 @@ ob_end_flush();
                     </div>
 
                     <div class="form-group">
-                        <label for="supplier_from_id" class="block text-gray-700 font-medium mb-2">ผู้ส่งมอบ <span class="text-red-500">*</span></label>
+                        <label for="personnel_from_id" class="block text-gray-700 font-medium mb-2">พนักงาน <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                 <i class="fas fa-user-tie text-gray-400"></i>
                             </div>
-                            <select name="supplier_id" id="supplier_id"
+                            <select name="personnel_id" id="personnel_id"
                                 class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <?php foreach ($supplier_lot as $supplier): ?>
-                                    <option value="<?= htmlspecialchars($supplier['supplier_id']) ?>">
-                                        <?= htmlspecialchars($supplier['supplier_name']) ?>
+                                <?php foreach ($personnel_lot as $personnel): ?>
+                                    <option value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
+                                        <?= htmlspecialchars($personnel['personnel_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -287,7 +287,7 @@ ob_end_flush();
                                         <td class="px-6 py-2 border"><?= htmlspecialchars($lot['lot_name']) ?></td>
                                         <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_from_name'] ?? 'ไม่ระบุ') ?></td>
                                         <td class="px-6 py-2 border"><?= htmlspecialchars($lot['warehouse_name'] ?? 'ไม่ระบุ') ?></td>
-                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['supplier_name'] ?? 'ไม่ระบุ') ?></td>
+                                        <td class="px-6 py-2 border"><?= htmlspecialchars($lot['personnel_name'] ?? 'ไม่ระบุ') ?></td>
                                         <td class="px-6 py-2 border"><?= htmlspecialchars(date('d/m/Y H:i:s', strtotime($lot['lot_date']))) ?></td>
                                         <td class="px-6 py-2 border text-center">
                                             <a href="index.php?page=lot_insertdetailout&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"

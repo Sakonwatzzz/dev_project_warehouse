@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../../../config/database_server.php';
+date_default_timezone_set('Asia/Bangkok');
 header('Content-Type: application/json');
 
 $response = ['success' => false, 'error' => ''];
@@ -110,6 +111,7 @@ try {
             throw new Exception("ไม่สามารถลบได้ เนื่องจากจำนวนที่ต้องการลบ (" . abs($quantity) . ") เกินจำนวนใน Lot (" . $current_qty . ")");
         }
 
+        $current_datetime = date('Y-m-d H:i:s');
         if ($new_qty <= 0) {
             $stmt = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
             $stmt->execute([$lot_id, $barcode_value]);
@@ -123,9 +125,9 @@ try {
         } else {
             $stmt = $pdo->prepare("
                 INSERT INTO lot_product (lot_id, product_id, lot_product_qty, lot_product_remain, lot_product_capital, lot_product_date, lot_product_status) 
-                VALUES (?, ?, ?, ?, ?, NOW(), 1)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
             ");
-            $stmt->execute([$lot_id, $barcode_value, $quantity, $quantity, $final_capital]);
+            $stmt->execute([$lot_id, $barcode_value, $quantity, $quantity, $final_capital, $current_datetime]);
         }
 
         $response['success'] = true;

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
+date_default_timezone_set('Asia/Bangkok');
 ob_start();
 
 // รับค่า lot_id และ warehouse_id จาก URL
@@ -28,9 +29,9 @@ function fetchData($pdo, $query, $params = [])
 }
 
 try {
-    // Fetch supplier data
-    $query = "SELECT supplier_id, supplier_name FROM supplier";
-    $supplier_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+    // Fetch personnel data
+    $query = "SELECT personnel_id, personnel_name FROM personnel";
+    $personnel_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
 
     // ดึงข้อมูล lot และตรวจสอบสถานะ
     $query_lot = "SELECT
@@ -39,15 +40,15 @@ try {
                 lot.lot_date, 
                 lot.warehouse_inout, 
                 lot.lot_status_id,
-                s.supplier_id,
-                s.supplier_name,
+                pn.personnel_id,
+                pn.personnel_name,
                 lot_status.lot_status_name, 
                 w1.warehouse_id AS warehouse_from_id,
                 w1.warehouse_name AS warehouse_from_name, 
                 w2.warehouse_name AS warehouse_in_name
             FROM lot lot
             LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-            LEFT JOIN supplier s ON lot.supplier_id = s.supplier_id
+            LEFT JOIN personnel pn ON lot.personnel_id = pn.personnel_id
             LEFT JOIN warehouse w1 ON lot.warehouse_from_id = w1.warehouse_id
             LEFT JOIN warehouse w2 ON lot.warehouse_id = w2.warehouse_id
             WHERE lot.lot_id = :lot_id AND lot.warehouse_inout = 2";
@@ -254,8 +255,8 @@ try {
                     <span class=""><?php echo htmlspecialchars($lot['lot_date']); ?></span>
                 </div>
                 <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">ผู้ส่งมอบ:</span>
-                    <span class=""><?php echo htmlspecialchars($lot['supplier_name']); ?></span>
+                    <span class="text-gray-600 font-medium w-40">พนักงาน:</span>
+                    <span class=""><?php echo htmlspecialchars($lot['personnel_name']); ?></span>
                 </div>
                 <div class="flex items-center">
                     <span class="text-gray-600 font-medium w-40">นำมาจากคลัง:</span>

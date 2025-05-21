@@ -89,6 +89,7 @@ try {
             throw new Exception("จำนวนที่ต้องการย้าย ($quantity) เกินจำนวนสินค้าคงเหลือในคลังต้นทาง (" . $source_qty . ")");
         }
 
+        $current_datetime = date('Y-m-d H:i:s');
         if ($new_qty <= 0) {
             // ลบสินค้าถ้าจำนวนน้อยกว่าหรือเท่ากับ 0
             $stmt = $pdo->prepare("DELETE FROM lot_product WHERE lot_id = ? AND product_id = ?");
@@ -103,9 +104,9 @@ try {
         } else {
             $stmt = $pdo->prepare("
                 INSERT INTO lot_product (lot_id, product_id, lot_product_qty, lot_product_remain, lot_product_capital, lot_product_date, lot_product_status) 
-                VALUES (?, ?, ?, ?, ?, NOW(), 1)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
             ");
-            $stmt->execute([$lot_id, $product['product_id'], $quantity, $quantity, $capital]);
+            $stmt->execute([$lot_id, $product['product_id'], $quantity, $quantity, $capital, $current_datetime]);
         }
 
         $response['success'] = true;
