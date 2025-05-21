@@ -15,7 +15,7 @@ $dbPort = $_ENV['DB_PORT'];
 
 try {
     $dsn = "mysql:host=$dbHost;port=$dbPort;dbname=$dbName;charset=utf8mb4";
-    $pdo = new PDO($dsn, $dbUser, $dbPass);
+    $pdo = new PDO($dsn, $dbUser, password: $dbPass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die('Database connection failed: ' . $e->getMessage()); 
