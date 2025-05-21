@@ -13,8 +13,8 @@ try {
 
     // ทำความสะอาดและตรวจสอบข้อมูลตัวกรอง
     $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
-    $start_date = isset($_GET['start_date']) ? filter_var($_GET['start_date'], FILTER_SANITIZE_STRING) : null;
-    $end_date = isset($_GET['end_date']) ? filter_var($_GET['end_date'], FILTER_SANITIZE_STRING) : null;
+    $start_date = isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : null;
+    $end_date = isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : null;
     $selected_types = isset($_GET['product_type']) && !empty($_GET['product_type'])
         ? array_filter(array_map('intval', explode(',', $_GET['product_type'])))
         : [];
