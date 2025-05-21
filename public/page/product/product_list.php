@@ -1,19 +1,20 @@
-
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
 try {
-    // Count total records in the product table
+    // นับจำนวนสินค้าทั้งหมดในตาราง product
     $query = "SELECT COUNT(*) as total_count FROM product";
     $stmt = $pdo->query($query);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $count = $row['total_count'];
 
-    // Check display mode
+    // ตรวจสอบโหมดการแสดงผล (แสดงข้อมูลไม่ครบถ้วนหรือทั้งหมด)
     $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
 
-    // Sanitize and validate input filters
+    // ทำความสะอาดและตรวจสอบข้อมูลตัวกรอง
     $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
+    $start_date = isset($_GET['start_date']) ? filter_var($_GET['start_date'], FILTER_SANITIZE_STRING) : null;
+    $end_date = isset($_GET['end_date']) ? filter_var($_GET['end_date'], FILTER_SANITIZE_STRING) : null;
     $selected_types = isset($_GET['product_type']) && !empty($_GET['product_type'])
         ? array_filter(array_map('intval', explode(',', $_GET['product_type'])))
         : [];
@@ -21,7 +22,7 @@ try {
         ? array_filter(array_map('intval', explode(',', $_GET['product_brand'])))
         : [];
 
-    // Handle POST request for updating product
+    // จัดการคำขอ POST สำหรับการอัปเดตสินค้า
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
         $name = $_POST['name'] ?? '';
@@ -62,12 +63,12 @@ try {
                 $id
             ]);
 
-            header("Location: /?page=product_detail&tabel=product&id=$id");
+            header("Location: /?page=product_detail&tabel=product&id=$id&edit_success=1");
             exit;
         }
     }
 
-    // Handle deletion request
+    // จัดการคำขอลบสินค้า
     if (isset($_GET['id'])) {
         $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
@@ -75,7 +76,7 @@ try {
             $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
             $stmt->execute([$id]);
 
-            // Reset AUTO_INCREMENT if table is empty
+            // รีเซ็ต AUTO_INCREMENT ถ้าตารางว่าง
             $stmt = $pdo->query("SELECT COUNT(*) FROM product");
             $count = $stmt->fetchColumn();
 
@@ -83,17 +84,17 @@ try {
                 $pdo->query("ALTER TABLE product AUTO_INCREMENT = 1");
             }
 
-            header("Location: /?page=product_list&delete_success");
+            header("Location: /?page=product_list&delete_success=1" . ($incomplete_mode ? '&mode=incomplete' : ''));
             exit;
         }
     }
 
-    // Pagination setup
-    $records_per_page = 10;
+    // ตั้งค่าการแบ่งหน้า
+    $records_per_page = 5;
     $page = isset($_GET['page_num']) ? max(1, (int) $_GET['page_num']) : 1;
     $offset = ($page - 1) * $records_per_page;
 
-    // Build WHERE condition for filtering
+    // สร้างเงื่อนไข WHERE สำหรับการกรอง
     $where_conditions = [];
     $bind_params = [];
 
@@ -128,11 +129,20 @@ try {
         $bind_params = array_merge($bind_params, $selected_brands);
     }
 
+    if ($start_date) {
+        $where_conditions[] = "lot_product.lot_product_date >= ?";
+        $bind_params[] = $start_date . ' 00:00:00';
+    }
+    if ($end_date) {
+        $where_conditions[] = "lot_product.lot_product_date <= ?";
+        $bind_params[] = $end_date . ' 23:59:59';
+    }
+
     $where_clause = !empty($where_conditions)
         ? 'WHERE ' . implode(' AND ', $where_conditions)
         : '';
 
-    // Main query to fetch products
+    // คิวรีหลักเพื่อดึงข้อมูลสินค้า
     $query = "SELECT 
         product.product_id, 
         product.product_name, 
@@ -144,11 +154,19 @@ try {
         product.product_type_id, 
         product.product_brand_id,
         COALESCE(product_brand.product_brand_name, 'ไม่มีข้อมูล') AS product_brand_name, 
-        COALESCE(product_type.product_type_name, 'ไม่มีข้อมูล') AS product_type_name
+        COALESCE(product_type.product_type_name, 'ไม่มีข้อมูล') AS product_type_name,
+        (SELECT lot_product_date FROM lot_product 
+         WHERE lot_product.product_id = product.product_id 
+         ORDER BY lot_product_date DESC LIMIT 1) AS lot_product_date,
+        COALESCE(personnel.personnel_name, 'ไม่มีข้อมูล') AS personnel_name
     FROM product
     LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
     LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id
+    LEFT JOIN lot_product ON lot_product.product_id = product.product_id
+    LEFT JOIN lot ON lot.lot_id = lot_product.lot_id
+    LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id
     $where_clause
+    GROUP BY product.product_id
     LIMIT ?, ?";
 
     $stmt = $pdo->prepare($query);
@@ -161,7 +179,7 @@ try {
     $stmt->execute();
     $resultsproduct = $stmt;
 
-    // Calculate incomplete products count when in incomplete_mode
+    // นับจำนวนสินค้าที่ไม่สมบูรณ์เมื่ออยู่ในโหมด incomplete
     if ($incomplete_mode) {
         $incomplete_query = "SELECT COUNT(*) FROM product WHERE 
             product_name IS NULL OR TRIM(product_name) = '' OR 
@@ -178,8 +196,14 @@ try {
         $incomplete_count = $incomplete_stmt->fetchColumn();
     }
 
-    // Count total records for pagination
-    $count_query = "SELECT COUNT(*) FROM product $where_clause";
+    // นับจำนวนเรคคอร์ดทั้งหมดสำหรับการแบ่งหน้า
+    $count_query = "SELECT COUNT(DISTINCT product.product_id) FROM product 
+                    LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
+                    LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id
+                    LEFT JOIN lot_product ON lot_product.product_id = product.product_id
+                    LEFT JOIN lot ON lot.lot_id = lot_product.lot_id
+                    LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id
+                    $where_clause";
     $count_stmt = $pdo->prepare($count_query);
 
     foreach ($bind_params as $i => $param) {
@@ -190,7 +214,7 @@ try {
     $total_records = $count_stmt->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
 
-    // Product Type and Brand filters
+    // ตัวกรองประเภทสินค้าและแบรนด์
     $typeLimit = isset($_POST['type_limit']) ? intval($_POST['type_limit']) : 5;
     $brandLimit = isset($_POST['brand_limit']) ? intval($_POST['brand_limit']) : 5;
     $action = isset($_POST['action']) ? $_POST['action'] : '';
@@ -198,19 +222,19 @@ try {
     $totalTypeCount = $pdo->query("SELECT COUNT(*) FROM product_type")->fetchColumn();
     $totalBrandCount = $pdo->query("SELECT COUNT(*) FROM product_brand")->fetchColumn();
 
-    // Fetch Product Types
+    // ดึงข้อมูลประเภทสินค้า
     $type_stmt = $pdo->prepare("SELECT product_type_id, product_type_name FROM product_type LIMIT ?");
     $type_stmt->bindValue(1, $typeLimit, PDO::PARAM_INT);
     $type_stmt->execute();
     $typeResults = $type_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Fetch Product Brands
+    // ดึงข้อมูลแบรนด์สินค้า
     $brand_stmt = $pdo->prepare("SELECT product_brand_id, product_brand_name FROM product_brand LIMIT ?");
     $brand_stmt->bindValue(1, $brandLimit, PDO::PARAM_INT);
     $brand_stmt->execute();
     $brandResults = $brand_stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    error_log("Database error: " . $e->getMessage());
+    error_log("ข้อผิดพลาดฐานข้อมูล: " . $e->getMessage());
     die("เกิดข้อผิดพลาดขณะประมวลผลคำขอของคุณ");
 }
 ?>
@@ -222,7 +246,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายการสินค้า</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
@@ -246,8 +270,7 @@ try {
 
 <body class="bg-gray-50">
     <div class="px-4 py-6 sm:py-8">
-
-        <!-- Header Section -->
+        <!-- ส่วนหัว -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
             <div class="flex items-center gap-4 flex-wrap">
                 <?php if ($incomplete_mode): ?>
@@ -267,18 +290,37 @@ try {
                 </a>
             </div>
 
+            <!-- ช่องค้นหา -->
             <div class="w-full sm:w-auto">
-                <input type="text" id="searchInput" 
-                    placeholder="ค้นหาสินค้า..."
-                    class="w-full sm:w-[250px] lg:w-[350px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                    value="<?php echo htmlspecialchars($search); ?>">
+                <form action="" method="GET" class="w-full" id="searchForm">
+                    <input type="hidden" name="page" value="product_list">
+                    <input type="hidden" name="mode" value="<?php echo $incomplete_mode ? 'incomplete' : ''; ?>">
+                    <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>">
+                    <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>">
+                    <?php if (!empty($selected_types)): ?>
+                        <input type="hidden" name="product_type" value="<?php echo htmlspecialchars(implode(',', $selected_types)); ?>">
+                    <?php endif; ?>
+                    <?php if (!empty($selected_brands)): ?>
+                        <input type="hidden" name="product_brand" value="<?php echo htmlspecialchars(implode(',', $selected_brands)); ?>">
+                    <?php endif; ?>
+                    <div class="relative">
+                        <input type="text" name="search" id="searchInput"
+                            placeholder="ค้นหาสินค้า..."
+                            class="w-full sm:w-[250px] lg:w-[350px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                            value="<?php echo htmlspecialchars($search); ?>"
+                            oninput="checkEmptySearch(this)">
+                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 
-        <!-- Filters and Table -->
+        <!-- ตัวกรองและตาราง -->
         <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Filters -->
-            <div class="w-full lg:w-1/5">
+            <!-- ตัวกรอง -->
+            <div class="w-full lg:w-1/6">
                 <button id="toggleFilters" class="lg:hidden w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-md mb-4 flex items-center justify-between">
                     <span>ตัวกรอง</span>
                     <i class="fas fa-chevron-down"></i>
@@ -289,7 +331,7 @@ try {
                         <span>ค้นหาแบบละเอียด</span>
                     </h1>
 
-                    <!-- Product Type Filter -->
+                    <!-- ตัวกรองประเภทสินค้า -->
                     <div class="pt-2 pb-4 border-b border-gray-400">
                         <h2 class="text-base sm:text-lg font-semibold text-gray-700 mb-3">ค้นหาตามหมวดหมู่</h2>
                         <div class="flex flex-col gap-2 sm:gap-3">
@@ -298,8 +340,9 @@ try {
                                     <input type="checkbox"
                                         class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                         name="product_type[]" value="<?php echo $typeRow['product_type_id']; ?>"
-                                        <?php echo in_array($typeRow['product_type_id'], $selected_types) ? 'checked' : ''; ?>>
-                                    <span><?php echo $typeRow['product_type_name']; ?></span>
+                                        <?php echo in_array($typeRow['product_type_id'], $selected_types) ? 'checked' : ''; ?>
+                                        onchange="updateFilters()">
+                                    <span><?php echo htmlspecialchars($typeRow['product_type_name']); ?></span>
                                 </div>
                             <?php endforeach; ?>
 
@@ -326,7 +369,7 @@ try {
                         </div>
                     </div>
 
-                    <!-- Product Brand Filter -->
+                    <!-- ตัวกรองแบรนด์สินค้า -->
                     <div class="pt-2 pb-4">
                         <h2 class="text-base sm:text-lg font-semibold text-gray-700 mb-3">ค้นหาตามแบรนด์</h2>
                         <div class="flex flex-col gap-2 sm:gap-3">
@@ -335,8 +378,9 @@ try {
                                     <input type="checkbox"
                                         class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                         name="product_brand[]" value="<?php echo $brandRow['product_brand_id']; ?>"
-                                        <?php echo in_array($brandRow['product_brand_id'], $selected_brands) ? 'checked' : ''; ?>>
-                                    <span><?php echo $brandRow['product_brand_name']; ?></span>
+                                        <?php echo in_array($brandRow['product_brand_id'], $selected_brands) ? 'checked' : ''; ?>
+                                        onchange="updateFilters()">
+                                    <span><?php echo htmlspecialchars($brandRow['product_brand_name']); ?></span>
                                 </div>
                             <?php endforeach; ?>
 
@@ -365,14 +409,39 @@ try {
                 </div>
             </div>
 
-            <!-- Table Section -->
+            <!-- ส่วนตาราง -->
             <div class="w-full lg:w-4/5">
                 <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6 sm:mb-8">
-                    <div class="flex justify-between bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b] space-y-4 sm:space-y-0">
+                        <!-- หัวข้อ -->
                         <h2 class="text-lg sm:text-2xl font-bold text-gray-800 flex items-center">
                             <i class="fas fa-list mr-2"></i>รายการสินค้า
                         </h2>
+
+                        <!-- กลุ่มตัวกรองวันที่และปุ่มส่งออก -->
+                        <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 w-full sm:w-auto">
+                            <!-- เลือกช่วงวันที่ -->
+                            <div class="flex flex-wrap items-center space-x-2">
+                                <label for="start_date" class="text-sm font-medium">วันที่นำเข้า</label>
+                                <input type="date" id="start_date" name="start_date" class="border rounded px-2 py-1"
+                                    value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
+                                <label for="end_date" class="text-sm font-medium">ถึง</label>
+                                <input type="date" id="end_date" name="end_date" class="border rounded px-2 py-1"
+                                    value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
+                            </div>
+
+                            <!-- ปุ่มดาวน์โหลดรายงาน -->
+                            <div class="flex space-x-2">
+                                <button onclick="exportPDF()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm md:text-base">
+                                    <i class="fas fa-file-pdf mr-2"></i>ส่งออก PDF
+                                </button>
+                                <button onclick="exportExcel()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm md:text-base">
+                                    <i class="fas fa-file-excel mr-2"></i>ส่งออก Excel
+                                </button>
+                            </div>
+                        </div>
                     </div>
+
                     <div class="p-4 sm:p-6">
                         <div class="flex items-center space-x-3 sm:space-x-4 mb-4">
                             <a href="?page=product_list"
@@ -388,14 +457,15 @@ try {
                             <table class="w-full border-collapse" id="dataTable">
                                 <thead>
                                     <tr class="bg-gray-50">
-                                        <th class="px-3 bg-blue-400 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">รหัสสินค้า</th>
-                                        <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">ชื่อสินค้า</th>
-                                        <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">ราคาทุน</th>
-                                        <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">ราคาขาย</th>
-                                        <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">ประเภทสินค้า</th>
-                                        <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">แบรนด์สินค้า</th>
-                                        <th class="px-3 sm:px-6 py-2 sm:py-3 border text-left text-gray-700 font-semibold text-xs sm:text-sm">สถานะข้อมูล</th>
-                                        <th class="px-3 sm:px-6 py-2 sm:py-3 border text-center text-gray-700 font-semibold text-xs sm:text-sm">การจัดการ</th>
+                                        <th class="px-3 bg-blue-400 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">รหัสสินค้า</th>
+                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ชื่อสินค้า</th>
+                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ราคาทุน</th>
+                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ราคาขาย</th>
+                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ประเภทสินค้า</th>
+                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">แบรนด์สินค้า</th>
+                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">วันที่นำเข้า</th>
+                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ชื่อพนักงาน</th>
+                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">การจัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -412,36 +482,31 @@ try {
                                                 empty($product_list['product_brand_id']);
                                             ?>
                                             <tr class="hover:bg-gray-100 <?php echo $is_incomplete ? 'bg-red-50' : ''; ?>">
-                                                <td class="px-3 bg-yellow-400 bg-opacity-50 sm:px-6 py-2 border border-gray-300 text-xs sm:text-sm"><?php echo htmlspecialchars($product_list['product_id']); ?></td>
-                                                <td class="px-3 sm:px-6 py-2 border text-blue-600 hover:underline cursor-pointer text-xs sm:text-sm <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
+                                                <td class="px-3 bg-yellow-400 bg-opacity-50 py-2 border border-gray-300 text-xs sm:text-sm"><?php echo htmlspecialchars($product_list['product_id']); ?></td>
+                                                <td class="px-3 py-2 border text-blue-600 hover:underline cursor-pointer text-xs sm:text-sm <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
                                                     onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo htmlspecialchars($product_list['product_id']); ?>'">
                                                     <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_name']); ?>
                                                 </td>
-                                                <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm <?php echo empty($product_list['product_capital']) ? 'text-red-600 font-bold' : ''; ?>">
+                                                <td class="px-3 py-2 border text-right text-xs sm:text-sm <?php echo empty($product_list['product_capital']) ? 'text-red-600 font-bold' : ''; ?>">
                                                     <?php echo empty($product_list['product_capital']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_capital']); ?>
                                                 </td>
-                                                <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm <?php echo empty($product_list['product_price4']) ? 'text-red-600 font-bold' : ''; ?>">
+                                                <td class="px-3 py-2 border text-right text-xs sm:text-sm <?php echo empty($product_list['product_price4']) ? 'text-red-600 font-bold' : ''; ?>">
                                                     <?php echo empty($product_list['product_price4']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_price4']); ?>
                                                 </td>
-                                                <td class="px-3 sm:px-6 py-2 border text-xs sm:text-sm <?php echo empty($product_list['product_type_id']) ? 'text-red-600 font-bold' : ''; ?>">
+                                                <td class="px-3 py-2 border text-xs sm:text-sm <?php echo empty($product_list['product_type_id']) ? 'text-red-600 font-bold' : ''; ?>">
                                                     <?php echo !empty($product_list['product_type_name']) ? htmlspecialchars($product_list['product_type_name']) : 'ไม่มีข้อมูล'; ?>
                                                 </td>
-                                                <td class="px-3 sm:px-6 py-2 border text-xs sm:text-sm <?php echo empty($product_list['product_brand_id']) ? 'text-red-600 font-bold' : ''; ?>">
+                                                <td class="px-3 py-2 border text-xs sm:text-sm <?php echo empty($product_list['product_brand_id']) ? 'text-red-600 font-bold' : ''; ?>">
                                                     <?php echo !empty($product_list['product_brand_name']) ? htmlspecialchars($product_list['product_brand_name']) : 'ไม่มีข้อมูล'; ?>
                                                 </td>
-                                                <td class="px-3 sm:px-6 py-2 border text-center text-xs sm:text-sm">
-                                                    <?php if ($is_incomplete): ?>
-                                                        <span class="text-red-600 font-bold">กรอกข้อมูลสินค้ายังไม่ครบ</span>
-                                                    <?php else: ?>
-                                                        <span class="text-green-600 font-bold">ข้อมูลสินค้าครบถ้วน</span>
-                                                    <?php endif; ?>
+                                                <td class="px-3 py-2 border text-xs sm:text-sm <?php echo empty($product_list['lot_product_date']) ? '' : ''; ?>">
+                                                    <?php echo !empty($product_list['lot_product_date']) ? htmlspecialchars($product_list['lot_product_date']) : 'ไม่มีข้อมูล'; ?>
                                                 </td>
-                                                <td class="px-3 sm:px-6 py-2 border text-center">
+                                                <td class="px-3 py-2 border text-xs sm:text-sm <?php echo empty($product_list['personnel_name']) ? '' : ''; ?>">
+                                                    <?php echo !empty($product_list['personnel_name']) ? htmlspecialchars($product_list['personnel_name']) : 'ไม่มีข้อมูล'; ?>
+                                                </td>
+                                                <td class="px-3 py-2 border text-center">
                                                     <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-2">
-                                                        <a href="?page=product_detail&tabel=product&id=<?php echo htmlspecialchars($product_list['product_id']); ?>"
-                                                            class="bg-blue-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-blue-600 transition flex items-center text-xs sm:text-sm">
-                                                            <i class="fas fa-eye mr-1"></i>ดู
-                                                        </a>
                                                         <a href="?page=product_update&id=<?php echo htmlspecialchars($product_list['product_id']); ?>"
                                                             class="bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm">
                                                             <i class="fas fa-edit mr-1"></i>แก้ไข
@@ -457,7 +522,7 @@ try {
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="8" class="text-center py-4 text-gray-600 text-sm sm:text-base">
+                                            <td colspan="9" class="text-center py-4 text-gray-600 text-sm sm:text-base">
                                                 <?php echo $incomplete_mode ? 'ไม่พบสินค้าที่มีข้อมูลไม่ครบ' : 'ไม่พบข้อมูลสินค้า'; ?>
                                             </td>
                                         </tr>
@@ -468,10 +533,10 @@ try {
                     </div>
                 </div>
 
-                <!-- Pagination -->
+                <!-- การแบ่งหน้า -->
                 <div class="pagination mt-5 flex flex-wrap justify-center items-center gap-2">
                     <?php
-                    // Build query string for pagination links to preserve filters
+                    // สร้าง query string สำหรับลิงก์การแบ่งหน้าเพื่อรักษาตัวกรอง
                     $query_params = [];
                     $query_params['page'] = 'product_list';
                     if ($incomplete_mode) {
@@ -486,9 +551,15 @@ try {
                     if ($search) {
                         $query_params['search'] = $search;
                     }
+                    if ($start_date) {
+                        $query_params['start_date'] = $start_date;
+                    }
+                    if ($end_date) {
+                        $query_params['end_date'] = $end_date;
+                    }
                     ?>
                     <?php if ($total_pages > 1): ?>
-                        <!-- Previous Button -->
+                        <!-- ปุ่มก่อนหน้า -->
                         <?php if ($page > 1): ?>
                             <?php $query_params['page_num'] = $page - 1; ?>
                             <a href="?<?php echo http_build_query($query_params); ?>"
@@ -497,7 +568,7 @@ try {
                             </a>
                         <?php endif; ?>
 
-                        <!-- Page Numbers -->
+                        <!-- หมายเลขหน้า -->
                         <?php
                         $start_page = max(1, $page - 2);
                         $end_page = min($total_pages, $page + 2);
@@ -531,7 +602,7 @@ try {
                             </a>
                         <?php endif; ?>
 
-                        <!-- Next Button -->
+                        <!-- ปุ่มถัดไป -->
                         <?php if ($page < $total_pages): ?>
                             <?php $query_params['page_num'] = $page + 1; ?>
                             <a href="?<?php echo http_build_query($query_params); ?>"
@@ -543,7 +614,7 @@ try {
                 </div>
             </div>
 
-            <!-- Notifications -->
+            <!-- การแจ้งเตือน -->
             <div id="notification-edit"
                 class="fixed top-5 right-5 w-64 sm:w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
                 <div class="bg-yellow-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 font-bold text-sm sm:text-base">การแจ้งเตือน</div>
@@ -556,7 +627,217 @@ try {
             </div>
         </div>
 
-        <script src="page/product/function/search_product.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                // แสดงการแจ้งเตือนเมื่อแก้ไขหรือลบสำเร็จ
+                if (urlParams.has('edit_success')) {
+                    showNotification('แก้ไขสินค้าสำเร็จ!', 'bg-yellow-500', 'notification-edit');
+                } else if (urlParams.has('delete_success')) {
+                    showNotification('ลบสินค้าสำเร็จ!', 'bg-red-500', 'notification-delete');
+                }
+
+                // โฟกัสช่องค้นหาถ้ามีคำค้นใน URL
+                if (urlParams.has('search')) {
+                    document.getElementById('searchInput').focus();
+                }
+
+                // ล้างการค้นหาด้วยปุ่ม Escape
+                document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        urlParams.set('page', 'product_list');
+                        <?php if ($incomplete_mode): ?>
+                            urlParams.set('mode', 'incomplete');
+                        <?php else: ?>
+                            urlParams.delete('mode');
+                        <?php endif; ?>
+                        urlParams.delete('search');
+                        window.location.search = urlParams.toString();
+                    }
+                });
+
+                // เก็บคำค้นใน localStorage เมื่อกด Enter
+                document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        localStorage.setItem('searchPreserve', this.value);
+                    }
+                });
+
+                // กู้คืนคำค้นจาก localStorage
+                const preserved = localStorage.getItem('searchPreserve');
+                if (preserved) {
+                    const input = document.getElementById('searchInput');
+                    input.value = preserved;
+                    input.focus();
+                    input.selectionStart = input.selectionEnd = preserved.length;
+                    localStorage.removeItem('searchPreserve');
+                }
+
+                // สลับการแสดงตัวกรองในโหมดมือถือ
+                document.getElementById('toggleFilters').addEventListener('click', () => {
+                    const filters = document.getElementById('filters');
+                    const chevron = document.querySelector('#toggleFilters i');
+                    filters.classList.toggle('hidden');
+                    chevron.classList.toggle('fa-chevron-down');
+                    chevron.classList.toggle('fa-chevron-up');
+                });
+            });
+
+            // ล้างการค้นหาเมื่อช่องว่างเปล่า
+            function checkEmptySearch(input) {
+                if (input.value.trim() === '') {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('page', 'product_list');
+                    <?php if ($incomplete_mode): ?>
+                        urlParams.set('mode', 'incomplete');
+                    <?php else: ?>
+                        urlParams.delete('mode');
+                    <?php endif; ?>
+                    urlParams.delete('search');
+                    window.location.search = urlParams.toString();
+                }
+            }
+
+            // อัปเดตตัวกรองเมื่อเลือก checkbox
+            function updateFilters() {
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'product_list');
+                <?php if ($incomplete_mode): ?>
+                    urlParams.set('mode', 'incomplete');
+                <?php else: ?>
+                    urlParams.delete('mode');
+                <?php endif; ?>
+
+                const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
+                if (productTypes.length > 0) {
+                    urlParams.set('product_type', productTypes.join(','));
+                } else {
+                    urlParams.delete('product_type');
+                }
+
+                const productBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
+                if (productBrands.length > 0) {
+                    urlParams.set('product_brand', productBrands.join(','));
+                } else {
+                    urlParams.delete('product_brand');
+                }
+
+                const searchInput = document.getElementById('searchInput').value;
+                if (searchInput.trim()) {
+                    urlParams.set('search', searchInput);
+                } else {
+                    urlParams.delete('search');
+                }
+
+                const startDate = document.getElementById('start_date').value;
+                if (startDate) {
+                    urlParams.set('start_date', startDate);
+                } else {
+                    urlParams.delete('start_date');
+                }
+
+                const endDate = document.getElementById('end_date').value;
+                if (endDate) {
+                    urlParams.set('end_date', endDate);
+                } else {
+                    urlParams.delete('end_date');
+                }
+
+                window.location.search = urlParams.toString();
+            }
+
+            // แสดงการแจ้งเตือน
+            function showNotification(message, headerClass, notificationId = 'notification-delete') {
+                const notification = document.getElementById(notificationId);
+                const header = notification.querySelector('div:first-child');
+                const body = notification.querySelector('div:last-child');
+
+                header.className = `bg-${headerClass} text-white px-3 sm:px-4 py-1.5 sm:py-2 font-bold text-sm sm:text-base`;
+                header.textContent = 'การแจ้งเตือน';
+                body.textContent = message;
+                notification.classList.remove('hidden');
+
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 1000);
+            }
+
+            // ส่งออก PDF
+            function exportPDF() {
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+                const mode = '<?php echo $incomplete_mode ? 'incomplete' : 'complete'; ?>';
+                let url = `/page/product/report/export_product_pdf.php?mode=${mode}`;
+                if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+                if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+                window.open(url, '_blank');
+            }
+
+            // ส่งออก Excel
+            function exportExcel() {
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+                const mode = '<?php echo $incomplete_mode ? 'incomplete' : 'complete'; ?>';
+                let url = `/page/product/report/export_product_excel.php?mode=${mode}`;
+                if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+                if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+                window.open(url, '_blank');
+            }
+
+            // อัปเดต URL เมื่อเปลี่ยนวันที่
+            document.getElementById('start_date').addEventListener('change', updateDateFilter);
+            document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+            function updateDateFilter() {
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'product_list');
+
+                <?php if ($incomplete_mode): ?>
+                    urlParams.set('mode', 'incomplete');
+                <?php else: ?>
+                    urlParams.delete('mode');
+                <?php endif; ?>
+
+                if (startDate) {
+                    urlParams.set('start_date', startDate);
+                } else {
+                    urlParams.delete('start_date');
+                }
+
+                if (endDate) {
+                    urlParams.set('end_date', endDate);
+                } else {
+                    urlParams.delete('end_date');
+                }
+
+                const searchInput = document.getElementById('searchInput').value;
+                if (searchInput.trim()) {
+                    urlParams.set('search', searchInput);
+                } else {
+                    urlParams.delete('search');
+                }
+
+                const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
+                if (productTypes.length > 0) {
+                    urlParams.set('product_type', productTypes.join(','));
+                } else {
+                    urlParams.delete('product_type');
+                }
+
+                const productBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
+                if (productBrands.length > 0) {
+                    urlParams.set('product_brand', productBrands.join(','));
+                } else {
+                    urlParams.delete('product_brand');
+                }
+
+                window.location.search = urlParams.toString();
+            }
+        </script>
+    </div>
 </body>
 
 </html>

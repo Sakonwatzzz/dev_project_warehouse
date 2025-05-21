@@ -1,9 +1,24 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
+session_start();
+date_default_timezone_set('Asia/Bangkok');
 
-// Add search parameter handling
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+// Create CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
+// Check session timeout
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+    session_unset();
+    session_destroy();
+    $query_params = http_build_query(['timeout' => 1, 'page' => 'personnel_list'] + ($_GET ?? []));
+    header("Location: login.php?$query_params");
+    exit;
+}
+$_SESSION['LAST_ACTIVITY'] = time();
+
+// Function to fetch data
 function fetchData($pdo, $query, $params = [])
 {
     try {
@@ -11,544 +26,865 @@ function fetchData($pdo, $query, $params = [])
         $stmt->execute($params);
         return $stmt;
     } catch (PDOException $e) {
-        die('Database error: ' . htmlspecialchars($e->getMessage()));
+        error_log("Database query error: " . $e->getMessage());
+        throw new Exception("Database error: " . htmlspecialchars($e->getMessage()));
+    }
+}
+
+// Verify CSRF token
+function verifyCsrfToken($token)
+{
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+// Validate personnel data
+function validatePersonnelData($name, $username, $type_id, $pdo, $exclude_id = null)
+{
+    $errors = [];
+    if (empty($name) || strlen($name) > 255) {
+        $errors[] = 'ชื่อบุคลากรต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร';
+    }
+    if (empty($username) || strlen($username) > 100) {
+        $errors[] = 'ชื่อผู้ใช้ต้องไม่ว่างและมีความยาวไม่เกิน 100 ตัวอักษร';
+    } else {
+        // Check username uniqueness
+        $query = "SELECT COUNT(*) FROM personnel WHERE personnel_username = :username";
+        if ($exclude_id) {
+            $query .= " AND personnel_id != :exclude_id";
+        }
+        $stmt = $pdo->prepare($query);
+        $stmt->bindValue(':username', $username);
+        if ($exclude_id) {
+            $stmt->bindValue(':exclude_id', $exclude_id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        if ($stmt->fetchColumn() > 0) {
+            $errors[] = 'ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว';
+        }
+    }
+    if (!$type_id) {
+        $errors[] = 'กรุณาเลือกประเภทบุคลเอก';
+    }
+    return $errors;
+}
+
+// Handle search and date parameters
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+
+// Handle POST requests for adding personnel
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
+    if (!verifyCsrfToken($_POST['csrf_token'])) {
+        header('Location: index.php?page=personnel_list&error=Invalid CSRF token');
+        exit;
+    }
+
+    $name = trim($_POST['add_personnel_name']);
+    $username = trim($_POST['add_personnel_username']);
+    $type_id = filter_var($_POST['personnel_type_id'], FILTER_VALIDATE_INT);
+
+    $errors = validatePersonnelData($name, $username, $type_id, $pdo);
+
+    if (!empty($errors)) {
+        header('Location: index.php?page=personnel_list&error=' . urlencode(implode(', ', $errors)));
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare("INSERT INTO personnel (personnel_name, personnel_username, personnel_type_id, personnel_create_date) VALUES (?, ?, ?, NOW())");
+        $stmt->execute([$name, $username, $type_id]);
+        $pdo->commit();
+        header('Location: index.php?page=personnel_list&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        exit;
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log("Add personnel error: " . $e->getMessage());
+        header('Location: index.php?page=personnel_list&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
+        exit;
     }
 }
 
 // Handle POST requests for updating personnel
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['update_personnel_name'])) {
-        $id = $_POST['id'];
-        $newName = $_POST['update_personnel_name'];
-        $newTypeId = $_POST['update_personnel_type_id'];
-        try {
-            $stmt = $pdo->prepare("UPDATE personnel SET personnel_name = ?, personnel_type_id = ? WHERE personnel_id = ?");
-            $stmt->execute([$newName, $newTypeId, $id]);
-            header('Location: /index.php?page=personnel_list&edit_success=1' . (!empty($search) ? '&search=' . urlencode($search) : ''));
-            exit;
-        } catch (PDOException $e) {
-            echo 'Database error: ' . htmlspecialchars($e->getMessage());
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit') {
+    if (!verifyCsrfToken($_POST['csrf_token'])) {
+        header('Location: index.php?page=personnel_list&error=Invalid CSRF token');
+        exit;
     }
-}
 
-// Handle DELETE request
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
+    $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+    $name = trim($_POST['update_personnel_name']);
+    $username = trim($_POST['update_personnel_username']);
+    $type_id = filter_var($_POST['update_personnel_type_id'], FILTER_VALIDATE_INT);
+
+    $errors = validatePersonnelData($name, $username, $type_id, $pdo, $id);
+    if (!$id) {
+        $errors[] = 'รหัสบุคลากรไม่ถูกต้อง';
+    }
+
+    if (!empty($errors)) {
+        header('Location: index.php?page=personnel_list&error=' . urlencode(implode(', ', $errors)));
+        exit;
+    }
+
     try {
-        $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
-        $stmt->execute([$id]);
-        header("Location: /index.php?page=personnel_list&delete_success=1" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare("UPDATE personnel SET personnel_name = ?, personnel_username = ?, personnel_type_id = ? WHERE personnel_id = ?");
+        $stmt->execute([$name, $username, $type_id, $id]);
+        if ($stmt->rowCount() === 0) {
+            $pdo->rollBack();
+            header('Location: index.php?page=personnel_list&error=ไม่พบข้อมูลบุคลากรที่ต้องการแก้ไข');
+            exit;
+        }
+        $pdo->commit();
+        header('Location: index.php?page=personnel_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
         exit;
     } catch (PDOException $e) {
-        echo "Error: " . htmlspecialchars($e->getMessage());
+        $pdo->rollBack();
+        error_log("Update personnel error: " . $e->getMessage());
+        header('Location: index.php?page=personnel_list&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
+        exit;
     }
 }
 
-// Count total records in the personnel table (with search)
+// Handle DELETE request - เวอร์ชันที่แก้ไข
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token']) && $_POST['action'] === 'delete') {
+    if (!verifyCsrfToken($_POST['csrf_token'])) {
+        header('Location: index.php?page=personnel_list&error=Invalid CSRF token');
+        exit;
+    }
+
+    $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+    if (!$id) {
+        header('Location: index.php?page=personnel_list&error=Invalid personnel ID');
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+        
+        // ตรวจสอบว่ามีข้อมูลที่เชื่อมโยงในตารางอื่นหรือไม่
+        $check_query = "SELECT COUNT(*) FROM product_type WHERE personnel_id = ?";
+        $check_stmt = $pdo->prepare($check_query);
+        $check_stmt->execute([$id]);
+        $related_count = $check_stmt->fetchColumn();
+        
+        if ($related_count > 0) {
+            $pdo->rollBack();
+            header('Location: index.php?page=personnel_list&error=' . urlencode("ไม่สามารถลบบุคลากรได้ เนื่องจากมีข้อมูลประเภทสินค้า {$related_count} รายการที่เชื่อมโยงอยู่"));
+            exit;
+        }
+        
+        // ถ้าไม่มีข้อมูลที่เชื่อมโยง ให้ทำการลบ
+        $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
+        $stmt->execute([$id]);
+
+        if ($stmt->rowCount() === 0) {
+            $pdo->rollBack();
+            header('Location: index.php?page=personnel_list&error=ไม่พบข้อมูลบุคลากรที่ต้องการลบ');
+            exit;
+        }
+
+        $pdo->commit();
+        header("Location: index.php?page=personnel_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        exit;
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log("Delete personnel error: Personnel ID=$id, Error=" . $e->getMessage());
+        
+        // ตรวจสอบประเภทของ error
+        if (strpos($e->getMessage(), '1451') !== false) {
+            $error_message = 'ไม่สามารถลบบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่ในระบบ';
+        } else {
+            $error_message = 'เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage());
+        }
+        
+        header("Location: index.php?page=personnel_list&error=" . urlencode($error_message));
+        exit;
+    }
+}
+?>
+
+<?php
+// ฟังก์ชันสำหรับตรวจสอบการเชื่อมโยงข้อมูลแบบครอบคลุม
+function checkPersonnelDependencies($pdo, $personnel_id) {
+    $dependencies = [];
+    
+    // ตรวจสอบตาราง product_type
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM product_type WHERE personnel_id = ?");
+    $stmt->execute([$personnel_id]);
+    $count = $stmt->fetchColumn();
+    if ($count > 0) {
+        $dependencies[] = "ประเภทสินค้า ({$count} รายการ)";
+    }
+    
+    // เพิ่มการตรวจสอบตารางอื่นๆ ตามความจำเป็น
+    // เช่น orders, reports, หรือตารางอื่นที่อาจจะมี foreign key
+    
+    return $dependencies;
+}
+
+// การใช้งานในส่วนการลบ
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    // ... (การตรวจสอบ CSRF และ validation)
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // ตรวจสอบการเชื่อมโยงข้อมูล
+        $dependencies = checkPersonnelDependencies($pdo, $id);
+        
+        if (!empty($dependencies)) {
+            $pdo->rollBack();
+            $dependency_list = implode(', ', $dependencies);
+            header('Location: index.php?page=personnel_list&error=' . urlencode("ไม่สามารถลบบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: {$dependency_list}"));
+            exit;
+        }
+        
+        // ดำเนินการลบ
+        $stmt = $pdo->prepare("DELETE FROM personnel WHERE personnel_id = ?");
+        $stmt->execute([$id]);
+        
+        if ($stmt->rowCount() === 0) {
+            $pdo->rollBack();
+            header('Location: index.php?page=personnel_list&error=ไม่พบข้อมูลบุคลากรที่ต้องการลบ');
+            exit;
+        }
+        
+        $pdo->commit();
+        header("Location: index.php?page=personnel_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        exit;
+        
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log("Delete personnel error: " . $e->getMessage());
+        header("Location: index.php?page=personnel_list&error=" . urlencode('เกิดข้อผิดพลาดในการลบข้อมูล'));
+        exit;
+    }
+}
+
+// Count total records for pagination
 try {
     $count_query = "SELECT COUNT(*) as total_count FROM personnel";
-    $count_params = [];
+    $params = [];
     if (!empty($search)) {
         $count_query .= " WHERE personnel_id LIKE :search OR personnel_name LIKE :search OR personnel_username LIKE :search";
-        $count_params[':search'] = "%$search%";
+        $params[':search'] = "%$search%";
+    }
+    if ($start_date || $end_date) {
+        $count_query .= (!empty($search) ? " AND" : " WHERE") . " 1=1";
+        if ($start_date) {
+            $count_query .= " AND personnel_create_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND personnel_create_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
     $stmt = $pdo->prepare($count_query);
-    $stmt->execute($count_params);
-    $count = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $total_records = (int)$stmt->fetchColumn();
 } catch (PDOException $e) {
-    $count = 0;
-    echo "Count error: " . htmlspecialchars($e->getMessage());
+    error_log("Count personnel error: " . $e->getMessage());
+    header('Location: index.php?page=personnel_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
+    exit;
 }
 
 // Pagination logic
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
+$page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
+$total_pages = max(1, ceil($total_records / $records_per_page));
 
+// Fetch personnel types for dropdown
 try {
-    $total_query = "SELECT COUNT(*) FROM personnel";
-    $total_params = [];
-    if (!empty($search)) {
-        $total_query .= " WHERE personnel_id LIKE :search OR personnel_name LIKE :search OR personnel_username LIKE :search";
-        $total_params[':search'] = "%$search%";
-    }
-    $stmt = $pdo->prepare($total_query);
-    $stmt->execute($total_params);
-    $total_records = $stmt->fetchColumn();
-    $total_pages = ceil($total_records / $records_per_page);
-} catch (PDOException $e) {
-    $total_pages = 1;
-    echo "Pagination error: " . htmlspecialchars($e->getMessage());
+    $personnel_type_query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
+    $personnel_types = fetchData($pdo, $personnel_type_query)->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    header('Location: index.php?page=personnel_list&error=' . urlencode($e->getMessage()));
+    exit;
 }
 
-// Fetch personnel data (with search)
+// Fetch personnel data
 try {
     $query = "
         SELECT 
             p.personnel_id,
             p.personnel_name,
             p.personnel_username,
+            p.personnel_create_date,
             p.personnel_type_id,
             pt.personnel_type_name
         FROM personnel p
         INNER JOIN personnel_type pt ON p.personnel_type_id = pt.personnel_type_id";
     $params = [];
-    if (!empty($search)) {
-        $query .= " WHERE p.personnel_id LIKE :search OR p.personnel_name LIKE :search OR p.personnel_username LIKE :search";
-        $params[':search'] = "%$search%";
+    if (!empty($search) || $start_date || $end_date) {
+        $query .= " WHERE 1=1";
+        if (!empty($search)) {
+            $query .= " AND (p.personnel_id LIKE :search OR p.personnel_name LIKE :search OR p.personnel_username LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $query .= " AND p.personnel_create_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND p.personnel_create_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
     }
-    $query .= " LIMIT :offset, :records_per_page";
+    $query .= " ORDER BY p.personnel_id DESC LIMIT :offset, :limit";
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
     $personnel = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $personnel = [];
-    echo "Fetch error: " . htmlspecialchars($e->getMessage());
-}
-
-// Fetch personnel types for dropdown
-try {
-    $query = "SELECT personnel_type_id, personnel_type_name FROM personnel_type";
-    $personnel_types = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $personnel_types = [];
-    echo "Fetch error: " . htmlspecialchars($e->getMessage());
+} catch (Exception $e) {
+    header('Location: index.php?page=personnel_list&error=' . urlencode($e->getMessage()));
+    exit;
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/output.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <title>Personnel List</title>
+    <title>ระบบจัดการบุคลากร</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Custom styles for responsiveness */
         body {
-            font-family: 'Tahoma', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        .table-container {
-            overflow-x: auto;
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 0.75rem;
-            text-align: left;
-            border: 1px solid #e5e7eb;
-        }
-
-        th {
-            background: #f9fafb;
-            font-weight: 600;
-        }
-
-        tr:hover {
-            background: #f3f4f6;
-        }
-
-        .search-bar {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-        }
-
-        .pagination a {
-            padding: 0.5rem 1rem;
-            margin: 0 0.25rem;
-            border-radius: 0.375rem;
-            text-decoration: none;
-            transition: background-color 0.2s;
-        }
-
-        .pagination a.active {
-            background: #1f2937;
-            color: white;
-        }
-
-        .notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border: 2px solid #d1d5db;
-            border-radius: 0.5rem;
-            width: 90%;
-            max-width: 400px;
-            z-index: 50;
-        }
-
-        /* Mobile and Tablet Styles */
-        @media (max-width: 768px) {
-            .container {
-                margin: 1rem;
-                padding: 0 0.5rem;
-            }
-
-            .table-container {
-                overflow-x: auto;
-            }
-
-            table {
-                display: block;
-            }
-
-            thead {
-                display: none;
-            }
-
-            tbody,
-            tr {
-                display: block;
-            }
-
-            tr {
-                margin-bottom: 1rem;
-                border: 1px solid #e5e7eb;
-                border-radius: 0.375rem;
-                background: white;
-            }
-
-            td {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 0.5rem;
-                border: none;
-                border-bottom: 1px solid #e5e7eb;
-            }
-
-            td:last-child {
-                border-bottom: none;
-            }
-
-            td:before {
-                content: attr(data-label);
-                font-weight: 600;
-                color: #374151;
-                flex: 1;
-            }
-
-            td .edit-input,
-            td .edit-select {
-                flex: 2;
-            }
-
-            .action-buttons {
-                flex-wrap: wrap;
-                gap: 0.5rem;
-            }
-
-            .pagination a {
-                padding: 0.5rem;
-                font-size: 0.875rem;
-            }
-
-            .search-bar {
-                font-size: 0.875rem;
-            }
-        }
-
-        /* Larger screens */
-        @media (min-width: 769px) {
-            .action-buttons {
-                display: flex;
-                gap: 0.5rem;
-            }
+            background-color: #f8f9fa;
         }
     </style>
 </head>
 
-<body>
-    <div class="container">
-        <!-- Table -->
-        <div class="table-container mb-8">
-            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-3 border-b border-[#8f959b]">
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div class="flex items-center gap-4">
-                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-list mr-2"></i>รายการบุคลากร
-                        </h2>
-                        <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header and Search Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-6">
+                <h2 class="text-2xl font-bold text-gray-800">จำนวนบุคลากร:</h2>
+                <div class="px-4 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[50px]">
+                    <?php echo $total_records; ?>
+                </div>
+                <button onclick="showAddModal()"
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center">
+                    <i class="fas fa-plus mr-2"></i>เพิ่มบุคลากร
+                </button>
+            </div>
+            <div class="text-end">
+                <form action="" method="GET" id="searchForm">
+                    <input type="hidden" name="page" value="personnel_list">
+                    <input type="hidden" name="page_num" value="1">
+                    <div class="relative">
+                        <input type="text" name="search" id="searchInput"
+                            placeholder="ค้นหาบุคลากร..."
+                            value="<?php echo htmlspecialchars($search); ?>"
+                            class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                            <i class="fas fa-search"></i>
+                        </button>
                     </div>
-                    <div class="w-full md:w-1/2">
-                        <form action="" method="GET" class="w-full" id="searchForm">
-                            <input type="hidden" name="page" value="personnel_list">
-                            <div class="relative">
-                                <input type="text" name="search" id="searchInput"
-                                    placeholder="ค้นหา..."
-                                    value="<?php echo htmlspecialchars($search); ?>"
-                                    class="search-bar focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    oninput="checkEmptySearch(this)">
-                                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </form>
+                </form>
+            </div>
+        </div>
+
+        <!-- Notification -->
+        <div id="notification"
+            class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
+            <div id="notification-header" class="px-4 py-2 font-bold text-white"></div>
+            <div class="px-4 py-3" id="notification-message"></div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                    <!-- หัวข้อ -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2"></i> รายการบุคลากร
+                        </h2>
+                    </div>
+
+                    <!-- ปุ่มดาวน์โหลดรายงาน -->
+                    <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+                        <!-- เลือกช่วงวันที่ -->
+                        <div class="flex items-center space-x-2">
+                            <label for="start_date" class="text-sm font-medium">วันที่เริ่มต้น</label>
+                            <input type="date" id="start_date" name="start_date"
+                                class="border rounded px-2 py-1"
+                                value="<?php echo htmlspecialchars($start_date); ?>">
+                            <label for="end_date" class="text-sm font-medium">ถึง</label>
+                            <input type="date" id="end_date" name="end_date"
+                                class="border rounded px-2 py-1"
+                                value="<?php echo htmlspecialchars($end_date); ?>">
+                        </div>
+
+                        <!-- ปุ่มดาวน์โหลด -->
+                        <div class="flex space-x-2">
+                            <button onclick="exportPDF()"
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
+                            </button>
+                            <button onclick="exportExcel()"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="p-4">
-                <table id="dataTable">
-                    <thead>
-                        <tr>
-                            <th>รหัสบุคลากร</th>
-                            <th>ชื่อ-นามสกุล</th>
-                            <th>ประเภทบุคลากร</th>
-                            <th>ชื่อผู้ใช้</th>
-                            <th class="text-center">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (count($personnel) > 0): ?>
-                            <?php foreach ($personnel as $person): ?>
-                                <tr data-id="<?php echo htmlspecialchars($person['personnel_id']); ?>">
-                                    <td data-label="รหัสบุคลากร" class="cursor-pointer hover:underline"><?php echo htmlspecialchars($person['personnel_id']); ?></td>
-                                    <td data-label="ชื่อ-นามสกุล" class="personnel-name cursor-pointer hover:underline" onclick="window.location.href='?page=personnel_detail&tabel=personnel&id=<?php echo htmlspecialchars($person['personnel_id']); ?>'"><?php echo htmlspecialchars($person['personnel_name']); ?></td>
-                                    <td data-label="ประเภทบุคลากร" class="personnel-type"><?php echo htmlspecialchars($person['personnel_type_name']); ?></td>
-                                    <td data-label="ชื่อผู้ใช้"><?php echo htmlspecialchars($person['personnel_username']); ?></td>
-                                    <td data-label="การจัดการ" class="text-center">
-                                        <div class="action-buttons flex justify-center">
-                                            <button onclick="enableEdit(this)"
-                                                class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-sm">
-                                                <i class="fas fa-edit mr-1"></i>แก้ไข
-                                            </button>
-                                            <a href="?page=personnel_list&id=<?php echo htmlspecialchars($person['personnel_id']); ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
-                                                onclick="return confirm('ยืนยันการลบข้อมูล?')"
-                                                class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-sm">
-                                                <i class="fas fa-trash-alt mr-1"></i>ลบ
-                                            </a>
-                                            <button class="save-btn hidden bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition items-center text-sm"
-                                                onclick="saveEdit(this)">
-                                                <i class="fas fa-save mr-1"></i>บันทึก
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-gray-600">ไม่มีข้อมูล</td>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสบุคลากร</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อ-นามสกุล</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อผู้ใช้</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ประเภทบุคลากร</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่และเวลา</th>
+                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
                             </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php if (count($personnel) > 0): ?>
+                                <?php foreach ($personnel as $person): ?>
+                                    <tr class="hover:bg-gray-100">
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($person['personnel_id']); ?></td>
+                                        <td class="px-6 py-2 border">
+                                            <a href="?page=personnel_detail&tabel=personnel&id=<?php echo htmlspecialchars($person['personnel_id']); ?>"
+                                                class="text-blue-600 hover:underline cursor-pointer">
+                                                <?php echo htmlspecialchars($person['personnel_name']); ?>
+                                            </a>
+                                        </td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($person['personnel_username']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($person['personnel_type_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($person['personnel_create_date']); ?></td>
+                                        <td class="px-6 py-2 border text-center">
+                                            <div class="flex flex-wrap justify-center gap-2">
+                                                <button onclick="showEditModal('<?php echo htmlspecialchars($person['personnel_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_name'])); ?>', '<?php echo htmlspecialchars($person['personnel_username']); ?>', '<?php echo htmlspecialchars($person['personnel_type_id']); ?>')"
+                                                    class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
+                                                    <i class="fas fa-edit mr-1"></i> แก้ไข
+                                                </button>
+                                                <form action="" method="POST" style="display:inline;" class="delete-form">
+                                                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($person['personnel_id']); ?>">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                    <button type="button" onclick="confirmDelete(this.parentElement)"
+                                                        class="bg-red-500 text-white text-sm px-3 py-1 rounded hover:bg-red-600 transition flex items-center whitespace-nowrap">
+                                                        <i class="fas fa-trash-alt mr-1"></i> ลบ
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-gray-600">ไม่มีข้อมูลบุคลากร</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
         <!-- Pagination -->
-        <div class="pagination mt-5 flex justify-center items-center gap-2 flex-wrap">
+        <div class="flex justify-center mt-6 space-x-2">
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=personnel_list&page_num=<?= $page - 1 ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
-                        class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                    <a href="?page=personnel_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
                 <?php endif; ?>
-
                 <!-- Page Numbers -->
                 <?php
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=personnel_list&page_num=1<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
-                        class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                    <a href="?page=personnel_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         1
                     </a>
                     <?php if ($start_page > 2): ?>
-                        <span class="px-3 py-1 text-gray-500">...</span>
+                        <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
                 <?php endif; ?>
-
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=personnel_list&page_num=<?= $i ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
-                        class="rounded-md transition-colors <?php echo $i == $page ? 'active' : 'bg-[#aec5e366] text-black hover:bg-gray-300'; ?>">
+                    <a href="?page=personnel_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                        class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
-
                 <?php if ($end_page < $total_pages): ?>
                     <?php if ($end_page < $total_pages - 1): ?>
-                        <span class="px-3 py-1 text-gray-500">...</span>
+                        <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=personnel_list&page_num=<?= $total_pages ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
-                        class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                    <a href="?page=personnel_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
-
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=personnel_list&page_num=<?= $page + 1 ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
-                        class="bg-[#aec5e366] text-black rounded-md hover:bg-gray-300 transition-colors">
+                    <a href="?page=personnel_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-    </div>
 
-    <!-- Notification -->
-    <div id="notification" class="notification hidden">
-        <div id="notification-header" class="p-2 rounded-t-md font-bold"></div>
-        <div id="notification-body" class="p-4 text-center text-base"></div>
+        <!-- Add Modal -->
+        <div id="addModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 opacity-0 invisible transition-all duration-300 backdrop-blur-sm">
+            <div class="bg-white rounded-lg w-full max-w-md p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">เพิ่มบุคลากรใหม่</h3>
+                <form id="addForm" method="POST" class="space-y-4">
+                    <input type="hidden" name="action" value="add">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">ชื่อ-นามสกุล</label>
+                        <input type="text" id="addPersonnelName" name="add_personnel_name"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required>
+                        <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้</label>
+                        <input type="text" id="addPersonnelUsername" name="add_personnel_username"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required>
+                        <span id="addUsernameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">ประเภทบุคลากร</label>
+                        <select id="addPersonnelTypeId" name="personnel_type_id"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required>
+                            <option value="">เลือกประเภทบุคลากร</option>
+                            <?php foreach ($personnel_types as $type): ?>
+                                <option value="<?php echo htmlspecialchars($type['personnel_type_id']); ?>">
+                                    <?php echo htmlspecialchars($type['personnel_type_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span id="addTypeError" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeAddModal()"
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                            บันทึก
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div id="editModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
+            <div class="bg-white rounded-lg w-full max-w-md p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขข้อมูลบุคลากร</h3>
+                <form id="editForm" method="POST" class="space-y-4">
+                    <input type="hidden" id="editPersonnelId" name="id">
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">ชื่อ-นามสกุล</label>
+                        <input type="text" id="editPersonnelName" name="update_personnel_name"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required>
+                        <span id="editNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้</label>
+                        <input type="text" id="editPersonnelUsername" name="update_personnel_username"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required>
+                        <span id="editUsernameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">ประเภทบุคลากร</label>
+                        <select id="editPersonnelTypeId" name="update_personnel_type_id"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required>
+                            <option value="">เลือกประเภทบุคลากร</option>
+                            <?php foreach ($personnel_types as $type): ?>
+                                <option value="<?php echo htmlspecialchars($type['personnel_type_id']); ?>">
+                                    <?php echo htmlspecialchars($type['personnel_type_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span id="editTypeError" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeEditModal()"
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                            บันทึก
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
+            <div class="bg-white rounded-lg w-full max-w-md p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
+                <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?</p>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeDeleteModal()"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                        ยกเลิก
+                    </button>
+                    <button type="button" id="confirmDeleteBtn"
+                        class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                        ลบ
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Function to handle empty search input
         function checkEmptySearch(input) {
             if (input.value.trim() === '') {
-                window.location.href = '?page=personnel_list';
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'personnel_list');
+                urlParams.delete('search');
+                window.location.search = urlParams.toString();
             }
         }
 
+        function showAddModal() {
+            document.getElementById('addPersonnelName').value = '';
+            document.getElementById('addPersonnelUsername').value = '';
+            document.getElementById('addPersonnelTypeId').value = '';
+            document.getElementById('addNameError').classList.add('hidden');
+            document.getElementById('addUsernameError').classList.add('hidden');
+            document.getElementById('addTypeError').classList.add('hidden');
+            document.getElementById('addModal').classList.remove('invisible', 'opacity-0');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('invisible', 'opacity-0');
+        }
+
+        function showEditModal(id, name, username, typeId) {
+            document.getElementById('editPersonnelId').value = id;
+            document.getElementById('editPersonnelName').value = name;
+            document.getElementById('editPersonnelUsername').value = username;
+            document.getElementById('editPersonnelTypeId').value = typeId;
+            document.getElementById('editNameError').classList.add('hidden');
+            document.getElementById('editUsernameError').classList.add('hidden');
+            document.getElementById('editTypeError').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('invisible', 'opacity-0');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('invisible', 'opacity-0');
+        }
+
+        function showDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('invisible', 'opacity-0');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('invisible', 'opacity-0');
+        }
+
+        function confirmDelete(form) {
+            showDeleteModal();
+            document.getElementById('confirmDeleteBtn').onclick = () => {
+                form.submit();
+            };
+        }
+
+        function showNotification(message, className) {
+            const notification = document.getElementById('notification');
+            const header = document.getElementById('notification-header');
+            const messageDiv = document.getElementById('notification-message');
+            header.className = `px-4 py-2 font-bold text-white ${className}`;
+            header.textContent = 'การแจ้งเตือน';
+            messageDiv.textContent = message;
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 5000);
+        }
+
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/personnel/report/export_personnel_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/personnel/report/export_personnel_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            // Focus on search input if search parameter exists
-            if (urlParams.has('search')) {
-                document.getElementById('searchInput').focus();
-            }
-            // Add event listener for Escape key to clear search
-            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return;
+
+            searchInput.focus();
+
+            searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    window.location.href = '?page=personnel_list';
+                    this.value = '';
+                    this.form.submit();
+                }
+                if (e.key === 'Enter') {
+                    localStorage.setItem('searchPreserve', this.value);
                 }
             });
-            // Show notifications for success actions
-            if (urlParams.has('edit_success')) {
-                showNotification('แก้ไขข้อมูลสำเร็จ', 'bg-cyan-200');
-            } else if (urlParams.has('delete_success')) {
-                showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
-            }
-        });
 
-        // ก่อน reload ให้เก็บไว้
-        document.getElementById('searchInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                localStorage.setItem('searchPreserve', this.value);
-            }
-        });
-
-        // หลังโหลดหน้า
-        document.addEventListener('DOMContentLoaded', () => {
             const preserved = localStorage.getItem('searchPreserve');
             if (preserved) {
-                const input = document.getElementById('searchInput');
-                input.value = preserved;
-                input.focus();
-                // เคลื่อนเคอร์เซอร์ไปหลังข้อความ
-                input.selectionStart = input.selectionEnd = preserved.length;
+                searchInput.value = preserved;
+                searchInput.focus();
+                searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
                 localStorage.removeItem('searchPreserve');
             }
-        });
 
-        function enableEdit(button) {
-            const row = button.closest('tr');
-            const personnelNameCell = row.querySelector('.personnel-name');
-            const personnelTypeCell = row.querySelector('.personnel-type');
-            const personnelId = row.getAttribute('data-id');
+            searchInput.addEventListener('input', function() {
+                if (this.value.trim() === '') {
+                    this.form.submit();
+                }
+            });
 
-            const originalName = personnelNameCell.textContent.trim();
-            const originalType = personnelTypeCell.textContent.trim();
-
-            personnelNameCell.innerHTML = `<input type="text" class="edit-input p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${originalName}" />`;
-
-            let dropdown = `<select class="edit-select p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">`;
-            <?php foreach ($personnel_types as $type): ?>
-                dropdown += `<option value="<?php echo $type['personnel_type_id']; ?>" ${originalType === "<?php echo $type['personnel_type_name']; ?>" ? 'selected' : ''}><?php echo htmlspecialchars($type['personnel_type_name']); ?></option>`;
-            <?php endforeach; ?>
-            dropdown += `</select>`;
-            personnelTypeCell.innerHTML = dropdown;
-
-            button.classList.add('hidden');
-            row.querySelector('.delete-btn').classList.add('hidden');
-            row.querySelector('.save-btn').classList.remove('hidden');
-        }
-
-        function saveEdit(button) {
-            const row = button.closest('tr');
-            const personnelId = row.getAttribute('data-id');
-            const newName = row.querySelector('.edit-input').value.trim();
-            const newTypeId = row.querySelector('.edit-select').value;
-            const personnelNameCell = row.querySelector('.personnel-name');
-            const personnelTypeCell = row.querySelector('.personnel-type');
-
-            if (!newName) {
-                alert('กรุณากรอกชื่อบุคลากร');
-                return;
+            if (urlParams.has('success')) {
+                showNotification(urlParams.get('success'), 'bg-green-500');
+            } else if (urlParams.has('error')) {
+                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
 
-            fetch('', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `id=${personnelId}&update_personnel_name=${encodeURIComponent(newName)}&update_personnel_type_id=${newTypeId}`
-                })
-                .then(response => {
-                    if (response.ok) {
-                        personnelNameCell.textContent = newName;
-                        const selectedType = row.querySelector('.edit-select option:checked').textContent;
-                        personnelTypeCell.textContent = selectedType;
-                        const editBtn = row.querySelector('.edit-btn');
-                        const deleteBtn = row.querySelector('.delete-btn');
-                        editBtn.classList.remove('hidden');
-                        deleteBtn.classList.remove('hidden');
-                        button.classList.add('hidden');
-                        showNotification('แก้ไขสำเร็จ', 'bg-cyan-200');
+            function validateForm(formId, fields) {
+                let hasError = false;
+                fields.forEach(field => {
+                    const input = document.getElementById(field.id);
+                    const error = document.getElementById(field.errorId);
+                    if (!input.value.trim()) {
+                        error.textContent = `กรุณากรอก${field.label}`;
+                        error.classList.remove('hidden');
+                        hasError = true;
+                    } else if (input.value.length > field.maxLength) {
+                        error.textContent = `${field.label}ยาวเกิน ${field.maxLength} ตัวอักษร`;
+                        error.classList.remove('hidden');
+                        hasError = true;
                     } else {
-                        throw new Error('Failed to save');
+                        error.classList.add('hidden');
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('เกิดข้อผิดพลาดในการบันทึก', 'bg-red-200');
                 });
-        }
+                return !hasError;
+            }
 
-        function showNotification(message, headerClass) {
-            const notification = document.getElementById('notification');
-            const header = document.getElementById('notification-header');
-            const body = document.getElementById('notification-body');
+            document.getElementById('addForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const fields = [{
+                        id: 'addPersonnelName',
+                        errorId: 'addNameError',
+                        label: 'ชื่อ-นามสกุล',
+                        maxLength: 255
+                    },
+                    {
+                        id: 'addPersonnelUsername',
+                        errorId: 'addUsernameError',
+                        label: 'ชื่อผู้ใช้',
+                        maxLength: 100
+                    },
+                    {
+                        id: 'addPersonnelTypeId',
+                        errorId: 'addTypeError',
+                        label: 'ประเภทบุคลากร',
+                        maxLength: Infinity
+                    }
+                ];
+                if (validateForm('addForm', fields)) {
+                    this.submit();
+                }
+            });
 
-            header.className = `p-2 rounded-t-md font-bold ${headerClass}`;
-            header.textContent = 'แจ้งเตือน';
-            body.textContent = message;
-            notification.classList.remove('hidden');
+            document.getElementById('editForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const fields = [{
+                        id: 'editPersonnelName',
+                        errorId: 'editNameError',
+                        label: 'ชื่อ-นามสกุล',
+                        maxLength: 255
+                    },
+                    {
+                        id: 'editPersonnelUsername',
+                        errorId: 'editUsernameError',
+                        label: 'ชื่อผู้ใช้',
+                        maxLength: 100
+                    },
+                    {
+                        id: 'editPersonnelTypeId',
+                        errorId: 'editTypeError',
+                        label: 'ประเภทบุคลากร',
+                        maxLength: Infinity
+                    }
+                ];
+                if (validateForm('editForm', fields)) {
+                    this.submit();
+                }
+            });
 
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 1000);
-        }
+            document.getElementById('start_date').addEventListener('change', updateDateFilter);
+            document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+            function updateDateFilter() {
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'personnel_list');
+
+                if (startDate) {
+                    urlParams.set('start_date', startDate);
+                } else {
+                    urlParams.delete('start_date');
+                }
+
+                if (endDate) {
+                    urlParams.set('end_date', endDate);
+                } else {
+                    urlParams.delete('end_date');
+                }
+
+                window.location.search = urlParams.toString();
+            }
+        });
     </script>
 </body>
 

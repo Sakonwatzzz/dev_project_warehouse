@@ -14,13 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = $_POST['phone'];
     $registerdate = $_POST['registerdate'];
     $typename = $_POST['typename'];
+    $personnelname = $_POST['personnelname'];
 
     $stmt = $pdo->prepare("
         UPDATE member 
-        SET member_name = ?, member_address = ?, member_phone = ?, member_register_date = ?, member_type_id = ?
+        SET member_name = ?, member_address = ?, member_phone = ?, member_register_date = ?, member_type_id = ?, personnel_id = ?
         WHERE member_id = ?
     ");
-    $stmt->execute([$name, $address, $phone, $registerdate, $typename, $member_id]);
+    $stmt->execute([$name, $address, $phone, $registerdate, $typename, $personnelname, $member_id]);
 
     header("Location: /?page=member_detail&tabel=member&id=" . $member_id);
     exit();
@@ -35,9 +36,10 @@ $is_update = isset($_GET['is_update']) ? (bool)$_GET['is_update'] : false;
 switch ($tabel) {
     case 'member':
         $stmt = $pdo->prepare("
-            SELECT member.*, member_type.member_type_name
+            SELECT member.*, member_type.member_type_name ,personnel.personnel_name
             FROM member
             LEFT JOIN member_type ON member.member_type_id = member_type.member_type_id
+            LEFT JOIN personnel ON member.personnel_id = personnel.personnel_id
             WHERE member.member_id = ?
         ");
         break;
@@ -51,6 +53,11 @@ if (!$member) {
     echo "ไม่พบข้อมูล";
     exit();
 }
+
+// ดึงรายชื่อพนักงาน
+$queryPersonnels = "SELECT personnel_id, personnel_name FROM personnel";
+$personnelResults = $pdo->query($queryPersonnels);
+
 
 // Fetch member types for dropdown
 $queryTypes = "SELECT member_type_id, member_type_name FROM member_type";
@@ -132,6 +139,27 @@ $member_type_results = $pdo->query($queryTypes);
                                     </select>
                                 <?php else: ?>
                                     <span class="block w-full p-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600"><?php echo htmlspecialchars($member['member_type_name']); ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- personnel -->
+                        <div class="flex items-center gap-4">
+                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
+                                <a href="?page=personnel_insert" class="text-blue-600 hover:underline">พนักงาน:</a>
+                            </label>
+                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
+                                <?php if ($is_update): ?>
+                                    <select name="personnelname" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                        <?php while ($personnelRow = $personnelResults->fetch(PDO::FETCH_ASSOC)): ?>
+                                            <option value="<?php echo htmlspecialchars($personnelRow['personnel_id']); ?>"
+                                                <?php echo $personnelRow['personnel_id'] == $member['personnel_id'] ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($personnelRow['personnel_name']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <span class="block w-full p-2 border border-gray-300 rounded-md bg-gray-200 text-gray-600"><?php echo htmlspecialchars($member['personnel_name']); ?></span>
                                 <?php endif; ?>
                             </div>
                         </div>

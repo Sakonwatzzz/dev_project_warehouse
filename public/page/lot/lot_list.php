@@ -15,6 +15,11 @@ $status_lot = fetchDataFromTable($pdo, "SELECT lot_status_id, lot_status_name FR
 $warehouse_lot = fetchDataFromTable($pdo, "SELECT warehouse_id, warehouse_name FROM warehouse");
 $supplier_lot = fetchDataFromTable($pdo, "SELECT supplier_id, supplier_name FROM supplier");
 
+// Add search and date filter variables
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+
 // Handle delete operation
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
@@ -24,21 +29,29 @@ if (isset($_GET['id'])) {
     exit;
 }
 
-// Add search variable
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
 // Pagination setup
 try {
     $records_per_page = 5;
     $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
     $offset = ($page - 1) * $records_per_page;
 
-    // Get total count with search
+    // Get total count with search and date filters
     $count_query = "SELECT COUNT(*) as total_count FROM lot WHERE lot.warehouse_inout = 1";
     $params = [];
-    if (!empty($search)) {
-        $count_query .= " AND (lot.lot_id LIKE :search OR lot.lot_name LIKE :search)";
-        $params[':search'] = "%$search%";
+    if ($start_date || $end_date || !empty($search)) {
+        $count_query .= " AND 1=1";
+        if ($start_date) {
+            $count_query .= " AND lot.lot_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND lot.lot_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        if (!empty($search)) {
+            $count_query .= " AND (lot.lot_id LIKE :search OR lot.lot_name LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
     }
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
@@ -52,7 +65,7 @@ try {
     exit();
 }
 
-// Fetch paginated data with search
+// Fetch paginated data with search and date filters
 try {
     $query = "
     SELECT
@@ -76,9 +89,20 @@ try {
     WHERE lot.warehouse_inout = 1";
 
     $params = [];
-    if (!empty($search)) {
-        $query .= " AND (lot.lot_id LIKE :search OR lot.lot_name LIKE :search)";
-        $params[':search'] = "%$search%";
+    if ($start_date || $end_date || !empty($search)) {
+        $query .= " AND 1=1";
+        if ($start_date) {
+            $query .= " AND lot.lot_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND lot.lot_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        if (!empty($search)) {
+            $query .= " AND (lot.lot_id LIKE :search OR lot.lot_name LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
     }
 
     $query .= " ORDER BY lot.lot_date DESC LIMIT :offset, :records_per_page";
@@ -132,6 +156,8 @@ ob_end_flush();
                 <form action="" method="GET" id="searchForm">
                     <input type="hidden" name="page" value="lot_list">
                     <input type="hidden" name="page_num" value="1">
+                    <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>">
+                    <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>">
                     <div class="relative">
                         <input type="text" name="search" id="searchInput"
                             placeholder="ค้นหารายการรับสินค้า..."
@@ -156,10 +182,44 @@ ob_end_flush();
         <!-- Table -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-list mr-2"></i>รายการรับสินค้าคลัง
-                </h2>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                    <!-- หัวข้อ -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2"></i> รายการรับสินค้าคลัง
+                        </h2>
+                    </div>
+
+                    <!-- ปุ่มดาวน์โหลดรายงาน -->
+                    <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+
+                        <!-- เลือกช่วงวันที่ -->
+                        <div class="flex items-center space-x-2">
+                            <label for="start_date" class="text-sm font-medium">วันที่เริ่มต้น</label>
+                            <input type="date" id="start_date" name="start_date"
+                                class="border rounded px-2 py-1"
+                                value="<?php echo htmlspecialchars($start_date); ?>">
+                            <label for="end_date" class="text-sm font-medium">ถึง</label>
+                            <input type="date" id="end_date" name="end_date"
+                                class="border rounded px-2 py-1"
+                                value="<?php echo htmlspecialchars($end_date); ?>">
+                        </div>
+
+                        <!-- ปุ่มดาวน์โหลด -->
+                        <div class="flex space-x-2">
+                            <button onclick="exportPDF()"
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-pdf mr-2"></i>ส่งออก PDF
+                            </button>
+                            <button onclick="exportExcel()"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm md:text-base">
+                                <i class="fas fa-file-excel mr-2"></i>ส่งออก Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
+
             <div class="p-6">
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse">
@@ -228,7 +288,7 @@ ob_end_flush();
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=lot_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=lot_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
@@ -238,7 +298,7 @@ ob_end_flush();
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=lot_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=lot_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         1
                     </a>
@@ -247,7 +307,7 @@ ob_end_flush();
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=lot_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=lot_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -256,14 +316,14 @@ ob_end_flush();
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=lot_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=lot_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=lot_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=lot_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
@@ -275,7 +335,10 @@ ob_end_flush();
     <script>
         function checkEmptySearch(input) {
             if (input.value.trim() === '') {
-                window.location.href = '?page=lot_list';
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'lot_list');
+                urlParams.delete('search');
+                window.location.search = urlParams.toString();
             }
         }
 
@@ -311,7 +374,50 @@ ob_end_flush();
                     notification.classList.add('hidden');
                 }, 2000);
             }
+
+            // Date filter handler
+            document.getElementById('start_date').addEventListener('change', updateDateFilter);
+            document.getElementById('end_date').addEventListener('change', updateDateFilter);
         });
+
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/lot/ajax/report/export_lot_list_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/lot/ajax/report/export_lot_list_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function updateDateFilter() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', 'lot_list');
+
+            if (startDate) {
+                urlParams.set('start_date', startDate);
+            } else {
+                urlParams.delete('start_date');
+            }
+
+            if (endDate) {
+                urlParams.set('end_date', endDate);
+            } else {
+                urlParams.delete('end_date');
+            }
+
+            window.location.search = urlParams.toString();
+        }
     </script>
 </body>
 

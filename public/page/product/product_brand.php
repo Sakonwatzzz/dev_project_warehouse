@@ -1,30 +1,54 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
-// เพิ่มตัวแปรสำหรับการค้นหา
+// Add variables for search and date filtering
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+
+// Function to fetch data from database
+function fetchData($pdo, $query, $params = [])
+{
+    try {
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt;
+    } catch (PDOException $e) {
+        throw new Exception("Database error: " . $e->getMessage());
+    }
+}
 
 // Handle POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        if (isset($_POST['brandname']) && !empty(trim($_POST['brandname']))) {
+        if (isset($_POST['brandname']) && !empty(trim($_POST['brandname'])) && isset($_POST['personnel_id'])) {
             $brandname = trim($_POST['brandname']);
-            $stmt = $pdo->prepare('INSERT INTO product_brand (product_brand_name) VALUES (?)');
-            $stmt->execute([$brandname]);
-            header('Location: ?page=product_brand&add_success=1');
-            exit;
-        } elseif (isset($_POST['update_brandname']) && isset($_POST['id'])) {
+            $personnelId = filter_var($_POST['personnel_id'], FILTER_VALIDATE_INT);
+            $date = date('Y-m-d H:i:s');
+            if ($personnelId) {
+                $stmt = $pdo->prepare('INSERT INTO product_brand (product_brand_name, product_brand_date, personnel_id) VALUES (?, ?, ?)');
+                $stmt->execute([$brandname, $date, $personnelId]);
+                header('Location: ?page=product_brand&add_success=1');
+                exit;
+            } else {
+                throw new Exception("Invalid personnel ID");
+            }
+        } elseif (isset($_POST['update_brandname']) && isset($_POST['id']) && isset($_POST['personnel_id'])) {
             $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
             $newBrandName = trim($_POST['update_brandname']);
-            if ($id && !empty($newBrandName)) {
-                $stmt = $pdo->prepare("UPDATE product_brand SET product_brand_name = ? WHERE product_brand_id = ?");
-                $stmt->execute([$newBrandName, $id]);
+            $personnelId = filter_var($_POST['personnel_id'], FILTER_VALIDATE_INT);
+            $date = date('Y-m-d H:i:s');
+            if ($id && !empty($newBrandName) && $personnelId) {
+                $stmt = $pdo->prepare("UPDATE product_brand SET product_brand_name = ?, product_brand_date = ?, personnel_id = ? WHERE product_brand_id = ?");
+                $stmt->execute([$newBrandName, $date, $personnelId, $id]);
                 header('Location: ?page=product_brand&edit_success=1');
                 exit;
+            } else {
+                throw new Exception("Invalid input data");
             }
         }
-    } catch (PDOException $e) {
-        echo 'Database error: ' . htmlspecialchars($e->getMessage());
+    } catch (Exception $e) {
+        echo 'Error: ' . htmlspecialchars($e->getMessage());
         exit;
     }
 }
@@ -47,28 +71,57 @@ if (isset($_GET['id']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
 
 // Total count
 try {
-    $stmt = $pdo->query("SELECT COUNT(*) as total_count FROM product_brand");
+    $count_query = "SELECT COUNT(*) as total_count FROM product_brand";
+    $params = [];
+    if ($start_date || $end_date || !empty($search)) {
+        $count_query .= " WHERE 1=1";
+        if ($start_date) {
+            $count_query .= " AND product_brand_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND product_brand_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        if (!empty($search)) {
+            $count_query .= " AND (product_brand_name LIKE :search OR product_brand_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+    }
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
     $count = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
 } catch (PDOException $e) {
     $count = 0;
     echo "Count error: " . htmlspecialchars($e->getMessage());
 }
 
-// Pagination และ การค้นหา
-$records_per_page = 5;
+// Pagination and search
+$records_per_page = 6; // Standardized to match product_type
 $page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 
 try {
-    // สร้าง SQL query สำหรับนับรายการทั้งหมด ตามเงื่อนไขการค้นหา
     $count_query = "SELECT COUNT(*) FROM product_brand";
     $params = [];
-
-    if (!empty($search)) {
-        $count_query .= " WHERE product_brand_name LIKE :search OR product_brand_id LIKE :search";
-        $params[':search'] = "%$search%";
+    if ($start_date || $end_date || !empty($search)) {
+        $count_query .= " WHERE 1=1";
+        if ($start_date) {
+            $count_query .= " AND product_brand_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $count_query .= " AND product_brand_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        if (!empty($search)) {
+            $count_query .= " AND (product_brand_name LIKE :search OR product_brand_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
     }
-
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -81,22 +134,42 @@ try {
     echo "Pagination error: " . htmlspecialchars($e->getMessage());
 }
 
-// ดึงข้อมูลตามเงื่อนไขการค้นหา
+// Fetch data with search and date filter conditions
 try {
+    // Fetch personnel data
+    $query = "SELECT personnel_id, personnel_name FROM personnel";
+    $personnels = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
     $query = "SELECT 
-        pt.product_brand_id,
-        pt.product_brand_name,
+        pb.product_brand_id,
+        pb.product_brand_name,
+        DATE_FORMAT(pb.product_brand_date, '%Y-%m-%d %H:%i:%s') as product_brand_date,
+        per.personnel_id,
+        per.personnel_name,
         COALESCE(COUNT(p.product_id), 0) as product_count
-        FROM product_brand pt
-        LEFT JOIN product p ON pt.product_brand_id = p.product_brand_id";
+        FROM product_brand pb
+        LEFT JOIN product p ON pb.product_brand_id = p.product_brand_id
+        LEFT JOIN personnel per ON pb.personnel_id = per.personnel_id";
 
     $params = [];
-    if (!empty($search)) {
-        $query .= " WHERE pt.product_brand_name LIKE :search OR pt.product_brand_id LIKE :search";
-        $params[':search'] = "%$search%";
+    if ($start_date || $end_date || !empty($search)) {
+        $query .= " WHERE 1=1";
+        if ($start_date) {
+            $query .= " AND pb.product_brand_date >= :start_date";
+            $params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $query .= " AND pb.product_brand_date <= :end_date";
+            $params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        if (!empty($search)) {
+            $query .= " AND (pb.product_brand_name LIKE :search OR pb.product_brand_id LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
     }
 
-    $query .= " GROUP BY pt.product_brand_id, pt.product_brand_name 
+    $query .= " GROUP BY pb.product_brand_id, pb.product_brand_name 
+        ORDER BY pb.product_brand_id
         LIMIT :offset, :records_per_page";
 
     $stmt = $pdo->prepare($query);
@@ -106,9 +179,9 @@ try {
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $productbrand = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $productbrands = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $productbrand = [];
+    $productbrands = [];
     echo "Fetch error: " . htmlspecialchars($e->getMessage());
 }
 ?>
@@ -119,7 +192,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <title>จัดการแบรนด์สินค้า</title>
     <style>
@@ -146,19 +219,44 @@ try {
 </head>
 
 <body class="font-sans bg-gray-100">
-    <div class="container mx-auto px-4 py-8 md:px-8 lg:px-16">
+    <div class="mx-auto px-4 py-8 md:px-8 lg:px-16">
+        <!-- Download Report Buttons -->
+        <div class="flex flex-col md:flex-row md:space-x-4 mb-4">
+            <!-- Date Range Filter -->
+            <div class="flex items-center space-x-2 mb-2 md:mb-0">
+                <label for="start_date" class="text-sm font-medium">วันที่เริ่มต้น</label>
+                <input type="date" id="start_date" name="start_date" class="border rounded px-2 py-1"
+                    value="<?php echo htmlspecialchars($start_date); ?>">
+                <label for="end_date" class="text-sm font-medium">ถึง</label>
+                <input type="date" id="end_date" name="end_date" class="border rounded px-2 py-1"
+                    value="<?php echo htmlspecialchars($end_date); ?>">
+            </div>
+            <!-- Download Buttons -->
+            <div class="flex space-x-2">
+                <button onclick="exportPDF()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm md:text-base">
+                    <i class="fas fa-file-pdf mr-2"></i>ส่งออก PDF
+                </button>
+                <button onclick="exportExcel()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm md:text-base">
+                    <i class="fas fa-file-excel mr-2"></i>ส่งออก Excel
+                </button>
+            </div>
+        </div>
+
         <!-- Table Section -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
             <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div class="flex items-center gap-4">
-                        <h2 class="text-xl md:text-2 pobli            <span class=" px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2"></i>รายการแบรนด์สินค้า
+                        </h2>
+                        <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
                     </div>
-
-                    <!-- แก้ไขส่วน input search ให้ส่งค่าไปยัง GET -->
                     <div class="w-full md:w-1/2">
                         <form action="" method="GET" class="w-full" id="searchForm">
                             <input type="hidden" name="page" value="product_brand">
+                            <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>">
+                            <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>">
                             <div class="relative">
                                 <input type="text" name="search" id="searchInput"
                                     placeholder="ค้นหาแบรนด์สินค้า..." value="<?php echo htmlspecialchars($search); ?>"
@@ -178,10 +276,12 @@ try {
                     <table class="w-full border-collapse" id="dataTable">
                         <thead>
                             <tr class="bg-gray-50">
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">รหัสแบรนด์</th>
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">ชื่อแบรนด์สินค้า</th>
-                                <th class="px-4 py-3 border text-left text-gray-700 font-semibold text-sm md:text-base">จำนวนสินค้า</th>
-                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">การจัดการ</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">รหัสแบรนด์</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">ชื่อแบรนด์สินค้า</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">พนักงาน</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">วันที่</th>
+                                <th class="px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">จำนวนสินค้า</th>
+                                <th class="w-[120px] px-4 py-3 border text-center text-gray-700 font-semibold text-sm md:text-base">การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -190,27 +290,42 @@ try {
                                 <form action="" method="POST">
                                     <td class="px-4 py-2 border bg-white text-center text-gray-600 text-sm md:text-base">อัตโนมัติ</td>
                                     <td class="px-4 py-2 border bg-white">
-                                        <input type="text" id="brandname" name="brandname"
-                                            placeholder="ชื่อแบรนด์"
+                                        <input type="text" name="brandname" placeholder="ชื่อแบรนด์"
                                             class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
                                             required />
                                     </td>
+                                    <td class="px-4 py-2 border bg-white">
+                                        <select name="personnel_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" required>
+                                            <option value="">เลือกพนักงาน</option>
+                                            <?php foreach ($personnels as $personnel): ?>
+                                                <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>">
+                                                    <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">อัตโนมัติ</td>
                                     <td class="px-4 py-2 border bg-white text-center text-sm md:text-base">-</td>
-                                    <td class="w-[120px] px-4 py-2 border bg-white text-center">
+                                    <td class="px-4 py-2 border bg-white text-center">
                                         <button type="submit"
                                             class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex justify-center items-center text-sm md:text-base">
                                             <i class="fas fa-plus mr-1"></i>เพิ่ม
                                         </button>
                                     </td>
-
                                 </form>
                             </tr>
                             <!-- Data Rows -->
-                            <?php if (count($productbrand) > 0): ?>
-                                <?php foreach ($productbrand as $brand): ?>
+                            <?php if (count($productbrands) > 0): ?>
+                                <?php foreach ($productbrands as $brand): ?>
                                     <tr class="hover:bg-gray-100" data-id="<?php echo htmlspecialchars($brand['product_brand_id']); ?>">
                                         <td class="px-4 py-1 border text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_id']); ?></td>
-                                        <td class="px-4 py-1 border brand-name text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_name']); ?></td>
+                                        <td class="brand-name px-4 py-1 border text-sm md:text-base"><?php echo htmlspecialchars($brand['product_brand_name']); ?></td>
+                                        <td class="brand-personnel px-4 py-1 border text-sm md:text-base" data-personnel-id="<?php echo htmlspecialchars($brand['personnel_id']); ?>">
+                                            <?php echo htmlspecialchars($brand['personnel_name']); ?>
+                                        </td>
+                                        <td class="brand-date px-4 py-1 border text-center text-sm md:text-base" data-date="<?php echo date('Y-m-d', strtotime($brand['product_brand_date'])); ?>">
+                                            <?php echo htmlspecialchars($brand['product_brand_date']); ?>
+                                        </td>
                                         <td class="px-4 py-1 border text-center cursor-pointer">
                                             <a href="?page=product_brandgroup&tabel=product_brand&id=<?php echo $brand['product_brand_id']; ?>&product_brand_name=<?php echo urlencode($brand['product_brand_name']); ?>"
                                                 class="text-orange-600 text-sm md:text-base">
@@ -238,7 +353,7 @@ try {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-gray-600 text-sm md:text-base">ไม่มีข้อมูล</td>
+                                    <td colspan="6" class="text-center py-4 text-gray-600 text-sm md:text-base">ไม่มีข้อมูล</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -252,10 +367,20 @@ try {
                         <form action="" method="POST">
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-semibold mb-2 text-sm">ชื่อแบรนด์</label>
-                                <input type="text" id="brandname_mobile" name="brandname"
-                                    placeholder="ชื่อแบรนด์"
+                                <input type="text" name="brandname" placeholder="ชื่อแบรนด์"
                                     class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                     required />
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 font-semibold mb-2 text-sm">พนักงาน</label>
+                                <select name="personnel_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" required>
+                                    <option value="">เลือกพนักงาน</option>
+                                    <?php foreach ($personnels as $personnel): ?>
+                                        <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>">
+                                            <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <button type="submit"
                                 class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center text-sm">
@@ -264,8 +389,8 @@ try {
                         </form>
                     </div>
                     <!-- Data Cards -->
-                    <?php if (count($productbrand) > 0): ?>
-                        <?php foreach ($productbrand as $brand): ?>
+                    <?php if (count($productbrands) > 0): ?>
+                        <?php foreach ($productbrands as $brand): ?>
                             <div class="bg-white p-4 mb-4 rounded-lg shadow" data-id="<?php echo htmlspecialchars($brand['product_brand_id']); ?>">
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-gray-700 font-semibold text-sm">รหัสแบรนด์:</span>
@@ -274,6 +399,18 @@ try {
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-gray-700 font-semibold text-sm brand-name">ชื่อแบรนด์:</span>
                                     <span class="text-sm"><?php echo htmlspecialchars($brand['product_brand_name']); ?></span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 font-semibold text-sm brand-personnel" data-personnel-id="<?php echo htmlspecialchars($brand['personnel_id']); ?>">
+                                        พนักงาน:
+                                    </span>
+                                    <span class="text-sm"><?php echo htmlspecialchars($brand['personnel_name']); ?></span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 font-semibold text-sm brand-date" data-date="<?php echo date('Y-m-d', strtotime($brand['product_brand_date'])); ?>">
+                                        วันที่:
+                                    </span>
+                                    <span class="text-sm"><?php echo htmlspecialchars($brand['product_brand_date']); ?></span>
                                 </div>
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-gray-700 font-semibold text-sm">จำนวนสินค้า:</span>
@@ -311,7 +448,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=product_brand&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_brand&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         « ก่อนหน้า
                     </a>
@@ -322,7 +459,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=product_brand&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_brand&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         1
                     </a>
@@ -332,7 +469,7 @@ try {
                 <?php endif; ?>
 
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=product_brand&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_brand&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 rounded-md transition-colors text-sm md:text-base <?= $i == $page ? 'bg-gray-800 text-white' : 'bg-blue-100 text-black hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -342,7 +479,7 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
                     <?php endif; ?>
-                    <a href="?page=product_brand&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_brand&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         <?= $total_pages ?>
                     </a>
@@ -350,7 +487,7 @@ try {
 
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=product_brand&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=product_brand&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
                         ถัดไป »
                     </a>
@@ -366,11 +503,12 @@ try {
     </div>
 
     <script>
-        // ฟังก์ชันตรวจสอบเมื่อลบข้อความค้นหาจนหมด
         function checkEmptySearch(input) {
             if (input.value.trim() === '') {
-                // ถ้าช่องค้นหาว่างเปล่า ให้เปลี่ยนเส้นทางไปยังหน้าแสดงข้อมูลทั้งหมด
-                window.location.href = '?page=product_brand';
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'product_brand');
+                urlParams.delete('search');
+                window.location.search = urlParams.toString();
             }
         }
 
@@ -384,34 +522,30 @@ try {
                 showNotification('ลบข้อมูลสำเร็จ', 'bg-cyan-200');
             }
 
-            // ถ้ามีการค้นหา ให้ focus ที่ช่องค้นหา
             if (urlParams.has('search')) {
                 document.getElementById('searchInput').focus();
             }
 
-            // เพิ่ม event listener สำหรับการกด Escape เพื่อยกเลิกการค้นหา
             document.getElementById('searchInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    window.location.href = '?page=product_brand';
+                    const urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('page', 'product_brand');
+                    urlParams.delete('search');
+                    window.location.search = urlParams.toString();
                 }
             });
-        });
 
-        // ก่อน reload ให้เก็บไว้
-        document.getElementById('searchInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                localStorage.setItem('searchPreserve', this.value);
-            }
-        });
+            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    localStorage.setItem('searchPreserve', this.value);
+                }
+            });
 
-        // หลังโหลดหน้า
-        document.addEventListener('DOMContentLoaded', () => {
             const preserved = localStorage.getItem('searchPreserve');
             if (preserved) {
                 const input = document.getElementById('searchInput');
                 input.value = preserved;
                 input.focus();
-                // เคลื่อนเคอร์เซอร์ไปหลังข้อความ
                 input.selectionStart = input.selectionEnd = preserved.length;
                 localStorage.removeItem('searchPreserve');
             }
@@ -420,9 +554,21 @@ try {
         function enableEdit(button) {
             const row = button.closest('tr');
             const brandNameCell = row.querySelector('.brand-name');
+            const brandPersonnelCell = row.querySelector('.brand-personnel');
             const originalName = brandNameCell.textContent.trim();
+            const originalPersonnelId = brandPersonnelCell.dataset.personnelId;
 
-            brandNameCell.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" value="${originalName}" />`;
+            brandNameCell.innerHTML = `<input type="text" class="edit-name w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" value="${originalName}" />`;
+            brandPersonnelCell.innerHTML = `
+                <select class="edit-personnel w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                    <option value="">เลือกพนักงาน</option>
+                    <?php foreach ($personnels as $personnel): ?>
+                        <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>" 
+                            ${originalPersonnelId === '<?php echo $personnel['personnel_id']; ?>' ? 'selected' : ''}>
+                            <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>`;
             button.classList.add('hidden');
             row.querySelector('.delete-btn').classList.add('hidden');
             row.querySelector('.save-btn').classList.remove('hidden');
@@ -431,9 +577,21 @@ try {
         function enableEditMobile(button) {
             const card = button.closest('div[data-id]');
             const brandNameSpan = card.querySelector('.brand-name + span');
+            const brandPersonnelSpan = card.querySelector('.brand-personnel + span');
             const originalName = brandNameSpan.textContent.trim();
+            const originalPersonnelId = brandPersonnelSpan.dataset.personnelId;
 
-            brandNameSpan.innerHTML = `<input type="text" class="edit-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value="${originalName}" />`;
+            brandNameSpan.innerHTML = `<input type="text" class="edit-name w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value="${originalName}" />`;
+            brandPersonnelSpan.innerHTML = `
+                <select class="edit-personnel w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="">เลือกพนักงาน</option>
+                    <?php foreach ($personnels as $personnel): ?>
+                        <option value="<?php echo htmlspecialchars($personnel['personnel_id']); ?>" 
+                            ${originalPersonnelId === '<?php echo $personnel['personnel_id']; ?>' ? 'selected' : ''}>
+                            <?php echo htmlspecialchars($personnel['personnel_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>`;
             button.classList.add('hidden');
             card.querySelector('.delete-btn').classList.add('hidden');
             card.querySelector('.save-btn').classList.remove('hidden');
@@ -442,11 +600,17 @@ try {
         function saveEdit(button) {
             const row = button.closest('tr');
             const brandId = row.getAttribute('data-id');
-            const newName = row.querySelector('.edit-input').value.trim();
+            const newName = row.querySelector('.edit-name').value.trim();
+            const newPersonnelId = row.querySelector('.edit-personnel').value;
             const brandNameCell = row.querySelector('.brand-name');
+            const brandPersonnelCell = row.querySelector('.brand-personnel');
 
             if (!newName) {
                 alert('กรุณากรอกชื่อแบรนด์');
+                return;
+            }
+            if (!newPersonnelId) {
+                alert('กรุณาเลือกพนักงาน');
                 return;
             }
 
@@ -455,11 +619,13 @@ try {
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: `id=${brandId}&update_brandname=${encodeURIComponent(newName)}`
+                    body: `id=${brandId}&update_brandname=${encodeURIComponent(newName)}&personnel_id=${newPersonnelId}`
                 })
                 .then(response => {
                     if (response.ok) {
                         brandNameCell.textContent = newName;
+                        brandPersonnelCell.textContent = row.querySelector('.edit-personnel option:checked').text;
+                        brandPersonnelCell.dataset.personnelId = newPersonnelId;
                         const editBtn = row.querySelector('.edit-btn');
                         const deleteBtn = row.querySelector('.delete-btn');
                         editBtn.classList.remove('hidden');
@@ -479,11 +645,17 @@ try {
         function saveEditMobile(button) {
             const card = button.closest('div[data-id]');
             const brandId = card.getAttribute('data-id');
-            const newName = card.querySelector('.edit-input').value.trim();
+            const newName = card.querySelector('.edit-name').value.trim();
+            const newPersonnelId = card.querySelector('.edit-personnel').value;
             const brandNameSpan = card.querySelector('.brand-name + span');
+            const brandPersonnelSpan = card.querySelector('.brand-personnel + span');
 
             if (!newName) {
                 alert('กรุณากรอกชื่อแบรนด์');
+                return;
+            }
+            if (!newPersonnelId) {
+                alert('กรุณาเลือกพนักงาน');
                 return;
             }
 
@@ -492,11 +664,13 @@ try {
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: `id=${brandId}&update_brandname=${encodeURIComponent(newName)}`
+                    body: `id=${brandId}&update_brandname=${encodeURIComponent(newName)}&personnel_id=${newPersonnelId}`
                 })
                 .then(response => {
                     if (response.ok) {
                         brandNameSpan.textContent = newName;
+                        brandPersonnelSpan.textContent = card.querySelector('.edit-personnel option:checked').text;
+                        brandPersonnelSpan.dataset.personnelId = newPersonnelId;
                         const editBtn = card.querySelector('.edit-btn');
                         const deleteBtn = card.querySelector('.delete-btn');
                         editBtn.classList.remove('hidden');
@@ -526,6 +700,48 @@ try {
             setTimeout(() => {
                 notification.classList.add('hidden');
             }, 1000);
+        }
+
+        function exportPDF() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/product/report/export_product_brand_pdf.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            let url = '/page/product/report/export_product_brand_excel.php';
+            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        document.getElementById('start_date').addEventListener('change', updateDateFilter);
+        document.getElementById('end_date').addEventListener('change', updateDateFilter);
+
+        function updateDateFilter() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', 'product_brand');
+
+            if (startDate) {
+                urlParams.set('start_date', startDate);
+            } else {
+                urlParams.delete('start_date');
+            }
+
+            if (endDate) {
+                urlParams.set('end_date', endDate);
+            } else {
+                urlParams.delete('end_date');
+            }
+
+            window.location.search = urlParams.toString();
         }
     </script>
 </body>

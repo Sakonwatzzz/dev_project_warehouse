@@ -26,6 +26,8 @@ try {
         lot_status.lot_status_name, 
         supplier.supplier_id, 
         supplier.supplier_name, 
+        personnel.personnel_id, 
+        store.store_id, 
         warehouse.warehouse_name AS warehouse_in_name, 
         warehouse.warehouse_name AS warehouse_name, 
         warehouse.warehouse_id,
@@ -40,6 +42,8 @@ try {
     FROM
         lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
+        LEFT JOIN store ON lot.store_id = store.store_id
+        LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id
         LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
         LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
         WHERE lot.warehouse_inout = 1
@@ -64,9 +68,17 @@ try {
     $query = "SELECT warehouse_id, warehouse_name, warehouse_status FROM warehouse ORDER BY warehouse_id";
     $warehouse_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
 
+    // Fetch store data
+    $query = "SELECT store_id, store_name FROM store";
+    $store_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
     // Fetch supplier data
     $query = "SELECT supplier_id, supplier_name FROM supplier";
     $supplier_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch personnel data
+    $query = "SELECT personnel_id, personnel_name FROM personnel";
+    $personnel_lot = fetchData($pdo, $query)->fetchAll(PDO::FETCH_ASSOC);
 
     // Fetch lot product data
     $query = "SELECT lot_product_id, lot_product_qty, lot_product_remain, lot_product_capital FROM lot_product";
@@ -110,6 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $warehouse_from_id = $_POST['warehouse_from_id'] ?? '';
         $warehouse_inout = $_POST['warehouse_inout'] ?? '1';
         $supplier_id = $_POST['supplier_id'] ?? '';
+        $personnel_id = $_POST['personnel_id'] ?? '';
+        $store_id = $_POST['store_id'] ?? '';
         $lot_product_qty = $_POST['lot_product_qty'] ?? '';
         $lot_product_remain = $_POST['lot_product_remain'] ?? '';
         $lot_product_capital = $_POST['lot_product_capital'] ?? '';
@@ -123,9 +137,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->beginTransaction();
 
                 // Insert new lot
-                $stmt = $pdo->prepare('INSERT INTO lot (lot_name, lot_detail, lot_date, lot_status_id, warehouse_id, supplier_id, warehouse_from_id, warehouse_inout) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-                $stmt->execute([$lot_name, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $supplier_id, $warehouse_from_id, $warehouse_inout]);
+                $stmt = $pdo->prepare('INSERT INTO lot (lot_name, lot_detail, lot_date, lot_status_id, warehouse_id, supplier_id, personnel_id, store_id, warehouse_from_id, warehouse_inout) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt->execute([$lot_name, $lot_detail, $lot_date, $lot_status_id, $warehouse_id, $supplier_id, $personnel_id, $store_id, $warehouse_from_id, $warehouse_inout]);
 
                 // Get the newly inserted lot_id
                 $lot_id = $pdo->lastInsertId();
@@ -167,7 +181,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจัดการคลังสินค้า</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -232,6 +246,7 @@ ob_end_flush();
                             </div>
                         </div>
 
+
                         <div class="form-group">
                             <label for="warehouse_id" class="block text-gray-700 font-medium mb-2">
                                 ลงคลัง <span class="text-red-500">*</span>
@@ -253,6 +268,49 @@ ob_end_flush();
                                 </div>
                             </div>
                         </div>
+
+                        <div class="form-group">
+                            <label for="store_id"
+                                class="block text-gray-700 font-medium mb-2">รับมาจากร้าน</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <i class="fas fa-users text-gray-400"></i>
+                                </div>
+                                <select name="store_id" id="store_id"
+                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <?php foreach ($store_lot as $store): ?>
+                                        <option value="<?= htmlspecialchars($store['store_id']) ?>">
+                                            <?= htmlspecialchars($store['store_name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="personnel_id"
+                                class="block text-gray-700 font-medium mb-2">พนักงาน</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <i class="fas fa-users text-gray-400"></i>
+                                </div>
+                                <select name="personnel_id" id="personnel_id"
+                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <?php foreach ($personnel_lot as $personnel): ?>
+                                        <option value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
+                                            <?= htmlspecialchars($personnel['personnel_name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- Internal transfer form (warehouse transfer) -->

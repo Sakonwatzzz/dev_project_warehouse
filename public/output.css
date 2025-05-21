@@ -1535,6 +1535,7 @@ video {
 
 .border-transparent {
   border-color: transparent;
+
 }
 
 .border-green-500 {
@@ -2597,14 +2598,22 @@ video {
 }
 
 .hover\:bg-rose-600:hover {
+
   --tw-bg-opacity: 1;
   background-color: rgb(225 29 72 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-yellow-600:hover {
+
   --tw-bg-opacity: 1;
-  background-color: rgb(202 138 4 / var(--tw-bg-opacity, 1));
+  background-color: rgb(225 29 72 / var(--tw-bg-opacity, 1));
 }
+
+
+.hover\:bg-green-800:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(22 101 52 / var(--tw-bg-opacity, 1));
+
 
 .hover\:bg-gradient-to-t:hover {
   background-image: linear-gradient(to top, var(--tw-gradient-stops));
@@ -2991,6 +3000,13 @@ video {
     --tw-space-x-reverse: 0;
     margin-right: calc(1rem * var(--tw-space-x-reverse));
     margin-left: calc(1rem * calc(1 - var(--tw-space-x-reverse)));
+  }
+
+
+  .md\:space-y-0 > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(0px * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(0px * var(--tw-space-y-reverse));
   }
 
   .md\:p-6 {
