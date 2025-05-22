@@ -16,6 +16,7 @@ $(document).ready(function () {
   $("#btn-submit").prop("disabled", true);
 
   let isProcessing = false;
+  let isInsertMode = true;
 
   const requiredIds = [
     "product_id_input",
@@ -44,20 +45,73 @@ $(document).ready(function () {
 
   function changeInputBackground(event) {
     const product_id_input = document.getElementById("product_id_input");
-    if (event.key === "Delete") {
-      product_id_input.classList.remove("bg-white", "bg-red-500", "bg-green-600");
-      product_id_input.classList.add("bg-white");
-    }
+    // if (event.key === "Delete") {
+    //   isInsertMode = false;
+    //   product_id_input.classList.remove(
+    //     "bg-white",
+    //     "bg-red-500",
+    //     "bg-white-600"
+    //   );
+    //   product_id_input.classList.add("bg-red-500");
+    // } else
     if (event.key === "Insert") {
-      product_id_input.classList.remove("bg-white", "bg-green-600");
-      product_id_input.classList.add("bg-red-500");
+      isInsertMode = true;
+      product_id_input.classList.remove(
+        "bg-white",
+        "bg-red-500",
+        "bg-white-600"
+      );
+      product_id_input.classList.add("bg-white-600"); // โค้ดที่ปัจจุบันเป็น bg-white-600 แต่เดิมคือ bg-green-400
     }
+    console.log(
+      "changeInputBackground: key =",
+      event.key,
+      "isInsertMode =",
+      isInsertMode
+    );
   }
 
   function resetInputBackground() {
-    $("#product_id_input")
-      .removeClass("bg-red-500 bg-green-600")
-      .addClass("bg-white");
+    const product_id_input = document.getElementById("product_id_input");
+    product_id_input.classList.remove("bg-red-500", "bg-white-600");
+    product_id_input.classList.add(
+      isInsertMode ? "bg-white-600" : "bg-red-500"
+    );
+  }
+  function processInput(input) {
+    // ตรวจสอบรูปแบบ: 12345*2 หรือ -12345*3
+    const addPattern = /^\d+\*\d+$/;
+    const deletePattern = /^-\d+\*\d+$/;
+    input = input.trim();
+
+    let isDelete = false;
+    let product_id, stock_check_actual;
+
+    if (deletePattern.test(input)) {
+      isDelete = true;
+      [product_id, stock_check_actual] = input.replace(/^-/, "").split("*");
+    } else if (addPattern.test(input)) {
+      [product_id, stock_check_actual] = input.split("*");
+    } else {
+      return false; // Input ไม่สมบูรณ์
+    }
+
+    product_id = product_id.trim();
+    stock_check_actual = stock_check_actual.trim() || "0";
+    if (isDelete || !isInsertMode) {
+      stock_check_actual = `-${stock_check_actual}`;
+    }
+
+    $("#product_id_input").val(product_id);
+    $("#stock_check_actual").val(stock_check_actual);
+    const product_id_input = document.getElementById("product_id_input");
+    product_id_input.classList.remove("bg-white", "bg-red-500", "bg-white-600");
+    product_id_input.classList.add(
+      isDelete || !isInsertMode ? "bg-red-500" : "bg-white-600"
+    );
+
+    validateForm();
+    return true;
   }
 
   $("#product_id_input")
@@ -66,37 +120,27 @@ $(document).ready(function () {
     .on("keypress", function (event) {
       if (event.key === "Enter") {
         event.preventDefault();
-        if (!$("#btn-submit").prop("disabled")) {
-          $("#form_insert_stock").submit();
+        const input = $(this).val().trim();
+        if (processInput(input)) {
+          if (!$("#btn-submit").prop("disabled")) {
+            $("#form_insert_stock").submit();
+          } else {
+            Toast.fire({
+              icon: "warning",
+              title: "กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง",
+            });
+          }
         } else {
           Toast.fire({
             icon: "warning",
-            title: "กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง",
+            title: "รูปแบบไม่ถูกต้อง (เช่น 12345*2 หรือ -12345*3)",
           });
         }
       }
     })
     .on("input", function () {
       console.log("stock_insert_list input:", $(this).val());
-      let input = $(this).val().trim();
-      if (input.includes("*")) {
-        let [product_id, stock_check_actual] = input.split("*");
-        let isDelete = product_id.startsWith("-");
-        product_id = product_id.replace(/^-/, "").trim();
-        $(this).val(product_id);
-        stock_check_actual = stock_check_actual.trim() || "0";
-        if (isDelete) {
-          stock_check_actual = `-${stock_check_actual}`;
-        }
-        $("#stock_check_actual").val(stock_check_actual);
-        const product_id_input = document.getElementById("product_id_input");
-        product_id_input.classList.remove("bg-white", "bg-red-500", "bg-green-600");
-        product_id_input.classList.add(isDelete ? "bg-red-500" : "bg-green-600");
-        validateForm();
-        if (!$("#btn-submit").prop("disabled")) {
-          $("#form_insert_stock").submit();
-        }
-      }
+      // ไม่ประมวลผล * ใน input เพื่อให้กรอก * ได้
     });
 
   function validateForm() {
@@ -140,17 +184,15 @@ $(document).ready(function () {
     $(window).on("load", validateForm);
   }
 
-  $("#product_id_input, #warehouse_id, #stock_check_actual, #stock_check_date, #stock-check-remark, #check_status_id").on(
-    "input change",
-    validateForm
-  );
+  $(
+    "#product_id_input, #warehouse_id, #stock_check_actual, #stock_check_date, #stock-check-remark, #check_status_id"
+  ).on("input change", validateForm);
 
   $("#form_insert_stock").on("submit", function (event) {
     event.preventDefault();
     if (isProcessing) return;
     isProcessing = true;
     $("#btn-submit")
-      
       .removeClass("hidden")
       .end()
       .find(".text")
@@ -161,7 +203,12 @@ $(document).ready(function () {
       product_id: getValue("#product_id_input"),
       warehouse_id: getValue("#warehouse_id"),
       stock_check_actual: getValue("#stock_check_actual", "0"),
-      stock_check_date: getValue("#stock_check_date", luxon.DateTime.now().setZone("Asia/Bangkok").toFormat("yyyy-MM-dd HH:mm:ss")),
+      stock_check_date: getValue(
+        "#stock_check_date",
+        luxon.DateTime.now()
+          .setZone("Asia/Bangkok")
+          .toFormat("yyyy-MM-dd HH:mm:ss")
+      ),
       stock_check_remark: getValue("#stock-check-remark", ""),
       personnel_id: getValue("#personnel_id", "1"),
       lot_id: $("#form_insert_stock").data("lot_id") || null,
@@ -173,9 +220,13 @@ $(document).ready(function () {
 
     if (formData.stock_check_date) {
       try {
-        const date = luxon.DateTime.fromFormat(formData.stock_check_date, "yyyy-MM-dd HH:mm:ss", {
-          zone: "Asia/Bangkok",
-        });
+        const date = luxon.DateTime.fromFormat(
+          formData.stock_check_date,
+          "yyyy-MM-dd HH:mm:ss",
+          {
+            zone: "Asia/Bangkok",
+          }
+        );
         if (!date.isValid) {
           throw new Error("Invalid date format: " + formData.stock_check_date);
         }
@@ -187,7 +238,6 @@ $(document).ready(function () {
           title: "รูปแบบวันที่ไม่ถูกต้อง",
         });
         $("#btn-submit")
-          
           .addClass("hidden")
           .end()
           .find(".text")
@@ -211,7 +261,6 @@ $(document).ready(function () {
         title: "กรุณากรอกข้อมูลให้ครบถ้วน (รหัสสินค้า, คลัง, และจำนวน)",
       });
       $("#btn-submit")
-        
         .addClass("hidden")
         .end()
         .find(".text")
@@ -220,13 +269,15 @@ $(document).ready(function () {
       return;
     }
 
-    if (!/^\d+$/.test(formData.product_id) || !/^-?\d+$/.test(formData.stock_check_actual)) {
+    if (
+      !/^\d+$/.test(formData.product_id) ||
+      !/^-?\d+$/.test(formData.stock_check_actual)
+    ) {
       Toast.fire({
         icon: "error",
         title: "รหัสสินค้าและจำนวนต้องเป็นตัวเลข",
       });
       $("#btn-submit")
-        
         .addClass("hidden")
         .end()
         .find(".text")
@@ -257,13 +308,15 @@ $(document).ready(function () {
       },
       success: function (productData) {
         console.log("get_product.php response:", productData);
-        if (!productData || (Array.isArray(productData) && productData.length === 0)) {
+        if (
+          !productData ||
+          (Array.isArray(productData) && productData.length === 0)
+        ) {
           Toast.fire({
             icon: "error",
             title: `ไม่พบข้อมูลสินค้า ${formData.product_id} ในคลัง ${formData.warehouse_id}`,
           });
           $("#btn-submit")
-            
             .addClass("hidden")
             .end()
             .find(".text")
@@ -296,7 +349,9 @@ $(document).ready(function () {
               });
               $("#form_insert_stock")[0].reset();
               $("#stock_check_date").val(
-                luxon.DateTime.now().setZone("Asia/Bangkok").toFormat("yyyy-MM-dd HH:mm:ss")
+                luxon.DateTime.now()
+                  .setZone("Asia/Bangkok")
+                  .toFormat("yyyy-MM-dd HH:mm:ss")
               );
               $("#product_id_input").focus();
               $("#product_info").addClass("hidden").empty();
@@ -310,7 +365,6 @@ $(document).ready(function () {
               });
             }
             $("#btn-submit")
-              
               .addClass("hidden")
               .end()
               .find(".text")
@@ -324,7 +378,6 @@ $(document).ready(function () {
               title: "เกิดข้อผิดพลาดในการบันทึก: " + error,
             });
             $("#btn-submit")
-              
               .addClass("hidden")
               .end()
               .find(".text")
@@ -340,7 +393,6 @@ $(document).ready(function () {
           title: "ไม่สามารถดึงข้อมูลสินค้าได้: " + error,
         });
         $("#btn-submit")
-          
           .addClass("hidden")
           .end()
           .find(".text")
@@ -351,7 +403,7 @@ $(document).ready(function () {
   });
 
   function loadStockCheck() {
-    console.log("Loading stock check table...");
+    // console.log("Loading stock check table...");
     $.ajax({
       url: "page/stock/api/api_stock_list.php",
       type: "GET",
@@ -370,45 +422,76 @@ $(document).ready(function () {
           );
           return;
         }
+        let hasPendingStatus = false;
         $.each(data, function (index, item) {
+          let showCheckbox = parseInt(item.check_status_id) === 1;
+          if (showCheckbox) {
+            hasPendingStatus = true;
+          }
           let row = `
-            <tr>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">
-                <input type="checkbox" class="stock-list-select rounded text-blue-500 focus:ring-blue-400"
-                  data-stock-check-id="${item.stock_check_id}"
-                  data-product-id="${item.product_id}"
-                  data-lot-id="${item.lot_id || ""}"
-                  data-lot-product-id="${item.lot_product_id || ""}"
-                  data-system-quantity="${item.stock_check_system || 0}"
-                  data-check-status-id="${item.check_status_id || 1}">
-              </td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.stock_check_id || "-"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.stock_check_date || "-"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.warehouse_name || "-"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.product_id || "-"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.product_name || "-"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.stock_check_system || "0"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.stock_check_actual || "0"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.personnel_name || "-"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.check_status_name || "-"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.stock_check_remark || "-"}</td>
-              <td class="px-3 sm:px-6 py-2 border text-center">
-                <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-2">
-                  <button class="bg-blue-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-blue-600 transition flex items-center text-xs sm:text-sm">
-                    <i class="fas fa-eye mr-1"></i>ดู
-                  </button>
-                  <button class="bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm">
-                    <i class="fas fa-edit mr-1"></i>แก้ไข
-                  </button>
-                  <button class="bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm"
-                    onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')">
-                    <i class="fas fa-trash-alt mr-1"></i>ลบ
-                  </button>
-                </div>
-              </td>
-            </tr>`;
+                        <tr>
+                            ${
+                              showCheckbox
+                                ? `
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">
+                                <input type="checkbox" class="stock-list-select rounded text-blue-500 focus:ring-blue-400"
+                                    data-stock-check-id="${item.stock_check_id}"
+                                    data-product-id="${item.product_id}"
+                                    data-lot-id="${item.lot_id || ""}"
+                                    data-lot-product-id="${
+                                      item.lot_product_id || ""
+                                    }"
+                                    data-system-quantity="${
+                                      item.stock_check_system || 0
+                                    }"
+                                    data-check-status-id="${
+                                      item.check_status_id || 1
+                                    }">
+                            </td>`
+                                : '<td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm"></td>'
+                            }
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
+                              item.stock_check_id || "-"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                              item.stock_check_date || "-"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
+                              item.warehouse_name || "-"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                              item.product_id || "-"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                              item.product_name || "-"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                              item.stock_check_system || "0"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                              item.stock_check_actual || "0"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                              item.personnel_name || "-"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                              item.check_status_name || "-"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                              item.stock_check_remark || "-"
+                            }</td>
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm"></td>
+                        </tr>`;
           tbody.append(row);
         });
+
+        if (hasPendingStatus) {
+          $("#checkbox-header").removeClass("hidden");
+          $("#btn-confirm-checkr").removeClass("hidden");
+        } else {
+          $("#checkbox-header").addClass("hidden");
+          $("#btn-confirm-check").addClass("hidden");
+        }
 
         // อัปเดตสถานะปุ่มยืนยัน
         updateConfirmButtonState();
@@ -420,6 +503,9 @@ $(document).ready(function () {
           title: "ข้อผิดพลาด",
           text: "ไม่สามารถดึงข้อมูลจาก api_stock_list.php: " + error,
         });
+
+        $("#checkbox-header").addClass("hidden");
+        $("#btn-confirm-check").addClass("hidden");
       },
     });
   }
@@ -427,12 +513,31 @@ $(document).ready(function () {
   // ฟังก์ชันอัปเดตสถานะปุ่มยืนยัน
   function updateConfirmButtonState() {
     const selectedCheckboxes = $(".stock-list-select:checked");
-    const canConfirm = selectedCheckboxes.length > 0 && 
-      selectedCheckboxes.toArray().every(checkbox => 
-        parseInt($(checkbox).data("check-status-id")) === 1
-      );
+    const canConfirm =
+      selectedCheckboxes.length > 0 &&
+      selectedCheckboxes
+        .toArray()
+        .every(
+          (checkbox) => parseInt($(checkbox).data("check-status-id")) === 1
+        );
     $("#btn-confirm-check").prop("disabled", !canConfirm);
   }
+
+  $("#btn-add-stock-check").on("#click", function(){
+    if(isProcessing){
+      isProcessing = true;
+      $(this).removeClass("hidden").end().find(".text").addClass("hidden");
+      $.ajax({
+        url: "page/stock/api/api_stock_list.php",
+        type: "GET",
+        data: {status : 1},
+        dataType: "json",
+        headers: {
+          "X-Requested-With" : "XLMLHReq"
+        }
+      })
+    }
+  });
 
   // Event handler สำหรับ checkbox
   $(document).on("change", ".stock-list-select, #select-all-list", function () {
@@ -447,15 +552,16 @@ $(document).ready(function () {
     if (isProcessing) return;
     isProcessing = true;
     $("#btn-confirm-check")
-      
       .removeClass("hidden")
       .end()
       .find(".text")
       .addClass("hidden");
 
-    const selectedIds = $(".stock-list-select:checked").map(function () {
-      return $(this).data("stock-check-id");
-    }).get();
+    const selectedIds = $(".stock-list-select:checked")
+      .map(function () {
+        return $(this).data("stock-check-id");
+      })
+      .get();
 
     if (selectedIds.length === 0) {
       Toast.fire({
@@ -463,7 +569,6 @@ $(document).ready(function () {
         title: "กรุณาเลือกอย่างน้อยหนึ่งรายการ",
       });
       $("#btn-confirm-check")
-        
         .addClass("hidden")
         .end()
         .find(".text")
@@ -508,7 +613,6 @@ $(document).ready(function () {
               });
             }
             $("#btn-confirm-check")
-              
               .addClass("hidden")
               .end()
               .find(".text")
@@ -522,7 +626,6 @@ $(document).ready(function () {
               title: "เกิดข้อผิดพลาดในการยืนยัน: " + error,
             });
             $("#btn-confirm-check")
-              
               .addClass("hidden")
               .end()
               .find(".text")
@@ -532,7 +635,6 @@ $(document).ready(function () {
         });
       } else {
         $("#btn-confirm-check")
-          
           .addClass("hidden")
           .end()
           .find(".text")
@@ -543,4 +645,6 @@ $(document).ready(function () {
   });
 
   loadStockCheck();
+
+  setInterval(loadStockCheck, 30000);
 });

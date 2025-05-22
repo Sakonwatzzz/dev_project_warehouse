@@ -1,52 +1,63 @@
-<?php
-require_once __DIR__ . '../../../../config/database_server.php';
-
+<?php require_once __DIR__ . '../../../../config/database_server.php';
+date_default_timezone_set('Asia/Bangkok');
+$is_update = isset($_GET['is_update']) && $_GET['is_update'] == 1;
+$update_id = isset($_GET['id']) ? $_GET['id'] : null;
 try {
     $query = "SELECT
-    stock_check_status.check_status_id, 
-    stock_check_status.check_status_name, 
-    stock_check.check_status_id, 
-    stock_check.product_id, 
-    product.product_name, 
-    product.product_id, 
-    stock_check.stock_check_id, 
-    stock_check.lot_id, 
-    lot.lot_id, 
-    warehouse.warehouse_id, 
-    warehouse.warehouse_name, 
-    stock_check.warehouse_id, 
-    stock_check.stock_check_system, 
-    stock_check.stock_check_date, 
-    stock_check.stock_check_remark, 
-    personnel.personnel_id, 
-    personnel.personnel_name, 
-    stock_check.lot_product_id, 
-    stock_check.personnel_id, 
-    lot_product.lot_product_id, 
-    lot_product.lot_product_remain
-FROM
-    stock_check
-    LEFT JOIN stock_check_status
-        ON stock_check.check_status_id = stock_check_status.check_status_id
-    LEFT JOIN product
-        ON stock_check.product_id = product.product_id
-    LEFT JOIN lot
-        ON stock_check.lot_id = lot.lot_id
-    LEFT JOIN warehouse
-        ON stock_check.warehouse_id = warehouse.warehouse_id
-    LEFT JOIN personnel
-        ON stock_check.personnel_id = personnel.personnel_id
-    LEFT JOIN lot_product
-        ON stock_check.lot_product_id = lot_product.lot_product_id;";
+        stock_check_status.check_status_id, 
+        stock_check_status.check_status_name, 
+        stock_check.check_status_id, 
+        stock_check.product_id, 
+        product.product_name, 
+        product.product_id, 
+        stock_check.stock_check_id, 
+        stock_check.lot_id, 
+        lot.lot_id, 
+        warehouse.warehouse_id, 
+        warehouse.warehouse_name, 
+        stock_check.warehouse_id, 
+        stock_check.stock_check_system, 
+        stock_check.stock_check_date, 
+        stock_check.stock_check_remark, 
+        stock_check.stock_check_actual, 
+        personnel.personnel_id, 
+        personnel.personnel_name, 
+        stock_check.lot_product_id, 
+        stock_check.personnel_id, 
+        lot_product.lot_product_id, 
+        lot_product.lot_product_remain
+    FROM
+        stock_check
+        LEFT JOIN stock_check_status ON stock_check.check_status_id = stock_check_status.check_status_id
+        LEFT JOIN product ON stock_check.product_id = product.product_id
+        LEFT JOIN lot ON stock_check.lot_id = lot.lot_id
+        LEFT JOIN warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
+        LEFT JOIN personnel ON stock_check.personnel_id = personnel.personnel_id
+        LEFT JOIN lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
+        ORDER BY stock_check.stock_check_date DESC
+        ";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
-    $check_stock = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+    $check_stock = $stmt;
 } catch (Exception $e) {
-    echo ("Eror : " . $e->getMessage());
+    echo ("Error: " . $e->getMessage());
 }
-?>
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_submit'])) {
+    $stock_check_id = $_POST['stock_check_id'];
+    $stock_check_actual = $_POST['stock_check_actual'];
+    $stock_check_remark = $_POST['stock_check_remark'];
+
+    $stmt = $pdo->prepare("UPDATE stock_check SET  stock_check_actual = ?, stock_check_remark = ? WHERE
+    stock_check_id = ?");
+    $stmt->execute([$stock_check_actual, $stock_check_remark, $stock_check_id]);
+    // รีไดเรกต์ไปที่หน้ารายการหลังอัปเดตสำเร็จ
+    header("Location: /?page=stock_list");
+    exit;
+}
+
+
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -59,158 +70,160 @@ FROM
         body {
             font-family: 'Sarabun', sans-serif;
         }
+
+        .input-update {
+            border-color: black;
+            border-radius: 3px;
+        }
     </style>
 </head>
 
-<body>
-    <div class="flex justify-center p-2">
-        <h1 class="font-bold text-2xl">ประวัติรายการตรวจสอบสต๊อกสินค้า</h1>
-    </div>
-
-    <div id="tab-content">
-        <!-- Active Stock Checks Tab -->
-        <div id="active-tab" class="tab-content">
-            <div class="bg-white overflow-hidden shadow-md rounded-lg">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    รหัสเช็คสต๊อก</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    วันที่</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    คลังสินค้า</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    จำนวนรายการ</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    พนักงาน</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    สถานะ</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    หมายเหตุ</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    การจัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="active-stock-checks">
-                            <!-- Data will be loaded via AJAX -->
-                            <tr>
-                                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
-
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+<body class="main-body">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-blue-600 shadow-lg w-full">
+            <div class="container max-w-screen-xl mx-auto px-4 py-4 flex justify-between">
+                <div class="items-center">
+                    <h1 class="font-bold text-2xl text-white">
+                        <?= $is_update ? 'กำลังแก้ไขประวัติรายการเช็คสต๊อกสินค้า' : 'ประวัติรายการเช็คสต๊อกสินค้า'; ?>
+                    </h1>
                 </div>
-                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-                    <div class="flex justify-between items-center">
-                        <div class="text-sm text-gray-700">
-                            แสดง <span id="showing-records">0</span> จาก <span id="total-records">0</span>
-                            รายการ
-                        </div>
-                        <div>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                                aria-label="Pagination">
-                                <a href="#"
-                                    class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <span class="sr-only">Previous</span>
-                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                        fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd"
-                                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </a>
-                                <a href="#"
-                                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                    1 </a>
-                                <a href="#"
-                                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                    2 </a>
-                                <a href="#"
-                                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-blue-500 bg-blue-50">
-                                    3 </a>
-                                <a href="#"
-                                    class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <span class="sr-only">Next</span>
-                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                        fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd"
-                                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </a>
-                            </nav>
-                        </div>
-                    </div>
+                <div class="flex justify-center py-2 p-2 gap-4 text-white">
+                    <span id="clock-realtime"></span>
+                    <button class="flex items-center focus:outline-none">
+                        <span class="md:block">ชื่อผู้ใช้งาน</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </button>
                 </div>
             </div>
-        </div>
+        </header>
+        <div class=" bg-white overflow-hidden shadow-md rounded-lg">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" hidden>
+                                รหัสเช็คสต๊อก</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                วันที่</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" hidden>
+                                คลังสินค้า</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                รหัสสินค้า</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                ชื่อสินค้า</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                จำนวนสินค้าจากระบบ</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                จำนวนสินค้าที่นับได้จริง</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                พนักงาน</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                สถานะ</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                หมายเหตุ</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
+                                การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <?php if ($check_stock->rowCount() > 0): ?>
+                            <?php while ($check_stock_list = $check_stock->fetch(PDO::FETCH_ASSOC)): ?>
+                                <tr>
+                                    <form method="POST"
+                                        action="?page=stock_list&is_update=1&id=<?php echo $check_stock_list['stock_check_id']; ?>">
+                                        <td class="px-3 py-2 border text-left text-sm" hidden>
+                                            <?php echo $check_stock_list['stock_check_id']; ?>
+                                            <input type="hidden" name="stock_check_id"
+                                                value="<?php echo $check_stock_list['stock_check_id']; ?>">
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php echo date('d/m/Y', strtotime($check_stock_list['stock_check_date'])); ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm" hidden>
+                                            <?php echo $check_stock_list['warehouse_name']; ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php echo $check_stock_list['product_id']; ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php echo $check_stock_list['product_name']; ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php echo $check_stock_list['stock_check_system']; ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php if ($is_update && $update_id == $check_stock_list['stock_check_id']): ?>
+                                                <input type="number" step="0.01" name="stock_check_actual"
+                                                    value="<?php echo $check_stock_list['stock_check_actual']; ?>"
+                                                    class="input-update w-full border rounded-sm px-2 py-1">
+                                            <?php else: ?>
+                                                <?php echo $check_stock_list['stock_check_actual']; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php echo $check_stock_list['personnel_name']; ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php echo $check_stock_list['check_status_name']; ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php if ($is_update && $update_id == $check_stock_list['stock_check_id']): ?>
+                                                <input type="text" name="stock_check_remark"
+                                                    value="<?php echo $check_stock_list['stock_check_remark']; ?>"
+                                                    class="input-update w-full border rounded-sm px-2 py-1">
+                                            <?php else: ?>
+                                                <?php echo $check_stock_list['stock_check_remark']; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <div class="flex flex-col sm:flex-row gap-1">
+                                                <?php if ($is_update && $update_id == $check_stock_list['stock_check_id']): ?>
+                                                    <button type="submit" name="update_submit"
+                                                        class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">บันทึก</button>
+                                                    <a href="?page=stock_list"
+                                                        class="bg-gray-400 text-white px-2 py-1 rounded hover:bg-gray-600">ยกเลิก</a>
+                                                <?php else: ?>
+                                                    <a href="?page=stock_list&is_update=1&id=<?php echo $check_stock_list['stock_check_id']; ?>"
+                                                        class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">แก้ไข</a>
+                                                    <a href="?page=stock_list&delete_id=<?php echo $check_stock_list['stock_check_id']; ?>"
+                                                        onclick="return confirm('แน่ใจว่าต้องการลบ?')"
+                                                        class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">ลบ</a>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </form>
+                                </tr>
 
-        <!-- History Tab -->
-        <div id="history-tab" class="tab-content hidden">
-            <div class="bg-white overflow-hidden shadow-md rounded-lg">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    รหัสเช็คสต๊อก</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    วันที่</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    คลังสินค้า</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    จำนวนรายการ</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    พนักงาน</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    ผู้อนุมัติ</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    สถานะ</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    การจัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="history-stock-checks">
-                            <!-- Data will be loaded via AJAX -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-                    <div class="flex justify-between items-center">
-                        <div class="text-sm text-gray-700">
-                            แสดง <span id="history-showing-records">0</span> จาก <span
-                                id="history-total-records">0</span> รายการ
-                        </div>
-                        <div>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                                aria-label="Pagination">
-                                <!-- Pagination for history will be loaded dynamically -->
-                            </nav>
-                        </div>
-                    </div>
-                </div>
+                            <?php endwhile; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+
 </body>
+
+<script>
+    function updateClock() {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        const formmattedData = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+
+        document.getElementById('clock-realtime').textContent = formmattedData;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+</script>
 
 </html>

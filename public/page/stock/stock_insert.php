@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-
 try {
     $query = "SELECT
         stock_check_status.check_status_id, 
@@ -33,7 +32,6 @@ try {
         LEFT JOIN warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
         LEFT JOIN personnel ON stock_check.personnel_id = personnel.personnel_id
         LEFT JOIN lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
-        WHERE stock_check.check_status_id = 1
         ";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
@@ -124,6 +122,11 @@ $displayDateTime = date("d/m/Y H:i:s");
         </header>
 
         <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="p-2 py-2 flex justify-end">
+                <button id="btn-add-stock-check" class="bg-blue-500 hover:bg-blue-600  rounded-md p-2 py-2 text-white">
+                    <span class="text">เพิ่มรายการตรวจสอบสต๊อกสินค้า</span>
+                </button>
+            </div>
             <div class="bg-white p-4 rounded-lg shadow-md mb-6">
                 <form id="form_insert_stock">
                     <input type="hidden" name="personnel_id" id="personnel_id" value="1">
@@ -164,13 +167,13 @@ $displayDateTime = date("d/m/Y H:i:s");
                                 <i class="fas fa-info-circle mr-1"></i>
                                 รูปแบบการเพิ่ม: รหัส*จำนวน (เช่น 12345*2)
                             </p>
-                            <p class="text-sm text-red-700 mt-1">
+                            <!-- <p class="text-sm text-red-700 mt-1">
                                 <i class="fas fa-info-circle mr-1"></i>
                                 รูปแบบการลบ: -รหัส*จำนวน (เช่น -12345*3)
-                            </p>
+                            </p> -->
                         </div>
 
-                        <div hidden>
+                        <div>
                             <label for="stock-check-remark"
                                 class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
                             <textarea id="stock-check-remark" name="stock_check_remark" rows="3"
@@ -191,39 +194,40 @@ $displayDateTime = date("d/m/Y H:i:s");
                         </div>
                     </div>
                     <div id="product_info" class="mt-4 col-span-4 hidden"></div>
-                    <div class="mt-4 flex justify-end">
+                    <div class="mt-4 flex justify-end py-2 p-2">
                         <button id="btn-submit" type="submit"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer">
-                            <span class="spinner hidden">กำลังบันทึก...</span>
                             <span class="text">บันทึก</span>
                         </button>
                     </div>
                     <input type="hidden" name="stock_check_date" id="stock_check_date" value="<?= $currentDateTime ?>">
                 </form>
-            </div>
-
-            <div class="bg-white overflow-hidden shadow-md rounded-lg">
                 <div class="flex justify-end">
                     <button id="btn-confirm-check"
                         class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer disabled:bg-gray-400"
                         disabled>
-                        <span class="spinner hidden">กำลังยืนยัน...</span>
                         <span class="text">ยืนยันรายการตรวจสอบ</span>
                     </button>
                 </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow-md rounded-lg">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-100">
                             <tr>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                                <th id="checkbox-header"
+                                    class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                                     <input type="checkbox" id="select-all-list"
                                         class="rounded text-blue-500 focus:ring-blue-400">
                                 </th>
-                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border"
+                                    hidden>
                                     รหัสเช็คสต๊อก</th>
                                 <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
                                     วันที่</th>
-                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border"
+                                    hidden>
                                     คลังสินค้า</th>
                                 <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
                                     รหัสสินค้า</th>
@@ -243,97 +247,12 @@ $displayDateTime = date("d/m/Y H:i:s");
                                     การจัดการ</th>
                             </tr>
                         </thead>
-                        <tbody id="stock_check_table" class="bg-white divide-y divide-gray-200"></tbody>
+                        <tbody id="stock_check_table" class="bg-white divide-y divide-gray-200">
+                        </tbody>
                     </table>
                 </div>
             </div>
         </main>
-    </div>
-
-    <div id="new-stock-check-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl">
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-gray-800">สร้างรายการเช็คสต๊อกใหม่</h3>
-                <button class="close-modal text-gray-400 hover:text-gray-500 focus:outline-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <div class="px-6 py-4">
-                <form id="new-stock-check-form">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label for="modal-warehouse" class="block text-sm font-medium text-gray-700 mb-1">คลังสินค้า
-                                <span class="text-red-600">*</span></label>
-                            <select id="modal-warehouse" name="warehouse_id"
-                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:bg-gray-100 "
-                                required>
-                                <?php $warehouse_check->execute();
-                                while ($warehouse_list_check = $warehouse_check->fetch(PDO::FETCH_ASSOC)): ?>
-                                    <option value="<?php echo $warehouse_list_check['warehouse_id']; ?>">
-                                        <?php echo $warehouse_list_check['warehouse_name']; ?>
-                                    </option>
-                                <?php endwhile; ?>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <label for="stock-check-remark"
-                            class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
-                        <textarea id="stock-check-remark" name="stock_check_remark" rows="3"
-                            class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="ระบุหมายเหตุ (ถ้ามี)"></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">เลือกสินค้าที่ต้องการตรวจนับ</label>
-                        <div class="border border-gray-300 rounded-md p-4">
-                            <div class="mb-2 flex space-x-2">
-                                <input type="text" id="product-filter"
-                                    class="flex-grow rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="ค้นหาสินค้า...">
-                                <button type="button" id="btn-filter-product"
-                                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">ค้นหา</button>
-                            </div>
-                            <div class="h-64 overflow-y-auto border border-gray-200 rounded-md">
-                                <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gray-50 sticky top-0">
-                                        <tr>
-                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                <input type="checkbox" id="select-all-products"
-                                                    class="rounded text-blue-500 focus:ring-blue-400">
-                                            </th>
-                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                รหัส</th>
-                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                ชื่อสินค้า</th>
-                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                ล็อต</th>
-                                            <th
-                                                class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                                                จำนวนในระบบ</th>
-                                            <th
-                                                class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                                                จำนวนที่นับได้จริง</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200" id="product-list"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-4">
-                <button
-                    class="close-modal px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none">ยกเลิก</button>
-                <button id="btn-create-stock-check"
-                    class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none">สร้างรายการเช็คสต๊อก</button>
-            </div>
-        </div>
     </div>
 </body>
 
