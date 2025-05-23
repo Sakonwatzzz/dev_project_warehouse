@@ -2,37 +2,31 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 try {
     $query = "SELECT
-        stock_check_status.check_status_id, 
-        stock_check_status.check_status_name, 
-        stock_check.check_status_id, 
-        stock_check.product_id, 
-        product.product_name, 
-        product.product_id, 
-        stock_check.stock_check_id, 
-        stock_check.lot_id, 
-        lot.lot_id, 
-        warehouse.warehouse_id, 
-        warehouse.warehouse_name, 
-        stock_check.warehouse_id, 
-        stock_check.stock_check_system, 
-        stock_check.stock_check_date, 
-        stock_check.stock_check_remark, 
-        stock_check.stock_check_actual, 
-        personnel.personnel_id, 
-        personnel.personnel_name, 
-        stock_check.lot_product_id, 
-        stock_check.personnel_id, 
-        lot_product.lot_product_id, 
-        lot_product.lot_product_remain
-    FROM
-        stock_check
-        LEFT JOIN stock_check_status ON stock_check.check_status_id = stock_check_status.check_status_id
-        LEFT JOIN product ON stock_check.product_id = product.product_id
-        LEFT JOIN lot ON stock_check.lot_id = lot.lot_id
-        LEFT JOIN warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
-        LEFT JOIN personnel ON stock_check.personnel_id = personnel.personnel_id
-        LEFT JOIN lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
-        ";
+    stock_check.product_id,
+    product.product_name,
+    stock_check.stock_check_id,
+    stock_check.lot_id,
+    warehouse.warehouse_id,
+    warehouse.warehouse_name,
+    stock_check.stock_check_remark,
+    personnel.personnel_name,
+    stock_check.lot_product_id,
+    lot_product.lot_product_remain,
+    stock.stock_id,
+    stock.stock_date,
+    stock_check.stock_check_system,
+    stock_check.stock_check_actual,
+    stock.check_status_id,
+    stock_checks.check_status_name
+FROM
+    stock_check stock_check
+    LEFT JOIN product product ON stock_check.product_id = product.product_id
+    LEFT JOIN warehouse warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
+    LEFT JOIN lot lot ON stock_check.lot_id = lot.lot_id
+    LEFT JOIN lot_product lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
+    LEFT JOIN stock stock ON stock_check.stock_id = stock.stock_id
+    LEFT JOIN personnel personnel ON stock.personnel_id = personnel.personnel_id
+    LEFT JOIN stock_check_status stock_checks ON stock.check_status_id = stock_checks.check_status_id";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $check_stock = $stmt;
@@ -123,13 +117,15 @@ $displayDateTime = date("d/m/Y H:i:s");
 
         <main class="flex-grow container mx-auto px-4 py-8">
             <div class="p-2 py-2 flex justify-end">
-                <button id="btn-add-stock-check" class="bg-blue-500 hover:bg-blue-600  rounded-md p-2 py-2 text-white">
+                <button id="btn-add-แป stock-check"
+                    class="bg-blue-500 hover:bg-blue-600  rounded-md p-2 py-2 text-white">
                     <span class="text">เพิ่มรายการตรวจสอบสต๊อกสินค้า</span>
                 </button>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-md mb-6">
                 <form id="form_insert_stock">
                     <input type="hidden" name="personnel_id" id="personnel_id" value="1">
+                    <!-- <input type="hidden" name="csrf_token" id="csrf_token" value="<?= $_SESSION['csrf_token'] ?>"> -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1"
@@ -200,7 +196,7 @@ $displayDateTime = date("d/m/Y H:i:s");
                             <span class="text">บันทึก</span>
                         </button>
                     </div>
-                    <input type="hidden" name="stock_check_date" id="stock_check_date" value="<?= $currentDateTime ?>">
+                    <input type="hidden" name="stock_date" id="stock_date" value="<?= $currentDateTime ?>">
                 </form>
                 <div class="flex justify-end">
                     <button id="btn-confirm-check"
@@ -222,8 +218,11 @@ $displayDateTime = date("d/m/Y H:i:s");
                                         class="rounded text-blue-500 focus:ring-blue-400">
                                 </th>
                                 <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border"
-                                    hidden>
+                                    >
                                     รหัสเช็คสต๊อก</th>
+                                <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border"
+                                    >
+                                    รหัสเช็คสต๊อกรายการสินค้า</th>
                                 <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
                                     วันที่</th>
                                 <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border"

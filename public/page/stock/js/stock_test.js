@@ -23,7 +23,7 @@ $(document).ready(function() {
                                         data-system-quantity="${item.stock_check_system || 0}">
                                 </td>
                                 <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.stock_check_id || '-'}</td>
-                                <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.stock_check_date || '-'}</td>
+                                <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.stock_date || '-'}</td>
                                 <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.warehouse_name || '-'}</td>
                                 <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.product_id || '-'}</td>
                                 <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${item.product_name || '-'}</td>

@@ -107,13 +107,13 @@ $(document).ready(function () {
     const product_id = $("#product_id_input").val().trim();
     const warehouse_id = $("#warehouse_id").val().trim();
     const stock_check_actual = $("#stock_check_actual").val().trim();
-    const stock_check_date = $("#stock-check-date").val().trim();
+    const stock_date = $("#stock-check-date").val().trim();
     const personnel_id = $("#personnel_id").val().trim() || "1";
     const isValid =
       product_id &&
       warehouse_id &&
       stock_check_actual &&
-      stock_check_date &&
+      stock_date &&
       personnel_id &&
       isNumeric(stock_check_actual);
     $("#btn-submit").prop("disabled", !isValid);
@@ -123,7 +123,7 @@ $(document).ready(function () {
     const product_id = $("#product_id_input").val().trim();
     const warehouse_id = $("#warehouse_id").val().trim();
     let stock_check_actual = $("#stock_check_actual").val().trim();
-    const stock_check_date = $("#stock-check-date").val().trim();
+    const stock_date = $("#stock-check-date").val().trim();
     const personnel_id = $("#personnel_id").val().trim() || "1";
 
     // ตั้งค่าเริ่มต้นถ้า stock_check_actual ว่าง
@@ -136,7 +136,7 @@ $(document).ready(function () {
         product_id &&
         warehouse_id &&
         stock_check_actual &&
-        stock_check_date &&
+        stock_date &&
         personnel_id &&
         /^\d+$/.test(product_id) && // ตรวจสอบ product_id เป็นตัวเลข
         isNumeric(stock_check_actual);
@@ -163,7 +163,7 @@ $(document).ready(function () {
       product_id: $("#product_id_input").val().trim(),
       warehouse_id: $("#warehouse_id").val().trim(),
       stock_check_actual: $("#stock_check_actual").val().trim(),
-      stock_check_date:
+      stock_date:
         $("#stock-check-date").val() ||
         luxon.DateTime.now()
           .setZone("Asia/Bangkok")
@@ -172,9 +172,9 @@ $(document).ready(function () {
       personnel_id: $("#personnel_id").val().trim() || "1",
     };
 
-    if (formData.stock_check_date) {
-      formData.stock_check_date = luxon.DateTime.fromFormat(
-        formData.stock_check_date,
+    if (formData.stock_date) {
+      formData.stock_date = luxon.DateTime.fromFormat(
+        formData.stock_date,
         "yyyy-MM-dd HH:mm"
       )
         .setZone("Asia/Bangkok")

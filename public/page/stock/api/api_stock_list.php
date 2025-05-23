@@ -4,7 +4,7 @@ header('Content-Type: application/json');
 try {
     $query = "
         SELECT
-            sc.stock_check_id, sc.stock_check_date, sc.product_id, sc.warehouse_id,
+            sc.stock_check_id, sc.stock_date, sc.product_id, sc.warehouse_id,
             sc.stock_check_system, sc.stock_check_actual, sc.stock_check_remark,
             sc.personnel_id, sc.check_status_id, sc.lot_id, sc.lot_product_id,
             p.product_name, w.warehouse_name, per.personnel_name, sts.check_status_name
@@ -14,7 +14,13 @@ try {
         LEFT JOIN personnel per ON sc.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status sts ON sc.check_status_id = sts.check_status_id
     ";
+    if ($status) {
+        $query .= "WERER stock_check.check_status_id :status";
+    }
     $stmt = $pdo->prepare($query);
+    if ($status) {
+        $stmt->bindParam(':status', $status, PDO::PARAM_INT);
+    }
     $stmt->execute();
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode($data);
@@ -46,7 +52,7 @@ try {
 // $tab = $_GET['tab'] ?? 'active';
 
 // $sql = "
-//     SELECT sc.stock_check_id, sc.stock_check_date, w.warehouse_name, 
+//     SELECT sc.stock_check_id, sc.stock_date, w.warehouse_name, 
 //        COUNT(DISTINCT sc.lot_product_id) as item_count, p.personnel_name, 
 //        s.check_status_name, sc.stock_check_remark, sc.product_id, 
 //        pr.product_name ,
@@ -73,7 +79,7 @@ try {
 //     $params[] = $status_id;
 // }
 // if (count($date_range) === 2 && DateTime::createFromFormat('d/m/Y', $date_range[0]) && DateTime::createFromFormat('d/m/Y', $date_range[1])) {
-//     $sql .= " AND DATE(sc.stock_check_date) BETWEEN ? AND ?";
+//     $sql .= " AND DATE(sc.stock_date) BETWEEN ? AND ?";
 //     $params[] = DateTime::createFromFormat('d/m/Y', $date_range[0])->format('Y-m-d');
 //     $params[] = DateTime::createFromFormat('d/m/Y', $date_range[1])->format('Y-m-d');
 // }

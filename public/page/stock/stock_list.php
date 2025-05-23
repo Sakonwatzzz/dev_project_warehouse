@@ -4,37 +4,32 @@ $is_update = isset($_GET['is_update']) && $_GET['is_update'] == 1;
 $update_id = isset($_GET['id']) ? $_GET['id'] : null;
 try {
     $query = "SELECT
-        stock_check_status.check_status_id, 
-        stock_check_status.check_status_name, 
-        stock_check.check_status_id, 
-        stock_check.product_id, 
-        product.product_name, 
-        product.product_id, 
-        stock_check.stock_check_id, 
-        stock_check.lot_id, 
-        lot.lot_id, 
-        warehouse.warehouse_id, 
-        warehouse.warehouse_name, 
-        stock_check.warehouse_id, 
-        stock_check.stock_check_system, 
-        stock_check.stock_check_date, 
-        stock_check.stock_check_remark, 
-        stock_check.stock_check_actual, 
-        personnel.personnel_id, 
-        personnel.personnel_name, 
-        stock_check.lot_product_id, 
-        stock_check.personnel_id, 
-        lot_product.lot_product_id, 
-        lot_product.lot_product_remain
-    FROM
-        stock_check
-        LEFT JOIN stock_check_status ON stock_check.check_status_id = stock_check_status.check_status_id
-        LEFT JOIN product ON stock_check.product_id = product.product_id
-        LEFT JOIN lot ON stock_check.lot_id = lot.lot_id
-        LEFT JOIN warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
-        LEFT JOIN personnel ON stock_check.personnel_id = personnel.personnel_id
-        LEFT JOIN lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
-        ORDER BY stock_check.stock_check_date DESC
+    stock_check.product_id,
+    product.product_name,
+    stock_check.stock_check_id,
+    stock_check.lot_id,
+    warehouse.warehouse_id,
+    warehouse.warehouse_name,
+    stock_check.stock_check_remark,
+    personnel.personnel_name,
+    stock_check.lot_product_id,
+    lot_product.lot_product_remain,
+    stock.stock_id,
+    stock.stock_date,
+    stock_check.stock_check_system,
+    stock_check.stock_check_actual,
+    stock.check_status_id,
+    stock_checks.check_status_name
+FROM
+    stock_check stock_check
+    LEFT JOIN product product ON stock_check.product_id = product.product_id
+    LEFT JOIN warehouse warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
+    LEFT JOIN lot lot ON stock_check.lot_id = lot.lot_id
+    LEFT JOIN lot_product lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
+    LEFT JOIN stock stock ON stock_check.stock_id = stock.stock_id
+    LEFT JOIN personnel personnel ON stock.personnel_id = personnel.personnel_id
+    LEFT JOIN stock_check_status stock_checks ON stock.check_status_id = stock_checks.check_status_id
+    ORDER BY stock.stock_date DESC
         ";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
@@ -100,16 +95,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_submit'])) {
                 </div>
             </div>
         </header>
-        <div class=" bg-white overflow-hidden shadow-md rounded-lg">
+        <div class="overflow-hidden rounded-lg flex justify-center items-center p-2">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" hidden>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" >
+                                รหัสรายการเช็คสต๊อกสินค้า</th>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" >
                                 รหัสเช็คสต๊อก</th>
                             <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
                                 วันที่</th>
-                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" hidden>
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" >
                                 คลังสินค้า</th>
                             <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
                                 รหัสสินค้า</th>
@@ -135,15 +132,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_submit'])) {
                                 <tr>
                                     <form method="POST"
                                         action="?page=stock_list&is_update=1&id=<?php echo $check_stock_list['stock_check_id']; ?>">
-                                        <td class="px-3 py-2 border text-left text-sm" hidden>
+                                        <td class="px-3 py-2 border text-left text-sm" >
                                             <?php echo $check_stock_list['stock_check_id']; ?>
                                             <input type="hidden" name="stock_check_id"
                                                 value="<?php echo $check_stock_list['stock_check_id']; ?>">
                                         </td>
-                                        <td class="px-3 py-2 border text-left text-sm">
-                                            <?php echo date('d/m/Y', strtotime($check_stock_list['stock_check_date'])); ?>
+                                        <td class="px-3 py-2 border text-left text-sm" >
+                                            <?php echo $check_stock_list['stock_id']; ?>
+                                            <input type="hidden" name="stock_id"
+                                                value="<?php echo $check_stock_list['stock_id']; ?>">
                                         </td>
-                                        <td class="px-3 py-2 border text-left text-sm" hidden>
+                                        <td class="px-3 py-2 border text-left text-sm">
+                                            <?php echo date('d/m/Y', strtotime($check_stock_list['stock_date'])); ?>
+                                        </td>
+                                        <td class="px-3 py-2 border text-left text-sm" >
                                             <?php echo $check_stock_list['warehouse_name']; ?>
                                         </td>
                                         <td class="px-3 py-2 border text-left text-sm">
@@ -185,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_submit'])) {
                                                     <button type="submit" name="update_submit"
                                                         class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">บันทึก</button>
                                                     <a href="?page=stock_list"
-                                                        class="bg-gray-400 text-white px-2 py-1 rounded hover:bg-gray-600">ยกเลิก</a>
+                                                        class="bg-yellow-400 text-white px-2 py-1 rounded hover:bg-yellow-600">ยกเลิก</a>
                                                 <?php else: ?>
                                                     <a href="?page=stock_list&is_update=1&id=<?php echo $check_stock_list['stock_check_id']; ?>"
                                                         class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">แก้ไข</a>
@@ -197,7 +199,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_submit'])) {
                                         </td>
                                     </form>
                                 </tr>
-
                             <?php endwhile; ?>
                         <?php endif; ?>
                     </tbody>

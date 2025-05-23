@@ -395,7 +395,7 @@ CREATE TABLE `stock_check`  (
   `warehouse_id` int NULL DEFAULT NULL COMMENT 'อ้างอิงคลังจากwarehouse.warehouse_id',
   `stock_check_system` int NULL DEFAULT NULL COMMENT 'จำนวนสินค้าที่ระบบบันทึกไว้ว่ามีอยู่ในสต็อกณขณะที่ทำการตรวจสอบสต็อก\nค่านี้มาจากฟิลด์lot_product.lot_product_remain ในตารางlot_product',
   `stock_check_actual` int NULL DEFAULT NULL COMMENT 'จำนวนที่นับได้จริง',
-  `stock_check_date` datetime NULL DEFAULT NULL COMMENT 'วันที่ตรวจสอบสินค้า',
+  `stock_date` datetime NULL DEFAULT NULL COMMENT 'วันที่ตรวจสอบสินค้า',
   `stock_check_remark` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'หมายเหตุ',
   `personnel_id` int NULL DEFAULT NULL COMMENT 'พนักงานที่ตรวจสอบ',
   `check_status_id` int NULL DEFAULT NULL COMMENT 'สถานะการเช็คสต๊อก',

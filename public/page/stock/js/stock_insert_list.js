@@ -22,7 +22,7 @@ $(document).ready(function () {
     "product_id_input",
     "warehouse_id",
     "stock_check_actual",
-    "stock_check_date",
+    "stock_date",
     "personnel_id",
     "stock-check-remark",
     "check_status_id",
@@ -147,7 +147,7 @@ $(document).ready(function () {
     const product_id = getValue("#product_id_input");
     const warehouse_id = getValue("#warehouse_id");
     let stock_check_actual = getValue("#stock_check_actual", "0");
-    const stock_check_date = getValue("#stock_check_date");
+    const stock_date = getValue("#stock_date");
     const personnel_id = getValue("#personnel_id", "1");
     const check_status_id = getValue("#check_status_id", "1");
 
@@ -155,7 +155,7 @@ $(document).ready(function () {
       product_id,
       warehouse_id,
       stock_check_actual,
-      stock_check_date,
+      stock_date,
       personnel_id,
       check_status_id,
     });
@@ -169,7 +169,7 @@ $(document).ready(function () {
       product_id &&
       warehouse_id &&
       stock_check_actual &&
-      stock_check_date &&
+      stock_date &&
       personnel_id &&
       check_status_id &&
       /^\d+$/.test(product_id) &&
@@ -185,7 +185,7 @@ $(document).ready(function () {
   }
 
   $(
-    "#product_id_input, #warehouse_id, #stock_check_actual, #stock_check_date, #stock-check-remark, #check_status_id"
+    "#product_id_input, #warehouse_id, #stock_check_actual, #stock_date, #stock-check-remark, #check_status_id"
   ).on("input change", validateForm);
 
   $("#form_insert_stock").on("submit", function (event) {
@@ -203,8 +203,8 @@ $(document).ready(function () {
       product_id: getValue("#product_id_input"),
       warehouse_id: getValue("#warehouse_id"),
       stock_check_actual: getValue("#stock_check_actual", "0"),
-      stock_check_date: getValue(
-        "#stock_check_date",
+      stock_date: getValue(
+        "#stock_date",
         luxon.DateTime.now()
           .setZone("Asia/Bangkok")
           .toFormat("yyyy-MM-dd HH:mm:ss")
@@ -218,19 +218,19 @@ $(document).ready(function () {
 
     console.log("Submitting formData:", formData);
 
-    if (formData.stock_check_date) {
+    if (formData.stock_date) {
       try {
         const date = luxon.DateTime.fromFormat(
-          formData.stock_check_date,
+          formData.stock_date,
           "yyyy-MM-dd HH:mm:ss",
           {
             zone: "Asia/Bangkok",
           }
         );
         if (!date.isValid) {
-          throw new Error("Invalid date format: " + formData.stock_check_date);
+          throw new Error("Invalid date format: " + formData.stock_date);
         }
-        formData.stock_check_date = date.toFormat("yyyy-MM-dd HH:mm:ss");
+        formData.stock_date = date.toFormat("yyyy-MM-dd HH:mm:ss");
       } catch (e) {
         console.error("Date parsing error:", e.message);
         Toast.fire({
@@ -246,7 +246,7 @@ $(document).ready(function () {
         return;
       }
     } else {
-      formData.stock_check_date = luxon.DateTime.now()
+      formData.stock_date = luxon.DateTime.now()
         .setZone("Asia/Bangkok")
         .toFormat("yyyy-MM-dd HH:mm:ss");
     }
@@ -348,7 +348,7 @@ $(document).ready(function () {
                 title: response.message,
               });
               $("#form_insert_stock")[0].reset();
-              $("#stock_check_date").val(
+              $("#stock_date").val(
                 luxon.DateTime.now()
                   .setZone("Asia/Bangkok")
                   .toFormat("yyyy-MM-dd HH:mm:ss")
@@ -429,59 +429,55 @@ $(document).ready(function () {
             hasPendingStatus = true;
           }
           let row = `
-                        <tr>
-                            ${
-                              showCheckbox
-                                ? `
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">
-                                <input type="checkbox" class="stock-list-select rounded text-blue-500 focus:ring-blue-400"
-                                    data-stock-check-id="${item.stock_check_id}"
-                                    data-product-id="${item.product_id}"
-                                    data-lot-id="${item.lot_id || ""}"
-                                    data-lot-product-id="${
-                                      item.lot_product_id || ""
-                                    }"
-                                    data-system-quantity="${
-                                      item.stock_check_system || 0
-                                    }"
-                                    data-check-status-id="${
-                                      item.check_status_id || 1
-                                    }">
-                            </td>`
-                                : '<td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm"></td>'
-                            }
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
-                              item.stock_check_id || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.stock_check_date || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
-                              item.warehouse_name || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.product_id || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.product_name || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.stock_check_system || "0"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.stock_check_actual || "0"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.personnel_name || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.check_status_name || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.stock_check_remark || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm"></td>
-                        </tr>`;
+    <tr>
+        ${
+          showCheckbox
+            ? `
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">
+            <input type="checkbox" class="stock-list-select rounded text-blue-500 focus:ring-blue-400"
+                data-stock-id="${item.stock_id}"
+                data-stock-check-id="${item.stock_check_id || ""}"
+                data-product-id="${item.product_id || ""}"
+                data-lot-id="${item.lot_id || ""}"
+                data-lot-product-id="${item.lot_product_id || ""}"
+                data-system-quantity="${item.stock_check_system || 0}"
+                data-check-status-id="${item.check_status_id || 1}">
+        </td>`
+            : '<td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm"></td>'
+        }
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
+          item.stock_check_id || "-"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+          item.stock_date || "-"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
+          item.warehouse_name || "-"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+          item.product_id || "-"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+          item.product_name || "-"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+          item.stock_check_system || "0"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+          item.stock_check_actual || "0"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+          item.personnel_name || "-"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+          item.check_status_name || "-"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+          item.stock_check_remark || "-"
+        }</td>
+        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm"></td>
+    </tr>`;
+
           tbody.append(row);
         });
 
@@ -522,22 +518,112 @@ $(document).ready(function () {
         );
     $("#btn-confirm-check").prop("disabled", !canConfirm);
   }
+  $("#btn-add-stock-check").on("click", function () {
+    if (isProcessing) return;
+    isProcessing = true;
+    $(this).removeClass("hidden").end().find(".text").addClass("hidden");
 
-  $("#btn-add-stock-check").on("#click", function(){
-    if(isProcessing){
-      isProcessing = true;
-      $(this).removeClass("hidden").end().find(".text").addClass("hidden");
-      $.ajax({
-        url: "page/stock/api/api_stock_list.php",
-        type: "GET",
-        data: {status : 1},
-        dataType: "json",
-        headers: {
-          "X-Requested-With" : "XLMLHReq"
+    // Check if there are pending stock checks
+    $.ajax({
+      url: "page/stock/api/api_stock_list.php",
+      type: "GET",
+      data: { status: 1 },
+      dataType: "json",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      cache: false,
+      success: function (data) {
+        console.log("api_stock_list.php response for pending checks:", data);
+        // Filter data to ensure only check_status_id = 1
+        const pendingItems = data.filter(
+          (item) => parseInt(item.check_status_id) === 1
+        );
+        if (pendingItems.length > 0) {
+          Swal.fire({
+            title: "พบรายการที่ยังไม่ยืนยัน",
+            text: `มี ${pendingItems.length} รายการที่อยู่ในสถานะ "กำลังตรวจสอบ" กรุณายืนยันรายการเหล่านี้ก่อนเริ่มรายการใหม่ หรือเลือกข้ามเพื่อเริ่มใหม่ทันที`,
+            icon: "warning",
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: "ยืนยันรายการ",
+            denyButtonText: "ข้ามและเริ่มใหม่",
+            cancelButtonText: "ยกเลิก",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Select all pending items and trigger confirm
+              $(".stock-list-select").each(function () {
+                if (parseInt($(this).data("check-status-id")) === 1) {
+                  $(this).prop("checked", true);
+                }
+              });
+              updateConfirmButtonState();
+              $("#btn-confirm-check").click();
+            } else if (result.isDenied) {
+              startNewStockCheck();
+            }
+            isProcessing = false;
+          });
+        } else {
+          startNewStockCheck();
+          isProcessing = false;
         }
-      })
-    }
+        $(this).addClass("hidden").end().find(".text").removeClass("hidden");
+      },
+      // error: toastrError,
+    });
   });
+  function startNewStockCheck() {
+    // รีเซ็ตฟอร์มก่อน
+    $("#form_insert_stock")[0].reset();
+    $("#stock_date").val(
+      luxon.DateTime.now()
+        .setZone("Asia/Bangkok")
+        .toFormat("yyyy-MM-dd HH:mm:ss")
+    );
+    $("#product_id_inpu").focus();
+    $("#product_info").addClass("hidden").empty();
+    $("#warehouse_name").val("");
+    $("#warehouse_id").val("");
+    $("#check_status_id").val("1"); // Set to "กำลังตรวจสอบ"
+    $.ajax({
+      url: "page/stock/api/insert_new_stock_check.php",
+      type: "POST",
+      data: {
+        action: "insert_new_stock_check",
+        personnel_id: getValue("#personnel_id", "1"),
+        stock_date: luxon.DateTime.now()
+          .setZone("Asia/Bangkok")
+          .toFormat("yyyy-MM-dd HH:mm:ss"),
+        csrf_token: getValue("#csrf_token"),
+      },
+      dataType: "json",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      success: function (response) {
+        if (response.status === "success") {
+          Toast.fire({
+            icon: "success",
+            title: "เริ่มรายการตรวจสอบสต๊อกใหม่เรียบร้อย",
+          });
+          loadStockCheck();
+        } else {
+          Toast.fire({
+            icon: "error",
+            title: response.message,
+          });
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("insert_new_stock_check.php error:", xhr.responseText);
+        Toast.fire({
+          icon: "error",
+          title: "เกิดข้อผิดพลาดในการเริ่มรายการใหม่: " + error,
+        });
+      },
+    });
+  }
 
   // Event handler สำหรับ checkbox
   $(document).on("change", ".stock-list-select, #select-all-list", function () {
@@ -646,5 +732,5 @@ $(document).ready(function () {
 
   loadStockCheck();
 
-  setInterval(loadStockCheck, 30000);
+  // setInterval(loadStockCheck, 30000);
 });

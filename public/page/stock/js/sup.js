@@ -112,7 +112,7 @@ $(document).ready(function () {
     isProcessing = true;
     $("#btn-create-stock-check").prop("disabled", true);
     const warehouse_id = $("#modal-warehouse").val();
-    const stock_check_date = $("#stock-check-date").val();
+    const stock_date = $("#stock-check-date").val();
     const stock_check_remark = $("#stock-check-remark").val();
     const personnel_id = 1; // Replace with actual logged-in personnel_id
     const products = [];
@@ -142,7 +142,7 @@ $(document).ready(function () {
     $("#stock_check_table .stock-list-select:checked").each(function () {
       const stockrow = $(this).closest("tr");
     });
-    if (!warehouse_id || !stock_check_date || products.length === 0) {
+    if (!warehouse_id || !stock_date || products.length === 0) {
       Swal.fire({
         icon: "warning",
         title: "ข้อผิดพลาด",
@@ -158,7 +158,7 @@ $(document).ready(function () {
       data: {
         action: "insert_check_products",
         warehouse_id: warehouse_id,
-        stock_check_date: stock_check_date,
+        stock_date: stock_date,
         stock_check_remark: stock_check_remark,
         personnel_id: personnel_id,
         products: JSON.stringify(products),
@@ -257,7 +257,7 @@ $(document).ready(function () {
                               data-stock-check-id="${item.stock_check_id}">
                           </td>
                           <td class="px-6 py-4">${item.stock_check_id}</td>
-                          <td class="px-6 py-4">${item.stock_check_date}</td>
+                          <td class="px-6 py-4">${item.stock_date}</td>
                           <td class="px-6 py-4">${item.warehouse_name}</td>
                           <td class="px-6 py-4">${item.product_id}</td>
                           <td class="px-6 py-4">${item.stock_check_system}</td>
@@ -398,7 +398,7 @@ $(document).ready(function () {
 //         $('#btn-create-stock-check').prop('disabled', true);
 
 //         const warehouse_id = $('#modal-warehouse').val();
-//         const stock_check_date = $('#stock-check-date').val();
+//         const stock_date = $('#stock-check-date').val();
 //         const stock_check_remark = $('#stock-check-remark').val();
 //         const personnel_id = 1; // Replace with actual logged-in personnel_id
 //         const products = [];
@@ -429,7 +429,7 @@ $(document).ready(function () {
 
 //         });
 
-//         if (!warehouse_id || !stock_check_date || products.length === 0) {
+//         if (!warehouse_id || !stock_date || products.length === 0) {
 //             Swal.fire({
 //                 icon: 'warning',
 //                 title: 'ข้อผิดพลาด',
@@ -446,7 +446,7 @@ $(document).ready(function () {
 //             data: {
 //                 action: 'insert_check_products',
 //                 warehouse_id: warehouse_id,
-//                 stock_check_date: stock_check_date,
+//                 stock_date: stock_date,
 //                 stock_check_remark: stock_check_remark,
 //                 personnel_id: personnel_id,
 //                 products: JSON.stringify(products)
@@ -537,7 +537,7 @@ $(document).ready(function () {
 //     //                             data-stock-check-id="${item.stock_check_id}">
 //     //                         </td>
 //     //                         <td class="px-6 py-4">${item.stock_check_id}</td>
-//     //                         <td class="px-6 py-4">${item.stock_check_date}</td>
+//     //                         <td class="px-6 py-4">${item.stock_date}</td>
 //     //                         <td class="px-6 py-4">${item.warehouse_name}</td>
 //     //                         <td class="px-6 py-4">${item.product_id}</td>
 //     //                         <td class="px-6 py-4">${item.stock_check_system}</td>

@@ -12,13 +12,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $warehouse_id = $_POST['warehouse_id'] ?? null;
             $stock_check_system = $_POST['stock_check_system'] ?? null;
             $stock_check_actual = $_POST['stock_check_actual'] ?? null;
-            $stock_check_date = $_POST['stock_check_date'] ?? null;
+            $stock_date = $_POST['stock_date'] ?? null;
             $stock_check_remark = $_POST['stock_check_remark'] ?? '';
             $personnel_id = $_POST['personnel_id'] ?? null;
             $check_status_id = 1;
 
             // ตรวจสอบ
-            if (!$product_id || !$warehouse_id || $stock_check_system === null || $stock_check_actual === null || !$stock_check_date || !$personnel_id || !$lot_id || !$lot_product_id) {
+            if (!$product_id || !$warehouse_id || $stock_check_system === null || $stock_check_actual === null || !$stock_date || !$personnel_id || !$lot_id || !$lot_product_id) {
                 error_log("Missing required fields: " . json_encode($_POST));
                 echo json_encode(['status' => 'error', 'message' => 'กรุณากรอกข้อมูลให้ครบถ้วน']);
                 exit;
@@ -30,13 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             // ตรวจสอบวันที่
             try {
-                $dateTime = DateTime::createFromFormat('Y-m-d H:i:s', $stock_check_date, new DateTimeZone('Asia/Bangkok'));
+                $dateTime = DateTime::createFromFormat('Y-m-d H:i:s', $stock_date, new DateTimeZone('Asia/Bangkok'));
                 if ($dateTime === false) {
                     throw new Exception('Invalid date format');
                 }
-                $stock_check_date = $dateTime->format('Y-m-d H:i:s');
+                $stock_date = $dateTime->format('Y-m-d H:i:s');
             } catch (Exception $e) {
-                error_log("Date parsing error: " . $e->getMessage() . " Input: " . $stock_check_date);
+                error_log("Date parsing error: " . $e->getMessage() . " Input: " . $stock_date);
                 echo json_encode(['status' => 'error', 'message' => 'รูปแบบวันที่ไม่ถูกต้อง']);
                 exit;
             }
@@ -72,10 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             $stmt = $pdo->prepare("
-                INSERT INTO stock_check (lot_id, lot_product_id, product_id, warehouse_id, stock_check_system, stock_check_actual, stock_check_date, stock_check_remark, personnel_id, check_status_id )
+                INSERT INTO stock_check (lot_id, lot_product_id, product_id, warehouse_id, stock_check_system, stock_check_actual, stock_date, stock_check_remark, personnel_id, check_status_id )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $stock_check_system, $stock_check_actual, $stock_check_date, $stock_check_remark, $personnel_id, $check_status_id]);
+            $stmt->execute([$lot_id, $lot_product_id, $product_id, $warehouse_id, $stock_check_system, $stock_check_actual, $stock_date, $stock_check_remark, $personnel_id, $check_status_id]);
 
             echo json_encode(['status' => 'success', 'message' => 'บันทึกสำเร็จ']);
         } else {
