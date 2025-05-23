@@ -360,7 +360,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจัดการบุคลากร</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../../output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
@@ -372,10 +372,10 @@ try {
 <body class="bg-gray-50">
     <div class="container mx-auto px-4 py-8">
         <!-- Header and Search Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-8 ">
+        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6 ">
             <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
                 <div class="flex space-x-2 ">
-                    <div class=" w-auto px-4 py-2 bg-blue-200 border rounded">
+                    <div class=" w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
                         <i class="fas fa-users mr-2"></i>
                         <?php echo $total_records; ?>
                         <span>รายการ</span>
@@ -401,9 +401,9 @@ try {
                     </div>
                 </form>
             </div>
-            <div class="md:hidden bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200">
-                <!-- Date Filter -->
-                <div class="grid grid-cols-2 gap-4">
+            <div class=" bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
+                <!-- Mobile Date Filter-->
+                <div class="grid grid-cols-2 gap-4 md:w-[100%]">
                     <div>
                         <label for="start_date" class="text-sm font-medium text-gray-700">เริ่มจาก</label>
                         <input type="date" id="start_date" name="start_date"
@@ -419,13 +419,13 @@ try {
                 </div>
 
                 <!-- Export Buttons -->
-                <div class="grid grid-cols-2 gap-4 pt-2">
+                <div class="grid grid-cols-2 gap-4 pt-2 md:w-[100%] md:grid md:grid-cols-2 md:gap-4">
                     <button onclick="exportPDF()"
-                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md">
+                        class="flex items-center justify-center gap-2 px-4 py-2  rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
                         <i class="fas fa-file-pdf"></i> ส่งออก PDF
                     </button>
                     <button onclick="exportExcel()"
-                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md">
+                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
                         <i class="fas fa-file-excel"></i> ส่งออก Excel
                     </button>
                 </div>
@@ -441,35 +441,12 @@ try {
 
         <!-- Table -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+            <div class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                     <h2 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center">
                         <i class="fas fa-list mr-2"></i> รายการบุคลากร
                     </h2>
-                    <div class=" hidden md:flex md:flex-row md:items-center gap-4">
-                        <!-- Date Filter -->
-                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                            <label for="start_date" class="text-sm font-medium">วันที่เริ่มต้น</label>
-                            <input type="date" id="start_date" name="start_date"
-                                class="border rounded px-2 py-1 w-full sm:w-auto"
-                                value="<?php echo htmlspecialchars($start_date); ?>">
-                            <label for="end_date" class="text-sm font-medium">ถึง</label>
-                            <input type="date" id="end_date" name="end_date"
-                                class="border rounded px-2 py-1 w-full sm:w-auto"
-                                value="<?php echo htmlspecialchars($end_date); ?>">
-                        </div>
-                        <!-- Export Buttons -->
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <button onclick="exportPDF()"
-                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm sm:text-base">
-                                <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
-                            </button>
-                            <button onclick="exportExcel()"
-                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm sm:text-base">
-                                <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
-                            </button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
             <div class="p-6">
@@ -887,6 +864,7 @@ try {
                 }
             });
 
+            // แทนที่ส่วนเดิม
             document.getElementById('start_date').addEventListener('change', updateDateFilter);
             document.getElementById('end_date').addEventListener('change', updateDateFilter);
 
@@ -910,6 +888,7 @@ try {
 
                 window.location.search = urlParams.toString();
             }
+
         });
     </script>
 </body>
