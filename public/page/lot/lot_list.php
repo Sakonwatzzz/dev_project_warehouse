@@ -54,7 +54,7 @@ function validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, 
         $errors[] = 'กรุณาเลือกคลังปลายทาง';
     }
     if (!$supplier_id) {
-        $errors[] = 'กรุณาเลือกเจ้าหน้าที่';
+        $errors[] = 'กรุณาเลือกผู้ส่งมอบ';
     }
     return $errors;
 }
@@ -404,7 +404,7 @@ try {
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสล็อต</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อล็อต</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังปลายทาง</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">เจ้าหน้าที่</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ผู้ส่งมอบ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่และเวลา</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
                                 <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
@@ -576,11 +576,11 @@ try {
                         <span id="addWarehouseError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">เจ้าหน้าที่</label>
+                        <label class="block text-sm font-medium text-gray-700">ผู้ส่งมอบ</label>
                         <select id="addSupplierId" name="supplier_id"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required>
-                            <option value="">เลือกเจ้าหน้าที่</option>
+                            <option value="">เลือกผู้ส่งมอบ</option>
                             <?php foreach ($supplier_lot as $supplier): ?>
                                 <option value="<?php echo htmlspecialchars($supplier['supplier_id']); ?>">
                                     <?php echo htmlspecialchars($supplier['supplier_name']); ?>
@@ -652,11 +652,11 @@ try {
                         <span id="editWarehouseError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">เจ้าหน้าที่</label>
+                        <label class="block text-sm font-medium text-gray-700">พนักงาน</label>
                         <select id="editSupplierId" name="supplier_id"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required>
-                            <option value="">เลือกเจ้าหน้าที่</option>
+                            <option value="">เลือกพนักงาน</option>
                             <?php foreach ($supplier_lot as $supplier): ?>
                                 <option value="<?php echo htmlspecialchars($supplier['supplier_id']); ?>">
                                     <?php echo htmlspecialchars($supplier['supplier_name']); ?>
@@ -880,7 +880,7 @@ try {
                     {
                         id: 'addSupplierId',
                         errorId: 'addSupplierError',
-                        label: 'เจ้าหน้าที่',
+                        label: 'ผู้ส่งมอบ',
                         maxLength: Infinity,
                         required: true
                     }

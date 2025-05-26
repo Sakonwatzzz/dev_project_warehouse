@@ -38,7 +38,7 @@ function verifyCsrfToken($token)
 }
 
 // Validate lot data
-function validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, $supplier_id, $pdo, $exclude_id = null)
+function validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, $personnel_id, $pdo, $exclude_id = null)
 {
     $errors = [];
     if (empty($lot_name) || strlen($lot_name) > 255) {
@@ -53,8 +53,8 @@ function validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, 
     if (!$warehouse_id) {
         $errors[] = 'กรุณาเลือกคลังปลายทาง';
     }
-    if (!$supplier_id) {
-        $errors[] = 'กรุณาเลือกเจ้าหน้าที่';
+    if (!$personnel_id) {
+        $errors[] = 'กรุณาเลือกพนักงาน';
     }
     return $errors;
 }
@@ -83,9 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $lot_detail = trim($_POST['lot_detail']);
     $lot_status_id = filter_var($_POST['lot_status_id'], FILTER_VALIDATE_INT);
     $warehouse_id = filter_var($_POST['warehouse_id'], FILTER_VALIDATE_INT);
-    $supplier_id = filter_var($_POST['supplier_id'], FILTER_VALIDATE_INT);
+    $personnel_id = filter_var($_POST['personnel_id'], FILTER_VALIDATE_INT);
 
-    $errors = validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, $supplier_id, $pdo);
+    $errors = validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, $personnel_id, $pdo);
 
     if (!empty($errors)) {
         header('Location: index.php?page=lot_warehouseinout&error=' . urlencode(implode(', ', $errors)));
@@ -94,8 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("INSERT INTO lot (lot_name, lot_detail, lot_status_id, warehouse_id, supplier_id, lot_date, warehouse_inout) VALUES (?, ?, ?, ?, ?, NOW(), 2)");
-        $stmt->execute([$lot_name, $lot_detail, $lot_status_id, $warehouse_id, $supplier_id]);
+        $stmt = $pdo->prepare("INSERT INTO lot (lot_name, lot_detail, lot_status_id, warehouse_id, personnel_id, lot_date, warehouse_inout) VALUES (?, ?, ?, ?, ?, NOW(), 2)");
+        $stmt->execute([$lot_name, $lot_detail, $lot_status_id, $warehouse_id, $personnel_id]);
         $pdo->commit();
         header('Location: index.php?page=lot_warehouseinout&success=เพิ่มล็อตสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
         exit;
@@ -119,9 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $lot_detail = trim($_POST['lot_detail']);
     $lot_status_id = filter_var($_POST['lot_status_id'], FILTER_VALIDATE_INT);
     $warehouse_id = filter_var($_POST['warehouse_id'], FILTER_VALIDATE_INT);
-    $supplier_id = filter_var($_POST['supplier_id'], FILTER_VALIDATE_INT);
+    $personnel_id = filter_var($_POST['personnel_id'], FILTER_VALIDATE_INT);
 
-    $errors = validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, $supplier_id, $pdo, $id);
+    $errors = validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, $personnel_id, $pdo, $id);
     if (!$id) {
         $errors[] = 'รหัสล็อตไม่ถูกต้อง';
     }
@@ -133,8 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE lot SET lot_name = ?, lot_detail = ?, lot_status_id = ?, warehouse_id = ?, supplier_id = ? WHERE lot_id = ? AND warehouse_inout = 2");
-        $stmt->execute([$lot_name, $lot_detail, $lot_status_id, $warehouse_id, $supplier_id, $id]);
+        $stmt = $pdo->prepare("UPDATE lot SET lot_name = ?, lot_detail = ?, lot_status_id = ?, warehouse_id = ?, personnel_id = ? WHERE lot_id = ? AND warehouse_inout = 2");
+        $stmt->execute([$lot_name, $lot_detail, $lot_status_id, $warehouse_id, $personnel_id, $id]);
         if ($stmt->rowCount() === 0) {
             $pdo->rollBack();
             header('Location: index.php?page=lot_warehouseinout&error=ไม่พบข้อมูลล็อตที่ต้องการแก้ไข');
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 try {
     $status_lot = fetchData($pdo, "SELECT lot_status_id, lot_status_name FROM lot_status")->fetchAll(PDO::FETCH_ASSOC);
     $warehouse_lot = fetchData($pdo, "SELECT warehouse_id, warehouse_name FROM warehouse")->fetchAll(PDO::FETCH_ASSOC);
-    $supplier_lot = fetchData($pdo, "SELECT supplier_id, supplier_name FROM supplier")->fetchAll(PDO::FETCH_ASSOC);
+    $personnel_lot = fetchData($pdo, "SELECT personnel_id, personnel_name FROM personnel")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     header('Location: index.php?page=lot_warehouseinout&error=' . urlencode($e->getMessage()));
     exit;
@@ -257,8 +257,8 @@ try {
     SELECT
         lot_status.lot_status_id, 
         lot_status.lot_status_name, 
-        lot.supplier_id, 
-        supplier.supplier_name, 
+        lot.personnel_id, 
+        personnel.personnel_name, 
         warehouse.warehouse_name, 
         warehouse.warehouse_id,
         lot.lot_id, 
@@ -269,7 +269,7 @@ try {
     FROM
         lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-        LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+        LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id
         LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
     WHERE lot.warehouse_inout = 2";
 
@@ -418,7 +418,7 @@ ob_end_flush();
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสล็อต</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อล็อต</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังปลายทาง</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">เจ้าหน้าที่</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่และเวลา</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
                                 <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
@@ -427,7 +427,7 @@ ob_end_flush();
                         <tbody>
                             <?php if (count($result_lot_list) > 0): ?>
                                 <?php foreach ($result_lot_list as $lot): ?>
-                                    <tr class="hover:bg-gray-100">
+                                    <tr class="hover:bg-gray-100 ">
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($lot['lot_id']); ?></td>
                                         <td class="px-6 py-2 border">
                                             <a href="?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
@@ -440,23 +440,23 @@ ob_end_flush();
                                             <?php echo htmlspecialchars($lot['warehouse_name']); ?>
                                         </td>
                                         <td class="px-6 py-2 border cursor-pointer hover:underline"
-                                            onclick="window.location.href='?page=supplier_lot&supplier_id=<?php echo htmlspecialchars($lot['supplier_id']); ?>'">
-                                            <?php echo htmlspecialchars($lot['supplier_name']); ?>
+                                            onclick="window.location.href='?page=personnel_lot&personnel_id=<?php echo htmlspecialchars($lot['personnel_id']); ?>'">
+                                            <?php echo htmlspecialchars($lot['personnel_name']); ?>
                                         </td>
                                         <td class="px-6 py-2 border">
-                                            <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                            <a href="?page=lot_productlistmove&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
                                                 class="text-blue-600 hover:underline cursor-pointer block w-full h-full">
                                                 <?php echo htmlspecialchars(date('d/m/Y H:i:s', strtotime($lot['lot_date']))); ?>
                                             </a>
                                         </td>
-                                        <td class="px-6 py-2 border cursor-pointer hover:underline text-green-600"
-                                            onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>'">
+                                        <td class="px-6 py-2  border cursor-pointer hover:underline text-green-600"
+                                            onclick="window.location.href='?page=lot_detailmove&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>'">
                                             <?php echo htmlspecialchars($lot['lot_status_name']); ?>
                                         </td>
                                         <td class="px-6 py-2 border text-center">
                                             <div class="flex flex-wrap justify-center gap-2">
                                                 <?php if ($lot['lot_status_id'] == 2): ?>
-                                                    <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                                    <a href="?page=lot_productlistmove&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
                                                         class="bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600 transition flex items-center whitespace-nowrap">
                                                         <i class="fas fa-eye mr-1"></i> ดูรายละเอียด
                                                     </a>
@@ -706,9 +706,9 @@ ob_end_flush();
                         required: true
                     },
                     {
-                        id: 'addSupplierId',
-                        errorId: 'addSupplierError',
-                        label: 'เจ้าหน้าที่',
+                        id: 'addPersonnelId',
+                        errorId: 'addPersonnelError',
+                        label: 'พนักงาน',
                         maxLength: Infinity,
                         required: true
                     }
@@ -749,8 +749,8 @@ ob_end_flush();
                         required: true
                     },
                     {
-                        id: 'editSupplierId',
-                        errorId: 'editSupplierError',
+                        id: 'editPersonnelId',
+                        errorId: 'editPersonnelError',
                         label: 'เจ้าหน้าที่',
                         maxLength: Infinity,
                         required: true
