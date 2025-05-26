@@ -29,6 +29,7 @@ FROM
     LEFT JOIN stock stock ON stock_check.stock_id = stock.stock_id
     LEFT JOIN personnel personnel ON stock.personnel_id = personnel.personnel_id
     LEFT JOIN stock_check_status stock_checks ON stock.check_status_id = stock_checks.check_status_id
+    WHERE stock.check_status_id  = 2
     ORDER BY stock.stock_date DESC
         ";
     $stmt = $pdo->prepare($query);
@@ -100,13 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_submit'])) {
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" >
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" hidden>
                                 รหัสรายการเช็คสต๊อกสินค้า</th>
-                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" >
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" hidden>
                                 รหัสเช็คสต๊อก</th>
                             <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
                                 วันที่</th>
-                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border" >
+                            <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
                                 คลังสินค้า</th>
                             <th class="px-6 py-3 text-left text-base text-gray-900 uppercase border">
                                 รหัสสินค้า</th>
@@ -132,20 +133,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_submit'])) {
                                 <tr>
                                     <form method="POST"
                                         action="?page=stock_list&is_update=1&id=<?php echo $check_stock_list['stock_check_id']; ?>">
-                                        <td class="px-3 py-2 border text-left text-sm" >
+                                        <td class="px-3 py-2 border text-left text-sm" hidden>
                                             <?php echo $check_stock_list['stock_check_id']; ?>
                                             <input type="hidden" name="stock_check_id"
                                                 value="<?php echo $check_stock_list['stock_check_id']; ?>">
                                         </td>
-                                        <td class="px-3 py-2 border text-left text-sm" >
+                                        <td class="px-3 py-2 border text-left text-sm" hidden>
                                             <?php echo $check_stock_list['stock_id']; ?>
                                             <input type="hidden" name="stock_id"
                                                 value="<?php echo $check_stock_list['stock_id']; ?>">
                                         </td>
                                         <td class="px-3 py-2 border text-left text-sm">
-                                            <?php echo date('d/m/Y', strtotime($check_stock_list['stock_date'])); ?>
+                                            <?php echo $check_stock_list['stock_date'];?>
                                         </td>
-                                        <td class="px-3 py-2 border text-left text-sm" >
+                                        <td class="px-3 py-2 border text-left text-sm">
                                             <?php echo $check_stock_list['warehouse_name']; ?>
                                         </td>
                                         <td class="px-3 py-2 border text-left text-sm">

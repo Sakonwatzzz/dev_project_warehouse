@@ -225,7 +225,7 @@ $(document).ready(function () {
     const date_range = $("#date_range").val();
     const isHistory = tab === "history";
     $.ajax({
-      url: "page/stock/api/api_stock_list.php",
+      url: "page/stock/api/stock_list.php",
       method: "GET",
       data: { warehouse_id, product_id, status, date_range, tab },
       dataType: "json",
@@ -513,7 +513,7 @@ $(document).ready(function () {
 //     //     const date_range = $('#date_range').val();
 //     //     const isHistory = tab === 'history';
 //     //     $.ajax({
-//     //         url: 'page/stock/api/api_stock_list.php',
+//     //         url: 'page/stock/api/stock_list.php',
 //     //         method: 'GET',
 //     //         data: { warehouse_id, product_id, status, date_range, tab },
 //     //         dataType: 'json',

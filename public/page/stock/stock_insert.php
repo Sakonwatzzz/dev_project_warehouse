@@ -2,31 +2,34 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 try {
     $query = "SELECT
-    stock_check.product_id,
-    product.product_name,
-    stock_check.stock_check_id,
-    stock_check.lot_id,
-    warehouse.warehouse_id,
-    warehouse.warehouse_name,
-    stock_check.stock_check_remark,
-    personnel.personnel_name,
-    stock_check.lot_product_id,
-    lot_product.lot_product_remain,
-    stock.stock_id,
-    stock.stock_date,
-    stock_check.stock_check_system,
-    stock_check.stock_check_actual,
-    stock.check_status_id,
-    stock_checks.check_status_name
-FROM
-    stock_check stock_check
-    LEFT JOIN product product ON stock_check.product_id = product.product_id
-    LEFT JOIN warehouse warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
-    LEFT JOIN lot lot ON stock_check.lot_id = lot.lot_id
-    LEFT JOIN lot_product lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
-    LEFT JOIN stock stock ON stock_check.stock_id = stock.stock_id
-    LEFT JOIN personnel personnel ON stock.personnel_id = personnel.personnel_id
-    LEFT JOIN stock_check_status stock_checks ON stock.check_status_id = stock_checks.check_status_id";
+        stock_check.product_id,
+        product.product_name,
+        stock_check.stock_check_id,
+        stock_check.lot_id,
+        warehouse.warehouse_id,
+        warehouse.warehouse_name,
+        stock_check.stock_check_remark,
+        personnel.personnel_name,
+        stock_check.lot_product_id,
+        lot_product.lot_product_remain,
+        stock.stock_id,
+        stock.stock_date,
+        stock_check.stock_check_system,
+        stock_check.stock_check_actual,
+        stock.check_status_id,
+        stock_checks.check_status_name
+    FROM
+        stock_check
+        LEFT JOIN product ON stock_check.product_id = product.product_id
+        LEFT JOIN warehouse ON stock_check.warehouse_id = warehouse.warehouse_id
+        LEFT JOIN lot ON stock_check.lot_id = lot.lot_id
+        LEFT JOIN lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
+        LEFT JOIN stock ON stock_check.stock_id = stock.stock_id
+        LEFT JOIN personnel ON stock.personnel_id = personnel.personnel_id
+        LEFT JOIN stock_check_status stock_checks ON stock.check_status_id = stock_checks.check_status_id
+        WHERE  stock.check_status_id = 1
+        ORDER BY stock.stock_date DESC
+        ";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $check_stock = $stmt;
@@ -89,6 +92,7 @@ $displayDateTime = date("d/m/Y H:i:s");
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="page/stock/js/search_product.js"></script>
+    <script src="page/stock/js/delete_product_check.js"></script>
     <script src="page/stock/js/stock_insert_list.js?t=<?= time() ?>"></script>
 </head>
 
@@ -117,16 +121,25 @@ $displayDateTime = date("d/m/Y H:i:s");
 
         <main class="flex-grow container mx-auto px-4 py-8">
             <div class="p-2 py-2 flex justify-end">
-                <button id="btn-add-แป stock-check"
-                    class="bg-blue-500 hover:bg-blue-600  rounded-md p-2 py-2 text-white">
-                    <span class="text">เพิ่มรายการตรวจสอบสต๊อกสินค้า</span>
+                <button id="btn-add-stock-check" class="bg-blue-500 hover:bg-blue-600 rounded-md p-2 py-2 text-white">
+                    <span class="text">เพิ่มรายการตรวจสอบสต๊อกสินค้าใหม่</span> 
+                    <span
+                        class="spinner hidden animate-spin h-5 w-5 border-2 border-t-transparent border-white rounded-full"></span>
                 </button>
+                <select id="stock_id_select" class="w-full border rounded px-2 py-1 cursor-pointer  hover:bg-gray-200">
+                    <option value="">เลือกเซสชัน</option>
+                </select>
             </div>
+
             <div class="bg-white p-4 rounded-lg shadow-md mb-6">
                 <form id="form_insert_stock">
                     <input type="hidden" name="personnel_id" id="personnel_id" value="1">
-                    <!-- <input type="hidden" name="csrf_token" id="csrf_token" value="<?= $_SESSION['csrf_token'] ?>"> -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div >
+                            <label class="block text-sm font-medium text-gray-700 mb-1">หมายเลขเซสชัน</label>
+                            <input id="current_stock_id" type="text"
+                                class="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100">
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1"
                                 for="product_id">แสกนรหัสสินค้า</label>
@@ -157,18 +170,12 @@ $displayDateTime = date("d/m/Y H:i:s");
                             <input type="number" id="stock_check_system" name="stock_check_system" readonly
                                 class="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-100" placeholder="">
                         </div>
-
                         <div class="block pt-2">
                             <p class="text-sm text-green-700 mt-1">
                                 <i class="fas fa-info-circle mr-1"></i>
                                 รูปแบบการเพิ่ม: รหัส*จำนวน (เช่น 12345*2)
                             </p>
-                            <!-- <p class="text-sm text-red-700 mt-1">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                รูปแบบการลบ: -รหัส*จำนวน (เช่น -12345*3)
-                            </p> -->
                         </div>
-
                         <div>
                             <label for="stock-check-remark"
                                 class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
@@ -194,6 +201,8 @@ $displayDateTime = date("d/m/Y H:i:s");
                         <button id="btn-submit" type="submit"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer">
                             <span class="text">บันทึก</span>
+                            <span
+                                class="spinner hidden animate-spin h-5 w-5 border-2 border-t-transparent border-white rounded-full ml-2"></span>
                         </button>
                     </div>
                     <input type="hidden" name="stock_date" id="stock_date" value="<?= $currentDateTime ?>">
@@ -203,6 +212,8 @@ $displayDateTime = date("d/m/Y H:i:s");
                         class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer disabled:bg-gray-400"
                         disabled>
                         <span class="text">ยืนยันรายการตรวจสอบ</span>
+                        <span
+                            class="spinner hidden animate-spin h-5 w-5 border-2 border-t-transparent border-white rounded-full ml-2"></span>
                     </button>
                 </div>
             </div>
@@ -218,10 +229,10 @@ $displayDateTime = date("d/m/Y H:i:s");
                                         class="rounded text-blue-500 focus:ring-blue-400">
                                 </th>
                                 <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border"
-                                    >
+                                    hidden>
                                     รหัสเช็คสต๊อก</th>
                                 <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border"
-                                    >
+                                    hidden>
                                     รหัสเช็คสต๊อกรายการสินค้า</th>
                                 <th class="px-6 py-3 text-left text-base font-bold text-gray-900 uppercase border">
                                     วันที่</th>

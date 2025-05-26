@@ -392,7 +392,7 @@ $(document).ready(function () {
   function loadStockCheck() {
     console.log("Loading stock check table...");
     $.ajax({
-      url: "page/stock/api/api_stock_list.php",
+      url: "page/stock/api/stock_list.php",
       type: "GET",
       dataType: "json",
       headers: {
@@ -400,11 +400,11 @@ $(document).ready(function () {
       },
       cache: false,
       success: function (data) {
-        console.log("api_stock_list.php response:", data);
+        console.log("stock_list.php response:", data);
         let tbody = $("#stock_check_table");
         tbody.empty();
         if (!data || data.length === 0) {
-          console.warn("No data returned from api_stock_list.php");
+          console.warn("No data returned from stock_list.php");
           tbody.append(
             '<tr><td colspan="10" class="text-center py-4 text-gray-500">ไม่พบรายการตรวจสอบสต๊อกสินค้า</td></tr>'
           );
@@ -487,11 +487,11 @@ $(document).ready(function () {
         updateConfirmButtonState();
       },
       error: function (xhr, status, error) {
-        console.error("api_stock_list.php error:", xhr.responseText);
+        console.error("stock_list.php error:", xhr.responseText);
         Swal.fire({
           icon: "error",
           title: "ข้อผิดพลาด",
-          text: "ไม่สามารถดึงข้อมูลจาก api_stock_list.php: " + error,
+          text: "ไม่สามารถดึงข้อมูลจาก stock_list.php: " + error,
         });
         $("#checkbox-header").addClass("hidden");
         $("#btn-confirm-check").addClass("hidden");
@@ -523,7 +523,7 @@ $(document).ready(function () {
 
     // Check if there are pending stock checks
     $.ajax({
-      url: "page/stock/api/api_stock_list.php",
+      url: "page/stock/api/stock_list.php",
       type: "GET",
       data: { status: 1 },
       dataType: "json",
@@ -532,7 +532,7 @@ $(document).ready(function () {
       },
       cache: false,
       success: function (data) {
-        console.log("api_stock_list.php response for pending checks:", data);
+        console.log("stock_list.php response for pending checks:", data);
         // Filter data to ensure only check_status_id = 1
         const pendingItems = data.filter(
           (item) => parseInt(item.check_status_id) === 1
