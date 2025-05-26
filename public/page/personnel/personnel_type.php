@@ -1,5 +1,4 @@
 <?php
-// Backend logic remains unchanged
 require_once __DIR__ . '../../../../config/database_server.php';
 session_start();
 date_default_timezone_set('Asia/Bangkok');
@@ -42,13 +41,45 @@ function verifyCsrfToken($token)
 }
 
 // Validate personnel type data
-function validatePersonnelTypeData($personnel_type)
+function validatePersonnelTypeData($personnel_type, $pdo, $exclude_id = null)
 {
     $errors = [];
     if (empty($personnel_type) || strlen($personnel_type) > 255) {
         $errors[] = 'ชื่อประเภทบุคลากรต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร';
+    } else {
+        // Check personnel type name uniqueness
+        $query = "SELECT COUNT(*) FROM personnel_type WHERE personnel_type_name = :name";
+        if ($exclude_id) {
+            $query .= " AND personnel_type_id != :exclude_id";
+        }
+        $stmt = $pdo->prepare($query);
+        $stmt->bindValue(':name', $personnel_type);
+        if ($exclude_id) {
+            $stmt->bindValue(':exclude_id', $exclude_id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        if ($stmt->fetchColumn() > 0) {
+            $errors[] = 'ชื่อประเภทบุคลากรนี้มีอยู่ในระบบแล้ว';
+        }
     }
     return $errors;
+}
+
+// Check personnel type dependencies
+function checkPersonnelTypeDependencies($pdo, $personnel_type_id)
+{
+    $dependencies = [];
+
+    // Check personnel table
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM personnel WHERE personnel_type_id = ?");
+    $stmt->execute([$personnel_type_id]);
+    $count = $stmt->fetchColumn();
+    if ($count > 0) {
+        $dependencies[] = "บุคลากร ({$count} รายการ)";
+    }
+
+    // Add checks for other related tables if needed in the future
+    return $dependencies;
 }
 
 // Handle search and date parameters
@@ -64,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     $personnel_type = trim($_POST['personnel_type']);
-    $errors = validatePersonnelTypeData($personnel_type);
+    $errors = validatePersonnelTypeData($personnel_type, $pdo);
 
     if (!empty($errors)) {
         header('Location: index.php?page=personnel_type&error=' . urlencode(implode(', ', $errors)));
@@ -96,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
     $newpersonnel_type = trim($_POST['update_personnel_type']);
-    $errors = validatePersonnelTypeData($newpersonnel_type);
+    $errors = validatePersonnelTypeData($newpersonnel_type, $pdo, $id);
     if (!$id) {
         $errors[] = 'รหัสประเภทไม่ถูกต้อง';
     }
@@ -141,14 +172,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM personnel WHERE personnel_type_id = ?");
-        $stmt->execute([$id]);
-        if ($stmt->fetchColumn() > 0) {
+
+        // Check dependencies
+        $dependencies = checkPersonnelTypeDependencies($pdo, $id);
+        if (!empty($dependencies)) {
             $pdo->rollBack();
-            header('Location: index.php?page=personnel_type&error=' . urlencode('ไม่สามารถลบได้เนื่องจากมีบุคลากรที่เกี่ยวข้อง'));
+            $dependency_list = implode(', ', $dependencies);
+            header('Location: index.php?page=personnel_type&error=' . urlencode("ไม่สามารถลบประเภทบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: {$dependency_list}"));
             exit;
         }
 
+        // Proceed with deletion
         $stmt = $pdo->prepare("DELETE FROM personnel_type WHERE personnel_type_id = ?");
         $stmt->execute([$id]);
 
@@ -164,12 +198,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Delete personnel type error: ID=$id, Error=" . $e->getMessage());
-        header("Location: index.php?page=personnel_type&error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())));
+        $error_message = strpos($e->getMessage(), '1451') !== false
+            ? 'ไม่สามารถลบประเภทบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่ในระบบ'
+            : 'เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage());
+        header("Location: index.php?page=personnel_type&error=" . urlencode($error_message));
         exit;
     }
 }
 
-// Search and Pagination
+// Count total records for pagination
 try {
     $count_query = "SELECT COUNT(*) FROM personnel_type";
     $params = [];
@@ -200,11 +237,13 @@ try {
     exit;
 }
 
+// Pagination logic
 $records_per_page = 5;
 $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_records / $records_per_page));
 
+// Fetch personnel type data
 try {
     $query = "
         SELECT 
@@ -641,7 +680,7 @@ try {
             notification.classList.remove('hidden');
             setTimeout(() => {
                 notification.classList.add('hidden');
-            }, 5000);
+            }, 3000);
         }
 
         function exportPDF() {
