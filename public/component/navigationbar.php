@@ -65,6 +65,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 <li><a href="?page=bar_member" class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
                 <li><a href="?page=bar_supplier" class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
                 <li><a href="?page=bar_sale" class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a></li>
+                <li><a href="?page=bar_stock" class="<?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?>">เช็คสต๊อก</a></li>
             </ul>
         </div>
 
@@ -81,6 +82,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     <li><a href="?page=bar_member" class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
                     <li><a href="?page=bar_supplier" class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
                     <li><a href="?page=bar_sale" class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a></li>
+                    <li><a href="?page=bar_stock" class="<?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?>">เช็คสต๊อก</a></li>
                 </ul>
             </div>
         </div>
@@ -90,7 +92,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         <?php
         // Get page parameter and set defaults
         $page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
-        $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale'];
+        $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale' ,'bar_stock'];
 
         $dashboard_pages = [
             'dashboard'
@@ -167,6 +169,10 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'sale_output',
             'sale_inserttest'
         ];
+        $stock_pages = [
+            'stock_insert',
+            'stock_list'
+        ];
 
         if ($page) {
             $parts = explode('_', $page);
@@ -200,7 +206,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         'personnel' => 'personnel',
                         'member' => 'member',
                         'lot' => 'lot',
-                        'sale' => 'sale'
+                        'sale' => 'sale',
+                        'stock' => 'stock'
                     ];
 
                     if (isset($folderMapping[$module])) {
@@ -349,8 +356,18 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     if (isset($_GET['id'])) {
                         $_REQUEST['id'] = $_GET['id'];
                     }
-                }
+                } elseif ($prefix === 'stock' && in_array($page, $stock_pages)) {
+                    $barfile = __DIR__ . "/bar_stock.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'insert';
+                    $filepath = "$basePath/stock/stock_{$action}.php";
 
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                }
                 if (isset($filepath) && file_exists($filepath)) {
                     include $filepath;
                 } else if (isset($filepath)) {

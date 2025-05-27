@@ -46,11 +46,21 @@ if (!isset($_SESSION['active_sales'])) {
 $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 
 // Create new sale if none exists
+// Create new sale if none exists
 if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
     try {
         $pdo->beginTransaction();
         $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id, sale_net_amount, sale_vat_amount, sale_paid_amount, sale_change_amount, sale_total_amount) VALUES (?, 2, ?, ?, ?, ?, ?, ?, ?)");
-        $insertSale->execute([$currentDateTime, null, null]);
+        $insertSale->execute([
+            $currentDateTime, // sale_date
+            null,             // member_id
+            null,             // personnel_id
+            0,                // sale_net_amount
+            0.00,             // sale_vat_amount
+            0.00,             // sale_paid_amount
+            0.00,             // sale_change_amount
+            0.00              // sale_total_amount
+        ]);
         $sale_id = $pdo->lastInsertId();
         $_SESSION['active_sales'][] = $sale_id;
         $_SESSION['current_sale_id'] = $sale_id;
@@ -63,7 +73,6 @@ if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
         die("Error initializing sale: " . $e->getMessage());
     }
 }
-
 if (!$sale_id) {
     die("Error: sale_id is required.");
 }
@@ -453,9 +462,10 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                     placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off" autofocus
                                     <?php echo ($sale_status_id === 1) ? 'disable' : ''; ?>>
                                 <div id="barcode_suggestions"
-                                    class="absolute z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
+                                    class="z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                 </div>
                             </div>
+                            
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
                                 <input type="number" name="qty" value="1" min="1" id="barcode-qty"
