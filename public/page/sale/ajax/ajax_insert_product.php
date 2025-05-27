@@ -48,7 +48,7 @@ try {
 $sale_id = $_POST['sale_id'] ?? null;
 if (empty($sale_id)) {
     throw new Exception("กรุณาระบุ sale_id");
-}   
+}
 function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = false)
 {
     $remainingToProcess = $qty;
@@ -183,7 +183,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         $pdo->commit();
-        echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ']);
+        // คำนวณ sale_net_amount ใหม่หลังเพิ่มสินค้า
+        $stmt = $pdo->prepare("
+    SELECT SUM(sale_product_qty * sale_product_price) as sale_net_amount
+    FROM sale_product 
+    WHERE sale_id = ?
+");
+        $stmt->execute([$sale_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $sale_net_amount = (float)($result['sale_net_amount'] ?? 0);
+
+        echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ', 'sale_net_amount' => $sale_net_amount]);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();

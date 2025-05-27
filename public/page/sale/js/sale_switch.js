@@ -29,6 +29,7 @@ $(document).ready(function () {
                 console.log('Switch sale response:', response);
                 if (response.status === 'success') {
                     currentSaleId = saleId;
+                    // $(document).trigger("productListUpdated", [response.sale_net_amount]);
                     updateTabStyles();
                     window.location.href = `?page=sale_add&sale_id=${saleId}`;
                 } else {

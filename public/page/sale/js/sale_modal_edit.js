@@ -1,21 +1,23 @@
 $(document).ready(function () {
   const Toast = Swal.mixin({
     toast: true,
-    position: 'top',
+    position: "top",
     showConfirmButton: false,
     timer: 1500,
     timerProgressBar: true,
     didOpen: (toast) => {
-      toast.addEventListener('mouseenter', Swal.stopTimer);
-      toast.addEventListener('mouseleave', Swal.resumeTimer);
-      $('.main-body').removeAttr('aria-hidden');
+      toast.addEventListener("mouseenter", Swal.stopTimer);
+      toast.addEventListener("mouseleave", Swal.resumeTimer);
+      $(".main-body").removeAttr("aria-hidden");
     },
     didClose: () => {
-      if (!$('#edit-product-modal').is(':visible')) {
-        $('#barcode_input').focus();
+      if (!$("#edit-product-modal").is(":visible")) {
+        $("#barcode_input").focus();
       }
-    }
+    },
   });
+  // ดึง currentSaleId จาก input hidden ในฟอร์ม
+  const currentSaleId = $('input[name="sale_id"]').val();
 
   $(document).on("click", ".edit-product", function (e) {
     e.preventDefault();
@@ -62,7 +64,10 @@ $(document).ready(function () {
       success: function (response) {
         console.log("updateProductTable response:", response);
         if (response.status === "success") {
-          if (!response.html || response.html.includes("ไม่พบสินค้าในการขายนี้")) {
+          if (
+            !response.html ||
+            response.html.includes("ไม่พบสินค้าในการขายนี้")
+          ) {
             console.warn("response.html is empty or indicates no products");
             Swal.fire({
               icon: "warning",
@@ -72,9 +77,13 @@ $(document).ready(function () {
                 $(".main-body").removeAttr("aria-hidden");
               },
             });
-            $("#product_table_body").html('<tr><td colspan="7" class="text-center py-8 text-gray-500">ไม่พบสินค้า</td></tr>');
+            $("#product_table_body").html(
+              '<tr><td colspan="7" class="text-center py-8 text-gray-500">ไม่พบสินค้า</td></tr>'
+            );
           } else {
             $("#product_table_body").html(response.html);
+            $(".sale-net-amount").text(response.sale_net_amount + " บาท");
+            $(".sale-vat-amount").text(response.sale_vat_amount + " บาท");
             $(".total-amount").text(response.sale_total_amount + " บาท");
             $(".total-items").text(response.total_items + " รายการ");
             $(".total-qty").text(response.total_qty + " ชิ้น");
@@ -82,11 +91,11 @@ $(document).ready(function () {
             $("#confirm-sale-btn")
               .prop("disabled", !hasProducts)
               .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
-            $("#calculate_change").click();
-            bindEditProductEvents();
+            // $("#calculate_change").click(); // เรียกปุ่มคำนวณ
+            const saleNetAmount = parseFloat(response.sale_net_amount) || 0;
+            $(document).trigger("productListUpdated", [saleNetAmount]); // Trigger event
           }
-          // อัปเดตสถานะบิล
-          $("#sale-status").text(response.sale_status_name || 'ไม่ทราบสถานะ');
+          $("#sale-status").text(response.sale_status_name || "ไม่ทราบสถานะ");
           $(".main-body").removeAttr("aria-hidden");
         } else {
           console.error("updateProductTable failed:", response.message);
@@ -131,7 +140,8 @@ $(document).ready(function () {
       });
       return;
     }
-    const formData = $(this).serialize() + "&sale_id=" + encodeURIComponent(currentSaleId);
+    const formData =
+      $(this).serialize() + "&sale_id=" + encodeURIComponent(currentSaleId);
     console.log("Form data sent:", formData);
     $.ajax({
       url: "page/sale/ajax/ajax_update_product.php",
@@ -188,12 +198,12 @@ $(document).ready(function () {
     e.preventDefault();
     if (isProcessing) return;
     Swal.fire({
-      title: 'ยืนยันการขาย',
-      text: 'คุณต้องการยืนยันการขายนี้หรือไม่?',
-      icon: 'question',
+      title: "ยืนยันการขาย",
+      text: "คุณต้องการยืนยันการขายนี้หรือไม่?",
+      icon: "question",
       showCancelButton: true,
-      confirmButtonText: 'ยืนยัน',
-      cancelButtonText: 'ยกเลิก',
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "ยกเลิก",
       didOpen: () => {
         $(".main-body").removeAttr("aria-hidden");
       },
@@ -219,7 +229,9 @@ $(document).ready(function () {
                 title: response.message,
               });
               // อัปเดตสถานะและตาราง
-              $("#sale-status").text(response.sale_status_name || 'ไม่ทราบสถานะ');
+              $("#sale-status").text(
+                response.sale_status_name || "ไม่ทราบสถานะ"
+              );
               updateProductTable();
             } else {
               Swal.fire({
@@ -260,26 +272,26 @@ $(document).ready(function () {
     $("#barcode_input").focus();
   });
 
-  function bindEditProductEvents() {
-    $(".edit-product")
-      .off("click")
-      .on("click", function (e) {
-        e.preventDefault();
-        const barcode = $(this).data("barcode");
-        const name = $(this).data("name");
-        const qty = $(this).data("qty");
-        const price = $(this).data("price");
-        const capital = $(this).data("capital");
-        const reference = $(this).data("reference") || "";
-        $("#edit-barcode").val(barcode);
-        $("#edit-barcode-display").val(barcode);
-        $("#edit-product-name").val(name);
-        $("#edit-qty").val(qty);
-        $("#edit-price").val(parseFloat(price).toFixed(2));
-        $("#edit-capital").val(parseFloat(capital).toFixed(2));
-        $("#edit-reference").val(reference);
-        $(".main-body").attr("aria-hidden", "true");
-        $("#edit-product-modal").removeClass("hidden");
-      });
-  }
+  // function bindEditProductEvents() {
+  //   $(".edit-product")
+  //     .off("click")
+  //     .on("click", function (e) {
+  //       e.preventDefault();
+  //       const barcode = $(this).data("barcode");
+  //       const name = $(this).data("name");
+  //       const qty = $(this).data("qty");
+  //       const price = $(this).data("price");
+  //       const capital = $(this).data("capital");
+  //       const reference = $(this).data("reference") || "";
+  //       $("#edit-barcode").val(barcode);
+  //       $("#edit-barcode-display").val(barcode);
+  //       $("#edit-product-name").val(name);
+  //       $("#edit-qty").val(qty);
+  //       $("#edit-price").val(parseFloat(price).toFixed(2));
+  //       $("#edit-capital").val(parseFloat(capital).toFixed(2));
+  //       $("#edit-reference").val(reference);
+  //       $(".main-body").attr("aria-hidden", "true");
+  //       $("#edit-product-modal").removeClass("hidden");
+  //     });
+  // }
 });

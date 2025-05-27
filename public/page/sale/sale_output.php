@@ -114,20 +114,28 @@ if (!$sale_id) {
             </h2>
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="flex justify-between text-gray-800 mb-2">
+                    <span class="font-medium text-sm">ยอดสุทธิ (ไม่รวม VAT):</span>
+                    <span class="text-sm" id="sale-net-amount">0.00 บาท</span>
+                </div>
+                <div class="flex justify-between text-gray-800 mb-2">
+                    <span class="font-medium text-sm">VAT (7%):</span>
+                    <span class="text-sm" id="sale-vat-amount">0.00 บาท</span>
+                </div>
+                <div class="flex justify-between text-gray-800 mb-2">
                     <span class="font-medium text-sm">ยอดรวมสินค้า:</span>
-                    <span class="text-sm" id="sale_total_amount">0.00 บาท</span>
+                    <span class="text-sm" id="sale-total-amount">0.00 บาท</span>
                 </div>
                 <div class="border-t border-gray-200 pt-2 flex justify-between font-semibold text-2xl">
                     <span>ยอดรวมสุทธิที่ต้องชำระ:</span>
-                    <span class="text-blue-700" id="total_net">0.00 บาท</span>
+                    <span class="text-blue-700" id="total-net">0.00 บาท</span>
                 </div>
                 <div class="flex justify-between text-gray-800 mt-2">
                     <span class="font-medium text-sm">เงินที่ชำระ:</span>
-                    <span class="text-sm" id="sale_paid_amount_display">0.00 บาท</span>
+                    <span class="text-sm" id="sale-paid-amount">0.00 บาท</span>
                 </div>
                 <div class="flex justify-between text-gray-800 mt-2">
                     <span class="font-medium text-sm">เงินทอน:</span>
-                    <span class="text-sm text-blue-700 font-semibold" id="sale_change_amount_display">0.00 บาท</span>
+                    <span class="text-sm text-blue-700 font-semibold" id="sale-change-amount">0.00 บาท</span>
                 </div>
             </div>
         </div>
@@ -137,7 +145,6 @@ if (!$sale_id) {
         $(document).ready(function() {
             const saleId = '<?php echo htmlspecialchars($sale_id); ?>';
 
-            // Function to fetch sale details
             function fetchSaleDetail() {
                 $.ajax({
                     url: 'page/sale/api/api_sale_detail.php',
@@ -169,15 +176,12 @@ if (!$sale_id) {
                 });
             }
 
-            // Function to update UI
             function updateUI(data) {
-                // Update sale details
                 $('#personnel_name').text(data.sale.personnel_name || 'N/A');
                 $('#sale_status_name').text(data.sale.sale_status_name || 'รอดำเนินการ');
                 $('#member_name').text(data.sale.member_name || 'ไม่มี');
                 $('#member_phone').text(data.sale.member_phone || '-');
 
-                // Update product list
                 const $tbody = $('#product_table_body').empty();
                 if (data.products.length === 0) {
                     $('#no_products').removeClass('hidden');
@@ -185,34 +189,35 @@ if (!$sale_id) {
                     $('#no_products').addClass('hidden');
                     data.products.forEach(product => {
                         $tbody.append(`
-                            <tr class="border-t border-gray-200 hover:bg-gray-50">
-                                <td class="py-3 px-4 text-sm">${product.product_id}</td>
-                                <td class="py-3 px-4 text-sm">${product.product_name}</td>
-                                <td class="py-3 px-4 text-center text-sm">${product.sale_product_qty}</td>
-                                <td class="py-3 px-4 text-right text-sm">${parseFloat(product.sale_product_price).toFixed(2)}</td>
-                                <td class="py-3 px-4 text-right font-medium text-sm">${(product.sale_product_qty * product.sale_product_price).toFixed(2)}</td>
-                            </tr>
-                        `);
+                    <tr class="border-t border-gray-200 hover:bg-gray-50">
+                        <td class="py-3 px-4 text-sm">${product.product_id}</td>
+                        <td class="py-3 px-4 text-sm">${product.product_name}</td>
+                        <td class="py-3 px-4 text-center text-sm">${product.sale_product_qty}</td>
+                        <td class="py-3 px-4 text-right text-sm">${parseFloat(product.sale_product_price).toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right font-medium text-sm">${(product.sale_product_qty * product.sale_product_price).toFixed(2)}</td>
+                    </tr>
+                `);
                     });
                 }
 
-                // Update payment summary
-                $('#sale_total_amount').text(data.sale_total_amount.toFixed(2) + ' บาท');
-                $('#total_net').text(data.sale_total_amount.toFixed(2) + ' บาท');
-                $('#sale_paid_amount_display').text(parseFloat(data.sale_paid_amount).toFixed(2) + ' บาท');
-                $('#sale_change_amount_display').text(parseFloat(data.sale_change_amount).toFixed(2) + ' บาท');
+                const sale_net_amount = data.sale_total_amount / 1.07;
+                const sale_vat_amount = data.sale_total_amount - sale_net_amount;
+                $('#sale-net-amount').text(sale_net_amount.toFixed(2) + ' บาท');
+                $('#sale-vat-amount').text(sale_vat_amount.toFixed(2) + ' บาท');
+                $('#sale-total-amount').text(data.sale_total_amount.toFixed(2) + ' บาท');
+                $('#total-net').text(data.sale_total_amount.toFixed(2) + ' บาท');
+                $('#sale-paid-amount').text(parseFloat(data.sale_paid_amount).toFixed(2) + ' บาท');
+                $('#sale-change-amount').text(parseFloat(data.sale_change_amount).toFixed(2) + ' บาท');
             }
 
-            // Fetch data initially and every 2 seconds
             fetchSaleDetail();
             setInterval(fetchSaleDetail, 2000);
 
-            // Handle session errors
-            <?php if (isset($_SESSION['error'])): ?>
+            <?php if (isset($_SESSION['error'])) : ?>
                 Swal.fire({
                     icon: 'error',
                     title: 'ข้อผิดพลาด',
-                    text: '<?php echo $_SESSION['error']; ?>',
+                    text: '<?php echo htmlspecialchars($_SESSION['error']); ?>',
                     confirmButtonText: 'ตกลง'
                 });
                 <?php unset($_SESSION['error']); ?>

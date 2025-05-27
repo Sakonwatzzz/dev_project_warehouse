@@ -50,9 +50,7 @@ $(document).ready(function () {
           }).then(() => {
             // รีเฟรช ตารางและสถานะ
             // if (){
-
             // } else{
-
             // }
             // window.location.href = response.redirect;
           });
