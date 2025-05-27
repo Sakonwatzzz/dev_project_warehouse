@@ -21,6 +21,7 @@ $product_section_pages = [
     'lot_listinsert',
     'lot_list',
     'lot_productlist',
+    'lot_productlistmove',
     'lot_productinsert',
     'lot_insertout',
     'lot_warehouseinout',
@@ -119,6 +120,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'lot_list',
             'lot_insert',
             'lot_productlist',
+            'lot_productlistmove',
             'lot_productinsert',
             'lot_productupdate',
             'lot_update',
@@ -129,10 +131,11 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'warehouse_lot',
             'warehouse_move',
             'supplier_lot',
-            'supplier_movelot',
+            'personnel_lot',
             'lot_insertout',
             'lot_insertdetailout',
-            'lot_warehouseinout'
+            'lot_warehouseinout',
+            'lot_detailmove'
         ];
         $member_pages = [
             'member_list',
@@ -313,12 +316,12 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     if (isset($_GET['supplier_id'])) {
                         $_REQUEST['supplier_id'] = $_GET['supplier_id'];
                     }
-                } elseif ($prefix === 'supplier' && $page === 'supplier_movelot') {
+                } elseif ($prefix === 'personnel' && $page === 'personnel_lot') {
                     $barfile = __DIR__ . "/bar_product.php";
                     if (file_exists($barfile)) {
                         include $barfile;
                     }
-                    $filepath = "$basePath/lot/supplier_movelot.php";
+                    $filepath = "$basePath/lot/personnel_lot.php";
 
                     if (isset($_GET['supplier_id'])) {
                         $_REQUEST['supplier_id'] = $_GET['supplier_id'];

@@ -17,12 +17,12 @@ try {
         lot.lot_id, 
         lot.lot_name,
         warehouse.warehouse_name, 
-        supplier.supplier_name, 
+        personnel.personnel_name, 
         lot_status.lot_status_name
     FROM
         lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-        LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+        LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id
         LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
     WHERE lot.warehouse_inout = 2";
 
@@ -115,7 +115,7 @@ try {
             $sheet->setCellValueExplicit("A$row", $lot['lot_id'], DataType::TYPE_STRING);
             $sheet->setCellValue("B$row", $lot['lot_name']);
             $sheet->setCellValue("C$row", $lot['warehouse_name']);
-            $sheet->setCellValue("D$row", $lot['supplier_name']);
+            $sheet->setCellValue("D$row", $lot['personnel_name']);
             $sheet->setCellValue("E$row", $lot['lot_status_name']);
             $sheet->getRowDimension($row)->setRowHeight(20);
         }

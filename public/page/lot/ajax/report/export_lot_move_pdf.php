@@ -64,12 +64,12 @@ try {
         lot.lot_id, 
         lot.lot_name,
         warehouse.warehouse_name, 
-        supplier.supplier_name, 
+        personnel.personnel_name, 
         lot_status.lot_status_name
     FROM
         lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
-        LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+        LEFT JOIN personnel ON lot.personnel_id = personnel.personnel_id
         LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
     WHERE lot.warehouse_inout = 2";
 
@@ -109,7 +109,7 @@ try {
         $pdf->Cell(30, 10, thai($lot['lot_id']), 1, 0, 'C');
         $pdf->Cell(50, 10, thai($lot['lot_name']), 1, 0, 'L');
         $pdf->Cell(40, 10, thai($lot['warehouse_name']), 1, 0, 'L');
-        $pdf->Cell(40, 10, thai($lot['supplier_name']), 1, 0, 'L');
+        $pdf->Cell(40, 10, thai($lot['personnel_name']), 1, 0, 'L');
         $pdf->Cell(30, 10, thai($lot['lot_status_name']), 1, 1, 'C');
     }
 

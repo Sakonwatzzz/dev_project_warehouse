@@ -41,13 +41,45 @@ function verifyCsrfToken($token)
 }
 
 // Validate personnel type data
-function validatePersonnelTypeData($personnel_type)
+function validatePersonnelTypeData($personnel_type, $pdo, $exclude_id = null)
 {
     $errors = [];
     if (empty($personnel_type) || strlen($personnel_type) > 255) {
         $errors[] = 'ชื่อประเภทบุคลากรต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร';
+    } else {
+        // Check personnel type name uniqueness
+        $query = "SELECT COUNT(*) FROM personnel_type WHERE personnel_type_name = :name";
+        if ($exclude_id) {
+            $query .= " AND personnel_type_id != :exclude_id";
+        }
+        $stmt = $pdo->prepare($query);
+        $stmt->bindValue(':name', $personnel_type);
+        if ($exclude_id) {
+            $stmt->bindValue(':exclude_id', $exclude_id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        if ($stmt->fetchColumn() > 0) {
+            $errors[] = 'ชื่อประเภทบุคลากรนี้มีอยู่ในระบบแล้ว';
+        }
     }
     return $errors;
+}
+
+// Check personnel type dependencies
+function checkPersonnelTypeDependencies($pdo, $personnel_type_id)
+{
+    $dependencies = [];
+
+    // Check personnel table
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM personnel WHERE personnel_type_id = ?");
+    $stmt->execute([$personnel_type_id]);
+    $count = $stmt->fetchColumn();
+    if ($count > 0) {
+        $dependencies[] = "บุคลากร ({$count} รายการ)";
+    }
+
+    // Add checks for other related tables if needed in the future
+    return $dependencies;
 }
 
 // Handle search and date parameters
@@ -63,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     $personnel_type = trim($_POST['personnel_type']);
-    $errors = validatePersonnelTypeData($personnel_type);
+    $errors = validatePersonnelTypeData($personnel_type, $pdo);
 
     if (!empty($errors)) {
         header('Location: index.php?page=personnel_type&error=' . urlencode(implode(', ', $errors)));
@@ -95,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
     $newpersonnel_type = trim($_POST['update_personnel_type']);
-    $errors = validatePersonnelTypeData($newpersonnel_type);
+    $errors = validatePersonnelTypeData($newpersonnel_type, $pdo, $id);
     if (!$id) {
         $errors[] = 'รหัสประเภทไม่ถูกต้อง';
     }
@@ -140,14 +172,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM personnel WHERE personnel_type_id = ?");
-        $stmt->execute([$id]);
-        if ($stmt->fetchColumn() > 0) {
+
+        // Check dependencies
+        $dependencies = checkPersonnelTypeDependencies($pdo, $id);
+        if (!empty($dependencies)) {
             $pdo->rollBack();
-            header('Location: index.php?page=personnel_type&error=' . urlencode('ไม่สามารถลบได้เนื่องจากมีบุคลากรที่เกี่ยวข้อง'));
+            $dependency_list = implode(', ', $dependencies);
+            header('Location: index.php?page=personnel_type&error=' . urlencode("ไม่สามารถลบประเภทบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: {$dependency_list}"));
             exit;
         }
 
+        // Proceed with deletion
         $stmt = $pdo->prepare("DELETE FROM personnel_type WHERE personnel_type_id = ?");
         $stmt->execute([$id]);
 
@@ -163,17 +198,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Delete personnel type error: ID=$id, Error=" . $e->getMessage());
-        header("Location: index.php?page=personnel_type&error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())));
+        $error_message = strpos($e->getMessage(), '1451') !== false
+            ? 'ไม่สามารถลบประเภทบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่ในระบบ'
+            : 'เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage());
+        header("Location: index.php?page=personnel_type&error=" . urlencode($error_message));
         exit;
     }
 }
 
-// Search and Pagination
+// Count total records for pagination
 try {
     $count_query = "SELECT COUNT(*) FROM personnel_type";
     $params = [];
     if (!empty($search)) {
-        $count_query .= " WHERE personnel_type_name LIKE :search OR_SEQUENCE_type_id LIKE :search";
+        $count_query .= " WHERE personnel_type_name LIKE :search OR personnel_type_id LIKE :search";
         $params[':search'] = "%$search%";
     }
     if ($start_date || $end_date) {
@@ -199,11 +237,13 @@ try {
     exit;
 }
 
+// Pagination logic
 $records_per_page = 5;
 $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_records / $records_per_page));
 
+// Fetch personnel type data
 try {
     $query = "
         SELECT 
@@ -253,7 +293,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>จัดการประเภทบุคลากร</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../../output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
@@ -285,32 +325,63 @@ try {
 <body class="bg-gray-50">
     <div class="container mx-auto px-4 py-8">
         <!-- Header and Search Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-8">
-            <div class="flex items-center gap-6">
-                <h2 class="text-2xl font-bold text-gray-800">จำนวนประเภทบุคลากร:</h2>
-                <div class="px-4 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[50px]">
-                    <?php echo number_format($total_records); ?>
+        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
+            <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
+                <div class="flex space-x-2">
+                    <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
+                        <i class="fas fa-list mr-2"></i>
+                        <?php echo number_format($total_records); ?>
+                        <span>รายการ</span>
+                    </div>
                 </div>
                 <button onclick="showAddModal()"
-                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center">
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
                     <i class="fas fa-plus mr-2"></i>เพิ่มประเภทบุคลากร
                 </button>
             </div>
-            <div class="text-end">
-                <form action="" method="GET" id="searchForm">
+            <div class="flex items-center">
+                <form action="" method="GET" id="searchForm" class="w-full text-end">
                     <input type="hidden" name="page" value="personnel_type">
                     <input type="hidden" name="page_num" value="1">
                     <div class="relative">
                         <input type="text" name="search" id="searchInput"
                             placeholder="ค้นหาประเภทบุคลากร..."
                             value="<?php echo htmlspecialchars($search); ?>"
-                            class="w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             oninput="checkEmptySearch(this)">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
                 </form>
+            </div>
+            <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
+                <!-- Mobile Date Filter -->
+                <div class="grid grid-cols-2 gap-4 md:w-[100%]">
+                    <div>
+                        <label for="start_date" class="text-sm font-medium text-gray-700">เริ่มจาก</label>
+                        <input type="date" id="start_date" name="start_date"
+                            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
+                            value="<?php echo htmlspecialchars($start_date); ?>">
+                    </div>
+                    <div>
+                        <label for="end_date" class="text-sm font-medium text-gray-700">ถึงวันที่</label>
+                        <input type="date" id="end_date" name="end_date"
+                            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
+                            value="<?php echo htmlspecialchars($end_date); ?>">
+                    </div>
+                </div>
+                <!-- Export Buttons -->
+                <div class="grid grid-cols-2 gap-4 pt-2 md:w-[100%] md:grid md:grid-cols-2 md:gap-4">
+                    <button onclick="exportPDF()"
+                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
+                        <i class="fas fa-file-pdf"></i> ส่งออก PDF
+                    </button>
+                    <button onclick="exportExcel()"
+                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
+                        <i class="fas fa-file-excel"></i> ส่งออก Excel
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -323,41 +394,11 @@ try {
 
         <!-- Table Section -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+            <div class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                    <!-- หัวข้อ -->
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-list mr-2"></i> รายการประเภทบุคลากร
-                        </h2>
-                    </div>
-
-                    <!-- ปุ่มดาวน์โหลดรายงาน -->
-                    <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
-                        <!-- เลือกช่วงวันที่ -->
-                        <div class="flex items-center space-x-2">
-                            <label for="start_date" class="text-sm font-medium">วันที่เริ่มต้น</label>
-                            <input type="date" id="start_date" name="start_date"
-                                class="border rounded px-2 py-1"
-                                value="<?php echo htmlspecialchars($start_date); ?>">
-                            <label for="end_date" class="text-sm font-medium">ถึง</label>
-                            <input type="date" id="end_date" name="end_date"
-                                class="border rounded px-2 py-1"
-                                value="<?php echo htmlspecialchars($end_date); ?>">
-                        </div>
-
-                        <!-- ปุ่มดาวน์โหลด -->
-                        <div class="flex space-x-2">
-                            <button onclick="exportPDF()"
-                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-red-600 transition flex items-center text-sm md:text-base">
-                                <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
-                            </button>
-                            <button onclick="exportExcel()"
-                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-green-600 transition flex items-center text-sm md:text-base">
-                                <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
-                            </button>
-                        </div>
-                    </div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-list mr-2"></i> รายการประเภทบุคลากร
+                    </h2>
                 </div>
             </div>
             <div class="p-6">
@@ -377,7 +418,7 @@ try {
                                 <?php foreach ($personnel_types as $personneltype): ?>
                                     <tr class="hover:bg-gray-100" data-id="<?php echo htmlspecialchars($personneltype['personnel_type_id']); ?>">
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($personneltype['personnel_type_id']); ?></td>
-                                        <td class="px-6 py-2 border type-name"><?php echo htmlspecialchars($personneltype['personnel_type_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($personneltype['personnel_type_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($personneltype['personnel_type_date']); ?></td>
                                         <td class="px-6 py-2 border">
                                             <a href="?page=personnel_group&type=<?php echo urlencode($personneltype['personnel_type_name']); ?>"
@@ -423,7 +464,7 @@ try {
                                     <span class="text-sm"><?php echo htmlspecialchars($personneltype['personnel_type_id']); ?></span>
                                 </div>
                                 <div class="flex justify-between items-center mb-2">
-                                    <span class="text-gray-700 font-semibold text-sm type-name">ชื่อประเภท:</span>
+                                    <span class="text-gray-700 font-semibold text-sm">ชื่อประเภท:</span>
                                     <span class="text-sm"><?php echo htmlspecialchars($personneltype['personnel_type_name']); ?></span>
                                 </div>
                                 <div class="flex justify-between items-center mb-2">
@@ -523,12 +564,6 @@ try {
                             required>
                         <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
-                    <div>
-                        <label for="personnel_type_date" class="block text-sm font-medium text-gray-700">วันที่และเวลา</label>
-                        <input type="text" id="addPersonnelTypedate" name="personnel_type_date" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly
-                            class="w-full px-3 py-2 border border-gray-300 bg-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-not-allowed">
-                        <span id="addDateError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
                     <div class="flex justify-end gap-2">
                         <button type="button" onclick="closeAddModal()"
                             class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
@@ -601,9 +636,7 @@ try {
 
         function showAddModal() {
             document.getElementById('addPersonnelType').value = '';
-            document.getElementById('addPersonnelTypedate').value = '<?php echo date('Y-m-d H:i:s'); ?>';
             document.getElementById('addNameError').classList.add('hidden');
-            document.getElementById('addDateError').classList.add('hidden');
             document.getElementById('addModal').classList.remove('invisible', 'opacity-0');
         }
 
@@ -647,7 +680,7 @@ try {
             notification.classList.remove('hidden');
             setTimeout(() => {
                 notification.classList.add('hidden');
-            }, 5000);
+            }, 3000);
         }
 
         function exportPDF() {

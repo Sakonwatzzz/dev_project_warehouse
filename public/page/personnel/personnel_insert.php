@@ -213,7 +213,7 @@ ob_end_flush();
                         </div>
 
                         <!-- วันที่สมัคร -->
-                        <div class="flex items-center  flex-col sm:flex-row sm:items-center gap-4">
+                        <div class="flex items-center gap-4">
                             <label for="personnel_create_date" class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">วันที่และเวลา</label>
                             <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
                                 <input type="text" name="personnel_create_date" id="personnel_create_date" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly
