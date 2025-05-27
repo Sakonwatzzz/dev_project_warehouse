@@ -1,22 +1,8 @@
 $(document).on("click", ".btn-delete-stock", function () {
   let stock_check_id = $(this).data("stock-check-id");
-  const Toast = Swal.mixin({
-    toast: true,
-    position: "top-end",
-    showConfirmButton: false,
-    timer: 1500,
-    timerProgressBar: true,
-    customClass: {
-      popup: "small-toast",
-    },
-    didOpen: (toast) => {
-      toast.addEventListener("mouseenter", Swal.stopTimer);
-      toast.addEventListener("mouseleave", Swal.resumeTimer);
-    },
-  });
   Swal.fire({
     title: "ยืนยันการลบ?",
-    text: "เซสชันและรายการทั้งหมดจะถูกลบ",
+    text: "รายการนี้จะถูกลบ",
     icon: "warning",
     showCancelButton: true,
     confirmButtonText: "ลบ",
@@ -31,10 +17,6 @@ $(document).on("click", ".btn-delete-stock", function () {
         success: function (response) {
           if (response.status === "success") {
             Toast.fire({ icon: "success", title: response.message });
-            if (parseInt(stock_check_id) === parseInt(currentStockId)) {
-              currentStockId = null;
-              $("#current_stock_id").val("");
-            }
             loadStockCheck();
           } else {
             Toast.fire({ icon: "error", title: response.message });
