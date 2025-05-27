@@ -187,10 +187,10 @@ ob_end_flush();
 
 <body class="bg-gray-50">
     <div class="container mx-auto px-4 py-8">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800">รอบของสินค้า</h1>
-            <div class="text-gray-600">
-                <i class="far fa-clock mr-2"></i><?= $displayDateTime ?>
+        <header class="flex justify-end items-center mb-8">
+            <!-- <h1 class="text-4xl font-bold text-gray-800">รอบของสินค้า</h1> -->
+            <div class="text-gray-600 ">
+                <i class="far fa-clock mr-2 "></i><?= $displayDateTime ?>
             </div>
         </header>
 
@@ -202,7 +202,7 @@ ob_end_flush();
 
         <!-- Form Section -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+            <div class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
                 <h2 class="text-2xl font-bold text-gray-800 flex items-center">
                     <i class="fas fa-box-open mr-3 "></i>เพิ่มรอบสินค้าใหม่
                 </h2>
@@ -444,7 +444,7 @@ ob_end_flush();
 
         <!-- Recent Lots Table Section -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+            <div class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
                 <h2 class="text-2xl font-bold text-gray-800 flex items-center">
                     <i class="fas fa-list mr-2"></i>รายการรอบสินค้าล่าสุด
                 </h2>

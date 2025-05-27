@@ -171,7 +171,7 @@ try {
     <div class="mx-[8rem] mt-11">
         <!-- Table -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+            <div class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
                 <h2 class="text-2xl font-bold text-gray-800 flex items-center">
                     <i class="fas fa-list mr-2"></i>รายการคลังสินค้า
                 </h2>
@@ -198,7 +198,7 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($warehouse['lot_count']); ?></td>
                                         <td class="px-6 py-2 border text-center">
                                             <div class="flex justify-center space-x-2">
-                                                
+
                                                 <button onclick="enableEdit(this)"
                                                     class="edit-btn bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600 transition flex items-center">
                                                     <i class="fas fa-edit mr-1"></i>แก้ไข
@@ -283,7 +283,7 @@ try {
         <h2 class="text-2xl font-bold text-gray-800 mb-6">คลังสินค้า</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8 ">
             <?php foreach ($warehouses as $warehouse): ?>
-                <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer shadow-md "
+                <div class="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer shadow-md "
                     onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?= htmlspecialchars($warehouse['warehouse_id']) ?>'">
                     <div class="bg-blue-100 p-4 border-b border-gray-200">
                         <h3 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($warehouse['warehouse_name']) ?></h3>

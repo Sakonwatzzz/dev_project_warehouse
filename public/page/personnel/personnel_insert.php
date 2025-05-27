@@ -116,13 +116,13 @@ ob_end_flush();
 </head>
 
 <body class="bg-gray-100 font-sans">
-    <div class="container mx-auto xl:max-w-4xl p-4">
-        <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">เพิ่มบุคลากร</h2>
+    <div class="container mx-auto xl:max-w-4xl p-4 md:pt-8">
+        <!-- <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">เพิ่มบุคลากร</h2> -->
         <div class="flex flex-col lg:flex-row gap-6">
             <!-- Personnel Insert Section -->
             <div class="w-full">
                 <div class="bg-gray-50 border-2 border-gray-300 shadow-md rounded-lg">
-                    <h3 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-xl font-bold p-4 border-b-2 border-gray-400 rounded-t-lg">
+                    <h3 class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc] text-gray-800 text-xl font-bold  rounded-t-lg">
                         กรอกข้อมูลบุคลากร
                     </h3>
                     <form class="p-6 space-y-1" action="" method="POST" id="personnelForm">
