@@ -21,12 +21,14 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 $_SESSION['LAST_ACTIVITY'] = time();
 
 // CSRF Verification
-function verifyCsrfToken($token) {
+function verifyCsrfToken($token)
+{
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
 // Check for duplicate product_id
-function checkProductIdExists($pdo, $product_id) {
+function checkProductIdExists($pdo, $product_id)
+{
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE product_id = ?");
     $stmt->execute([$product_id]);
     return $stmt->fetchColumn() > 0;
@@ -140,8 +142,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
 
         $stmt->execute([
-            $product_id, $name, $price_1, $price_2, $price_3,
-            $price_4, $capital, $typename, $typebrandname
+            $product_id,
+            $name,
+            $price_1,
+            $price_2,
+            $price_3,
+            $price_4,
+            $capital,
+            $typename,
+            $typebrandname
         ]);
 
         header("Location: ?page=product_detail&tabel=product&id=" . urlencode($product_id));
@@ -173,20 +182,22 @@ ob_end_flush();
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/output.css" rel="stylesheet">
     <title>เพิ่มสินค้า</title>
 </head>
+
 <body class="bg-gray-100 font-sans">
-    <div class="container mx-auto xl:max-w-4xl p-4">
-        <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">เพิ่มสินค้า</h2>
+    <div class="container mx-auto xl:max-w-4xl p-4 md:pt-8">
+        <!-- <h2 class="text-gray-800 text-2xl font-bold mt-8 mb-4">เพิ่มสินค้า</h2> -->
         <div class="flex flex-col lg:flex-row gap-6">
             <div class="w-full">
-                <div class="bg-gray-50 border-2 border-gray-300 shadow-md rounded-lg">
-                    <h3 class="bg-gradient-to-b from-[#c8d8ed] via-[#c8d8ed] to-[#c8d8ed] text-gray-800 text-xl font-bold p-4 border-b-2 border-gray-400 rounded-t-lg">
-                        กรอกข้อมูลสินค้า
+                <div class="bg-gray-50 border-2 border-gray-300 shadow-md rounded-lg ">
+                    <h3 class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc] text-gray-800 text-xl font-bold  rounded-t-lg">
+                        เพิ่มข้อมูลสินค้า
                     </h3>
                     <form class="p-6 space-y-1" action="" method="POST" id="productForm">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
@@ -241,17 +252,17 @@ ob_end_flush();
                                 <select name="typename" id="typename" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                                     <?php while ($typeRow = $typeResults->fetch(PDO::FETCH_ASSOC)): ?>
                                         <option value="<?php echo htmlspecialchars($typeRow['product_type_id']); ?>" <?php echo ($new_type_id && $typeRow['product_type_id'] == $new_type_id) ? 'selected' : ''; ?>>
-                                            <?php 
+                                            <?php
                                             // Optionally display datetime in dropdown (comment out if not needed)
-                                            echo htmlspecialchars($typeRow['product_type_name']); 
+                                            echo htmlspecialchars($typeRow['product_type_name']);
                                             // echo htmlspecialchars($typeRow['product_type_name'] . ' (' . $typeRow['product_type_date'] . ')'); 
                                             ?>
                                         </option>
                                     <?php endwhile; ?>
                                 </select>
-                                <button type="button" onclick="showAddTypeModal()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">
+                                <button type="button" onclick="showAddTypeModal()" class="  bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200 ">
                                     เพิ่ม
-                                </button>          
+                                </button>
                             </div>
                         </div>
                         <div class="flex items-center gap-4">
@@ -262,9 +273,9 @@ ob_end_flush();
                                 <select name="typebrandname" id="typebrandname" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                                     <?php while ($brandRow = $brandResults->fetch(PDO::FETCH_ASSOC)): ?>
                                         <option value="<?php echo htmlspecialchars($brandRow['product_brand_id']); ?>" <?php echo ($new_brand_id && $brandRow['product_brand_id'] == $new_brand_id) ? 'selected' : ''; ?>>
-                                            <?php 
+                                            <?php
                                             // Optionally display datetime in dropdown (comment out if not needed)
-                                            echo htmlspecialchars($brandRow['product_brand_name']); 
+                                            echo htmlspecialchars($brandRow['product_brand_name']);
                                             // echo htmlspecialchars($brandRow['product_brand_name'] . ' (' . $brandRow['product_brand_date'] . ')'); 
                                             ?>
                                         </option>
@@ -303,7 +314,7 @@ ob_end_flush();
     </div>
 
     <!-- Add Product Type Modal -->
-    <div id="addTypeModal" class="hidden fixed inset-0 bg-black bg-opacity-50  items-center justify-center z-50 ">
+    <div id="addTypeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-md mx-auto w-full transform transition-all scale-95">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold">เพิ่มประเภทสินค้า</h3>
@@ -324,7 +335,7 @@ ob_end_flush();
                 <div>
                     <label for="personnel_id_type" class="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
                     <select name="personnel_id" id="personnel_id_type" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" required>
-                        <?php 
+                        <?php
                         $personnelResults->execute();
                         while ($personnelRow = $personnelResults->fetch(PDO::FETCH_ASSOC)): ?>
                             <option value="<?php echo htmlspecialchars($personnelRow['personnel_id']); ?>">
@@ -368,7 +379,7 @@ ob_end_flush();
                 <div>
                     <label for="personnel_id_brand" class="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
                     <select name="personnel_id" id="personnel_id_brand" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" required>
-                        <?php 
+                        <?php
                         $personnelResults->execute();
                         while ($personnelRow = $personnelResults->fetch(PDO::FETCH_ASSOC)): ?>
                             <option value="<?php echo htmlspecialchars($personnelRow['personnel_id']); ?>">
@@ -396,9 +407,11 @@ ob_end_flush();
             document.getElementById('personnel_id_type').value = '';
             document.getElementById('addtypeNameError').classList.add('hidden');
             document.getElementById('personnelIdTypeError').classList.add('hidden');
-            document.getElementById('addTypeModal').classList.remove('hidden');
-            document.getElementById('addTypeModal').querySelector('.transform').classList.remove('scale-95');
-            document.getElementById('addTypeModal').querySelector('.transform').classList.add('scale-100');
+            const modal = document.getElementById('addTypeModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex'); // เพิ่มบรรทัดนี้
+            modal.querySelector('.transform').classList.remove('scale-95');
+            modal.querySelector('.transform').classList.add('scale-100');
         }
 
         function closeAddTypeModal() {
@@ -412,9 +425,11 @@ ob_end_flush();
             document.getElementById('personnel_id_brand').value = '';
             document.getElementById('addBrandNameError').classList.add('hidden');
             document.getElementById('personnelIdBrandError').classList.add('hidden');
-            document.getElementById('addBrandModal').classList.remove('hidden');
-            document.getElementById('addBrandModal').querySelector('.transform').classList.remove('scale-95');
-            document.getElementById('addBrandModal').querySelector('.transform').classList.add('scale-100');
+            const modal = document.getElementById('addBrandModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex'); // เพิ่มบรรทัดนี้
+            modal.querySelector('.transform').classList.remove('scale-95');
+            modal.querySelector('.transform').classList.add('scale-100');
         }
 
         function closeAddBrandModal() {
@@ -551,4 +566,5 @@ ob_end_flush();
         });
     </script>
 </body>
+
 </html>

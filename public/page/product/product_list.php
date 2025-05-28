@@ -104,7 +104,7 @@ try {
     }
 
     // ตั้งค่าการแบ่งหน้า
-    $records_per_page = 15;
+    $records_per_page = 10;
     $page = isset($_GET['page_num']) ? max(1, (int) $_GET['page_num']) : 1;
     $offset = ($page - 1) * $records_per_page;
 
@@ -250,7 +250,6 @@ try {
     $brand_stmt->bindValue(1, $brandLimit, PDO::PARAM_INT);
     $brand_stmt->execute();
     $brandResults = $brand_stmt->fetchAll(PDO::FETCH_ASSOC);
-
 } catch (PDOException $e) {
     error_log("ข้อผิดพลาดฐานข้อมูล: " . $e->getMessage());
     die("เกิดข้อผิดพลาดขณะประมวลผลคำขอของคุณ: " . htmlspecialchars($e->getMessage()));
@@ -288,52 +287,62 @@ try {
 
 <body class="bg-gray-50">
     <div class="px-4 py-6 sm:py-8">
-        <!-- ส่วนหัว -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-            <div class="flex items-center gap-4 flex-wrap">
-                <?php if ($incomplete_mode): ?>
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800">จำนวนสินค้าที่ไม่สมบูรณ์:</h2>
-                    <div class="px-3 py-1 bg-white border border-red-500 rounded shadow text-center min-w-[40px] text-red-600 font-bold">
-                        <?php echo isset($incomplete_count) ? $incomplete_count : '0'; ?>
+        <!-- Header and Search Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
+            <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
+                <div class="flex space-x-2">
+                    <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
+                        <i class="fas fa-list mr-2"></i>
+                        <?php echo $total_records; ?>
+                        <span>รายการ</span>
                     </div>
-                <?php else: ?>
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800">จำนวนสินค้า:</h2>
-                    <div class="px-3 py-1 bg-white border border-gray-300 rounded shadow text-center min-w-[40px]">
-                        <?php echo $count; ?>
-                    </div>
-                <?php endif; ?>
-                <a href="?page=product_insert"
-                    class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition flex items-center text-sm sm:text-base">
-                    <i class="fas fa-plus mr-1 sm:mr-2"></i>เพิ่มสินค้าใหม่
-                </a>
+                </div>
+                <button "
+                    class=" bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+                    <a href="/?page=product_insert"
+                        class="">
+                        <i class="fas fa-plus mr-2"></i>เพิ่มสินค้า
+                    </a>
+                </button>
             </div>
 
-            <!-- ช่องค้นหา -->
-            <div class="w-full sm:w-auto">
-                <form action="" method="GET" class="w-full" id="searchForm">
+            <div class="flex items-center">
+                <form action="" method="GET" id="searchForm" class="w-full text-end">
                     <input type="hidden" name="page" value="product_list">
-                    <input type="hidden" name="mode" value="<?php echo $incomplete_mode ? 'incomplete' : ''; ?>">
-                    <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>">
-                    <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>">
-                    <?php if (!empty($selected_types)): ?>
-                        <input type="hidden" name="product_type" value="<?php echo htmlspecialchars(implode(',', $selected_types)); ?>">
-                    <?php endif; ?>
-                    <?php if (!empty($selected_brands)): ?>
-                        <input type="hidden" name="product_brand" value="<?php echo htmlspecialchars(implode(',', $selected_brands)); ?>">
-                    <?php endif; ?>
+                    <input type="hidden" name="page_num" value="1">
                     <div class="relative">
-                        <input type="text" name="search" id="searchInput"
-                            placeholder="ค้นหาสินค้า..."
-                            class="w-full sm:w-[250px] lg:w-[350px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                            value="<?php echo htmlspecialchars($search); ?>"
-                            oninput="checkEmptySearch(this)">
+                        <input type="text" name="search" id="searchInput" placeholder="ค้นหาประเภทสินค้า..." value="<?php echo htmlspecialchars($search); ?>" class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
                 </form>
             </div>
+
+            <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
+                <!-- Mobile Date Filter -->
+                <div class="grid grid-cols-2 gap-4 md:w-[100%]">
+                    <div>
+                        <label for="start_date" class="text-sm font-medium text-gray-700">เริ่มจาก</label>
+                        <input type="date" id="start_date" name="start_date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition" value="<?php echo htmlspecialchars($start_date); ?>">
+                    </div>
+                    <div>
+                        <label for="end_date" class="text-sm font-medium text-gray-700">ถึงวันที่</label>
+                        <input type="date" id="end_date" name="end_date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition" value="<?php echo htmlspecialchars($end_date); ?>">
+                    </div>
+                </div>
+                <!-- Export Buttons -->
+                <div class="grid grid-cols-2 gap-4 pt-2 md:w-[100%] md:grid md:grid-cols-2 md:gap-4">
+                    <button onclick="exportPDF()" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
+                        <i class="fas fa-file-pdf"></i> ส่งออก PDF
+                    </button>
+                    <button onclick="exportExcel()" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
+                        <i class="fas fa-file-excel"></i> ส่งออก Excel
+                    </button>
+                </div>
+            </div>
         </div>
+
 
         <!-- ตัวกรองและตาราง -->
         <div class="flex flex-col lg:flex-row gap-6">
@@ -430,47 +439,26 @@ try {
             <!-- ส่วนตาราง -->
             <div class="w-full lg:w-4/5">
                 <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6 sm:mb-8">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b] space-y-4 sm:space-y-0">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
                         <!-- หัวข้อ -->
-                        <h2 class="text-lg sm:text-2xl font-bold text-gray-800 flex items-center">
+                        <h2 class="text-lg sm:text-2xl font-bold text-gray-800 flex items-center mb-2 md:mb-0">
                             <i class="fas fa-list mr-2"></i>รายการสินค้า
                         </h2>
 
-                        <!-- กลุ่มตัวกรองวันที่และปุ่มส่งออก -->
-                        <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 w-full sm:w-auto">
-                            <!-- เลือกช่วงวันที่ -->
-                            <div class="flex flex-wrap items-center space-x-2">
-                                <label for="start_date" class="text-sm font-medium">วันที่นำเข้า</label>
-                                <input type="date" id="start_date" name="start_date" class="border rounded px-2 py-1"
-                                    value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
-                                <label for="end_date" class="text-sm font-medium">ถึง</label>
-                                <input type="date" id="end_date" name="end_date" class="border rounded px-2 py-1"
-                                    value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
-                            </div>
-
-                            <!-- ปุ่มดาวน์โหลดรายงาน -->
-                            <div class="flex space-x-2">
-                                <button onclick="exportPDF()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm md:text-base">
-                                    <i class="fas fa-file-pdf mr-2"></i>ส่งออก PDF
-                                </button>
-                                <button onclick="exportExcel()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm md:text-base">
-                                    <i class="fas fa-file-excel mr-2"></i>ส่งออก Excel
-                                </button>
-                            </div>
+                        <!-- ปุ่ม -->
+                        <div class=" grid grid-cols-2 gap-2 md:flex md:items-center md:space-x-2 ">
+                            <a href="?page=product_list"
+                                class="px-3 py-1.5 text-center sm:px-4 sm:py-2 rounded-md font-bold transition-all text-sm sm:text-base <?php echo !$incomplete_mode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 border border-gray-300'; ?>">
+                                แสดงทั้งหมด
+                            </a>
+                            <a href="?page=product_list&mode=incomplete"
+                                class="px-3 py-1.5 text-center sm:px-4 sm:py-2 rounded-md font-bold transition-all text-sm sm:text-base <?php echo $incomplete_mode ? 'bg-red-600 text-white' : 'bg-red-100 text-red-600 border border-red-300'; ?>">
+                                แสดงข้อมูลไม่ครบ
+                            </a>
                         </div>
                     </div>
 
                     <div class="p-4 sm:p-6">
-                        <div class="flex items-center space-x-3 sm:space-x-4 mb-4">
-                            <a href="?page=product_list"
-                                class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md font-bold transition-all text-sm sm:text-base <?php echo !$incomplete_mode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 border border-gray-300'; ?>">
-                                แสดงทั้งหมด
-                            </a>
-                            <a href="?page=product_list&mode=incomplete"
-                                class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md font-bold transition-all text-sm sm:text-base <?php echo $incomplete_mode ? 'bg-red-600 text-white' : 'bg-red-100 text-red-600 border border-red-300'; ?>">
-                                แสดงข้อมูลไม่ครบ
-                            </a>
-                        </div>
                         <div class="table-responsive">
                             <table class="w-full border-collapse" id="dataTable">
                                 <thead>
@@ -655,42 +643,34 @@ try {
                     showNotification('ลบสินค้าสำเร็จ!', 'bg-red-500', 'notification-delete');
                 }
 
-                // โฟกัสช่องค้นหาถ้ามีคำค้นใน URL
-                if (urlParams.has('search')) {
-                    document.getElementById('searchInput').focus();
-                }
+                const searchInput = document.getElementById('searchInput');
+                if (!searchInput) return;
 
-                // ล้างการค้นหาด้วยปุ่ม Escape
-                document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                searchInput.focus();
+
+                searchInput.addEventListener('keydown', function(e) {
                     if (e.key === 'Escape') {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        urlParams.set('page', 'product_list');
-                        <?php if ($incomplete_mode): ?>
-                            urlParams.set('mode', 'incomplete');
-                        <?php else: ?>
-                            urlParams.delete('mode');
-                        <?php endif; ?>
-                        urlParams.delete('search');
-                        window.location.search = urlParams.toString();
+                        this.value = '';
+                        this.form.submit();
                     }
-                });
-
-                // เก็บคำค้นใน localStorage เมื่อกด Enter
-                document.getElementById('searchInput').addEventListener('keydown', function(e) {
                     if (e.key === 'Enter') {
                         localStorage.setItem('searchPreserve', this.value);
                     }
                 });
 
-                // กู้คืนคำค้นจาก localStorage
                 const preserved = localStorage.getItem('searchPreserve');
                 if (preserved) {
-                    const input = document.getElementById('searchInput');
-                    input.value = preserved;
-                    input.focus();
-                    input.selectionStart = input.selectionEnd = preserved.length;
+                    searchInput.value = preserved;
+                    searchInput.focus();
+                    searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
                     localStorage.removeItem('searchPreserve');
                 }
+
+                searchInput.addEventListener('input', function() {
+                    if (this.value.trim() === '') {
+                        this.form.submit();
+                    }
+                });
 
                 // สลับการแสดงตัวกรองในโหมดมือถือ
                 document.getElementById('toggleFilters').addEventListener('click', () => {
