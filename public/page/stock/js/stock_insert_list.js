@@ -100,6 +100,7 @@ $(document).ready(function () {
       /^-?\d+$/.test(stock_check_actual);
 
     $("#btn-submit").prop("disabled", !isValid);
+    $("#btn-confirm-check").prop("disabled", !currentStockId);
 
     if (!isValid) {
       console.log("validateForm failed:", {
@@ -129,6 +130,7 @@ $(document).ready(function () {
           if (response.status === "success" && response.stock_id) {
             currentStockId = response.stock_id;
             $("#current_stock_id").val(currentStockId);
+            $("#stock_id_select").val(currentStockId); // อัปเดต dropdown
             loadStockCheck();
             loadStockSessions();
             Toast.fire({
@@ -141,7 +143,7 @@ $(document).ready(function () {
               title: "เซสชันสต๊อกไม่ถูกต้องหรือถูกยืนยันแล้ว",
               text: "เริ่มเซสชันใหม่...",
             });
-            createNewStockSession();
+            loadStockSessions();
           }
         },
         error: function (xhr, status, error) {
@@ -150,11 +152,11 @@ $(document).ready(function () {
             icon: "error",
             title: "ไม่สามารถโหลดเซสชัน: " + error,
           });
-          createNewStockSession();
+          loadStockSessions();
         },
       });
     } else {
-      createNewStockSession();
+      loadStockSessions();
     }
     validateForm();
   }
@@ -487,7 +489,7 @@ $(document).ready(function () {
       dataType: "json",
       success: function (data) {
         let select = $("#stock_id_select");
-        select.empty().append('<option value="">เลือกเซสชัน</option>');
+        select.empty().append('<option value="">เลือกใบตรวจนับสต๊อก</option>');
         let sessions = [...new Set(data.map((item) => item.stock_id))];
         sessions.forEach((id) => {
           select.append(`<option value="${id}">${id}</option>`);
@@ -499,11 +501,11 @@ $(document).ready(function () {
     });
   }
 
-  $("#stock_id_select").on("change", function () {
-    currentStockId = $(this).val();
-    $("#current_stock_id").val(currentStockId);
-    loadStockCheck();
-  });
+  // $("#stock_id_select").on("change", function () {
+  //   currentStockId = $(this).val();
+  //   $("#current_stock_id").val(currentStockId);
+  //   loadStockCheck();
+  // });
 
   $("#form_insert_stock").on("submit", function (event) {
     event.preventDefault();
@@ -544,7 +546,7 @@ $(document).ready(function () {
       action: "insert_check_product",
       stock_id: currentStockId,
       product_id: getValue("#product_id_input"),
-      stock_check_actual: getValue("#stock_check_actual", "0"),
+      stock_check_actual: getValue("#stock_check_actual", "1"),
       stock_date: getValue("#stock_date"),
       stock_check_remark: getValue("#stock-check-remark", ""),
       personnel_id: getValue("#personnel_id", "1"),
@@ -556,10 +558,15 @@ $(document).ready(function () {
       formData.product_id
     );
 
+    const selected_warehouse_id = $("#warehouse_select").val();
+
     $.ajax({
       url: "page/stock/api/get_product_location.php",
       type: "GET",
-      data: { product_id: formData.product_id },
+      data: {
+        product_id: formData.product_id,
+        warehouse_id: selected_warehouse_id,
+      },
       dataType: "json",
       headers: { "X-Requested-With": "XMLHttpRequest" },
       cache: false,
@@ -584,6 +591,23 @@ $(document).ready(function () {
         }
 
         let product = productData[0];
+        if (
+          selected_warehouse_id &&
+          product.warehouse_id != selected_warehouse_id
+        ) {
+          Toast.fire({
+            icon: "error",
+            title: `สินค้านี้อยู่ในคลังอื่น (${product.warehouse_name})`,
+          });
+          $("#btn-submit")
+            .find(".spinner")
+            .addClass("hidden")
+            .end()
+            .find(".text")
+            .removeClass("hidden");
+          isProcessing = false;
+          return;
+        }
         formData.warehouse_id = product.warehouse_id || null;
         formData.lot_id = product.lot_id || null;
         formData.lot_product_id = product.lot_product_id || null;
@@ -600,16 +624,13 @@ $(document).ready(function () {
           type: "POST",
           data: formData,
           dataType: "json",
-          headers: { "X-Requested-With": "XMLHttpRequest" },
-          cache: false,
           success: function (response) {
-            console.log("insert_stock.php response:", response);
             if (response.status === "success") {
               Toast.fire({ icon: "success", title: response.message });
               $("#form_insert_stock")[0].reset();
               setStockDate();
               $("#product_id_input").focus();
-              $("#product_info").addClass("hidden").empty();
+              $("#product_info").addClass("hidden").html("");
               $("#warehouse_id").val("");
               $("#lot_id").val("");
               $("#lot_product_id").val("");
@@ -645,7 +666,7 @@ $(document).ready(function () {
         console.error("get_product_location.php error:", xhr.responseText);
         Toast.fire({
           icon: "error",
-          title: "ไม่สามารถดึงข้อมูลสินค้า: " + error,
+          title: "ไม่พบข้อมูลในคลังที่เลือก",
         });
         $("#btn-submit")
           .find(".spinner")
@@ -658,6 +679,8 @@ $(document).ready(function () {
     });
   });
 
+
+
   $("#btn-confirm-check").on("click", function () {
     if (isProcessing) return;
     isProcessing = true;
@@ -667,7 +690,6 @@ $(document).ready(function () {
       .end()
       .find(".text")
       .addClass("hidden");
-
     if (!currentStockId) {
       Toast.fire({ icon: "warning", title: "ไม่มีเซสชันสต๊อกที่ใช้งาน" });
       isProcessing = false;
@@ -693,7 +715,7 @@ $(document).ready(function () {
         if (pendingItems.length === 0) {
           Toast.fire({
             icon: "warning",
-            title: "ไม่มีรายการที่รอการยืนยันในเซสชันนี้",
+            title: "ไม่มีรายการสินค้าที่รอการยืนยัน",
           });
           isProcessing = false;
           $("#btn-confirm-check")
