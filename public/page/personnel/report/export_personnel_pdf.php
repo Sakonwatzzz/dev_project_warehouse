@@ -40,7 +40,7 @@ class THPDF extends FPDF
         $this->Ln(5);
 
         $this->SetFont('THSarabunNew', 'B', 16);
-        $this->SetFillColor(200, 216, 237);
+        $this->SetFillColor(200, 216, 537);
         $this->Cell(30, 10, thai('รหัส'), 1, 0, 'C', true);
         $this->Cell(60, 10, thai('ชื่อ-นามสกุล'), 1, 0, 'C', true);
         $this->Cell(50, 10, thai('ชื่อผู้ใช้'), 1, 0, 'C', true);
@@ -125,4 +125,3 @@ try {
     $pdf->Cell(0, 10, thai('เกิดข้อผิดพลาดในการดึงข้อมูล: ') . $e->getMessage(), 0, 1, 'C');
     $pdf->Output();
 }
-?>

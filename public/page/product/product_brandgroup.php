@@ -1,6 +1,27 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+session_start();
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// Session timeout handling
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+    session_unset();
+    session_destroy();
+    $query_params = http_build_query([
+        'timeout' => 1,
+        'page' => 'product_brandgroup',
+        'id' => $_GET['id'] ?? '',
+        'search' => $_GET['search'] ?? '',
+        'product_brand_name' => $_GET['product_brand_name'] ?? ''
+    ]);
+    header("Location: /page/login.php?$query_params");
+    exit;
+}
+$_SESSION['LAST_ACTIVITY'] = time();
+
 // รับค่าจาก URL เพื่อหา brand ของผลิตภัณฑ์
 $productBrand = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : '';
 
@@ -72,6 +93,11 @@ try {
         SELECT 
             product.product_id, 
             product.product_name, 
+            product.product_price1, 
+            product.product_price2, 
+            product.product_price3, 
+            product.product_price4, 
+            product.product_capital, 
             product_brand.product_brand_name
         FROM 
             product
@@ -108,7 +134,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <title>กลุ่มสินค้า</title>
     <style>
@@ -124,32 +150,54 @@ try {
 </head>
 <body class="font-sans bg-gray-100">
     <div class="container mx-auto px-4 py-8 md:px-8 lg:px-16">
+        <!-- Header and Search Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
+            <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
+                <div class="flex space-x-2">
+                    <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
+                        <i class="fas fa-users mr-2"></i>
+                        <?php echo $total_records; ?>
+                        <span>รายการ</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <form action="" method="GET" id="searchForm" class="w-full text-end">
+                    <input type="hidden" name="page" value="product_brandgroup">
+                    <input type="hidden" name="tabel" value="product_brand">
+                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($productBrand); ?>">
+                    <input type="hidden" name="product_brand_name" value="<?php echo htmlspecialchars($productBrandName); ?>">
+                    <input type="hidden" name="page_num" value="1">
+                    <div class="relative">
+                        <input type="text" name="search" id="searchInput"
+                            placeholder="ค้นหาสินค้า..."
+                            value="<?php echo htmlspecialchars($search); ?>"
+                            class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
+                <!-- Export Buttons -->
+                <div class="grid grid-cols-2 gap-4 pt-2 md:grid md:grid-cols-2 md:gap-4">
+                    <button onclick="exportPDF()" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
+                        <i class="fas fa-file-pdf"></i> ส่งออก PDF
+                    </button>
+                    <button onclick="exportExcel()" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
+                        <i class="fas fa-file-excel"></i> ส่งออก Excel
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-gradient-to-b from-[#c8d8ed] to-[#c8d8ed] p-4 border-b border-[#8f959b]">
+            <div class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div class="flex items-center gap-4">
                         <h2 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
                             <i class="fas fa-list mr-2"></i>แบรนด์: <?php echo htmlspecialchars($productBrandName); ?>
                         </h2>
-                        <span class="px-3 py-1 bg-white font-bold border border-gray-500 rounded-md text-sm md:text-base"><?php echo $count; ?> รายการ</span>
-                    </div>
-                    <div class="w-full md:w-1/2">
-                        <form action="" method="GET" class="w-full" id="searchForm">
-                            <input type="hidden" name="page" value="product_brandgroup">
-                            <input type="hidden" name="tabel" value="product_brand">
-                            <input type="hidden" name="id" value="<?php echo htmlspecialchars($productBrand); ?>">
-                            <input type="hidden" name="product_brand_name" value="<?php echo htmlspecialchars($productBrandName); ?>">
-                            <div class="relative">
-                                <input type="text" name="search" id="searchInput"
-                                    placeholder="ค้นหาสินค้า..."
-                                    value="<?php echo htmlspecialchars($search); ?>"
-                                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-                                    oninput="checkEmptySearch(this)">
-                                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </form>
                     </div>
                 </div>
             </div>
@@ -260,7 +308,7 @@ try {
                     <?php endif; ?>
                     <a href="?page=product_brandgroup&tabel=product_brand&id=<?= htmlspecialchars($productBrand) ?>&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
                         class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
-                        <?= $totalPages ?>
+                        <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
                 <!-- Next Button -->
@@ -287,34 +335,61 @@ try {
     </div>
     <script>
         function checkEmptySearch(input) {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', 'product_brandgroup');
+            urlParams.set('tabel', 'product_brand');
+            urlParams.set('id', '<?php echo htmlspecialchars($productBrand); ?>');
+            urlParams.set('product_brand_name', '<?php echo urlencode($productBrandName); ?>');
             if (input.value.trim() === '') {
-                window.location.href = '?page=product_brandgroup&tabel=product_brand&id=<?php echo htmlspecialchars($productBrand); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>';
+                urlParams.delete('search');
+            } else {
+                urlParams.set('search', input.value.trim());
             }
+            window.location.search = urlParams.toString();
         }
+
+        function exportPDF() {
+            let url = '/page/product/report/export_product_brandgroup_pdf.php?id=<?php echo htmlspecialchars($productBrand); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>';
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            let url = '/page/product/report/export_product_brandgroup_excel.php?id=<?php echo htmlspecialchars($productBrand); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>';
+            window.open(url, '_blank');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('search')) {
-                document.getElementById('searchInput').focus();
-            }
-            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return;
+
+            searchInput.focus();
+
+            searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    window.location.href = '?page=product_brandgroup&tabel=product_brand&id=<?php echo htmlspecialchars($productBrand); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>';
+                    this.value = '';
+                    this.form.submit();
                 }
-            });
-            document.getElementById('searchInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     localStorage.setItem('searchPreserve', this.value);
                 }
             });
+
             const preserved = localStorage.getItem('searchPreserve');
             if (preserved) {
-                const input = document.getElementById('searchInput');
-                input.value = preserved;
-                input.focus();
-                input.selectionStart = input.selectionEnd = preserved.length;
+                searchInput.value = preserved;
+                searchInput.focus();
+                searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
                 localStorage.removeItem('searchPreserve');
             }
+
+            searchInput.addEventListener('input', function() {
+                if (this.value.trim() === '') {
+                    this.form.submit();
+                }
+            });
         });
+
         function showNotification(message, headerClass) {
             const notification = document.getElementById('notification');
             const header = document.getElementById('notification-header');

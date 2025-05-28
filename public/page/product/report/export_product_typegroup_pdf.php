@@ -8,7 +8,13 @@ date_default_timezone_set('Asia/Bangkok');
 if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
     session_unset();
     session_destroy();
-    $query_params = http_build_query(['timeout' => 1, 'page' => 'product_typegroup', 'id' => $_GET['id'] ?? '', 'search' => $_GET['search'] ?? '']);
+    $query_params = http_build_query([
+        'timeout' => 1,
+        'page' => 'product_typegroup',
+        'id' => $_GET['id'] ?? '',
+        'search' => $_GET['search'] ?? '',
+        'product_type_name' => $_GET['product_type_name'] ?? ''
+    ]);
     header("Location: /page/login.php?$query_params");
     exit;
 }
@@ -35,33 +41,33 @@ class THPDF extends FPDF
         $this->AddFont('THSarabunNew', '', 'THSarabunNew.php');
         $this->AddFont('THSarabunNew', 'B', 'THSarabunNew_b.php');
 
+        // Title
         $this->SetFont('THSarabunNew', 'B', 22);
         $this->Cell(0, 12, thai('รายงานสินค้า'), 0, 1, 'C');
 
+        // Product type name
+        $this->SetFont('THSarabunNew', 'B', 18);
+        $productTypeName = $_GET['product_type_name'] ?? 'ไม่ทราบประเภท';
+        $this->Cell(0, 10, thai('ประเภท: ') . thai($productTypeName), 0, 1, 'C');
+
+        // Date
         $this->SetFont('THSarabunNew', '', 14);
         $this->Cell(0, 8, thai('วันที่ออกรายงาน: ') . date('d/m/Y H:i:s'), 0, 1, 'C');
 
-        $productTypeName = $_GET['product_type_name'] ?? 'ไม่ทราบประเภท';
-        $search = $_GET['search'] ?? '';
-
-        $filters = [];
-        if ($productTypeName) $filters[] = thai("ประเภท: $productTypeName");
-        if ($search) $filters[] = thai("ค้นหา: $search");
-
-        $filter_text = !empty($filters) ? implode(', ', $filters) : thai('ทั้งหมด');
-        $this->MultiCell(0, 8, $filter_text, 0, 'L');
+        
 
         $this->Ln(2);
+
+        // Table header
         $this->SetFont('THSarabunNew', 'B', 16);
         $this->SetFillColor(200, 216, 237);
-        $this->Cell(40, 10, thai('รหัสสินค้า'), 1, 0, 'C', true);
-        $this->Cell(60, 10, thai('ชื่อสินค้า'), 1, 0, 'C', true);
-        $this->Cell(50, 10, thai('ประเภทสินค้า'), 1, 0, 'C', true); // Added column
-        $this->Cell(30, 10, thai('ราคา 1'), 1, 0, 'C', true);
-        $this->Cell(30, 10, thai('ราคา 2'), 1, 0, 'C', true);
-        $this->Cell(30, 10, thai('ราคา 3'), 1, 0, 'C', true);
-        $this->Cell(30, 10, thai('ราคา 4'), 1, 0, 'C', true);
-        $this->Cell(30, 10, thai('ต้นทุน'), 1, 1, 'C', true);
+        $this->Cell(30, 10, thai('รหัส'), 1, 0, 'C', true);
+        $this->Cell(65, 10, thai('ชื่อสินค้า'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ราคา 1'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ราคา 2'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ราคา 3'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ราคา 4'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ต้นทุน'), 1, 1, 'C', true);
     }
 
     function Footer()
@@ -80,14 +86,15 @@ try {
         throw new Exception('กรุณาระบุประเภทสินค้า');
     }
 
-    // Fetch product type name
+    // Get product type name
     $stmtType = $pdo->prepare("SELECT product_type_name FROM product_type WHERE product_type_id = :product_type_id");
     $stmtType->bindParam(':product_type_id', $productTypeId, PDO::PARAM_INT);
     $stmtType->execute();
     $typeResult = $stmtType->fetch(PDO::FETCH_ASSOC);
     $productTypeName = $typeResult['product_type_name'] ?? 'ไม่ทราบประเภท';
+    $_GET['product_type_name'] = $productTypeName;
 
-    // Build query for all records
+    // Query products
     $query = "
         SELECT 
             p.product_id,
@@ -109,7 +116,6 @@ try {
     }
 
     $query .= " ORDER BY p.product_name";
-
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -121,7 +127,8 @@ try {
         throw new Exception('ไม่มีข้อมูลสินค้าสำหรับประเภทนี้');
     }
 
-    $pdf = new THPDF();
+    $pdf = new THPDF('P', 'mm', 'A4');
+    $pdf->SetAutoPageBreak(true, 15);
     $pdf->AliasNbPages();
     $pdf->AddPage();
     $pdf->SetFont('THSarabunNew', '', 14);
@@ -130,18 +137,18 @@ try {
         if ($pdf->GetY() > 260) {
             $pdf->AddPage();
         }
-        $pdf->Cell(40, 10, thai($product['product_id']), 1, 0, 'C');
-        $pdf->Cell(60, 10, thai($product['product_name']), 1, 0, 'L');
-        $pdf->Cell(50, 10, thai($product['product_type_name']), 1, 0, 'L'); // Added column
-        $pdf->Cell(30, 10, number_format($product['product_price1'], 2), 1, 0, 'R');
-        $pdf->Cell(30, 10, number_format($product['product_price2'], 2), 1, 0, 'R');
-        $pdf->Cell(30, 10, number_format($product['product_price3'], 2), 1, 0, 'R');
-        $pdf->Cell(30, 10, number_format($product['product_price4'], 2), 1, 0, 'R');
-        $pdf->Cell(30, 10, number_format($product['product_capital'], 2), 1, 1, 'R');
+        $pdf->Cell(30, 10, thai($product['product_id']), 1, 0, 'C');
+        $pdf->Cell(65, 10, thai($product['product_name']), 1, 0, 'L');
+        $pdf->Cell(19, 10, number_format($product['product_price1'], 2), 1, 0, 'R');
+        $pdf->Cell(19, 10, number_format($product['product_price2'], 2), 1, 0, 'R');
+        $pdf->Cell(19, 10, number_format($product['product_price3'], 2), 1, 0, 'R');
+        $pdf->Cell(19, 10, number_format($product['product_price4'], 2), 1, 0, 'R');
+        $pdf->Cell(19, 10, number_format($product['product_capital'], 2), 1, 1, 'R');
     }
 
+    // Summary
     $pdf->SetFont('THSarabunNew', 'B', 14);
-    $pdf->Cell(300, 10, thai('รวมทั้งหมด: ') . count($products) . thai(' รายการ'), 1, 1, 'R');
+    $pdf->Cell(190, 10, thai('รวมทั้งหมด: ') . count($products) . thai(' รายการ'), 1, 1, 'R');
 
     $pdf->Ln(8);
     $pdf->SetFont('THSarabunNew', '', 14);
@@ -150,13 +157,11 @@ try {
     $filename = 'ProductReport_' . htmlspecialchars($productTypeName) . '_' . date('Ymd_His') . '.pdf';
     ob_end_clean();
     $pdf->Output('I', $filename);
-
 } catch (Exception $e) {
-    $pdf = new THPDF();
+    $pdf = new THPDF('P', 'mm', 'A4');
     $pdf->AliasNbPages();
     $pdf->AddPage();
     $pdf->SetFont('THSarabunNew', 'B', 14);
     $pdf->Cell(0, 10, thai('เกิดข้อผิดพลาด: ') . thai(htmlspecialchars($e->getMessage())), 0, 1, 'C');
     $pdf->Output();
 }
-?>
