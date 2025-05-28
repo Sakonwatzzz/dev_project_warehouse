@@ -353,7 +353,7 @@ try {
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">หมายเหตุ</th>
-                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
+                                
                             </tr>
                         </thead>
                         <tbody>
@@ -371,23 +371,7 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark']); ?></td>
-                                        <td class="px-6 py-2 border text-center">
-                                            <div class="flex flex-wrap justify-center gap-2">
-                                                <button onclick="showEditModal('<?php echo htmlspecialchars($stock['stock_check_id']); ?>', '<?php echo htmlspecialchars($stock['stock_check_actual']); ?>', '<?php echo htmlspecialchars(addslashes($stock['stock_check_remark'])); ?>')"
-                                                    class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
-                                                    <i class="fas fa-edit mr-1"></i> แก้ไข
-                                                </button>
-                                                <form action="" method="POST" style="display:inline;" class="delete-form">
-                                                    <input type="hidden" name="stock_check_id" value="<?php echo htmlspecialchars($stock['stock_check_id']); ?>">
-                                                    <input type="hidden" name="action" value="delete">
-                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                    <button type="button" onclick="confirmDelete(this.parentElement)"
-                                                        class="bg-red-500 text-white text-sm px-3 py-1 rounded hover:bg-red-600 transition flex items-center whitespace-nowrap">
-                                                        <i class="fas fa-trash-alt mr-1"></i> ลบ
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
+                                        
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>

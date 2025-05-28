@@ -116,7 +116,7 @@ try {
     $stmt->execute();
     $stock_checks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $pdf = new THPDF('P'); // Portrait orientation
+    $pdf = new THPDF('L'); // Portrait orientation
     $pdf->SetMargins(10, 10, 10); // 10mm margins
     $pdf->AliasNbPages();
     $pdf->AddPage();
@@ -139,6 +139,7 @@ try {
     // Table headers
     $pdf->SetFont('THSarabunNew', 'B', 11);
     $pdf->SetFillColor(200, 216, 237);
+    $pdf->Cell(20, 8, thai('รหัส'), 1, 0, 'C', true);
     $pdf->Cell(20, 8, thai('รหัสสต๊อก'), 1, 0, 'C', true);
     $pdf->Cell(30, 8, thai('วันที่'), 1, 0, 'C', true);
     $pdf->Cell(35, 8, thai('คลังสินค้า'), 1, 0, 'C', true);
@@ -156,6 +157,7 @@ try {
                 // Repeat table headers on new page
                 $pdf->SetFont('THSarabunNew', 'B', 11);
                 $pdf->SetFillColor(200, 216, 237);
+                $pdf->Cell(20, 8, thai('รหัส'), 1, 0, 'C', true);
                 $pdf->Cell(20, 8, thai('รหัสสต๊อก'), 1, 0, 'C', true);
                 $pdf->Cell(30, 8, thai('วันที่'), 1, 0, 'C', true);
                 $pdf->Cell(35, 8, thai('คลังสินค้า'), 1, 0, 'C', true);
@@ -166,6 +168,7 @@ try {
                 $pdf->SetFont('THSarabunNew', '', 11);
             }
 
+            $pdf->Cell(20, 8, thai($stock['stock_check_id']), 1, 0, 'C');
             $pdf->Cell(20, 8, thai($stock['stock_id']), 1, 0, 'C');
             $pdf->Cell(30, 8, thai($stock['stock_date']), 1, 0, 'C');
             $pdf->Cell(35, 8, thai($stock['warehouse_name']), 1, 0, 'L');
