@@ -129,13 +129,17 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
             <div class="p-2 py-4 flex justify-end gap-2">
                 <select id="warehouse_select"
                     class="w-48 border rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-gray-200">
-                    <option value="">เลือกคลัง</option>
                     <?php foreach ($warehouses as $warehouse): ?>
-                        <option value="<?= $warehouse['warehouse_id'] ?>">
-                            <?= htmlspecialchars($warehouse['warehouse_name']) ?>
+                        <option value="<?= $warehouse['warehouse_id'] ?>" <?php echo $warehouse['warehouse_id'] == 1 ? 'selected' : '' ?>>
+                            <?php echo ($warehouse['warehouse_name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <button id="reset-warehouse"
+                    class="bg-gray-500 hover:bg-gray-600 text-white rounded-md p-2 text-sm cursor-pointer"
+                    title="รีเซ็ตคลัง">
+                    <i class="fas fa-undo"></i>
+                </button>
                 <select id="stock_id_select"
                     class="w-48 border rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-gray-200">
                     <option value="">เลือกใบตรวจนับสต๊อก</option>
@@ -220,7 +224,8 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 </th>
                                 <th class="px-6 py-3 text-right text-sm font-bold text-gray-900 uppercase">จำนวนนับจริง
                                 </th>
-                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">พนักงาน</th>
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase" hidden>พนักงาน
+                                </th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">สถานะ</th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">หมายเหตุ</th>
                                 <th class="px-6 py-3 text-center text-sm font-bold text-gray-900 uppercase">การจัดการ
@@ -253,17 +258,17 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
             $("#stock_check_actual").val("1");
             $("#stock-check-remark").val("");
             // แจ้งเตือนเมื่อเลือกคลัง (ไม่บังคับ)
-            if (warehouse_id) {
-                Swal.fire({
-                    toast: true,
-                    position: "top-end",
-                    icon: "info",
-                    title: `เลือกคลัง: ${warehouse_name}`,
-                    showConfirmButton: false,
-                    timer: 1500,
-                    timerProgressBar: true
-                });
-            }
+            // if (warehouse_id) {
+            //     Swal.fire({
+            //         toast: true,
+            //         position: "top-end",
+            //         icon: "info",
+            //         title: `เลือกคลัง: ${warehouse_name}`,
+            //         showConfirmButton: false,
+            //         timer: 1500,
+            //         timerProgressBar: true
+            //     });
+            // }
         });
 
         // อัปเดต displayDateTime ทุกวินาที (ถ้าต้องการแสดงเวลาจริง)

@@ -1,3 +1,4 @@
+// page/stock/js/search_product.js
 $(document).ready(function () {
   const Toast = Swal.mixin({
     toast: true,
@@ -11,11 +12,14 @@ $(document).ready(function () {
     },
   });
 
+  let isWarehouseLocked = false; // ตัวแปรเพื่อเช็คว่าคลังถูกล็อคหรือไม่
+
   $("#product_id_input").on("input", function () {
     const query = $(this).val().trim();
     const warehouse_id = $("#warehouse_select").val();
 
-    if (!warehouse_id) {
+    // ตรวจสอบว่าต้องเลือกคลังก่อน
+    if (!warehouse_id && !isWarehouseLocked) {
       $("#barcode_suggestions").addClass("hidden").empty();
       $("#product_info").addClass("hidden").empty();
       $("#warehouse_id").val("");
@@ -29,7 +33,7 @@ $(document).ready(function () {
     if (query.length < 2) {
       $("#barcode_suggestions").addClass("hidden").empty();
       $("#product_info").addClass("hidden").empty();
-      $("#warehouse_id").val("");
+      if (!isWarehouseLocked) $("#warehouse_id").val("");
       return;
     }
 
@@ -42,11 +46,12 @@ $(document).ready(function () {
       dataType: "json",
       success: function (response) {
         console.log("API response:", response);
-        const products = response.slice(0, 5);
+        const products = response.slice(0, 5); // จำกัด 5 รายการ
         const suggestions = $("#barcode_suggestions")
           .removeClass("hidden")
           .empty();
 
+        // เพิ่มปุ่มกากบาท
         suggestions.append(`
                     <div class="flex justify-end sticky top-0 bg-white p-2 border-b">
                         <button id="clear-suggestions" class="text-gray-500 hover:text-red-600">
@@ -65,8 +70,10 @@ $(document).ready(function () {
                             <div class="p-2 hover:bg-gray-100 cursor-pointer" 
                                  data-product-id="${product.product_id}" 
                                  data-lot-id="${product.lot_id}" 
-                                 data-lot-product-id="${product.lot_product_id}"
-                                 data-warehouse-id="${product.warehouse_id}"
+                                 data-lot-product-id="${
+                                   product.lot_product_id
+                                 }" 
+                                 data-warehouse-id="${product.warehouse_id}" 
                                  data-warehouse-name="${
                                    product.warehouse_name
                                  }">
@@ -79,19 +86,23 @@ $(document).ready(function () {
           });
         }
 
+        // Event สำหรับปุ่มกากบาท
         $("#clear-suggestions").on("click", function () {
           $("#barcode_suggestions").addClass("hidden").empty();
           $("#product_id_input").val("").focus();
           $("#product_info").addClass("hidden").empty();
-          $("#warehouse_id").val("");
+          if (!isWarehouseLocked) $("#warehouse_id").val("");
         });
 
+        // Event สำหรับเลือก suggestion
         suggestions.find("div[data-product-id]").on("click", function () {
           const product_id = $(this).data("product-id");
           const lot_id = $(this).data("lot-id");
           const lot_product_id = $(this).data("lot-product-id");
           const selected_warehouse_id = $(this).data("warehouse-id");
           const warehouse_name = $(this).data("warehouse-name");
+
+          // ตรวจสอบว่าสินค้าอยู่ในคลังที่เลือกหรือคลังที่ล็อค
           if (warehouse_id && selected_warehouse_id != warehouse_id) {
             Swal.fire({
               icon: "warning",
@@ -100,12 +111,31 @@ $(document).ready(function () {
             });
             return;
           }
+
+          // ล็อคคลังหลังเลือกสินค้าแรก
+          if (!isWarehouseLocked) {
+            isWarehouseLocked = true;
+            $("#warehouse_select")
+              .val(selected_warehouse_id)
+              .prop("disabled", true);
+            $("#warehouse_display").text(`คลัง: ${warehouse_name}`);
+            Toast.fire({
+              icon: "info",
+              title: `คลังถูกล็อคที่: ${warehouse_name}`,
+            });
+          }
+
           $("#product_id_input").val(product_id);
           $("#form_insert_stock").data("lot_id", lot_id);
           $("#form_insert_stock").data("lot_product_id", lot_product_id);
           $("#warehouse_id").val(selected_warehouse_id);
           suggestions.addClass("hidden").empty();
-          fetchProductInfo(product_id, lot_id, lot_product_id, warehouse_id);
+          fetchProductInfo(
+            product_id,
+            lot_id,
+            lot_product_id,
+            selected_warehouse_id
+          );
         });
       },
       error: function (xhr, status, error) {
@@ -117,6 +147,22 @@ $(document).ready(function () {
         });
       },
     });
+  });
+
+  // Event สำหรับปุ่มรีเซ็ตคลัง
+  $("#reset-warehouse").on("click", function () {
+    isWarehouseLocked = false;
+    $("#warehouse_select").prop("disabled", false);
+    $("#warehouse_select").val("");
+    $("#warehouse_display").text("คลัง: ไม่ระบุ");
+    $("#warehouse_id").val("");
+    $("#product_id_input").val("").focus();
+    $("#barcode_suggestions").addClass("hidden").empty();
+    $("#product_info").addClass("hidden").empty();
+    // Toast.fire({
+    //   icon: "info",
+    //   title: "รีเซ็ตคลังเรียบร้อย",
+    // });
   });
 
   function fetchProductInfo(product_id, lot_id, lot_product_id, warehouse_id) {

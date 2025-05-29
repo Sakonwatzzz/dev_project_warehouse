@@ -1,3 +1,5 @@
+const { data } = require("autoprefixer");
+
 $(document).ready(function () {
   const Toast = Swal.mixin({
     toast: true,
@@ -118,6 +120,14 @@ $(document).ready(function () {
 
   function initializePage() {
     setStockDate();
+
+    // ตั้งค่าเริ่มต้นสำหรับ warehouse_select
+    const warehouse_id = $('#warehouse_select');
+    const warehouse_name = $('#warehouse_select').find("#option:selected").text().trim();
+
+    // อ่านค่า warehouse_id และ warehouse_name จาก <select id="warehouse_select"> เมื่อหน้าโหลด
+    $('#warehouse_display').text(`คลัง : ${warehouse_name}`);
+    $('#warehouse_id').val(warehouse_id);
     if (stockIdFromUrl) {
       $.ajax({
         url: "page/stock/api/get_stock_session.php",
@@ -143,7 +153,7 @@ $(document).ready(function () {
               title: "เซสชันสต๊อกไม่ถูกต้องหรือถูกยืนยันแล้ว",
               text: "เริ่มเซสชันใหม่...",
             });
-            loadStockSessions();
+            createNewStockSession();
           }
         },
         error: function (xhr, status, error) {
@@ -152,11 +162,25 @@ $(document).ready(function () {
             icon: "error",
             title: "ไม่สามารถโหลดเซสชัน: " + error,
           });
-          loadStockSessions();
+          createNewStockSession();
         },
       });
     } else {
-      loadStockSessions();
+      $.ajax({
+        url: "page/stock/api/stock_list.php",
+        type: "GET",
+        data: {status :1 ,personnel_id: getValue("#personnel_id","1")},
+        dataType:"json",
+        headers:{"X-Requested-With": "XMLHttpRequest"},
+
+        success: function (response) {
+          if(response.status === "success" && response.stock_id){
+            currentStockId = response.stock_id;
+
+          }
+        }
+      })
+      createNewStockSession();
     }
     validateForm();
   }
