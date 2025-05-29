@@ -20,22 +20,26 @@ try {
     $stock_check_actual = $_POST['stock_check_actual'] ?? null;
     $stock_check_system = $_POST['stock_check_system'] ?? null;
     $stock_check_remark = $_POST['stock_check_remark'] ?? '';
-    // $personnel_id = $_POST['personnel_id'] ?? '1';
+    $personnel_id = $_POST['personnel_id'] ?? null;
 
-    if (!$stock_id || !$product_id || !$warehouse_id || !$lot_id || !$lot_product_id || $stock_check_actual === null || $stock_check_system === null) {
+    if (!$stock_id || !$product_id || !$warehouse_id || !$lot_id || !$lot_product_id || $stock_check_actual === null || $stock_check_system === null || !$personnel_id) {
         throw new Exception('กรุณากรอกข้อมูลให้ครบถ้วน');
     }
 
-    $query = "SELECT stock_id FROM stock WHERE stock_id = :stock_id AND check_status_id = 1";
+    $pdo->beginTransaction();
+
+    // ตรวจสอบ stock_id และ personnel_id
+    $query = "SELECT stock_id FROM stock WHERE stock_id = :stock_id AND check_status_id = 1 AND personnel_id = :personnel_id";
     $stmt = $pdo->prepare($query);
-    $stmt->execute([':stock_id' => $stock_id]);
+    $stmt->execute([':stock_id' => $stock_id, ':personnel_id' => $personnel_id]);
     if (!$stmt->fetch()) {
-        throw new Exception("เซสชันสต๊อก $stock_id ไม่ถูกต้องหรือถูกยืนยันแล้ว");
+        $pdo->rollBack();
+        throw new Exception("เซสชันสต๊อก $stock_id ไม่ถูกต้อง, ถูกยืนยันแล้ว, หรือไม่ใช่ของผู้ใช้");
     }
 
-    $pdo->beginTransaction();
-    $query = "INSERT INTO stock_check (stock_id, product_id, warehouse_id, lot_id, lot_product_id, stock_check_actual, stock_check_system, stock_check_remark)
-              VALUES (:stock_id, :product_id, :warehouse_id, :lot_id, :lot_product_id, :stock_check_actual, :stock_check_system, :stock_check_remark)";
+    // บันทึก stock_check
+    $query = "INSERT INTO stock_check (stock_id, product_id, warehouse_id, lot_id, lot_product_id, stock_check_actual, stock_check_system, stock_check_remark, personnel_id)
+              VALUES (:stock_id, :product_id, :warehouse_id, :lot_id, :lot_product_id, :stock_check_actual, :stock_check_system, :stock_check_remark, :personnel_id)";
     $stmt = $pdo->prepare($query);
     $stmt->execute([
         ':stock_id' => $stock_id,
@@ -46,7 +50,16 @@ try {
         ':stock_check_actual' => $stock_check_actual,
         ':stock_check_system' => $stock_check_system,
         ':stock_check_remark' => $stock_check_remark,
-        
+        ':personnel_id' => $personnel_id
+    ]);
+
+    // อัปเดต lot_product_remain
+    $query = "UPDATE lot_product SET lot_product_remain = lot_product_remain + (:stock_check_actual - :stock_check_system) WHERE lot_product_id = :lot_product_id";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([
+        ':stock_check_actual' => $stock_check_actual,
+        ':stock_check_system' => $stock_check_system,
+        ':lot_product_id' => $lot_product_id
     ]);
 
     $pdo->commit();
@@ -60,7 +73,7 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log("insert_stock.php error: " . $e->getMessage());
+    error_log("insert_stock.php error: " . $e->getMessage(), 3, "/var/log/php_errors.log");
     echo json_encode([
         'status' => 'error',
         'message' => $e->getMessage()

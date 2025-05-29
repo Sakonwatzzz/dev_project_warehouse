@@ -119,10 +119,10 @@ $(document).ready(function () {
               .val(selected_warehouse_id)
               .prop("disabled", true);
             $("#warehouse_display").text(`คลัง: ${warehouse_name}`);
-            Toast.fire({
-              icon: "info",
-              title: `คลังถูกล็อคที่: ${warehouse_name}`,
-            });
+            // Toast.fire({
+            //   icon: "info",
+            //   title: `คลังถูกล็อคที่: ${warehouse_name}`,
+            // });
           }
 
           $("#product_id_input").val(product_id);

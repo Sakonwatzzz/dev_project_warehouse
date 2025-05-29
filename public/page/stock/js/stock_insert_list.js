@@ -1,4 +1,4 @@
-const { data } = require("autoprefixer");
+// const { data } = require("autoprefixer");
 
 $(document).ready(function () {
   const Toast = Swal.mixin({
@@ -122,12 +122,12 @@ $(document).ready(function () {
     setStockDate();
 
     // ตั้งค่าเริ่มต้นสำหรับ warehouse_select
-    const warehouse_id = $('#warehouse_select');
-    const warehouse_name = $('#warehouse_select').find("#option:selected").text().trim();
-
+    const warehouse_id = $("#warehouse_select").val();
+    const warehouse_name =
+      $("#warehouse_select").find("option:selected").text().trim() || "ไม่ระบุ";
     // อ่านค่า warehouse_id และ warehouse_name จาก <select id="warehouse_select"> เมื่อหน้าโหลด
-    $('#warehouse_display').text(`คลัง : ${warehouse_name}`);
-    $('#warehouse_id').val(warehouse_id);
+    $("#warehouse_display").text(`คลัง : ${warehouse_name}`);
+    $("#warehouse_id").val(warehouse_id);
     if (stockIdFromUrl) {
       $.ajax({
         url: "page/stock/api/get_stock_session.php",
@@ -143,10 +143,10 @@ $(document).ready(function () {
             $("#stock_id_select").val(currentStockId); // อัปเดต dropdown
             loadStockCheck();
             loadStockSessions();
-            Toast.fire({
-              icon: "success",
-              title: `โหลดเซสชันสต๊อก ${currentStockId} เรียบร้อย`,
-            });
+            // Toast.fire({
+            //   icon: "success",
+            //   title: `โหลดเซสชันสต๊อก ${currentStockId} เรียบร้อย`,
+            // });
           } else {
             Toast.fire({
               icon: "warning",
@@ -169,23 +169,43 @@ $(document).ready(function () {
       $.ajax({
         url: "page/stock/api/stock_list.php",
         type: "GET",
-        data: {status :1 ,personnel_id: getValue("#personnel_id","1")},
-        dataType:"json",
-        headers:{"X-Requested-With": "XMLHttpRequest"},
-
-        success: function (response) {
-          if(response.status === "success" && response.stock_id){
-            currentStockId = response.stock_id;
-
+        data: { status: 1, personnel_id: getValue("#personnel_id", "1") },
+        dataType: "json",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        cache: false,
+        success: function (data) {
+          // ประกาสตัวแปร รอการตรวจสอบให้ item มีค่าสถานะเท่า 1
+          const pendingItems = data.filter(
+            (item) => parseInt(item.check_status_id) === 1
+          );
+          if (pendingItems.length > 0) {
+            currentStockId = pendingItems[0].stock_id;
+            $("#current_stock_id").val(currentStockId);
+            $("#stock_id_select").val(currentStockId);
+            loadStockCheck();
+            loadStockSessions();
+            // Toast.fire({
+            //   icon: "success",
+            //   title: `โหลดเซสชันสต๊อก ${currentStockId} เรียบร้อย`,
+            // });
+            window.location.href = `?page=stock_insert&stock_id=${currentStockId}`;
+          } else {
+            createNewStockSession(); // สร้างเซสชันใหม่หากไม่มีเซสชันที่รอดำเนินการ
           }
-        }
-      })
-      createNewStockSession();
+        },
+        error: function (xhr, status, error) {
+          console.error("stock_list.php error:", xhr.responseText);
+          createNewStockSession(); // สร้างเซสชันใหม่หากเกิดข้อผิดพลาด
+        },
+      });
     }
     validateForm();
   }
 
   function createNewStockSession() {
+    if (isProcessing) return;
+    isProcessing = true;
+    const warehouse_id = $("#warehouse_select").val();
     $.ajax({
       url: "page/stock/api/insert_new_stock.php",
       type: "POST",
@@ -194,11 +214,13 @@ $(document).ready(function () {
         stock_date: setStockDate(),
         personnel_id: getValue("#personnel_id", "1"),
         check_status_id: "1",
+        warehouse_id: warehouse_id, // ส่ง warehouse_id เพื่อตรวจสอบ
       },
       dataType: "json",
       headers: { "X-Requested-With": "XMLHttpRequest" },
       cache: false,
       success: function (response) {
+        isProcessing = false;
         if (response.status === "success" && response.stock_id) {
           currentStockId = response.stock_id;
           $("#current_stock_id").val(currentStockId);
@@ -206,9 +228,14 @@ $(document).ready(function () {
           loadStockSessions();
           Toast.fire({
             icon: "success",
-            title: `เริ่มเซสชันตรวจสอบสต๊อกใหม่ (${currentStockId}) เรียบร้อย`,
+            title: `เริ่มเซสชันตรวจสอบสต๊อก (${currentStockId}) เรียบร้อย`,
           });
           window.location.href = `?page=stock_insert&stock_id=${currentStockId}`;
+        } else if (response.status === "warning") {
+          Toast.fire({
+            icon: "warning",
+            title: response.message,
+          });
         } else {
           console.error("createNewStockSession failed:", response.message);
           Toast.fire({
@@ -218,6 +245,7 @@ $(document).ready(function () {
         }
       },
       error: function (xhr, status, error) {
+        isProcessing = false;
         console.error("insert_new_stock.php error:", xhr.responseText);
         Toast.fire({
           icon: "error",
@@ -284,10 +312,10 @@ $(document).ready(function () {
                             <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm stock-check-actual">${
                               item.stock_check_actual || "0"
                             }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden >${
                               item.personnel_name || "-"
                             }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden >${
                               item.check_status_name || "-"
                             }</td>
                             <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock-check-remark">${
@@ -509,18 +537,31 @@ $(document).ready(function () {
     $.ajax({
       url: "page/stock/api/stock_list.php",
       type: "GET",
-      data: { status: 1 },
+      data: { status: 1, personnel_id: getValue("personnel_id", "1") },
       dataType: "json",
       success: function (data) {
         let select = $("#stock_id_select");
         select.empty().append('<option value="">เลือกใบตรวจนับสต๊อก</option>');
-        let sessions = [...new Set(data.map((item) => item.stock_id))];
+        let sessions = [
+          ...new Set(
+            data
+              .filter((item) => parseInt(item.check_status_id === 1))
+              .map((item) => item.stock_id)
+          ),
+        ];
         sessions.forEach((id) => {
           select.append(`<option value="${id}">${id}</option>`);
         });
-        if (stockIdFromUrl && sessions.includes(parseInt(stockIdFromUrl))) {
-          select.val(stockIdFromUrl);
+        if (currentStockId && sessions.includes(parseInt(currentStockId))) {
+          select.val(currentStockId);
         }
+      },
+      error: function (xhr, error) {
+        console.log("stock_list.php error" + xhr.responseText);
+        Toast.fire({
+          icon: "error",
+          title: "ไม่สามารถโหลดเซชันที่ต้องการได้" + error,
+        });
       },
     });
   }
@@ -543,7 +584,7 @@ $(document).ready(function () {
       .addClass("hidden");
 
     if (!validateForm()) {
-      let errorMessage = "กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง";
+      let errorMessage = "กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง";stock_check_status
       if (!getValue("#product_id_input")) errorMessage = "กรุณาป้อนรหัสสินค้า";
       else if (!getValue("#stock_check_actual"))
         errorMessage = "กรุณาป้อนจำนวนที่นับได้จริง";
@@ -702,8 +743,6 @@ $(document).ready(function () {
       },
     });
   });
-
-
 
   $("#btn-confirm-check").on("click", function () {
     if (isProcessing) return;

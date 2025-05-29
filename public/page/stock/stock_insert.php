@@ -128,19 +128,19 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
         <main class="flex-grow container mx-auto px-4 py-8">
             <div class="p-2 py-4 flex justify-end gap-2">
                 <select id="warehouse_select"
-                    class="w-48 border rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-gray-200">
+                    class="w-48 border rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-gray-200" hidden>
                     <?php foreach ($warehouses as $warehouse): ?>
                         <option value="<?= $warehouse['warehouse_id'] ?>" <?php echo $warehouse['warehouse_id'] == 1 ? 'selected' : '' ?>>
                             <?php echo ($warehouse['warehouse_name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button id="reset-warehouse"
+                <button id="reset-warehouse" hidden
                     class="bg-gray-500 hover:bg-gray-600 text-white rounded-md p-2 text-sm cursor-pointer"
                     title="รีเซ็ตคลัง">
                     <i class="fas fa-undo"></i>
                 </button>
-                <select id="stock_id_select"
+                <select id="stock_id_select" hidden
                     class="w-48 border rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-gray-200">
                     <option value="">เลือกใบตรวจนับสต๊อก</option>
                 </select>
@@ -226,7 +226,7 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase" hidden>พนักงาน
                                 </th>
-                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">สถานะ</th>
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase" hidden>สถานะ</th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">หมายเหตุ</th>
                                 <th class="px-6 py-3 text-center text-sm font-bold text-gray-900 uppercase">การจัดการ
                                 </th>
