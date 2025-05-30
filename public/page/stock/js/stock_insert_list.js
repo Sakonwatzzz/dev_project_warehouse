@@ -30,7 +30,7 @@ $(document).ready(function () {
     try {
       date = luxon.DateTime.now()
         .setZone("Asia/Bangkok")
-        .toFormat("yyyy-MM-dd HH:mm:ss");
+        .toFormat("dd-MM-yyyy HH:mm:ss").formData("yyyy-MM-dd HH:mm:ss");
     } catch (e) {
       console.error("Luxon error:", e);
       date = new Date().toISOString().slice(0, 19).replace("T", " ");
