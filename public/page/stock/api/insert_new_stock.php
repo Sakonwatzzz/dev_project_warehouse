@@ -13,6 +13,9 @@ try {
     }
 
     $stock_date = $_POST['stock_date'] ?? null;
+    if (!$stock_date || !DateTime::createFromFormat('Y-m-d H:i:s', $stock_date)) {
+        throw new Exception(message: 'Invalid stock date format');
+    }
     $personnel_id = $_POST['personnel_id'] ?? null;
     $check_status_id = $_POST['check_status_id'] ?? '1';
     $warehouse_id = $_POST['warehouse_id'] ?? null;

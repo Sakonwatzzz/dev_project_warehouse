@@ -243,46 +243,68 @@ $(document).ready(function () {
         let hasPendingStatus = false;
         $.each(data, function (index, item) {
           if (parseInt(item.check_status_id) === 1) hasPendingStatus = true;
+
+          // แปลงวันที่จาก yyyy-MM-dd HH:mm:ss เป็น dd/MM/yyyy HH:mm:ss
+          // 1. สร้างตัวแปร formattedDate เพื่อเก็บวันที่ที่แปลงแล้ว
+          let formattedDate = "-";
+
+          // 2. ใช้ luxon.DateTime.fromFormat(item.stock_date, "yyyy-MM-dd HH:mm:ss") เพื่อแปลวันที่จาก stock_list.php
+          if (item.stock_date) {
+            try {
+              formattedDate = luxon.DateTime.fromFormat(
+                item.stock_date,
+                "yyyy-MM-dd HH:mm:ss"
+              )
+                // 3. ใช้ toFormat("dd/MM/yyyy HH:mm:ss") เพื่อแปลงเป็น 30/05/2025 14:19:00
+                .toFormat("dd/MM/yyyy HH:mm:ss");
+            } catch (e) {
+              console.error(
+                "Date format error for stock_date:",
+                item.stock_date,
+                e
+              );
+              formattedDate = item.stock_date; // Fallback แสดงวันที่เดิม
+            }
+          }
+
           let row = `
-                        <tr>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.stock_date || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.product_id || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.product_name || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm">${
-                              item.stock_check_system || "0"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm">${
-                              item.stock_check_actual || "0"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.personnel_name || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.check_status_name || "-"
-                            }</td>
-                            <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-                              item.stock_check_remark || "-"
-                            }</td>
-                       <td class="px-3 sm:px-6 py-2 text-center text-xs sm:text-sm flex gap-4">
-                                ${
-                                  parseInt(item.check_status_id) === 1
-                                    ? `
-                                <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${item.stock_check_id}">
+                    <tr data-stock-check-id="${item.stock_check_id}">
+                        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${formattedDate}</td>
+                        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                          item.product_id || "-"
+                        }</td>
+                        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+                          item.product_name || "-"
+                        }</td>
+                        <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm">${
+                          item.stock_check_system || "0"
+                        }</td>
+                        <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm stock-check-actual">${
+                          item.stock_check_actual || "0"
+                        }</td>
+                        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
+                          item.personnel_name || "-"
+                        }</td>
+                        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
+                          item.check_status_name || "-"
+                        }</td>
+                        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock-check-remark">${
+                          item.stock_check_remark || "-"
+                        }</td>
+                        <td class="px-3 sm:px-6 py-2 text-center text-xs sm:text-sm flex gap-4 actions">
+                            ${
+                              parseInt(item.check_status_id) === 1
+                                ? `
+                                <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
                                     <i class="fas fa-edit mr-1"></i>แก้ไข
                                 </a>
                                 <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${item.stock_check_id}">
                                     <i class="fas fa-trash-alt mr-1"></i>ลบ
                                 </a>`
-                                    : ""
-                                }
-                            </td>
-                        </tr>`;
+                                : ""
+                            }
+                        </td>
+                    </tr>`;
           tbody.append(row);
         });
 
@@ -298,7 +320,6 @@ $(document).ready(function () {
       },
     });
   }
-
   $("#btn-add-stock-check").on("click", function () {
     if (isProcessing) return;
     isProcessing = true;
@@ -371,23 +392,35 @@ $(document).ready(function () {
       },
     });
   });
-
   function loadStockSessions() {
     $.ajax({
       url: "page/stock/api/stock_list.php",
       type: "GET",
-      data: { status: 1 },
+      data: { status: 1, personnel_id: getValue("personnel_id", "1") },
       dataType: "json",
       success: function (data) {
         let select = $("#stock_id_select");
-        select.empty().append('<option value="">เลือกเซสชัน</option>');
-        let sessions = [...new Set(data.map((item) => item.stock_id))];
+        select.empty().append('<option value="">เลือกใบตรวจนับสต๊อก</option>');
+        let sessions = [
+          ...new Set(
+            data
+              .filter((item) => parseInt(item.check_status_id === 1))
+              .map((item) => item.stock_id)
+          ),
+        ];
         sessions.forEach((id) => {
           select.append(`<option value="${id}">${id}</option>`);
         });
-        if (stockIdFromUrl && sessions.includes(parseInt(stockIdFromUrl))) {
-          select.val(stockIdFromUrl);
+        if (currentStockId && sessions.includes(parseInt(currentStockId))) {
+          select.val(currentStockId);
         }
+      },
+      error: function (xhr, error) {
+        console.log("stock_list.php error" + xhr.responseText);
+        Toast.fire({
+          icon: "error",
+          title: "ไม่สามารถโหลดเซชันที่ต้องการได้" + error,
+        });
       },
     });
   }
