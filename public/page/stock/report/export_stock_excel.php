@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 require_once __DIR__ . '../../../../../vendor/autoload.php';
+
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
@@ -8,41 +9,42 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
-// Check session timeout
+// Session timeout check
 if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
     session_unset();
     session_destroy();
-    header("Location: /login.php?timeout=1&page=stock_list");
+    header("Location: ../../../../../login.php?timeout=1");
     exit;
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
-// Verify CSRF token
-if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
+// CSRF token validation
+if (!isset($_GET['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
     header('HTTP/1.1 403 Forbidden');
-    exit('Invalid CSRF token');
+    echo 'Invalid CSRF token';
+    exit;
 }
 
 try {
     // Handle search parameters
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-    // Build the query to fetch stock check data
+    // Build the main query
     $query = "
         SELECT 
             sc.stock_check_id,
-            s.stock_id,
-            s.stock_date,
-            w.warehouse_name,
             p.product_id,
             p.product_name,
             sc.stock_check_system,
             sc.stock_check_actual,
-            per.personnel_name,
-            scs.check_status_name,
-            sc.stock_check_remark
+            sc.stock_check_remark,
+            w.warehouse_name,
+            s.stock_date,
+            per.personnel_name
         FROM stock_check sc
         LEFT JOIN product p ON sc.product_id = p.product_id
         LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
@@ -53,18 +55,23 @@ try {
         AND s.stock_date >= :today_start 
         AND s.stock_date <= :today_end";
 
+    // Set date parameters
     $params = [
         ':today_start' => date('Y-m-d 00:00:00'),
         ':today_end' => date('Y-m-d 23:59:59')
     ];
 
+    // Add search filter if provided
     if ($search) {
-        $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
+        $query .= " AND (sc.stock_check_id LIKE :search 
+                    OR p.product_name LIKE :search 
+                    OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
     }
+
     $query .= " ORDER BY s.stock_date DESC";
 
-    // Prepare and execute the query
+    // Execute query
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -72,54 +79,222 @@ try {
     $stmt->execute();
     $stock_checks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Create new Spreadsheet
+    // Check if query returned results
+    if (!$stock_checks) {
+        $stock_checks = [];
+        error_log("No data returned from stock check query. Parameters: " . json_encode($params));
+    }
+
+    // Excel Spreadsheet Creation
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('Stock Check Report');
 
-    // Set headers
+    // Freeze the header row
+    $sheet->freezePane('A6');
+
+    // Report Header Section
+    $warehouse_title = !empty($stock_checks) && isset($stock_checks[0]['warehouse_name'])
+        ? ': ' . $stock_checks[0]['warehouse_name']
+        : '';
+
+    $sheet->setCellValue('A1', 'รายงานการเช็คสต๊อกสินค้า' . $warehouse_title);
+    $sheet->mergeCells('A1:F1');
+    $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16)->setName('TH SarabunPSK');
+    $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF4F81BD');
+    $sheet->getStyle('A1')->getFont()->getColor()->setARGB('FFFFFFFF');
+    $sheet->getRowDimension(1)->setRowHeight(30);
+
+    // Report date
+    $sheet->setCellValue('A2', 'วันที่ออกรายงาน ณ เวลา: ' . date('d/m/Y H:i:s'));
+    $sheet->mergeCells('A2:F2');
+    $sheet->getStyle('A2')->getFont()->setSize(12)->setName('TH SarabunPSK');
+    $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getRowDimension(2)->setRowHeight(20);
+
+    // Personnel name
+    if (!empty($stock_checks) && isset($stock_checks[0]['personnel_name'])) {
+        $sheet->setCellValue('A3', 'ผู้ตรวจสอบ: ' . $stock_checks[0]['personnel_name']);
+        $sheet->mergeCells('A3:F3');
+        $sheet->getStyle('A3')->getFont()->setSize(12)->setName('TH SarabunPSK');
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getRowDimension(3)->setRowHeight(20);
+    }
+
+    // Add empty row
+    $sheet->getRowDimension(4)->setRowHeight(10);
+
+    // Table Headers
     $headers = [
-        'รหัส',
-        'รหัสสต๊อก',
-        'วันที่',
-        'คลังสินค้า',
         'รหัสสินค้า',
         'ชื่อสินค้า',
         'จำนวนจากระบบ',
         'จำนวนที่นับได้',
-        'พนักงาน',
-        'สถานะ',
+        'ส่วนต่าง',
         'หมายเหตุ'
     ];
-    $sheet->fromArray($headers, null, 'A1');
-    $sheet->getStyle('A1:K1')->getFont()->setBold(true);
-    $sheet->getStyle('A1:K1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-    // Populate data
-    $row = 2;
-    foreach ($stock_checks as $stock) {
-        $sheet->setCellValue('A' . $row, $stock['stock_check_id']);
-        $sheet->setCellValue('B' . $row, $stock['stock_id']);
-        $sheet->setCellValue('C' . $row, $stock['stock_date']);
-        $sheet->setCellValue('D' . $row, $stock['warehouse_name']);
-        $sheet->setCellValue('E' . $row, $stock['product_id']);
-        $sheet->setCellValue('F' . $row, $stock['product_name']);
-        $sheet->setCellValue('G' . $row, $stock['stock_check_system']);
-        $sheet->setCellValue('H' . $row, $stock['stock_check_actual']);
-        $sheet->setCellValue('I' . $row, $stock['personnel_name']);
-        $sheet->setCellValue('J' . $row, $stock['check_status_name']);
-        $sheet->setCellValue('K' . $row, $stock['stock_check_remark']);
+    $sheet->fromArray($headers, null, 'A5');
+    $sheet->getStyle('A5:F5')->getFont()->setBold(true)->setSize(12)->setName('TH SarabunPSK');
+    $sheet->getStyle('A5:F5')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle('A5:F5')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFD3D3D3');
+    $sheet->getRowDimension(5)->setRowHeight(25);
+
+    // Data Population
+    $row = 6;
+    $totals = [
+        'system' => 0,
+        'actual' => 0,
+        'negative' => 0,
+        'positive' => 0
+    ];
+
+    foreach ($stock_checks as $index => $stock) {
+        $system_qty = (int)$stock['stock_check_system'];
+        $actual_qty = (int)$stock['stock_check_actual'];
+        $difference = $actual_qty - $system_qty;
+
+        // Update totals
+        $totals['system'] += $system_qty;
+        $totals['actual'] += $actual_qty;
+        if ($difference < 0) {
+            $totals['negative'] += $difference;
+        } elseif ($difference > 0) {
+            $totals['positive'] += $difference;
+        }
+
+        // Handle long product names
+        $product_name = $stock['product_name'];
+        if (strlen($product_name) > 255) {
+            $product_name = substr($product_name, 0, 252) . '...';
+        }
+
+        // Format remark
+        $remark = !empty($stock['stock_check_remark'])
+            ? substr($stock['stock_check_remark'], 0, 255)
+            : '-';
+
+        // Format difference with sign
+        $diff_text = ($difference > 0 ? '+' : '') . number_format($difference);
+
+        // Set cell values
+        $sheet->setCellValueExplicit('A' . $row, $stock['product_id'], DataType::TYPE_STRING);
+        $sheet->setCellValue('B' . $row, $product_name);
+        $sheet->setCellValue('C' . $row, number_format($system_qty));
+        $sheet->setCellValue('D' . $row, number_format($actual_qty));
+        $sheet->setCellValue('E' . $row, $diff_text);
+        $sheet->setCellValue('F' . $row, $remark);
+
+        // Apply word wrap
+        $sheet->getStyle('B' . $row)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('F' . $row)->getAlignment()->setWrapText(true);
+
+        // Center-align numeric columns
+        $sheet->getStyle('C' . $row . ':E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Conditional formatting for differences
+        if ($difference < 0) {
+            $sheet->getStyle('E' . $row)
+                ->getFont()
+                ->setBold(true)
+                ->getColor()
+                ->setARGB('FFDC143C');
+        } elseif ($difference > 0) {
+            $sheet->getStyle('E' . $row)
+                ->getFont()
+                ->setBold(true)
+                ->getColor()
+                ->setARGB('FF228B22');
+        }
+
+        // Alternating row colors
+        $rowColor = ($index % 2 == 0) ? 'FFF5F6FA' : 'FFFFFFFF';
+        $sheet->getStyle('A' . $row . ':F' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($rowColor);
+
+        $sheet->getRowDimension($row)->setRowHeight(25);
         $row++;
     }
 
-    // Add total row
-    $sheet->setCellValue('A' . $row, 'รวมทั้งหมด');
-    $sheet->mergeCells('A' . $row . ':J' . $row);
-    $sheet->setCellValue('K' . $row, count($stock_checks) . ' รายการ');
-    $sheet->getStyle('A' . $row . ':K' . $row)->getFont()->setBold(true);
-    $sheet->getRowDimension($row)->setRowHeight(20);
+    // Summary Section
+    if (!empty($stock_checks)) {
+        // Add spacing
+        $sheet->getRowDimension($row)->setRowHeight(10);
+        $row++;
 
-    // Apply borders
+        // Total row
+        $sheet->setCellValue('A' . $row, 'รวมทั้งหมด');
+        $sheet->mergeCells('A' . $row . ':B' . $row);
+        $sheet->setCellValue('C' . $row, number_format($totals['system']));
+        $sheet->setCellValue('D' . $row, number_format($totals['actual']));
+        $diff_total = ($totals['positive'] > 0 ? '+' : '') . number_format($totals['positive']);
+        $sheet->setCellValue('E' . $row, $diff_total);
+        $sheet->setCellValue('F' . $row, '');
+
+        $sheet->getStyle('A' . $row . ':F' . $row)->getFont()->setBold(true)->setSize(12)->setName('TH SarabunPSK');
+        $sheet->getStyle('C' . $row . ':E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A' . $row . ':F' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFE6E6FA');
+        $sheet->getRowDimension($row)->setRowHeight(25);
+
+        // Conditional formatting for total positive difference
+        if ($totals['positive'] > 0) {
+            $sheet->getStyle('E' . $row)->getFont()->getColor()->setARGB('FF228B22');
+        } elseif ($totals['positive'] == 0) {
+            $sheet->getStyle('E' . $row)->getFont()->getColor()->setARGB('FF000000');
+        }
+
+        $row++;
+        $row++;
+
+        // Summary header
+        $sheet->setCellValue('A' . $row, 'สรุปรายงาน');
+        $sheet->mergeCells('A' . $row . ':F' . $row);
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(14)->setName('TH SarabunPSK');
+        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF4F81BD');
+        $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet->getRowDimension($row)->setRowHeight(25);
+
+        $row++;
+
+        // Summary details
+        $summary_items = [
+            'จำนวนรายการทั้งหมด: ' . count($stock_checks) . ' รายการ',
+            'จำนวนจากระบบ: ' . number_format($totals['system']),
+            'จำนวนนับจริง: ' . number_format($totals['actual']),
+            'ส่วนเกินทั้งหมด: ' . ($totals['positive'] > 0 ? '' : '') . number_format($totals['positive']),
+            'ส่วนขาดทั้งหมด: ' . ($totals['negative'] > 0 ? '' : '') . number_format($totals['negative'])
+        ];
+
+        foreach ($summary_items as $index => $item) {
+            $sheet->setCellValue('A' . $row, $item);
+            $sheet->mergeCells('A' . $row . ':F' . $row);
+            $sheet->getStyle('A' . $row)->getFont()->setSize(12)->setName('TH SarabunPSK');
+            $sheet->getStyle('A' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF5F6FA');
+            $sheet->getRowDimension($row)->setRowHeight(20);
+            $row++;
+        }
+
+        // // Show shortage if exists
+        // if ($totals['negative'] < 0) {
+        //     $sheet->setCellValue('A' . $row, 'ส่วนขาดทั้งหมด: ' . number_format($totals['negative']));
+        //     $sheet->mergeCells('A' . $row . ':F' . $row);
+        //     $sheet->getStyle('A' . $row)->getFont()->setSize(12)->setName('TH SarabunPSK')->setBold(true);
+        //     $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FFDC143C');
+        //     $sheet->getStyle('A' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFF0F0');
+        //     $sheet->getRowDimension($row)->setRowHeight(20);
+        // }
+    } else {
+        // No data message
+        $sheet->setCellValue('A' . $row, 'ไม่พบข้อมูลการเช็คสต๊อก');
+        $sheet->mergeCells('A' . $row . ':F' . $row);
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(12)->setName('TH SarabunPSK');
+        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FF8B0000');
+        $row++;
+    }
+
+    // Styling and Formatting
     $styleArray = [
         'borders' => [
             'allBorders' => [
@@ -128,34 +303,42 @@ try {
             ],
         ],
     ];
-    $sheet->getStyle('A1:K' . $row)->applyFromArray($styleArray);
+    $sheet->getStyle('A5:F' . ($row - 1))->applyFromArray($styleArray);
 
     // Set column widths
-    $sheet->getColumnDimension('A')->setWidth(15);
-    $sheet->getColumnDimension('B')->setWidth(15);
-    $sheet->getColumnDimension('C')->setWidth(20);
-    $sheet->getColumnDimension('D')->setWidth(20);
-    $sheet->getColumnDimension('E')->setWidth(15);
-    $sheet->getColumnDimension('F')->setWidth(30);
-    $sheet->getColumnDimension('G')->setWidth(15);
-    $sheet->getColumnDimension('H')->setWidth(15);
-    $sheet->getColumnDimension('I')->setWidth(20);
-    $sheet->getColumnDimension('J')->setWidth(15);
-    $sheet->getColumnDimension('K')->setWidth(30);
+    $column_widths = [
+        'A' => 15, // product_id
+        'B' => 40, // product_name
+        'C' => 15, // stock_check_system
+        'D' => 15, // stock_check_actual
+        'E' => 15, // difference
+        'F' => 25  // stock_check_remark
+    ];
 
-    // Send headers to download the file
+    foreach ($column_widths as $column => $width) {
+        $sheet->getColumnDimension($column)->setWidth($width);
+    }
+
+    // Add footer
+    $row += 2;
+    $sheet->setCellValue('A' . $row, 'สร้างโดยระบบจัดการสต๊อก');
+    $sheet->mergeCells('A' . $row . ':F' . $row);
+    $sheet->getStyle('A' . $row)->getFont()->setSize(10)->setName('TH SarabunPSK')->setItalic(true);
+    $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+    // File Output
+    $filename = 'StockCheckReport_' . date('Ymd_His') . '.xlsx';
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="StockCheckReport_' . date('Ymd_His') . '.xlsx"');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
     header('Cache-Control: max-age=0');
 
-    // Save file to PHP output
     $writer = new Xlsx($spreadsheet);
+    ob_end_clean();
     $writer->save('php://output');
     exit;
-
 } catch (Exception $e) {
+    error_log("Error in export_stock_excel.php: " . $e->getMessage());
     header('HTTP/1.1 500 Internal Server Error');
     echo 'เกิดข้อผิดพลาด: ' . htmlspecialchars($e->getMessage());
     exit;
 }
-?>
