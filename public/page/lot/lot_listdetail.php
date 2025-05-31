@@ -70,6 +70,7 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Existing styles remain unchanged */
         body {
             background-color: #f8f9fa;
         }
@@ -250,8 +251,8 @@ try {
                         <div class="flex-1">
                             <input type="text" id="barcode" name="barcode"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                placeholder="เช่น 12345 หรือ 2*12345 หรือ 2*12345*150.50 หรือ -12345 หรือ -2*12345"
-                                pattern="[0-9*\-\.]*"
+                                placeholder="เช่น 120/50*12354685 หรือ -12354685 หรือ -50*12354685"
+                                pattern="[0-9*/\-\.]*"
                                 autocomplete="off"
                                 autofocus>
                         </div>
@@ -262,7 +263,7 @@ try {
                     <div class="flex flex-row space-x-8">
                         <p class="text-sm text-green-700 mt-1">
                             <i class="fas fa-info-circle mr-1"></i>
-                            รูปแบบการนำเข้า: รหัส หรือ จำนวน*รหัส หรือ จำนวน*รหัส*ราคาทุน
+                            รูปแบบการนำเข้า: ราคาทุน/จำนวน*รหัส
                         </p>
                         <p class="text-sm text-red-700 mt-1">
                             <i class="fas fa-info-circle mr-1"></i>
@@ -522,11 +523,12 @@ try {
                         return;
                     }
 
-                    if (!/^[0-9*\-\.]+$/.test(barcode)) {
+                    // Updated regex to support price/qty*barcode, -barcode, or -qty*barcode
+                    if (!/^(?:-?\d+\/\d+\*\d+|-\d+|\d+\/\d+\*\d+|-\d+\*\d+)$/.test(barcode)) {
                         Swal.fire({
                             icon: 'warning',
                             title: 'รูปแบบไม่ถูกต้อง',
-                            text: 'รหัสบาร์โค้ดต้องเป็นตัวเลขและเครื่องหมาย * หรือ - หรือ . เท่านั้น'
+                            text: 'รูปแบบต้องเป็น ราคาทุน/จำนวน*รหัส หรือ -รหัส หรือ -จำนวน*รหัส'
                         });
                         return;
                     }
@@ -540,7 +542,7 @@ try {
                     $('#barcode').val('').focus();
                 });
 
-                // Edit form submission
+                // Edit form submission (unchanged)
                 $('#edit-form').on('submit', function(e) {
                     e.preventDefault();
                     const lot_product_id = $('#edit-lot-product-id').val();
@@ -588,11 +590,10 @@ try {
                     $('#edit-modal').fadeOut(200);
                 });
 
-                // Confirm lot
+                // Confirm lot (unchanged)
                 $('.confirm-lot').on('click', function() {
                     const lot_id = $(this).data('lot-id');
 
-                    // ตรวจสอบว่ามีสินค้าหรือไม่
                     const hasProducts = $('#products-table tbody tr').length > 1 || !$('#products-table tbody tr').hasClass('total-row');
 
                     if (!hasProducts) {
@@ -660,26 +661,23 @@ try {
                     });
                 });
 
-                // Close modal
+                // Close modal (unchanged)
                 $('#cancel-edit, #close-modal').on('click', function() {
                     $('#edit-modal').fadeOut(200);
                 });
 
-                // Close modal on outside click
                 $('#edit-modal').on('click', function(e) {
                     if (e.target.id === 'edit-modal') {
                         $('#edit-modal').fadeOut(200);
                     }
                 });
 
-                // Close modal on Escape key
                 $(document).keydown(function(e) {
                     if (e.key === "Escape" && $('#edit-modal').is(':visible')) {
                         $('#edit-modal').fadeOut(200);
                     }
                 });
 
-                // Auto-focus barcode input
                 $('#barcode').focus();
             }
 

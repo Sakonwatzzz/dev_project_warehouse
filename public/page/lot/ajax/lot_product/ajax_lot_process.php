@@ -26,39 +26,52 @@ try {
         }
 
         // แยกข้อมูลบาร์โค้ด
-        $parts = explode('*', $barcode);
         $is_delete = strpos($barcode, '-') === 0;
-
-        // กำหนดค่าเริ่มต้น
+        $barcode_value = $is_delete ? ltrim($barcode, '-') : $barcode;
         $quantity = 1;
         $capital = null;
-        $barcode_value = $is_delete ? ltrim($barcode, '-') : $barcode;
 
-        if (count($parts) >= 1) {
-            if (count($parts) === 1) {
-                // รูปแบบ: รหัส หรือ -รหัส
-                $barcode_value = $is_delete ? ltrim($parts[0], '-') : $parts[0];
-            } elseif (count($parts) === 2) {
-                // รูปแบบ: จำนวน*รหัส หรือ -จำนวน*รหัส
+        if (strpos($barcode_value, '*') !== false) {
+            $parts = explode('*', $barcode_value);
+            if (count($parts) !== 2) {
+                throw new Exception('รูปแบบบาร์โค้ดไม่ถูกต้อง');
+            }
+
+            $barcode_value = $parts[1];
+
+            if (strpos($parts[0], '/') !== false) {
+                // รูปแบบ: ราคาทุน/จำนวน*รหัส (e.g., 120/50*12354685)
+                $sub_parts = explode('/', $parts[0]);
+                if (count($sub_parts) !== 2) {
+                    throw new Exception('รูปแบบราคาทุน/จำนวนไม่ถูกต้อง');
+                }
+                $capital = (float)$sub_parts[0];
+                $quantity = (int)$sub_parts[1];
+                if ($capital < 0) {
+                    throw new Exception('ราคาทุนต้องไม่ติดลบ');
+                }
+                if ($quantity <= 0) {
+                    throw new Exception('จำนวนต้องมากกว่า 0');
+                }
+                if ($is_delete) {
+                    throw new Exception('รูปแบบการลบไม่รองรับการระบุราคาทุน');
+                }
+            } else {
+                // รูปแบบ: จำนวน*รหัส (e.g., 50*12354685 หรือ -50*12354685)
                 $quantity = (int)$parts[0];
                 if ($is_delete) {
                     $quantity = -abs($quantity);
                 }
-                $barcode_value = $parts[1];
-            } elseif (count($parts) >= 3) {
-                // รูปแบบ: จำนวน*รหัส*ราคาทุน
-                $quantity = (int)$parts[0];
-                $barcode_value = $parts[1];
-                $capital = (float)$parts[2];
+                if ($quantity == 0) {
+                    throw new Exception('จำนวนต้องไม่เป็น 0');
+                }
             }
-        }
-
-        if ($quantity == 0) {
-            throw new Exception('จำนวนต้องมากกว่า 0');
-        }
-
-        if ($is_delete && $capital !== null) {
-            throw new Exception('รูปแบบการลบไม่รองรับการระบุราคาทุน');
+        } else {
+            // รูปแบบ: รหัส หรือ -รหัส
+            $barcode_value = $barcode_value;
+            if ($is_delete) {
+                $quantity = -1;
+            }
         }
 
         // ค้นหาสินค้า
@@ -241,4 +254,3 @@ try {
 
 echo json_encode($response);
 exit;
-?>

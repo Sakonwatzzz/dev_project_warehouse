@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO personnel (personnel_name, personnel_type_id, personnel_address, personnel_phone, personnel_username, personnel_password, personnel_create_date) 
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ');
-        $stmt->execute([$personnel_name, $personnel_type_id, $personnel_address, $personnel_phone, $personnel_username, $personnel_password, $personnel_create_date ]);
+        $stmt->execute([$personnel_name, $personnel_type_id, $personnel_address, $personnel_phone, $personnel_username, $personnel_password, $personnel_create_date]);
 
         $personnel_id = $pdo->lastInsertId();
         header("Location: /?page=personnel_detail&tabel=personnel&id=$personnel_id");
@@ -128,9 +128,9 @@ ob_end_flush();
                     <form class="p-6 space-y-1" action="" method="POST" id="personnelForm">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <!-- Personnel Fields -->
-                        <div class="flex items-center gap-4">
-                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อ-สกุล:</label>
-                            <div class="w-7/12 lg:w-8/12">
+                        <div class="flex flex-col md:flex md:flex-row md:gap-4">
+                            <label class=" w-full mb-2 md:w-5/12 md:pl-11 md:p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อ-สกุล:</label>
+                            <div class=" w-full mb-4 md:w-7/12 lg:w-8/12">
                                 <input type="text"
                                     name="personnel_name"
                                     id="personnel_name"
@@ -141,9 +141,9 @@ ob_end_flush();
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-4">
-                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ที่อยู่:</label>
-                            <div class="w-7/12 lg:w-8/12">
+                        <div class="flex flex-col mb-4 md:flex md:flex-row  md:gap-4 ">
+                            <label class="w-full mb-2 md:w-5/12 md:pl-11 md:p-2 lg:w-4/12 text-base font-medium text-gray-700">ที่อยู่:</label>
+                            <div class="w-full md:w-7/12 lg:w-8/12 mb-4">
                                 <textarea name="personnel_address"
                                     id="personnel_address"
                                     class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
@@ -152,9 +152,9 @@ ob_end_flush();
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-4">
-                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">เบอร์โทร:</label>
-                            <div class="w-7/12 lg:w-8/12">
+                        <div class="flex flex-col mb-4 md:flex md:flex-row  md:gap-4 ">
+                            <label class="w-full mb-2 md:w-5/12 md:pl-11 md:p-2 lg:w-4/12 text-base font-medium text-gray-700">เบอร์โทร:</label>
+                            <div class="w-full md:w-7/12 lg:w-8/12 mb-4">
                                 <input type="text"
                                     name="personnel_phone"
                                     id="personnel_phone"
@@ -164,9 +164,9 @@ ob_end_flush();
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-4">
-                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อผู้ใช้:</label>
-                            <div class="w-7/12 lg:w-8/12">
+                        <div class="flex flex-col mb-4 md:flex md:flex-row  md:gap-4 ">
+                            <label class="w-full mb-2 md:w-5/12 md:pl-11 md:p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อผู้ใช้:</label>
+                            <div class="w-full md:w-7/12 lg:w-8/12 mb-4">
                                 <input type="text"
                                     name="personnel_username"
                                     id="personnel_username"
@@ -176,9 +176,9 @@ ob_end_flush();
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-4">
-                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">รหัสผ่าน:</label>
-                            <div class="w-7/12 lg:w-8/12">
+                        <div class="flex flex-col mb-4 md:flex md:flex-row  md:gap-4 ">
+                            <label class="w-full mb-2 md:w-5/12 md:pl-11 md:p-2 lg:w-4/12 text-base font-medium text-gray-700">รหัสผ่าน:</label>
+                            <div class="w-full md:w-7/12 lg:w-8/12 mb-4">
                                 <input type="password"
                                     name="personnel_password"
                                     id="personnel_password"
@@ -189,11 +189,11 @@ ob_end_flush();
                         </div>
 
                         <!-- Personnel Type -->
-                        <div class="flex items-center gap-4">
-                            <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
+                        <div class="flex flex-col mb-4 md:flex md:flex-row  md:gap-4 ">
+                            <label class="w-full mb-2 md:w-5/12 md:pl-11 md:p-2 lg:w-4/12 text-base font-medium text-gray-700">
                                 <a href="?page=personnel_type" class="text-blue-600 hover:underline">ประเภทบุคลากร:</a>
                             </label>
-                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
+                            <div class="w-full md:w-7/12 lg:w-8/12 mb-4 ">
                                 <?php if (count($personnelTypes) > 0): ?>
                                     <select name="personnel_type_name" id="personnel_type_name" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" required>
                                         <option value="" disabled selected>เลือกประเภทบุคลากร</option>
@@ -213,9 +213,9 @@ ob_end_flush();
                         </div>
 
                         <!-- วันที่สมัคร -->
-                        <div class="flex items-center gap-4">
-                            <label for="personnel_create_date" class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">วันที่และเวลา</label>
-                            <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
+                        <div class="flex flex-col  md:flex md:flex-row  md:gap-4 ">
+                            <label for="personnel_create_date" class="w-full mb-2 md:w-5/12 md:pl-11 md:p-2 lg:w-4/12 text-base font-medium text-gray-700">วันที่และเวลา</label>
+                            <div class="w-full md:w-7/12 lg:w-8/12 mb-4 ">
                                 <input type="text" name="personnel_create_date" id="personnel_create_date" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly
                                     class="w-full p-2 border border-gray-300 bg-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-not-allowed">
                             </div>
