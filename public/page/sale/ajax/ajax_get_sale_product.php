@@ -95,9 +95,9 @@ try {
     echo json_encode([
         'status' => 'success',
         'html' => $html,
-        'sale_net_amount' => number_format($sale_net_amount, 2),
-        'sale_vat_amount' => number_format($sale_vat_amount, 2),
-        'sale_total_amount' => number_format($sale_total_amount, 2),
+        'sale_net_amount' => $sale_net_amount, // ส่งเป็น float
+        'sale_vat_amount' => $sale_vat_amount, // ส่งเป็น float
+        'sale_total_amount' => $sale_total_amount, // ส่งเป็น float
         'total_items' => $total_items,
         'total_qty' => $total_qty,
         'sale_status_name' => $sale_status_name
