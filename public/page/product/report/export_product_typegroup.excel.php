@@ -10,122 +10,103 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
-// Check session timeout
 if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
     session_unset();
     session_destroy();
-    $query_params = http_build_query(['timeout' => 1, 'page' => 'personnel_group', 'type' => $_GET['type'] ?? ''] + ($_GET ?? []));
+    $query_params = http_build_query(['timeout' => 1, 'page' => 'product_typegroup', 'id' => $_GET['id'] ?? ''] + ($_GET ?? []));
     header("Location: /page/login.php?$query_params");
     exit;
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
-// Verify CSRF token
 function verifyCsrfToken($token)
 {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
 try {
-    // Validate CSRF token
     if (!isset($_GET['csrf_token']) || !verifyCsrfToken($_GET['csrf_token'])) {
         throw new Exception('Invalid CSRF token');
     }
 
-    $type = isset($_GET['type']) ? trim($_GET['type']) : '';
-    $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
-    $end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+    $productTypeId = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : '';
+    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-    // Validate personnel type
-    if (empty($type)) {
-        throw new Exception('กรุณาระบุประเภทบุคลากร');
+    if (empty($productTypeId)) {
+        throw new Exception('กรุณาระบุประเภทสินค้า');
     }
+
+    // Fetch product type name
+    $stmtType = $pdo->prepare("SELECT product_type_name FROM product_type WHERE product_type_id = :product_type_id");
+    $stmtType->bindParam(':product_type_id', $productTypeId, PDO::PARAM_INT);
+    $stmtType->execute();
+    $typeResult = $stmtType->fetch(PDO::FETCH_ASSOC);
+    $productTypeName = $typeResult['product_type_name'] ?? 'ไม่ทราบประเภท';
 
     // Build query
     $query = "
         SELECT 
-            p.personnel_id,
-            p.personnel_name,
-            p.personnel_username,
-            p.personnel_address,
-            p.personnel_phone,
-            p.personnel_create_date,
-            pt.personnel_type_name
-        FROM personnel p
-        INNER JOIN personnel_type pt ON p.personnel_type_id = pt.personnel_type_id
-        WHERE pt.personnel_type_name = :type";
+            p.product_id,
+            p.product_name,
+            p.product_price1,
+            p.product_price2,
+            p.product_price3,
+            p.product_price4,
+            p.product_capital,
+            pt.product_type_name
+        FROM product p
+        INNER JOIN product_type pt ON p.product_type_id = pt.product_type_id
+        WHERE p.product_type_id = :product_type_id";
+    $params = [':product_type_id' => $productTypeId];
 
-    $params = [':type' => $type];
-    $conditions = [];
-    if ($start_date) {
-        $conditions[] = "p.personnel_create_date >= :start_date";
-        $params[':start_date'] = $start_date . ' 00:00:00';
-    }
-    if ($end_date) {
-        $conditions[] = "p.personnel_create_date <= :end_date";
-        $params[':end_date'] = $end_date . ' 23:59:59';
-    }
-    if ($conditions) {
-        $query .= " AND " . implode(" AND ", $conditions);
+    if (!empty($search)) {
+        $query .= " AND (p.product_id LIKE :search OR p.product_name LIKE :search)";
+        $params[':search'] = "%$search%";
     }
 
-    $query .= " ORDER BY p.personnel_id";
+    $query .= " ORDER BY p.product_name";
 
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
     $stmt->execute();
-    $personnel = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Create new Spreadsheet object
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
 
-    // Set column A as text
     $sheet->getStyle('A')->getNumberFormat()->setFormatCode('@');
 
-    // Report title
-    $sheet->setCellValue('A1', 'รายงานบุคลากร: ' . htmlspecialchars($type));
-    $sheet->mergeCells('A1:F1');
+    $sheet->setCellValue('A1', 'รายงานสินค้า: ' . htmlspecialchars($productTypeName));
+    $sheet->mergeCells('A1:G1');
     $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle('A1')->getFont()->setBold(true);
     $sheet->getRowDimension(1)->setRowHeight(25);
 
-    // Report date
     $sheet->setCellValue('A2', 'วันที่ออกรายงาน: ' . date('d/m/Y H:i:s'));
-    $sheet->mergeCells('A2:F2');
+    $sheet->mergeCells('A2:G2');
     $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getRowDimension(2)->setRowHeight(20);
 
-    // Date range
-    $date_range = '';
-    if ($start_date && $end_date) {
-        $date_range = "ช่วงวันที่: $start_date ถึง $end_date";
-    } elseif ($start_date) {
-        $date_range = "ตั้งแต่วันที่: $start_date";
-    } elseif ($end_date) {
-        $date_range = "ถึงวันที่: $end_date";
-    }
-    $sheet->setCellValue('A3', $date_range ? $date_range : '');
-    $sheet->mergeCells('A3:F3');
+    $filter_text = $search ? "ค้นหา: $search" : '';
+    $sheet->setCellValue('A3', $filter_text);
+    $sheet->mergeCells('A3:G3');
     $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getRowDimension(3)->setRowHeight(20);
 
-    // Empty row
     $row = 4;
     $sheet->getRowDimension($row)->setRowHeight(15);
 
-    // Table headers
     $row++;
-    $sheet->setCellValueExplicit('A' . $row, 'รหัสบุคลากร', DataType::TYPE_STRING);
-    $sheet->setCellValue('B' . $row, 'ชื่อ-นามสกุล');
-    $sheet->setCellValue('C' . $row, 'ชื่อผู้ใช้');
-    $sheet->setCellValue('D' . $row, 'ที่อยู่');
-    $sheet->setCellValue('E' . $row, 'เบอร์โทร');
-    $sheet->setCellValue('F' . $row, 'วันที่');
+    $sheet->setCellValueExplicit('A' . $row, 'รหัสสินค้า', DataType::TYPE_STRING);
+    $sheet->setCellValue('B' . $row, 'ชื่อสินค้า');
+    $sheet->setCellValue('C' . $row, 'ราคา 1');
+    $sheet->setCellValue('D' . $row, 'ราคา 2');
+    $sheet->setCellValue('E' . $row, 'ราคา 3');
+    $sheet->setCellValue('F' . $row, 'ราคา 4');
+    $sheet->setCellValue('G' . $row, 'ต้นทุน');
 
-    // Header styling
     $headerStyle = [
         'font' => ['bold' => true],
         'borders' => [
@@ -139,40 +120,38 @@ try {
             'vertical' => Alignment::VERTICAL_CENTER,
         ],
     ];
-    $sheet->getStyle('A' . $row . ':F' . $row)->applyFromArray($headerStyle);
+    $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($headerStyle);
     $sheet->getRowDimension($row)->setRowHeight(20);
 
-    // Data rows
     $dataStartRow = $row + 1;
 
-    if (count($personnel) > 0) {
-        foreach ($personnel as $person) {
+    if (count($products) > 0) {
+        foreach ($products as $product) {
             $row++;
-            $sheet->setCellValueExplicit('A' . $row, $person['personnel_id'], DataType::TYPE_STRING);
-            $sheet->setCellValue('B' . $row, $person['personnel_name']);
-            $sheet->setCellValue('C' . $row, $person['personnel_username']);
-            $sheet->setCellValue('D' . $row, $person['personnel_address']);
-            $sheet->setCellValue('E' . $row, $person['personnel_phone']);
-            $sheet->setCellValue('F' . $row, $person['personnel_create_date']);
+            $sheet->setCellValueExplicit('A' . $row, $product['product_id'], DataType::TYPE_STRING);
+            $sheet->setCellValue('B' . $row, $product['product_name']);
+            $sheet->setCellValue('C' . $row, number_format($product['product_price1'], 2));
+            $sheet->setCellValue('D' . $row, number_format($product['product_price2'], 2));
+            $sheet->setCellValue('E' . $row, number_format($product['product_price3'], 2));
+            $sheet->setCellValue('F' . $row, number_format($product['product_price4'], 2));
+            $sheet->setCellValue('G' . $row, number_format($product['product_capital'], 2));
             $sheet->getRowDimension($row)->setRowHeight(20);
         }
     } else {
         $row++;
-        $sheet->setCellValue('A' . $row, 'ไม่พบข้อมูลบุคลากร');
-        $sheet->mergeCells('A' . $row . ':F' . $row);
+        $sheet->setCellValue('A' . $row, 'ไม่พบข้อมูลสินค้า');
+        $sheet->mergeCells('A' . $row . ':G' . $row);
         $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getRowDimension($row)->setRowHeight(20);
     }
 
-    // Summary row
     $row++;
     $sheet->setCellValue('A' . $row, 'รวมทั้งหมด');
-    $sheet->mergeCells('A' . $row . ':E' . $row);
-    $sheet->setCellValue('F' . $row, count($personnel) . ' รายการ');
-    $sheet->getStyle('A' . $row . ':F' . $row)->getFont()->setBold(true);
+    $sheet->mergeCells('A' . $row . ':F' . $row);
+    $sheet->setCellValue('G' . $row, count($products) . ' รายการ');
+    $sheet->getStyle('A' . $row . ':G' . $row)->getFont()->setBold(true);
     $sheet->getRowDimension($row)->setRowHeight(20);
 
-    // Apply borders to data and summary
     $styleArray = [
         'borders' => [
             'allBorders' => [
@@ -181,30 +160,28 @@ try {
             ],
         ],
     ];
-    $sheet->getStyle('A' . $dataStartRow . ':F' . $row)->applyFromArray($styleArray);
+    $sheet->getStyle('A' . $dataStartRow . ':G' . $row)->applyFromArray($styleArray);
 
-    // Set column widths
     $sheet->getColumnDimension('A')->setWidth(15);
     $sheet->getColumnDimension('B')->setWidth(30);
-    $sheet->getColumnDimension('C')->setWidth(20);
-    $sheet->getColumnDimension('D')->setWidth(25);
-    $sheet->getColumnDimension('E')->setWidth(25);
-    $sheet->getColumnDimension('F')->setWidth(25);
+    $sheet->getColumnDimension('C')->setWidth(15);
+    $sheet->getColumnDimension('D')->setWidth(15);
+    $sheet->getColumnDimension('E')->setWidth(15);
+    $sheet->getColumnDimension('F')->setWidth(15);
+    $sheet->getColumnDimension('G')->setWidth(15);
 
-    // Set headers for download
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="PersonnelReport_' . htmlspecialchars($type) . '_' . date('Ymd_His') . '.xlsx"');
+    header('Content-Disposition: attachment;filename="ProductReport_' . htmlspecialchars($productTypeName) . '_' . date('Ymd_His') . '.xlsx"');
     header('Cache-Control: max-age=0');
 
     $writer = new Xlsx($spreadsheet);
     $writer->save('php://output');
     exit;
 } catch (Exception $e) {
-    // Create error spreadsheet
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setCellValue('A1', 'เกิดข้อผิดพลาด: ' . htmlspecialchars($e->getMessage()));
-    $sheet->mergeCells('A1:F1');
+    $sheet->mergeCells('A1:G1');
     $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle('A1')->getFont()->setBold(true);
     $sheet->getRowDimension(1)->setRowHeight(25);

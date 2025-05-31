@@ -50,10 +50,8 @@ function validateStockCheckData($stock_check_actual, $stock_check_remark)
     return $errors;
 }
 
-// Handle search and date parameters
+// Handle search parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
-$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 
 // Handle POST requests for updating stock check
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
@@ -136,22 +134,16 @@ try {
                     LEFT JOIN product p ON sc.product_id = p.product_id
                     LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
                     LEFT JOIN stock s ON sc.stock_id = s.stock_id
-                    WHERE s.check_status_id = 2";
-    $params = [];
+                    WHERE s.check_status_id = 2 
+                    AND s.stock_date >= :today_start 
+                    AND s.stock_date <= :today_end";
+    $params = [
+        ':today_start' => date('Y-m-d 00:00:00'),
+        ':today_end' => date('Y-m-d 23:59:59')
+    ];
     if (!empty($search)) {
         $count_query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
-    }
-    if ($start_date || $end_date) {
-        $count_query .= (!empty($search) ? " AND" : " AND") . " 1=1";
-        if ($start_date) {
-            $count_query .= " AND s.stock_date >= :start_date";
-            $params[':start_date'] = $start_date . ' 00:00:00';
-        }
-        if ($end_date) {
-            $count_query .= " AND s.stock_date <= :end_date";
-            $params[':end_date'] = $end_date . ' 23:59:59';
-        }
     }
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
@@ -199,22 +191,16 @@ try {
         LEFT JOIN stock s ON sc.stock_id = s.stock_id
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
-        WHERE s.check_status_id = 2";
-    $params = [];
-    if (!empty($search) || $start_date || $end_date) {
-        $query .= " AND 1=1";
-        if (!empty($search)) {
-            $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
-            $params[':search'] = "%$search%";
-        }
-        if ($start_date) {
-            $query .= " AND s.stock_date >= :start_date";
-            $params[':start_date'] = $start_date . ' 00:00:00';
-        }
-        if ($end_date) {
-            $query .= " AND s.stock_date <= :end_date";
-            $params[':end_date'] = $end_date . ' 23:59:59';
-        }
+        WHERE s.check_status_id = 2
+        AND s.stock_date >= :today_start 
+        AND s.stock_date <= :today_end";
+    $params = [
+        ':today_start' => date('Y-m-d 00:00:00'),
+        ':today_end' => date('Y-m-d 23:59:59')
+    ];
+    if (!empty($search)) {
+        $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
+        $params[':search'] = "%$search%";
     }
     $query .= " ORDER BY s.stock_date DESC LIMIT :offset, :limit";
     $stmt = $pdo->prepare($query);
@@ -254,7 +240,7 @@ try {
 </head>
 
 <body class="bg-gray-50">
-    <div class=" mx-auto px-4 py-8">
+    <div class="mx-auto px-4 py-8">
         <!-- Header and Search Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
             <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
@@ -265,13 +251,7 @@ try {
                         <span>รายการ</span>
                     </div>
                 </div>
-                <button "
-                    class=" bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
-                    <a href="/?page=stock_insert"
-                        class="">
-                        <i class="fas fa-plus mr-2"></i>เพิ่มการเช็คสต็อก
-                    </a>
-                </button>
+
             </div>
             <div class="flex items-center">
                 <form action="" method="GET" id="searchForm" class="w-full text-end">
@@ -288,23 +268,8 @@ try {
                 </form>
             </div>
             <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
-                <!-- Date Filter -->
-                <div class="grid grid-cols-2 gap-4 md:w-[100%]">
-                    <div>
-                        <label for="start_date" class="text-sm font-medium text-gray-700">เริ่มจาก</label>
-                        <input type="date" id="start_date" name="start_date"
-                            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
-                            value="<?php echo htmlspecialchars($start_date); ?>">
-                    </div>
-                    <div>
-                        <label for="end_date" class="text-sm font-medium text-gray-700">ถึงวันที่</label>
-                        <input type="date" id="end_date" name="end_date"
-                            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
-                            value="<?php echo htmlspecialchars($end_date); ?>">
-                    </div>
-                </div>
                 <!-- Export Buttons -->
-                <div class="grid grid-cols-2 gap-4 pt-2 md:w-[100%] md:grid md:grid-cols-2 md:gap-4">
+                <div class="grid grid-cols-2 gap-4 pt-2  md:grid md:grid-cols-2 md:gap-4">
                     <button onclick="exportPDF()"
                         class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
                         <i class="fas fa-file-pdf"></i> ส่งออก PDF
@@ -327,7 +292,7 @@ try {
         <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
             <div class="bg-blue-600 p-4 border-b border-[#cfd5dc]">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                    <h2 class="text-xl sm:text-2xl font-bold  flex items-center text-white">
+                    <h2 class="text-xl sm:text-2xl font-bold flex items-center text-white">
                         <i class="fas fa-list mr-2"></i> ประวัติรายการเช็คสต๊อกสินค้า
                     </h2>
                     <div class="flex items-center gap-4 text-white">
@@ -353,7 +318,6 @@ try {
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">หมายเหตุ</th>
-                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -371,23 +335,6 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark']); ?></td>
-                                        <td class="px-6 py-2 border text-center">
-                                            <div class="flex flex-wrap justify-center gap-2">
-                                                <button onclick="showEditModal('<?php echo htmlspecialchars($stock['stock_check_id']); ?>', '<?php echo htmlspecialchars($stock['stock_check_actual']); ?>', '<?php echo htmlspecialchars(addslashes($stock['stock_check_remark'])); ?>')"
-                                                    class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
-                                                    <i class="fas fa-edit mr-1"></i> แก้ไข
-                                                </button>
-                                                <form action="" method="POST" style="display:inline;" class="delete-form">
-                                                    <input type="hidden" name="stock_check_id" value="<?php echo htmlspecialchars($stock['stock_check_id']); ?>">
-                                                    <input type="hidden" name="action" value="delete">
-                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                    <button type="button" onclick="confirmDelete(this.parentElement)"
-                                                        class="bg-red-500 text-white text-sm px-3 py-1 rounded hover:bg-red-600 transition flex items-center whitespace-nowrap">
-                                                        <i class="fas fa-trash-alt mr-1"></i> ลบ
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -406,7 +353,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=stock_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
@@ -416,7 +363,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=stock_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=stock_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         1
                     </a>
@@ -425,7 +372,7 @@ try {
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=stock_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -434,14 +381,14 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=stock_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=stock_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
@@ -517,6 +464,19 @@ try {
         setInterval(updateClock, 1000);
         updateClock();
 
+        // Midnight refresh
+        function checkMidnightRefresh() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            // Check if it's 00:00:00
+            if (hours === 0 && minutes === 0 && seconds === 0) {
+                window.location.reload();
+            }
+        }
+        setInterval(checkMidnightRefresh, 1000);
+
         function checkEmptySearch(input) {
             if (input.value.trim() === '') {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -568,22 +528,14 @@ try {
         }
 
         function exportPDF() {
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
             const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
             let url = '/page/stock/report/export_stock_pdf.php?csrf_token=' + encodeURIComponent(csrfToken);
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
             window.open(url, '_blank');
         }
 
         function exportExcel() {
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
             const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
             let url = '/page/stock/report/export_stock_excel.php?csrf_token=' + encodeURIComponent(csrfToken);
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
             window.open(url, '_blank');
         }
 
@@ -670,30 +622,6 @@ try {
                     this.submit();
                 }
             });
-
-            document.getElementById('start_date').addEventListener('change', updateDateFilter);
-            document.getElementById('end_date').addEventListener('change', updateDateFilter);
-
-            function updateDateFilter() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
-                const urlParams = new URLSearchParams(window.location.search);
-                urlParams.set('page', 'stock_list');
-
-                if (startDate) {
-                    urlParams.set('start_date', startDate);
-                } else {
-                    urlParams.delete('start_date');
-                }
-
-                if (endDate) {
-                    urlParams.set('end_date', endDate);
-                } else {
-                    urlParams.delete('end_date');
-                }
-
-                window.location.search = urlParams.toString();
-            }
         });
     </script>
 </body>

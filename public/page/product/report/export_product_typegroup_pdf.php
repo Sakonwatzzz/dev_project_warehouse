@@ -4,19 +4,28 @@ require_once __DIR__ . '../../../../fpdf186/fpdf.php';
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
+// Session timeout handling
 if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
     session_unset();
     session_destroy();
-    header("Location: /?page=login&timeout=1");
+    $query_params = http_build_query([
+        'timeout' => 1,
+        'page' => 'product_typegroup',
+        'id' => $_GET['id'] ?? '',
+        'search' => $_GET['search'] ?? '',
+        'product_type_name' => $_GET['product_type_name'] ?? ''
+    ]);
+    header("Location: /page/login.php?$query_params");
     exit;
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
+// CSRF token verification
 function verifyCsrfToken($token)
 {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
-if (!verifyCsrfToken($_GET['csrf_token'] ?? '')) {
+if (!isset($_GET['csrf_token']) || !verifyCsrfToken($_GET['csrf_token'])) {
     die('Invalid CSRF token');
 }
 
@@ -32,38 +41,33 @@ class THPDF extends FPDF
         $this->AddFont('THSarabunNew', '', 'THSarabunNew.php');
         $this->AddFont('THSarabunNew', 'B', 'THSarabunNew_b.php');
 
+        // Title
         $this->SetFont('THSarabunNew', 'B', 22);
-        $this->Cell(0, 12, thai('รายงานบุคลากร'), 0, 1, 'C');
+        $this->Cell(0, 12, thai('รายงานสินค้า'), 0, 1, 'C');
 
+        // Product type name
+        $this->SetFont('THSarabunNew', 'B', 18);
+        $productTypeName = $_GET['product_type_name'] ?? 'ไม่ทราบประเภท';
+        $this->Cell(0, 10, thai('ประเภท: ') . thai($productTypeName), 0, 1, 'C');
+
+        // Date
         $this->SetFont('THSarabunNew', '', 14);
         $this->Cell(0, 8, thai('วันที่ออกรายงาน: ') . date('d/m/Y H:i:s'), 0, 1, 'C');
 
-        $type = $_GET['type'] ?? '';
-        $start_date = $_GET['start_date'] ?? '';
-        $end_date = $_GET['end_date'] ?? '';
-        $search = $_GET['search'] ?? '';
-
-        $filters = [];
-        if ($type) $filters[] = thai("ประเภท: $type");
-        if ($start_date && $end_date) {
-            $filters[] = thai("ช่วงวันที่: $start_date ถึง $end_date");
-        } elseif ($start_date) {
-            $filters[] = thai("ตั้งแต่วันที่: $start_date");
-        } elseif ($end_date) {
-            $filters[] = thai("ถึงวันที่: $end_date");
-        }
-        if ($search) $filters[] = thai("ค้นหา: $search");
-
-        $filter_text = !empty($filters) ? implode(', ', $filters) : thai('ทั้งหมด');
-        $this->MultiCell(0, 8, $filter_text, 0, 'L');
+        
 
         $this->Ln(2);
+
+        // Table header
         $this->SetFont('THSarabunNew', 'B', 16);
         $this->SetFillColor(200, 216, 237);
-        $this->Cell(35, 10, thai('รหัส'), 1, 0, 'C', true);
-        $this->Cell(55, 10, thai('ชื่อ-นามสกุล'), 1, 0, 'C', true);
-        $this->Cell(40, 10, thai('เบอร์โทรศัพท์'), 1, 0, 'C', true);
-        $this->Cell(60, 10, thai('วันที่สร้าง'), 1, 1, 'C', true);
+        $this->Cell(30, 10, thai('รหัส'), 1, 0, 'C', true);
+        $this->Cell(65, 10, thai('ชื่อสินค้า'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ราคา 1'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ราคา 2'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ราคา 3'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ราคา 4'), 1, 0, 'C', true);
+        $this->Cell(19, 10, thai('ต้นทุน'), 1, 1, 'C', true);
     }
 
     function Footer()
@@ -75,83 +79,89 @@ class THPDF extends FPDF
 }
 
 try {
-    $type = $_GET['type'] ?? '';
-    $search = $_GET['search'] ?? '';
-    $start_date = $_GET['start_date'] ?? '';
-    $end_date = $_GET['end_date'] ?? '';
+    $productTypeId = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : '';
+    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-    $query = "
-        SELECT 
-            p.personnel_id,
-            p.personnel_name,
-            p.personnel_phone,
-            p.personnel_create_date
-        FROM personnel p
-        INNER JOIN personnel_type pt ON p.personnel_type_id = pt.personnel_type_id
-        WHERE pt.personnel_type_name = :type";
-    $params = [':type' => $type];
-
-    if (!empty($search) || $start_date || $end_date) {
-        $query .= " AND 1=1";
-        if (!empty($search)) {
-            $query .= " AND (
-                p.personnel_id LIKE :search OR 
-                p.personnel_name LIKE :search OR 
-                p.personnel_phone LIKE :search
-            )";
-            $params[':search'] = "%$search%";
-        }
-        if ($start_date) {
-            $query .= " AND p.personnel_create_date >= :start_date";
-            $params[':start_date'] = "$start_date 00:00:00";
-        }
-        if ($end_date) {
-            $query .= " AND p.personnel_create_date <= :end_date";
-            $params[':end_date'] = "$end_date 23:59:59";
-        }
+    if (empty($productTypeId)) {
+        throw new Exception('กรุณาระบุประเภทสินค้า');
     }
 
-    $query .= " ORDER BY p.personnel_id";
+    // Get product type name
+    $stmtType = $pdo->prepare("SELECT product_type_name FROM product_type WHERE product_type_id = :product_type_id");
+    $stmtType->bindParam(':product_type_id', $productTypeId, PDO::PARAM_INT);
+    $stmtType->execute();
+    $typeResult = $stmtType->fetch(PDO::FETCH_ASSOC);
+    $productTypeName = $typeResult['product_type_name'] ?? 'ไม่ทราบประเภท';
+    $_GET['product_type_name'] = $productTypeName;
 
+    // Query products
+    $query = "
+        SELECT 
+            p.product_id,
+            p.product_name,
+            pt.product_type_name,
+            p.product_price1,
+            p.product_price2,
+            p.product_price3,
+            p.product_price4,
+            p.product_capital
+        FROM product p
+        INNER JOIN product_type pt ON p.product_type_id = pt.product_type_id
+        WHERE p.product_type_id = :product_type_id";
+    $params = [':product_type_id' => $productTypeId];
+
+    if (!empty($search)) {
+        $query .= " AND (p.product_id LIKE :search OR p.product_name LIKE :search)";
+        $params[':search'] = "%$search%";
+    }
+
+    $query .= " ORDER BY p.product_name";
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
     $stmt->execute();
-    $personnel = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $pdf = new THPDF();
+    if (empty($products)) {
+        throw new Exception('ไม่มีข้อมูลสินค้าสำหรับประเภทนี้');
+    }
+
+    $pdf = new THPDF('P', 'mm', 'A4');
+    $pdf->SetAutoPageBreak(true, 15);
     $pdf->AliasNbPages();
     $pdf->AddPage();
     $pdf->SetFont('THSarabunNew', '', 14);
 
-    foreach ($personnel as $person) {
+    foreach ($products as $product) {
         if ($pdf->GetY() > 260) {
             $pdf->AddPage();
         }
-        $pdf->Cell(35, 10, $person['personnel_id'], 1, 0, 'C');
-        $pdf->Cell(55, 10, thai($person['personnel_name']), 1, 0, 'L');
-        $pdf->Cell(40, 10, thai($person['personnel_phone']), 1, 0, 'L');
-        $pdf->Cell(60, 10, thai($person['personnel_create_date']), 1, 1, 'L');
+        $pdf->Cell(30, 10, thai($product['product_id']), 1, 0, 'C');
+        $pdf->Cell(65, 10, thai($product['product_name']), 1, 0, 'L');
+        $pdf->Cell(19, 10, number_format($product['product_price1'], 2), 1, 0, 'R');
+        $pdf->Cell(19, 10, number_format($product['product_price2'], 2), 1, 0, 'R');
+        $pdf->Cell(19, 10, number_format($product['product_price3'], 2), 1, 0, 'R');
+        $pdf->Cell(19, 10, number_format($product['product_price4'], 2), 1, 0, 'R');
+        $pdf->Cell(19, 10, number_format($product['product_capital'], 2), 1, 1, 'R');
     }
 
+    // Summary
     $pdf->SetFont('THSarabunNew', 'B', 14);
-    $pdf->Cell(190, 10, thai('รวมทั้งหมด: ') . count($personnel) . thai(' รายการ'), 1, 1, 'R');
+    $pdf->Cell(190, 10, thai('รวมทั้งหมด: ') . count($products) . thai(' รายการ'), 1, 1, 'R');
 
     $pdf->Ln(8);
     $pdf->SetFont('THSarabunNew', '', 14);
-    $pdf->MultiCell(0, 8, thai("หมายเหตุ: รายงานนี้จัดทำขึ้นโดยระบบอัตโนมัติเพื่อใช้สำหรับอ้างอิงข้อมูลบุคลากรเท่านั้น"), 0, 'L');
+    $pdf->MultiCell(0, 8, thai("หมายเหตุ: รายงานนี้จัดทำขึ้นโดยระบบอัตโนมัติเพื่อใช้สำหรับอ้างอิงข้อมูลสินค้าเท่านั้น"), 0, 'L');
 
-    $filename = 'PersonnelReport_' . date('Ymd_His') . '.pdf';
+    $filename = 'ProductReport_' . htmlspecialchars($productTypeName) . '_' . date('Ymd_His') . '.pdf';
     ob_end_clean();
     $pdf->Output('I', $filename);
-
-} catch (PDOException $e) {
-    $pdf = new THPDF();
+} catch (Exception $e) {
+    $pdf = new THPDF('P', 'mm', 'A4');
     $pdf->AliasNbPages();
     $pdf->AddPage();
     $pdf->SetFont('THSarabunNew', 'B', 14);
-    $pdf->Cell(0, 10, thai('เกิดข้อผิดพลาด: ') . $e->getMessage(), 0, 1, 'C');
+    $pdf->Cell(0, 10, thai('เกิดข้อผิดพลาด: ') . thai(htmlspecialchars($e->getMessage())), 0, 1, 'C');
     $pdf->Output();
 }
-?>

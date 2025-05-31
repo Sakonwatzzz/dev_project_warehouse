@@ -429,6 +429,7 @@ try {
                                                 <?php echo number_format($type['product_count']); ?> รายการ
                                             </a>
                                         </td>
+                                        
                                         <td class="px-6 py-2 border text-center">
                                             <div class="flex flex-wrap justify-center gap-2">
                                                 <button onclick="showEditModal('<?php echo htmlspecialchars($type['product_type_id']); ?>', '<?php echo htmlspecialchars(addslashes($type['product_type_name'])); ?>', '<?php echo htmlspecialchars($type['personnel_id']); ?>')" class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
