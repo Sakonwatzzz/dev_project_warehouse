@@ -220,7 +220,6 @@ try {
         $params[':search'] = "%$search%";
     }
     if ($start_date || $end_date) {
-        $count_query .= (!empty($search) ? " AND" : " WHERE") . " 1=1";
         if ($start_date) {
             $count_query .= " AND lot_date >= :start_date";
             $params[':start_date'] = $start_date . ' 00:00:00';

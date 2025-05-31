@@ -31,6 +31,7 @@ function fetchData($pdo, $query, $params = [])
         throw new Exception("Database error: " . htmlspecialchars($e->getMessage()));
     }
 }
+
 // Verify CSRF token
 function verifyCsrfToken($token)
 {
@@ -79,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    $lot_name = trim($_POST['lot_name']);
-    $lot_detail = trim($_POST['lot_detail']);
+    $lot_name = trim(filter_var($_POST['lot_name']));
+    $lot_detail = trim(filter_var($_POST['lot_detail']));
     $lot_status_id = filter_var($_POST['lot_status_id'], FILTER_VALIDATE_INT);
     $warehouse_id = filter_var($_POST['warehouse_id'], FILTER_VALIDATE_INT);
     $personnel_id = filter_var($_POST['personnel_id'], FILTER_VALIDATE_INT);
@@ -115,8 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
-    $lot_name = trim($_POST['lot_name']);
-    $lot_detail = trim($_POST['lot_detail']);
+    $lot_name = trim(filter_var($_POST['lot_name']));
+    $lot_detail = trim(filter_var($_POST['lot_detail']));
     $lot_status_id = filter_var($_POST['lot_status_id'], FILTER_VALIDATE_INT);
     $warehouse_id = filter_var($_POST['warehouse_id'], FILTER_VALIDATE_INT);
     $personnel_id = filter_var($_POST['personnel_id'], FILTER_VALIDATE_INT);
@@ -209,10 +210,43 @@ try {
     exit;
 }
 
-// Add search and date filter variables
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
-$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+// Add search and date filter variables with improved validation and sanitization
+$search = '';
+if (isset($_GET['search'])) {
+    $search = trim(strip_tags($_GET['search']));
+    // Limit search length to prevent abuse
+    if (strlen($search) > 255) {
+        $search = substr($search, 0, 255);
+    }
+}
+
+$start_date = '';
+if (isset($_GET['start_date'])) {
+    $start_date = trim(strip_tags($_GET['start_date']));
+    // Validate date format (YYYY-MM-DD)
+    if (!empty($start_date) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $start_date)) {
+        $start_date = '';
+    }
+}
+
+$end_date = '';
+if (isset($_GET['end_date'])) {
+    $end_date = trim(strip_tags($_GET['end_date']));
+    // Validate date format (YYYY-MM-DD)
+    if (!empty($end_date) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end_date)) {
+        $end_date = '';
+    }
+}
+
+// Ensure end_date is not before start_date
+if (!empty($start_date) && !empty($end_date)) {
+    if (strtotime($end_date) < strtotime($start_date)) {
+        $start_date = '';
+        $end_date = '';
+        header('Location: index.php?page=lot_warehouseinout&error=' . urlencode('วันที่สิ้นสุดต้องไม่มาก่อนวันที่เริ่มต้น'));
+        exit;
+    }
+}
 
 // Pagination setup
 try {
@@ -340,10 +374,8 @@ ob_end_flush();
                         <span>รายการ</span>
                     </div>
                 </div>
-                <button "
-                    class=" bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
-                    <a href="/?page=lot_insertout"
-                        class="">
+                <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+                    <a href="/?page=lot_insertout">
                         <i class="fas fa-plus mr-2"></i>เพิ่มล็อตสินค้า
                     </a>
                 </button>
@@ -570,8 +602,6 @@ ob_end_flush();
             }
         }
 
-
-
         function showDeleteModal() {
             document.getElementById('deleteModal').classList.remove('invisible', 'opacity-0');
         }
@@ -604,8 +634,10 @@ ob_end_flush();
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
             let url = '/page/lot/ajax/report/export_lot_move_pdf.php';
-            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            const params = [];
+            if (startDate) params.push(`start_date=${encodeURIComponent(startDate)}`);
+            if (endDate) params.push(`end_date=${encodeURIComponent(endDate)}`);
+            if (params.length) url += `?${params.join('&')}`;
             window.open(url, '_blank');
         }
 
@@ -613,8 +645,10 @@ ob_end_flush();
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
             let url = '/page/lot/ajax/report/export_lot_move_excel.php';
-            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            const params = [];
+            if (startDate) params.push(`start_date=${encodeURIComponent(startDate)}`);
+            if (endDate) params.push(`end_date=${encodeURIComponent(endDate)}`);
+            if (params.length) url += `?${params.join('&')}`;
             window.open(url, '_blank');
         }
 
@@ -628,10 +662,11 @@ ob_end_flush();
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     this.value = '';
-                    this.form.submit();
+                    checkEmptySearch(this);
                 }
                 if (e.key === 'Enter') {
                     localStorage.setItem('searchPreserve', this.value);
+                    this.form.submit();
                 }
             });
 
@@ -645,7 +680,7 @@ ob_end_flush();
 
             searchInput.addEventListener('input', function() {
                 if (this.value.trim() === '') {
-                    this.form.submit();
+                    checkEmptySearch(this);
                 }
             });
 
@@ -675,98 +710,104 @@ ob_end_flush();
                 return !hasError;
             }
 
-            document.getElementById('addForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const fields = [{
-                        id: 'addLotName',
-                        errorId: 'addNameError',
-                        label: 'ชื่อล็อต',
-                        maxLength: 255,
-                        required: true
-                    },
-                    {
-                        id: 'addLotDetail',
-                        errorId: 'addDetailError',
-                        label: 'รายละเอียด',
-                        maxLength: 1000,
-                        required: false
-                    },
-                    {
-                        id: 'addLotStatusId',
-                        errorId: 'addStatusError',
-                        label: 'สถานะล็อต',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'addWarehouseId',
-                        errorId: 'addWarehouseError',
-                        label: 'คลังปลายทาง',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'addPersonnelId',
-                        errorId: 'addPersonnelError',
-                        label: 'พนักงาน',
-                        maxLength: Infinity,
-                        required: true
+            const addForm = document.getElementById('addForm');
+            if (addForm) {
+                addForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const fields = [{
+                            id: 'addLotName',
+                            errorId: 'addNameError',
+                            label: 'ชื่อล็อต',
+                            maxLength: 255,
+                            required: true
+                        },
+                        {
+                            id: 'addLotDetail',
+                            errorId: 'addDetailError',
+                            label: 'รายละเอียด',
+                            maxLength: 1000,
+                            required: false
+                        },
+                        {
+                            id: 'addLotStatusId',
+                            errorId: 'addStatusError',
+                            label: 'สถานะล็อต',
+                            maxLength: Infinity,
+                            required: true
+                        },
+                        {
+                            id: 'addWarehouseId',
+                            errorId: 'addWarehouseError',
+                            label: 'คลังปลายทาง',
+                            maxLength: Infinity,
+                            required: true
+                        },
+                        {
+                            id: 'addPersonnelId',
+                            errorId: 'addPersonnelError',
+                            label: 'พนักงาน',
+                            maxLength: Infinity,
+                            required: true
+                        }
+                    ];
+                    if (validateForm('addForm', fields)) {
+                        this.submit();
                     }
-                ];
-                if (validateForm('addForm', fields)) {
-                    this.submit();
-                }
-            });
+                });
+            }
 
-            document.getElementById('editForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const fields = [{
-                        id: 'editLotName',
-                        errorId: 'editNameError',
-                        label: 'ชื่อล็อต',
-                        maxLength: 255,
-                        required: true
-                    },
-                    {
-                        id: 'editLotDetail',
-                        errorId: 'editDetailError',
-                        label: 'รายละเอียด',
-                        maxLength: 1000,
-                        required: false
-                    },
-                    {
-                        id: 'editLotStatusId',
-                        errorId: 'editStatusError',
-                        label: 'สถานะล็อต',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'editWarehouseId',
-                        errorId: 'editWarehouseError',
-                        label: 'คลังปลายทาง',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'editPersonnelId',
-                        errorId: 'editPersonnelError',
-                        label: 'เจ้าหน้าที่',
-                        maxLength: Infinity,
-                        required: true
+            const editForm = document.getElementById('editForm');
+            if (editForm) {
+                editForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const fields = [{
+                            id: 'editLotName',
+                            errorId: 'editNameError',
+                            label: 'ชื่อล็อต',
+                            maxLength: 255,
+                            required: true
+                        },
+                        {
+                            id: 'editLotDetail',
+                            errorId: 'editDetailError',
+                            label: 'รายละเอียด',
+                            maxLength: 1000,
+                            required: false
+                        },
+                        {
+                            id: 'editLotStatusId',
+                            errorId: 'editStatusError',
+                            label: 'สถานะล็อต',
+                            maxLength: Infinity,
+                            required: true
+                        },
+                        {
+                            id: 'editWarehouseId',
+                            errorId: 'editWarehouseError',
+                            label: 'คลังปลายทาง',
+                            maxLength: Infinity,
+                            required: true
+                        },
+                        {
+                            id: 'editPersonnelId',
+                            errorId: 'editPersonnelError',
+                            label: 'เจ้าหน้าที่',
+                            maxLength: Infinity,
+                            required: true
+                        }
+                    ];
+                    if (validateForm('editForm', fields)) {
+                        this.submit();
                     }
-                ];
-                if (validateForm('editForm', fields)) {
-                    this.submit();
-                }
-            });
+                });
+            }
 
-            document.getElementById('start_date').addEventListener('change', updateDateFilter);
-            document.getElementById('end_date').addEventListener('change', updateDateFilter);
+            const startDateInput = document.getElementById('start_date');
+            const endDateInput = document.getElementById('end_date');
 
             function updateDateFilter() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
                 const urlParams = new URLSearchParams(window.location.search);
                 urlParams.set('page', 'lot_warehouseinout');
 
@@ -782,8 +823,17 @@ ob_end_flush();
                     urlParams.delete('end_date');
                 }
 
+                // Client-side validation for date range
+                if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+                    showNotification('วันที่สิ้นสุดต้องไม่มาก่อนวันที่เริ่มต้น', 'bg-red-500');
+                    return;
+                }
+
                 window.location.search = urlParams.toString();
             }
+
+            startDateInput.addEventListener('change', updateDateFilter);
+            endDateInput.addEventListener('change', updateDateFilter);
 
             // Add button click handler
             document.querySelector('button a[href="/?page=lot_insertout"]').parentElement.addEventListener('click', (e) => {
