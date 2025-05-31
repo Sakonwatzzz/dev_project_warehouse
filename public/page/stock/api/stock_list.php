@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../../../config/database_server.php';
+require_once __DIR__ . '../../../../../config/database_server.php';
 header('Content-Type: application/json');
 
 try {
@@ -14,7 +14,9 @@ try {
         stock_check.lot_id,
         warehouse.warehouse_id,
         warehouse.warehouse_name,
-        stock_check.stock_check_remark,
+        stock_check.stock_check_comment,
+        stock_check.stock_check_remark_id,
+        stock_check_remarks.stock_check_remark_name, -- แก้ไขที่นี่
         personnel.personnel_name,
         stock_check.lot_product_id,
         lot_product.lot_product_remain,
@@ -31,8 +33,8 @@ try {
     LEFT JOIN lot_product ON stock_check.lot_product_id = lot_product.lot_product_id
     LEFT JOIN stock ON stock_check.stock_id = stock.stock_id
     LEFT JOIN personnel ON stock.personnel_id = personnel.personnel_id
-    LEFT JOIN stock_check_status stock_checks ON stock.check_status_id = stock_checks.check_status_id";
-
+    LEFT JOIN stock_check_status stock_checks ON stock.check_status_id = stock_checks.check_status_id
+    LEFT JOIN stock_check_remark stock_check_remarks ON stock_check.stock_check_remark_id = stock_check_remarks.stock_check_remark_id";
     $conditions = [];
     $params = [];
 
@@ -62,7 +64,7 @@ try {
 
     echo json_encode($data);
 } catch (Exception $e) {
-    error_log("stock_list.php error: " . $e->getMessage(), 3, "/path/to/error.log");
+    error_log("stock_list.php error: " . $e->getMessage(), 3, "/var/log/php_errors.log");
     echo json_encode([]);
 }
 ?>

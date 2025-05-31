@@ -61,84 +61,6 @@ $(document).ready(function () {
     return date; // คืน yyyy-MM-dd HH:mm:ss
   }
 
-  // function processInput(input) {
-  //   const addPattern = /^\d+\*\d+$/;
-  //   const deletePattern = /^-\d+\*\d+$/;
-  //   input = input.trim();
-
-  // let product_id, stock_check_actual;
-  // if (addPattern.test(input)) {
-  //   [product_id, stock_check_actual] = input.split("*");
-  // } else if (deletePattern.test(input)) {
-  //   [product_id, stock_check_actual] = input.replace(/^-/, "").split("*");
-  //   stock_check_actual = `-${stock_check_actual}`;
-  // } else {
-  //   product_id = input;
-  //   stock_check_actual = getValue("#stock_check_actual", "0");
-  // }
-
-  //   product_id = product_id.trim();
-  //   stock_check_actual = stock_check_actual.trim() || "0";
-
-  //   $("#product_id_input").val(product_id);
-  //   $("#stock_check_actual").val(stock_check_actual);
-  //   validateForm();
-  //   return true;
-  // }
-
-  // $("#product_id_input").on("keypress", function (event) {
-  //   if (event.key === "Enter") {
-  //     event.preventDefault();
-  //     const input = $(this).val().trim();
-  //     if (input) {
-  //       processInput(input);
-  //       if (!$("#btn-submit").prop("disabled")) {
-  //         $("#form_insert_stock").submit();
-  //       } else {
-  //         Toast.fire({
-  //           icon: "warning",
-  //           title: "กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง",
-  //         });
-  //       }
-  //     } else {
-  //       Toast.fire({
-  //         icon: "warning",
-  //         title: "กรุณาป้อนรหัสสินค้า",
-  //       });
-  //     }
-  //   }
-  // });
-
-  // function validateForm() {
-  //   const product_id = getValue("#product_id_input");
-  //   const stock_check_actual = getValue("#stock_check_actual", "0");
-  //   const stock_date = getValue("#stock_date");
-
-  //   const isValid =
-  //     product_id &&
-  //     stock_check_actual &&
-  //     stock_date &&
-  //     currentStockId &&
-  //     /^\d+$/.test(product_id) &&
-  //     /^-?\d+$/.test(stock_check_actual);
-
-  //   $("#btn-submit").prop("disabled", !isValid);
-  //   $("#btn-confirm-check").prop("disabled", !currentStockId);
-
-  //   if (!isValid) {
-  //     console.log("validateForm failed:", {
-  //       product_id,
-  //       stock_check_actual,
-  //       stock_date,
-  //       currentStockId,
-  //       product_id_valid: /^\d+$/.test(product_id),
-  //       stock_check_actual_valid: /^-?\d+$/.test(stock_check_actual),
-  //     });
-  //   }
-
-  //   return isValid;
-  // }
-
   function processInput(input) {
     const addPattern = /^\d+\*\d+$/; // รูปแบบ: จำนวน*รหัสสินค้า (เช่น 50*123)
     const deletePattern = /^-\d+\*\d+$/; // รูปแบบ: -จำนวน*รหัสสินค้า (เช่น -50*123)
@@ -809,8 +731,7 @@ $(document).ready(function () {
           action: "insert_check_product",
           stock_id: currentStockId,
           product_id: product_id,
-          stock_check_actual:
-            data.length > 0 ? "1" : stock_check_actual_input || "1", // ใช้ 1 ถ้าซ้ำ, ใช้ค่าจาก input ถ้าใหม่
+          stock_check_actual: stock_check_actual_input, // ใช้ค่าจาก input เสมอ
           stock_date: stockDate,
           stock_check_remark: getValue("#stock-check-remark", ""),
           personnel_id: getValue("#personnel_id", "1"),

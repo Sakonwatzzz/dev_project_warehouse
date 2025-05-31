@@ -104,7 +104,8 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="page/stock/js/search_product.js"></script>
     <script src="page/stock/js/delete_product_check.js"></script>
-    <script src="page/stock/js/stock_insert_list.js?t=<?= time() ?>"></script>
+    <!-- <script src="page/stock/js/stock_insert_list.js?t=<?= time() ?>"></script> -->
+    <script src="page/stock/js/stock_check_detail_insert.js?t=<?= time() ?>"></script>
     <script src="page/stock/js/stock_switch.js?t=<?= time() ?>"></script>
 </head>
 
@@ -156,6 +157,7 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                     <input type="hidden" name="warehouse_id" id="warehouse_id">
                     <input type="hidden" name="lot_id" id="lot_id">
                     <input type="hidden" name="lot_product_id" id="lot_product_id">
+                    <input type="hidden" name="stock_check_remark_id" id="stock-check-remark-id">
                     <input type="hidden" name="is_update" id="is_update" value="0">
                     <input type="hidden" name="stock_date" id="stock_date">
                     <input type="hidden" id="current_stock_id">
@@ -179,19 +181,25 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 placeholder="500" min="0" value="1">
                         </div>
                         <div class="col-span-full">
-                            <label for="stock-check-remark"
-                                class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
-                            <textarea id="stock-check-remark" name="stock_check_remark" rows="3"
+                            <label for="stock-check-comment"
+                                class="block text-sm font-medium text-gray-700 mb-1">ข้อความเพิ่มเติม</label>
+                            <textarea id="stock-check-comment" name="stock_check_comment" rows="3"
                                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="ระบุหมายเหตุ (ถ้ามี)"></textarea>
+                                placeholder="ระบุหมายเหตุหรือข้อความเพิ่มเติม (ถ้ามี)"></textarea>
                         </div>
                     </div>
                     <div id="product_info" class="mt-4 hidden"></div>
                     <div class="mt-4 flex justify-between items-center">
-                        <p class="text-sm text-green-700">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            รูปแบบการเพิ่ม: รหัส*จำนวน (เช่น 12345*2)
-                        </p>
+                        <div>
+                            <p class="text-sm font-bold text-green-700">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                รูปแบบการเพิ่ม: จำนวน*รหัสสินค้า (เช่น 50*9998887776665554)
+                            </p>
+                            <p class="text-sm font-bold text-red-700">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                รูปแบบการลบ: -จำนวน*รหัสสินค้า (เช่น -50*9998887776665554)
+                            </p>
+                        </div>
                         <button id="btn-submit" type="submit"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer">
                             <span class="text">บันทึก</span>
@@ -226,8 +234,11 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase" hidden>พนักงาน
                                 </th>
-                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase" hidden>สถานะ</th>
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase" hidden>สถานะ
+                                </th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">หมายเหตุ</th>
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">
+                                    ข้อความเพิ่มเติม</th>
                                 <th class="px-6 py-3 text-center text-sm font-bold text-gray-900 uppercase">การจัดการ
                                 </th>
                             </tr>
@@ -256,7 +267,8 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
             $("#lot_id").val("");
             $("#lot_product_id").val("");
             $("#stock_check_actual").val("1");
-            $("#stock-check-remark").val("");
+            $("#stock-check-comment").val("");
+            $("#stock-check-remark-id").val("");
             // แจ้งเตือนเมื่อเลือกคลัง (ไม่บังคับ)
             // if (warehouse_id) {
             //     Swal.fire({

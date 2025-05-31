@@ -1,3 +1,183 @@
+   // function processInput(input) {
+  //   const addPattern = /^\d+\*\d+$/;
+  //   const deletePattern = /^-\d+\*\d+$/;
+  //   input = input.trim();
+
+  // let product_id, stock_check_actual;
+  // if (addPattern.test(input)) {
+  //   [product_id, stock_check_actual] = input.split("*");
+  // } else if (deletePattern.test(input)) {
+  //   [product_id, stock_check_actual] = input.replace(/^-/, "").split("*");
+  //   stock_check_actual = `-${stock_check_actual}`;
+  // } else {
+  //   product_id = input;
+  //   stock_check_actual = getValue("#stock_check_actual", "0");
+  // }
+
+  //   product_id = product_id.trim();
+  //   stock_check_actual = stock_check_actual.trim() || "0";
+
+  //   $("#product_id_input").val(product_id);
+  //   $("#stock_check_actual").val(stock_check_actual);
+  //   validateForm();
+  //   return true;
+  // }
+
+  // $("#product_id_input").on("keypress", function (event) {
+  //   if (event.key === "Enter") {
+  //     event.preventDefault();
+  //     const input = $(this).val().trim();
+  //     if (input) {
+  //       processInput(input);
+  //       if (!$("#btn-submit").prop("disabled")) {
+  //         $("#form_insert_stock").submit();
+  //       } else {
+  //         Toast.fire({
+  //           icon: "warning",
+  //           title: "กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง",
+  //         });
+  //       }
+  //     } else {
+  //       Toast.fire({
+  //         icon: "warning",
+  //         title: "กรุณาป้อนรหัสสินค้า",
+  //       });
+  //     }
+  //   }
+  // });
+
+  // function validateForm() {
+  //   const product_id = getValue("#product_id_input");
+  //   const stock_check_actual = getValue("#stock_check_actual", "0");
+  //   const stock_date = getValue("#stock_date");
+
+  //   const isValid =
+  //     product_id &&
+  //     stock_check_actual &&
+  //     stock_date &&
+  //     currentStockId &&
+  //     /^\d+$/.test(product_id) &&
+  //     /^-?\d+$/.test(stock_check_actual);
+
+  //   $("#btn-submit").prop("disabled", !isValid);
+  //   $("#btn-confirm-check").prop("disabled", !currentStockId);
+
+  //   if (!isValid) {
+  //     console.log("validateForm failed:", {
+  //       product_id,
+  //       stock_check_actual,
+  //       stock_date,
+  //       currentStockId,
+  //       product_id_valid: /^\d+$/.test(product_id),
+  //       stock_check_actual_valid: /^-?\d+$/.test(stock_check_actual),
+  //     });
+  //   }
+
+  //   return isValid;
+  // }
+
+   //   function loadStockCheck(resolve, reject) {
+  //     console.log("Loading stock check table for stock_id:", currentStockId);
+  //     let url = "page/stock/api/stock_list.php";
+  //     let data = currentStockId ? { stock_id: currentStockId } : { status: 1 };
+  //     $.ajax({
+  //       url: url,
+  //       type: "GET",
+  //       data: data,
+  //       dataType: "json",
+  //       headers: { "X-Requested-With": "XMLHttpRequest" },
+  //       cache: false,
+  //       success: function (data) {
+  //         console.log("stock_list.php response:", data);
+  //         let tbody = $("#stock_check_table");
+  //         tbody.empty();
+  //         if (!data || data.length === 0) {
+  //           tbody.append(
+  //             '<tr><td colspan="9" class="text-center py-4 text-gray-500">ไม่พบรายการตรวจสอบสต๊อกสินค้า</td></tr>'
+  //           );
+  //           $("#btn-confirm-check").prop("disabled", true);
+  //           if (resolve) resolve(); // แจ้งว่าเสร็จ
+  //           return;
+  //         }
+
+  //         let hasPendingStatus = false;
+  //         $.each(data, function (index, item) {
+  //           if (parseInt(item.check_status_id) === 1) hasPendingStatus = true;
+  //           let formattedDate = "-";
+  //           if (item.stock_date) {
+  //             try {
+  //               formattedDate = luxon.DateTime.fromFormat(
+  //                 item.stock_date,
+  //                 "yyyy-MM-dd HH:mm:ss"
+  //               ).toFormat("dd/MM/yyyy HH:mm:ss");
+  //             } catch (e) {
+  //               console.error(
+  //                 "Date format error for stock_date:",
+  //                 item.stock_date,
+  //                 e
+  //               );
+  //               formattedDate = item.stock_date;
+  //             }
+  //           }
+
+  //           let row = `
+  //                     <tr data-stock-check-id="${item.stock_check_id}">
+  //                         <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${formattedDate}</td>
+  //                         <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+  //                           item.product_id || "-"
+  //                         }</td>
+  //                         <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
+  //                           item.product_name || "-"
+  //                         }</td>
+  //                         <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm">${
+  //                           item.stock_check_system || "0"
+  //                         }</td>
+  //                         <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm stock-check-actual">${
+  //                           item.stock_check_actual || "0"
+  //                         }</td>
+  //                         <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
+  //                           item.personnel_name || "-"
+  //                         }</td>
+  //                         <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
+  //                           item.check_status_name || "-"
+  //                         }</td>
+  //                         <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock_check_comment">
+  //                             ${item.stock_check_remark_name || (item.stock_check_remark_id ? "ไม่พบหมายเหตุ" : "-")}
+  //                         </td>>
+  //                         <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock_check_comment">${
+  //                           item.stock_check_comment || "-"
+  //                         }</td>
+  //                         <td class="px-3 sm:px-6 py-2 text-center text-xs sm:text-sm flex gap-4 actions">
+  //                             ${
+  //                               parseInt(item.check_status_id) === 1
+  //                                 ? `
+  //                                 <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
+  //                                     <i class="fas fa-edit mr-1"></i>แก้ไข
+  //                                 </a>
+  //                                 <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${item.stock_check_id}">
+  //                                     <i class="fas fa-trash-alt mr-1"></i>ลบ
+  //                                 </a>`
+  //                                 : ""
+  //                             }
+  //                         </td>
+  //                     </tr>`;
+  //           tbody.append(row);
+  //         });
+
+  //         $("#btn-confirm-check").prop("disabled", !hasPendingStatus);
+  //         if (resolve) resolve(); // แจ้งว่าเสร็จ
+  //       },
+  //       error: function (xhr, status, error) {
+  //         console.error("stock_list.php error:", xhr.responseText);
+  //         Toast.fire({
+  //           icon: "error",
+  //           title: "ไม่สามารถดึงข้อมูลจาก stock_list.php: " + error,
+  //         });
+  //         $("#btn-confirm-check").prop("disabled", true);
+  //         if (reject) reject(error); // แจ้งว่า error
+  //       },
+  //     });
+  //   }
  $("#form_insert_stock").on("submit", function (event) {
         event.preventDefault();
         if (isProcessing) return;

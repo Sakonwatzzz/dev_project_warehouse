@@ -18,7 +18,8 @@ try {
     $lot_product_id = $_POST['lot_product_id'] ?? null;
     $stock_check_actual = $_POST['stock_check_actual'] ?? null;
     $stock_check_system = $_POST['stock_check_system'] ?? null;
-    $stock_check_remark = $_POST['stock_check_remark'] ?? '';
+    $stock_check_remark_id = $_POST['stock_check_remark_id'] ?? null;
+    $stock_check_comment = $_POST['stock_check_comment'] ?? '';
     $personnel_id = $_POST['personnel_id'] ?? null;
     $is_update = filter_var($_POST['is_update'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
@@ -26,6 +27,15 @@ try {
         throw new Exception('กรุณากรอกข้อมูลให้ครบถ้วน');
     }
 
+    // คำนวณ stock_check_remark_id อัตโนมัติ
+    $stock_check_remark_id = null;
+    if ($stock_check_actual === $stock_check_system) {
+        $stock_check_remark_id = 1; // ครบถ้วน
+    } elseif ($stock_check_actual < $stock_check_system) {
+        $stock_check_remark_id = 2; // ขาดหาย
+    } elseif ($stock_check_actual > $stock_check_system) {
+        $stock_check_remark_id = 3; // จำนวนสินค้าเกิน
+    }
     $pdo->beginTransaction();
 
     // ตรวจสอบ stock_id และ personnel_id
@@ -54,13 +64,13 @@ try {
             $new_stock_check_actual = $existing['stock_check_actual'] + (int) $stock_check_actual;
             $query = "UPDATE stock_check 
                       SET stock_check_actual = :stock_check_actual, 
-                          stock_check_remark = :stock_check_remark, 
+                          stock_check_comment = :stock_check_comment, 
                           personnel_id = :personnel_id 
                       WHERE stock_check_id = :stock_check_id";
             $stmt = $pdo->prepare($query);
             $stmt->execute([
                 ':stock_check_actual' => $new_stock_check_actual,
-                ':stock_check_remark' => $stock_check_remark,
+                ':stock_check_comment' => $stock_check_comment,
                 ':personnel_id' => $personnel_id,
                 ':stock_check_id' => $existing['stock_check_id']
             ]);
@@ -76,8 +86,8 @@ try {
     }
 
     // ถ้าไม่มีรายการหรือไม่ใช่ update, ทำการ INSERT
-    $query = "INSERT INTO stock_check (stock_id, product_id, warehouse_id, lot_id, lot_product_id, stock_check_actual, stock_check_system, stock_check_remark, personnel_id)
-              VALUES (:stock_id, :product_id, :warehouse_id, :lot_id, :lot_product_id, :stock_check_actual, :stock_check_system, :stock_check_remark, :personnel_id)";
+    $query = "INSERT INTO stock_check (stock_id, product_id, warehouse_id, lot_id, lot_product_id, stock_check_actual, stock_check_system, stock_check_remark_id ,stock_check_comment, personnel_id)
+              VALUES (:stock_id, :product_id, :warehouse_id, :lot_id, :lot_product_id, :stock_check_actual, :stock_check_system, :stock_check_remark_id, :stock_check_comment, :personnel_id)";
     $stmt = $pdo->prepare($query);
     $stmt->execute([
         ':stock_id' => $stock_id,
@@ -87,7 +97,8 @@ try {
         ':lot_product_id' => $lot_product_id,
         ':stock_check_actual' => $stock_check_actual,
         ':stock_check_system' => $stock_check_system,
-        ':stock_check_remark' => $stock_check_remark,
+        ':stock_check_comment' => $stock_check_comment,
+        ':stock_check_remark_id' => $stock_check_remark_id,
         ':personnel_id' => $personnel_id
     ]);
 
