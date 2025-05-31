@@ -111,6 +111,8 @@ function updateProductTable(sale_id) {
       console.log("Update table response:", response);
       if (response.status === "success") {
         $("#product_table_body").html(response.html);
+        $(".sale-net-amount").text(response.sale_net_amount + " บาท");
+        $(".sale-vat-amount").text(response.sale_vat_amount + " บาท");
         $(".total-amount").text(response.sale_total_amount + " บาท");
         $(".total-items").text(response.total_items + " รายการ");
         $(".total-qty").text(response.total_qty + " ชิ้น");
@@ -120,7 +122,7 @@ function updateProductTable(sale_id) {
           .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
         // Trigger productListUpdated event for sale_payment.js
         $(document).trigger("productListUpdated", [response.sale_total_amount]);
-        bindEditProductEvents();
+        // bindEditProductEvents();
         $(".main-body").removeAttr("aria-hidden");
       } else {
         Swal.fire({
@@ -146,25 +148,25 @@ function updateProductTable(sale_id) {
   });
 }
 
-function bindEditProductEvents() {
-  $(".edit-product")
-    .off("click")
-    .on("click", function (e) {
-      e.preventDefault();
-      const barcode = $(this).data("barcode");
-      const name = $(this).data("name");
-      const qty = $(this).data("qty");
-      const price = $(this).data("price");
-      const capital = $(this).data("capital");
-      const reference = $(this).data("reference") || "";
-      $("#edit-barcode").val(barcode);
-      $("#edit-barcode-display").val(barcode);
-      $("#edit-product-name").val(name);
-      $("#edit-qty").val(qty);
-      $("#edit-price").val(parseFloat(price).toFixed(2));
-      $("#edit-capital").val(parseFloat(capital).toFixed(2));
-      $("#edit-reference").val(reference);
-      $(".main-body").attr("aria-hidden", "true");
-      $("#edit-product-modal").removeClass("hidden");
-    });
-}
+// function bindEditProductEvents() {
+//   $(".edit-product")
+//     .off("click")
+//     .on("click", function (e) {
+//       e.preventDefault();
+//       const barcode = $(this).data("barcode");
+//       const name = $(this).data("name");
+//       const qty = $(this).data("qty");
+//       const price = $(this).data("price");
+//       const capital = $(this).data("capital");
+//       const reference = $(this).data("reference") || "";
+//       $("#edit-barcode").val(barcode);
+//       $("#edit-barcode-display").val(barcode);
+//       $("#edit-product-name").val(name);
+//       $("#edit-qty").val(qty);
+//       $("#edit-price").val(parseFloat(price).toFixed(2));
+//       $("#edit-capital").val(parseFloat(capital).toFixed(2));
+//       $("#edit-reference").val(reference);
+//       $(".main-body").attr("aria-hidden", "true");
+//       $("#edit-product-modal").removeClass("hidden");
+//     });
+//}

@@ -5,6 +5,15 @@ try {
 } catch (Exception $e) {
     error_log("Database failed included database_server.php : " . $e->getMessage());
 }
+// if (empty($_SESSION['csrf_token'])) {
+//     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+//     error_log("CSRF token generated: " . $_SESSION['csrf_token']);
+// }
+// คำนวณ VAT สำหรับการแสดงผลเริ่มต้น
+// $sale_net_amount = $sale_total_amount;
+// $sale_vat_amount = $sale_net_amount * 0.07;
+// $sale_total_amount = $sale_net_amount + $sale_vat_amount;
+
 // เพิ่มการแสดงผลข้อผิดพลาดสำหรับการดีบักชั่วคราวตั้งค่า display_errors เป็น 1 ในไฟล์เพื่อดูข้อผิดพลาดโดยตรง
 // ini_set('display_errors', 1);
 // ini_set('log_errors', 1);
@@ -46,7 +55,6 @@ if (!isset($_SESSION['active_sales'])) {
 $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 
 // Create new sale if none exists
-// Create new sale if none exists
 if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
     try {
         $pdo->beginTransaction();
@@ -86,8 +94,6 @@ if (!$sale_id) {
     die(json_encode(['status' => 'error', 'message' => 'กรุณาระบุ sale_id']));
 }
 
-
-// Handle close billTab via Ajax
 
 
 
@@ -197,12 +203,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute([$sale_id]);
         $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $sale_total_amount = 0;
+        $sale_net_amount = 0;
         $total_qty = 0;
         foreach ($sale_products as $product) {
-            $sale_total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+            $sale_net_amount += $product['sale_product_qty'] * $product['sale_product_price'];
             $total_qty += $product['sale_product_qty'];
         }
+        $vat_rate = 7.00;
+        $sale_vat_amount = $sale_net_amount * ($vat_rate / 100);
+        $sale_total_amount = $sale_net_amount + $sale_vat_amount;
 
         // Prepare receipt data
         $receipt_data = [
@@ -212,6 +221,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             'personnel_name' => $sale_data['personnel_name'] ?? 'ไม่ระบุ',
             'products' => $sale_products,
             'total_qty' => $total_qty,
+            'sale_net_amount' => $sale_net_amount,
+            'sale_vat_amount' => $sale_vat_amount,
             'sale_total_amount' => $sale_total_amount,
             'sale_paid_amount' => $_POST['sale_paid_amount'] ?? 0,
             'sale_change_amount' => $_POST['sale_change_amount'] ?? 0
@@ -250,14 +261,31 @@ try {
     $stmt->execute([$sale_id]);
     $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $sale_total_amount = 0;
+    $sale_net_amount = 0;
     $total_items = 0;
     $total_qty = 0;
-    foreach ($sale_products as $product) {
-        $sale_total_amount += $product['sale_product_qty'] * $product['sale_product_price'];
-        $total_items++;
-        $total_qty += $product['sale_product_qty'];
+    if (!empty($sale_products)) {
+        foreach ($sale_products as $product) {
+            if (isset($product['sale_product_qty'], $product['sale_product_price'])) {
+                $qty = (float)$product['sale_product_qty'];
+                $price = (float)$product['sale_product_price'];
+                if ($qty < 0 || $price < 0) {
+                    error_log("Invalid product data: qty=$qty, price=$price for product_id={$product['product_id']}");
+                    continue;
+                }
+                $sale_net_amount += $qty * $price;
+                $total_items++;
+                $total_qty += $qty;
+            } else {
+                error_log("Missing qty or price for product_id={$product['product_id']}");
+            }
+        }
+    } else {
+        error_log("No sale_products found for sale_id=$sale_id");
     }
+    $vat_rate = 7.00;
+    $sale_vat_amount = $sale_net_amount * ($vat_rate / 100);
+    $sale_total_amount = $sale_net_amount + $sale_vat_amount;
 } catch (PDOException $e) {
     error_log("Database query error: " . $e->getMessage());
     die("การเชื่อมต่อฐานข้อมูลผิดพลาด: " . $e->getMessage());
@@ -465,7 +493,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                     class="z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
                                 <input type="number" name="qty" value="1" min="1" id="barcode-qty"
@@ -651,11 +679,18 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                             <span class="font-medium text-sm">จำนวนชิ้น:</span>
                             <span class="total-qty text-sm"><?php echo $total_qty; ?> ชิ้น</span>
                         </div>
-
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">ยอดสุทธิ (ไม่รวม VAT):</span>
+                            <span class="text-sm sale-net-amount"><?php echo number_format($sale_net_amount, 2); ?> บาท</span>
+                        </div>
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">VAT (7%):</span>
+                            <span class="text-sm sale-vat-amount"><?php echo number_format($sale_vat_amount, 2); ?> บาท</span>
+                        </div>
                         <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
                             <span>ยอดรวมสุทธิ:</span>
                             <span type="number" id="sale_total_amount" class="text-blue-700 total-amount"><?php echo number_format($sale_total_amount, 2); ?>
-                            บาท</span>
+                                บาท</span>
                         </div>
 
                         <div class="flex flex-row space-x-4 items-end pb-6">
@@ -701,11 +736,6 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                             class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
                             <span class="loading-spinner hidden">กำลังประมวลผล...</span>
                             <span class="btn-text">
-                                <!-- <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7" />
-                                        </svg> -->
                                 ยืนยันรายการขาย
                             </span>
                         </button>
@@ -762,10 +792,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                 class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" step="0.01"
                                 readonly>
                         </div>
-                        <!-- <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">อ้างอิง</label>
-                                <input type="text" id="edit-reference" name="sale_reference" class="w-full p-2 border border-gray-300 rounded modal-active">
-                            </div> -->
+
                     </div>
                     <div class="mt-6 flex space-x-3">
                         <button type="submit"
@@ -776,26 +803,29 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 </form>
             </div>
         </div>
+
+        <!-- เพิ่ม CSRF token -->
+        <!-- <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>"> -->
+
         <script>
             $(document).ready(function() {
                 $('#print_receipt').addClass('hidden');
-                // ตรวจสอบว่า jQuery โหลดสำเร็จ
+
                 if (typeof $ === 'undefined') {
                     console.error('jQuery not loaded');
                     alert('ไม่สามารถโหลด jQuery ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
                     return;
                 }
 
-                // ตรวจสอบว่า SweetAlert2 โหลดสำเร็จ
                 if (typeof Swal === 'undefined') {
                     console.error('SweetAlert2 not loaded');
                     alert('ไม่สามารถโหลด SweetAlert2 ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
                     return;
                 }
-                // Toast instance สำหรับ SweetAlert2
+
                 const Toast = Swal.mixin({
                     toast: true,
-                    position: 'top', // มุมขวาบน
+                    position: 'top',
                     showConfirmButton: false,
                     timer: 1500,
                     timerProgressBar: true,
@@ -810,7 +840,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         }
                     }
                 });
-                const saleStatusId = <?php echo json_encode($sale_data['sale_status_id'] ?? 2); ?>;
+
+                const saleStatusId = <?php echo json_encode(isset($sale_data['sale_status_id']) ? $sale_data['sale_status_id'] : 2); ?>;
                 if (saleStatusId === 1) {
                     $('#print_receipt').removeClass('hidden');
                     $('.edit-product').addClass('hidden');
@@ -820,11 +851,11 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     $('#barcode_input, #barcode-qty').prop('disabled', true);
                     $('#form_add_product').find('input, select, button').prop('disabled', true);
                 } else {
-                    $('#print_receipt').addClass('hidden');
+                    $("#calculate_change").prop("disabled", false).removeClass("opacity-50 cursor-not-allowed");
+                    $("#print_receipt").addClass("hidden");
                 }
-
-                let dynamicTotalAmount = <?php echo $sale_total_amount; ?>; // ค่าเริ่มต้น
-
+                const saleNetAmount = parseFloat(<?php echo json_encode((float)$sale_net_amount); ?>) || 0;
+                $(document).trigger("productListUpdated", [saleNetAmount]);
 
                 $('#member_search').on('input', function() {
                     const query = $(this).val();
@@ -871,51 +902,67 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
                 });
 
-                // // คำนวณเงินทอน
-                // $('#calculate_change').on('click', function() {
-                //     const paid = parseFloat($('#sale_paid_amount').val()) || 0;
-                //     const total = dynamicTotalAmount;
-                //     const change = paid - total;
-                //     //console.log เพื่อดีบักตรวจสอบการใช้งานว่าล้มเหลวหรือไม่ ใช้ตอนพัฒนาเท่านั้น!!!
-                //     console.log("Calculate change: ", {
-                //         paid,
-                //         total
-                //     });
-                //     $('#sale_change_amount').val(change >= 0 ? change.toFixed(2) : 'เงินไม่พอ');
-                //     $('#print_receipt').prop('disabled', change < 0);
-                // });
-
-
-                // // อัปเดตเงินทอนเมื่อกรอกเงินที่ชำระ
-                // $('#sale_paid_amount').off('input').on('input', function() {
-                //     $('#calculate_change').click();
-                // });
-
-                // function refreshSummary() {
-                //     $('.total-amount').text(dynamicTotalAmount.toFixed(2) + ' บาท');
-                //     $('#calculate_change').click();
-                // }
-            });
-
-            // Array to track bills in client-side
-            let bills = <?php echo json_encode($valid_active_sale); ?>;
-            let currentSaleId = <?php echo json_encode($sale_id); ?>;
-
-            // Function to update tab styles based on currentSaleId
-            function updateTabStyles() {
-                $('#billTabs > div').each(function() {
-                    const tabId = $(this).attr('id').replace('tab_', '');
-                    if (tabId == currentSaleId) {
-                        $(this).removeClass('tab-inactive').addClass('tab-active');
-                    } else {
-                        $(this).removeClass('tab-active').addClass('tab-inactive');
+                $(document).on('productListUpdated', function(e, sale_net_amount) {
+                    const netAmount = parseFloat(sale_net_amount);
+                    if (isNaN(netAmount)) {
+                        console.warn("Invalid sale_net_amount:", sale_net_amount);
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ข้อผิดพลาด',
+                            text: 'ยอดสุทธิไม่ถูกต้อง กรุณาตรวจสอบข้อมูล',
+                        });
+                        return;
                     }
+                    const vat_rate = 0.07;
+                    const sale_vat_amount = netAmount * vat_rate;
+                    const sale_total_amount = netAmount + sale_vat_amount;
+                    $('.sale-net-amount').text(netAmount.toFixed(2) + ' บาท');
+                    $('.sale-vat-amount').text(sale_vat_amount.toFixed(2) + ' บาท');
+                    $('.total-amount').text(sale_total_amount.toFixed(2) + ' บาท');
                 });
-            }
+
+                let bills = <?php echo json_encode($valid_active_sale); ?>;
+                let currentSaleId = <?php echo json_encode($sale_id); ?>;
+
+                function updateTabStyles() {
+                    $('#billTabs > div').each(function() {
+                        const tabId = $(this).attr('id').replace('tab_', '');
+                        if (tabId == currentSaleId) {
+                            $(this).removeClass('tab-inactive').addClass('tab-active');
+                        } else {
+                            $(this).removeClass('tab-active').addClass('tab-inactive');
+                        }
+                    });
+                }
+
+                function bindEditProductEvents() {
+                    $(".edit-product").off("click").on("click", function(e) {
+                        e.preventDefault();
+                        const barcode = $(this).data("barcode");
+                        const name = $(this).data("name");
+                        const qty = $(this).data("qty");
+                        const price = $(this).data("price");
+                        const capital = $(this).data("capital");
+                        const reference = $(this).data("reference") || "";
+                        $("#edit-barcode").val(barcode);
+                        $("#edit-barcode-display").val(barcode);
+                        $("#edit-product-name").val(name);
+                        $("#edit-qty").val(qty);
+                        $("#edit-price").val(parseFloat(price).toFixed(2));
+                        $("#edit-capital").val(parseFloat(capital).toFixed(2));
+                        $("#edit-reference").val(reference);
+                        $(".main-body").attr("aria-hidden", "true");
+                        $("#edit-product-modal").removeClass("hidden");
+                    });
+                }
+                bindEditProductEvents();
+            });
         </script>
-    </div>
     </div>
 </body>
 
 </html>
-<?php ob_end_flush(); ?>
+<?php
+
+ob_end_flush();
+?>

@@ -218,6 +218,8 @@ $(document).ready(function () {
         console.log("Update product table response:", response); // Debug
         if (response.status === "success") {
           $("#product_table_body").html(response.html);
+          $(".sale-net-amount").text(response.sale_net_amount + " บาท");
+          $(".sale-vat-amount").text(response.sale_vat_amount + " บาท");
           $(".total-amount").text(response.sale_total_amount + " บาท");
           $(".total-items").text(response.total_items + " รายการ");
           $(".total-qty").text(response.total_qty + " ชิ้น");
@@ -225,16 +227,21 @@ $(document).ready(function () {
           $("#confirm-sale-btn")
             .prop("disabled", !hasProducts)
             .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
-          $(document).trigger("productListUpdated", [
-            response.sale_total_amount,
-          ]);
-          bindEditProductEvents();
+          const saleNetAmount = parseFloat(response.sale_net_amount) || 0;
+          if (isNaN(saleNetAmount)) {
+            console.warn(
+              "Invalid sale_net_amount from response:",
+              response.sale_net_amount
+            );
+          }
+          $(document).trigger("productListUpdated", [saleNetAmount]);
+          // bindEditProductEvents();
           $(".main-body").removeAttr("aria-hidden");
         } else {
           Swal.fire({
             icon: "warning",
             title: "ข้อผิดพลาด",
-            text: response.message,
+            text: response.message || "ไม่สามารถเพิ่มสินค้าได้",
             didOpen: () => {
               $(".main-body").removeAttr("aria-hidden");
             },
@@ -255,26 +262,26 @@ $(document).ready(function () {
     });
   }
 
-  function bindEditProductEvents() {
-    $(".edit-product")
-      .off("click")
-      .on("click", function (e) {
-        e.preventDefault();
-        const barcode = $(this).data("barcode");
-        const name = $(this).data("name");
-        const qty = $(this).data("qty");
-        const price = $(this).data("price");
-        const capital = $(this).data("capital");
-        const reference = $(this).data("reference") || "";
-        $("#edit-barcode").val(barcode);
-        $("#edit-barcode-display").val(barcode);
-        $("#edit-product-name").val(name);
-        $("#edit-qty").val(qty);
-        $("#edit-price").val(parseFloat(price).toFixed(2));
-        $("#edit-capital").val(parseFloat(capital).toFixed(2));
-        $("#edit-reference").val(reference);
-        $(".main-body").attr("aria-hidden", "true");
-        $("#edit-product-modal").removeClass("hidden");
-      });
-  }
+  // function bindEditProductEvents() {
+  //   $(".edit-product")
+  //     .off("click")
+  //     .on("click", function (e) {
+  //       e.preventDefault();
+  //       const barcode = $(this).data("barcode");
+  //       const name = $(this).data("name");
+  //       const qty = $(this).data("qty");
+  //       const price = $(this).data("price");
+  //       const capital = $(this).data("capital");
+  //       const reference = $(this).data("reference") || "";
+  //       $("#edit-barcode").val(barcode);
+  //       $("#edit-barcode-display").val(barcode);
+  //       $("#edit-product-name").val(name);
+  //       $("#edit-qty").val(qty);
+  //       $("#edit-price").val(parseFloat(price).toFixed(2));
+  //       $("#edit-capital").val(parseFloat(capital).toFixed(2));
+  //       $("#edit-reference").val(reference);
+  //       $(".main-body").attr("aria-hidden", "true");
+  //       $("#edit-product-modal").removeClass("hidden");
+  //     });
+  // }
 });
