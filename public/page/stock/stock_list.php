@@ -38,13 +38,13 @@ function verifyCsrfToken($token)
 }
 
 // Validate stock check data
-function validateStockCheckData($stock_check_actual, $stock_check_remark)
+function validateStockCheckData($stock_check_actual, $stock_check_comment)
 {
     $errors = [];
     if (!is_numeric($stock_check_actual) || $stock_check_actual < 0) {
         $errors[] = 'จำนวนสินค้าที่นับได้จริงต้องเป็นตัวเลขที่ไม่ติดลบ';
     }
-    if (strlen($stock_check_remark) > 255) {
+    if (strlen($stock_check_comment) > 255) {
         $errors[] = 'หมายเหตุต้องมีความยาวไม่เกิน 255 ตัวอักษร';
     }
     return $errors;
@@ -62,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
     $stock_check_actual = trim($_POST['stock_check_actual']);
-    $stock_check_remark = trim($_POST['stock_check_remark']);
+    $stock_check_comment = trim($_POST['stock_check_comment']);
 
-    $errors = validateStockCheckData($stock_check_actual, $stock_check_remark);
+    $errors = validateStockCheckData($stock_check_actual, $stock_check_comment);
     if (!$stock_check_id) {
         $errors[] = 'รหัสการเช็คสต๊อกไม่ถูกต้อง';
     }
@@ -76,8 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE stock_check SET stock_check_actual = ?, stock_check_remark = ? WHERE stock_check_id = ?");
-        $stmt->execute([$stock_check_actual, $stock_check_remark, $stock_check_id]);
+        $stmt = $pdo->prepare("UPDATE stock_check SET stock_check_actual = ?, stock_check_comment = ? WHERE stock_check_id = ?");
+        $stmt->execute([$stock_check_actual, $stock_check_comment, $stock_check_id]);
         if ($stmt->rowCount() === 0) {
             $pdo->rollBack();
             header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการแก้ไข');
@@ -173,7 +173,7 @@ try {
             sc.lot_id,
             sc.warehouse_id,
             w.warehouse_name,
-            sc.stock_check_remark,
+            sc.stock_check_comment,
             per.personnel_name,
             sc.lot_product_id,
             lp.lot_product_remain,
@@ -334,7 +334,7 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_actual']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_comment']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -413,7 +413,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">หมายเหตุ</label>
-                        <input type="text" id="editStockCheckRemark" name="stock_check_remark"
+                        <input type="text" id="editStockCheckRemark" name="stock_check_comment"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update">
                         <span id="editRemarkError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
@@ -514,18 +514,18 @@ try {
             };
         }
 
-        function showNotification(message, className) {
-            const notification = document.getElementById('notification');
-            const header = document.getElementById('notification-header');
-            const messageDiv = document.getElementById('notification-message');
-            header.className = `px-4 py-2 font-bold text-white ${className}`;
-            header.textContent = 'การแจ้งเตือน';
-            messageDiv.textContent = message;
-            notification.classList.remove('hidden');
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 5000);
-        }
+        /* function showNotification(message, className) {
+                const notification = document.getElementById('notification');
+                const header = document.getElementById('notification-header');
+                const messageDiv = document.getElementById('notification-message');
+                header.className = `px-4 py-2 font-bold text-white ${className}`;
+                header.textContent = 'การแจ้งเตือน';
+                messageDiv.textContent = message;
+                notification.classList.remove('hidden');
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 5000);
+            } */
 
         function exportPDF() {
             const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
