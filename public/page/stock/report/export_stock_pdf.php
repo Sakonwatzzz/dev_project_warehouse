@@ -94,29 +94,38 @@ if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equa
     header('HTTP/1.1 403 Forbidden');
     exit('Invalid CSRF token');
 }
-
 try {
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
     $query = "
         SELECT 
-            sc.stock_check_id,
+            sc.stock_check_id, 
+            sc.product_id,
+            p.product_name,
+            sc.lot_id,
+            sc.warehouse_id,
+            w.warehouse_name,
+            sc.stock_check_comment,
+            per.personnel_name,
+            sc.lot_product_id,
+            lp.lot_product_remain,
             s.stock_id,
             s.stock_date,
-            w.warehouse_name,
-            p.product_id,
-            p.product_name,
             sc.stock_check_system,
-            sc.stock_check_actual,
-            per.personnel_name,
+            sc.stock_check_actual,  
+            s.check_status_id,
             scs.check_status_name,
-            sc.stock_check_remark
-        FROM stock_check sc
+            scr.stock_check_remark_id,
+            scr.stock_check_remark_name AS stock_check_remark
+        FROM stock_check AS sc
         LEFT JOIN product p ON sc.product_id = p.product_id
         LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
+        LEFT JOIN lot l ON sc.lot_id = l.lot_id
+        LEFT JOIN lot_product lp ON sc.lot_product_id = lp.lot_product_id
         LEFT JOIN stock s ON sc.stock_id = s.stock_id
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
+        LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
         WHERE s.check_status_id = 2
         AND s.stock_date >= :today_start 
         AND s.stock_date <= :today_end";
@@ -132,14 +141,18 @@ try {
     }
     $query .= " ORDER BY s.stock_date DESC";
 
+    error_log("Query: $query");
+    error_log("Params: " . json_encode($params));
+
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
     $stmt->execute();
     $stock_checks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    error_log("Fetched " . count($stock_checks) . " rows");
 
-    $pdf = new THPDF('P'); // Portrait orientation
+    $pdf = new THPDF('P');
     $pdf->SetMargins(10, 10, 10);
     $pdf->AliasNbPages();
     $pdf->SetStockData($stock_checks);
@@ -154,7 +167,6 @@ try {
         foreach ($stock_checks as $stock) {
             if ($pdf->GetY() > 250) {
                 $pdf->AddPage();
-                // Repeat table headers on new page
                 $pdf->SetFont('THSarabunNew', 'B', 11);
                 $pdf->Cell(25, 8, thai('รหัสสินค้า'), 1, 0, 'L');
                 $pdf->Cell(75, 8, thai('ชื่อสินค้า'), 1, 0, 'C');
@@ -172,7 +184,6 @@ try {
             $total_system += $system_qty;
             $total_actual += $actual_qty;
 
-            // Handle long product names
             $product_name = $stock['product_name'];
             if (strlen($product_name) > 255) {
                 $product_name = substr($product_name, 0, 252) . '...';
@@ -186,24 +197,21 @@ try {
             $diff_text = ($difference > 0 ? '+' : '') . number_format($difference);
 
             if ($difference < 0) {
-                $pdf->SetTextColor(139, 0, 0);       // สีแดงเข้ม
-                $pdf->SetFont('THSarabunNew', 'B', 11);  // ตัวหนา
-                $diff_text = thai($diff_text); // สมมติแปลงข้อความก่อนใช้งาน
+                $pdf->SetTextColor(139, 0, 0);
+                $pdf->SetFont('THSarabunNew', 'B', 11);
             }
 
             $pdf->Cell(20, 7, thai($diff_text), 1, 0, 'C');
 
-            // เปลี่ยนสีตัวหนังสือกลับเป็นสีดำ
             if ($difference < 0) {
-                $pdf->SetTextColor(0, 0, 0); // สีดำ
-                $pdf->SetFont('THSarabunNew', '', 11);  // ตัวหนา
+                $pdf->SetTextColor(0, 0, 0);
+                $pdf->SetFont('THSarabunNew', '', 11);
             }
 
             $remark = !empty($stock['stock_check_remark']) ? substr($stock['stock_check_remark'], 0, 15) : '-';
             $pdf->Cell(30, 7, thai($remark), 1, 1, 'L');
         }
 
-        // Summary row
         $pdf->Ln(2);
         $pdf->SetFont('THSarabunNew', 'B', 11);
         $total_difference = $total_actual - $total_system;
@@ -218,13 +226,9 @@ try {
         $pdf->Cell(190, 8, thai('ไม่พบข้อมูลการเช็คสต๊อก'), 1, 1, 'C');
     }
 
-    // Summary section และ ช่องลงชื่อแบบ 2 คอลัมน์
     $pdf->Ln(5);
-
-    // เก็บตำแหน่ง Y ปัจจุบัน
     $currentY = $pdf->GetY();
 
-    // คอลัมน์ซ้าย - สรุปรายงาน
     $pdf->SetXY(10, $currentY);
     $pdf->SetFont('THSarabunNew', 'B', 12);
     $pdf->Cell(95, 8, thai('สรุปรายงาน'), 0, 1, 'L');
@@ -237,10 +241,7 @@ try {
         $pdf->Cell(95, 6, thai('จำนวนจากระบบ: ') . number_format($total_system), 0, 1, 'L');
         $pdf->SetX(10);
         $pdf->Cell(95, 6, thai('จำนวนนับจริง: ') . number_format($total_actual), 0, 1, 'L');
-        $pdf->SetX(10);
-        // $pdf->Cell(95, 6, thai('ส่วนต่าง: ') . ($total_difference >= 0 ? '+' : '') . number_format($total_difference), 0, 1, 'L');
 
-        // คำนวณยอดรวมติดลบ (รายการที่มีส่วนต่างติดลบ)
         $negative_total = 0;
         $positive_total = 0;
         foreach ($stock_checks as $stock) {
@@ -265,8 +266,7 @@ try {
         }
     }
 
-    // คอลัมน์ขวา - ช่องลงชื่อ
-    $pdf->SetXY(110, $currentY + 10); // เริ่มจากตำแหน่งเดียวกันกับสรุปรายงาน + ระยะห่าง
+    $pdf->SetXY(110, $currentY + 10);
     $pdf->SetFont('THSarabunNew', '', 11);
     $pdf->Cell(80, 8, thai('ลงชื่อ........................................................'), 0, 1, 'C');
     $pdf->SetX(120);
@@ -276,11 +276,11 @@ try {
     $pdf->SetX(110);
     $pdf->Cell(80, 8, thai('วันที่ (................./.................../..................)'), 0, 1, 'C');
 
-    // แสดงผล PDF
     $filename = 'StockCheckReport_' . date('Ymd_His') . '.pdf';
     ob_end_clean();
     $pdf->Output('I', $filename);
 } catch (PDOException $e) {
+    error_log("PDOException in export_stock_pdf.php: " . $e->getMessage());
     $pdf = new THPDF('P');
     $pdf->SetMargins(10, 10, 10);
     $pdf->AliasNbPages();

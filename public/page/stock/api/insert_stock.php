@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../../../config/database_server.php';
+require_once __DIR__ . '../../../../../config/database_server.php';
 header('Content-Type: application/json');
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -46,11 +46,10 @@ try {
         $pdo->rollBack();
         throw new Exception("เซสชันสต๊อก $stock_id ไม่ถูกต้อง, ถูกยืนยันแล้ว, หรือไม่ใช่ของผู้ใช้");
     }
-
     if ($is_update) {
         // ตรวจสอบว่ามีรายการใน stock_check หรือไม่
         $query = "SELECT stock_check_id, stock_check_actual FROM stock_check 
-                  WHERE stock_id = :stock_id AND product_id = :product_id AND warehouse_id = :warehouse_id";
+              WHERE stock_id = :stock_id AND product_id = :product_id AND warehouse_id = :warehouse_id";
         $stmt = $pdo->prepare($query);
         $stmt->execute([
             ':stock_id' => $stock_id,
@@ -60,19 +59,20 @@ try {
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($existing) {
+            // Debug: บันทึกค่าเพื่อตรวจสอบ
+            error_log("Updating stock_check: stock_check_id={$existing['stock_check_id']}, new_actual=" . ($existing['stock_check_actual'] + (int) $stock_check_actual));
+
             // อัปเดต stock_check_actual
             $new_stock_check_actual = $existing['stock_check_actual'] + (int) $stock_check_actual;
             $query = "UPDATE stock_check 
-                      SET stock_check_actual = :stock_check_actual, 
-                          stock_check_comment = :stock_check_comment, 
-                          personnel_id = :personnel_id 
-                      WHERE stock_check_id = :stock_check_id";
+                  SET stock_check_actual = :stock_check_actual, 
+                      stock_check_comment = :stock_check_comment
+                  WHERE stock_check_id = :stock_check_id";
             $stmt = $pdo->prepare($query);
             $stmt->execute([
                 ':stock_check_actual' => $new_stock_check_actual,
                 ':stock_check_comment' => $stock_check_comment,
-                ':personnel_id' => $personnel_id,
-                ':stock_check_id' => $existing['stock_check_id']
+                ':stock_check_id' => (int) $existing['stock_check_id'] // แปลงเป็น int เพื่อป้องกันปัญหา string
             ]);
 
             $pdo->commit();
@@ -86,8 +86,8 @@ try {
     }
 
     // ถ้าไม่มีรายการหรือไม่ใช่ update, ทำการ INSERT
-    $query = "INSERT INTO stock_check (stock_id, product_id, warehouse_id, lot_id, lot_product_id, stock_check_actual, stock_check_system, stock_check_remark_id ,stock_check_comment, personnel_id)
-              VALUES (:stock_id, :product_id, :warehouse_id, :lot_id, :lot_product_id, :stock_check_actual, :stock_check_system, :stock_check_remark_id, :stock_check_comment, :personnel_id)";
+    $query = "INSERT INTO stock_check (stock_id, product_id, warehouse_id, lot_id, lot_product_id, stock_check_actual, stock_check_system, stock_check_remark_id ,stock_check_comment)
+              VALUES (:stock_id, :product_id, :warehouse_id, :lot_id, :lot_product_id, :stock_check_actual, :stock_check_system, :stock_check_remark_id, :stock_check_comment )";
     $stmt = $pdo->prepare($query);
     $stmt->execute([
         ':stock_id' => $stock_id,
@@ -99,7 +99,7 @@ try {
         ':stock_check_system' => $stock_check_system,
         ':stock_check_comment' => $stock_check_comment,
         ':stock_check_remark_id' => $stock_check_remark_id,
-        ':personnel_id' => $personnel_id
+
     ]);
 
     $pdo->commit();
@@ -119,4 +119,3 @@ try {
         'message' => $e->getMessage()
     ]);
 }
-?>

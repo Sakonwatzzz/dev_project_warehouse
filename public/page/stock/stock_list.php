@@ -166,38 +166,36 @@ $total_pages = max(1, ceil($total_records / $records_per_page));
 // Fetch stock check data
 try {
     $query = "
-        SELECT 
-            sc.stock_check_id,
-            sc.product_id,
-            p.product_name,
-            sc.lot_id,
-            sc.warehouse_id,
-            w.warehouse_name,
-            sc.stock_check_comment,
-            per.personnel_name,
-            sc.lot_product_id,
-            lp.lot_product_remain,
-            s.stock_id,
-            s.stock_date,
-            sc.stock_check_system,
-            sc.stock_check_actual,
-            s.check_status_id,
-            scs.check_status_name
-        FROM stock_check sc
-        LEFT JOIN product p ON sc.product_id = p.product_id
-        LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
-        LEFT JOIN lot l ON sc.lot_id = l.lot_id
-        LEFT JOIN lot_product lp ON sc.lot_product_id = lp.lot_product_id
-        LEFT JOIN stock s ON sc.stock_id = s.stock_id
-        LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
-        LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
-        WHERE s.check_status_id = 2
-        AND s.stock_date >= :today_start 
-        AND s.stock_date <= :today_end";
-    $params = [
-        ':today_start' => date('Y-m-d 00:00:00'),
-        ':today_end' => date('Y-m-d 23:59:59')
-    ];
+    SELECT 
+        sc.stock_check_id,
+        sc.product_id,
+        p.product_name,
+        sc.lot_id,
+        sc.warehouse_id,
+        w.warehouse_name,
+        sc.stock_check_comment,
+        per.personnel_name,
+        sc.lot_product_id,
+        lp.lot_product_remain,
+        s.stock_id,
+        s.stock_date,
+        sc.stock_check_system,
+        sc.stock_check_actual,  
+        s.check_status_id,
+        scs.check_status_name,
+        scr.stock_check_remark_id,
+        scr.stock_check_remark_name
+    FROM stock_check sc
+    LEFT JOIN product p ON sc.product_id = p.product_id
+    LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
+    LEFT JOIN lot l ON sc.lot_id = l.lot_id
+    LEFT JOIN lot_product lp ON sc.lot_product_id = lp.lot_product_id
+    LEFT JOIN stock s ON sc.stock_id = s.stock_id
+    LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
+    LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
+    LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
+    WHERE s.check_status_id = 2";
+    $params = [];
     if (!empty($search)) {
         $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
@@ -207,12 +205,13 @@ try {
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':limit', $records_per_page, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', (int)$records_per_page, PDO::PARAM_INT);
     $stmt->execute();
     $check_stock = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    header('Location: index.php?page=stock_list&error=' . urlencode($e->getMessage()));
+} catch (PDOException $e) {
+    error_log("Query stock check error: " . $e->getMessage());
+    header('Location: index.php?page=stock_list&error=' . urlencode('Query error: ' . htmlspecialchars($e->getMessage())));
     exit;
 }
 ?>
@@ -316,8 +315,9 @@ try {
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนจากระบบ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนที่นับได้</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>สถานะ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">หมายเหตุ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>ข้อความเพิ่มเติม</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -333,8 +333,9 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_actual']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_comment']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_comment']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
