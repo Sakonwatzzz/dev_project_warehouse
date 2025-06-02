@@ -312,7 +312,7 @@ try {
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อสินค้า</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนจากระบบ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>จำนวนจากระบบ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนที่นับได้</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>สถานะ</th>
@@ -330,7 +330,7 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['warehouse_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_id']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_actual']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
                                         <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['check_status_name']); ?></td>

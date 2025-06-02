@@ -12,7 +12,7 @@ try {
 }
 
 // กำหนดค่าเริ่มต้นสำหรับ personnel (ถ้าจำเป็น)
-$personnel_id = $_SESSION['personnel_id'] ?? 11; // สมมติใช้ session หรือค่า default
+$personnel_id = $_SESSION['personnel_id'] ?? 1; // สมมติใช้ session หรือค่า default
 $query = "SELECT personnel_name FROM personnel WHERE personnel_id = ?";
 $stmt = $pdo->prepare($query);
 $stmt->execute([$personnel_id]);

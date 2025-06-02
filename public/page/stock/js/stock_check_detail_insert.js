@@ -867,7 +867,7 @@ $(document).ready(function () {
             ) {
               stock_check_remark_name = "จำนวนสินค้าเกิน";
             }
-
+           
             $.ajax({
               url: "page/stock/api/insert_stock.php",
               type: "POST",
