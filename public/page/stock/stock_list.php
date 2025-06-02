@@ -305,7 +305,7 @@ try {
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse">
                         <thead>
-                            <tr class="bg-gray-50">
+                            <tr class="bg-gray-100">
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสรายการเช็คสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
