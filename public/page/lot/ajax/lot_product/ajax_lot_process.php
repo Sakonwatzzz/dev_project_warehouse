@@ -1,3 +1,4 @@
+
 <?php
 require_once __DIR__ . '../../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
@@ -66,12 +67,11 @@ try {
                     throw new Exception('จำนวนต้องไม่เป็น 0');
                 }
             }
+        } elseif (preg_match('/^\d+$/', $barcode_value)) {
+            // รูปแบบ: รหัส (e.g., 12354685)
+            $quantity = $is_delete ? -1 : 1;
         } else {
-            // รูปแบบ: รหัส หรือ -รหัส
-            $barcode_value = $barcode_value;
-            if ($is_delete) {
-                $quantity = -1;
-            }
+            throw new Exception('รูปแบบบาร์โค้ดไม่ถูกต้อง');
         }
 
         // ค้นหาสินค้า
@@ -226,16 +226,8 @@ try {
             throw new Exception('ต้องมีสินค้าอย่างน้อย 1 ชิ้นเพื่อยืนยันการรับเข้า');
         }
 
-        $invalid_products = [];
-        foreach ($products as $product) {
-            if ($product['product_name'] === 'ไม่มีสินค้าในระบบ' || $product['product_name'] === 'ยังไม่ระบุ' || $product['lot_product_capital'] == 0) {
-                $invalid_products[] = $product['product_id'];
-            }
-        }
-
-        if (!empty($invalid_products)) {
-            throw new Exception('กรุณากรอกข้อมูลสินค้าให้ครบถ้วน (ชื่อสินค้าและราคาทุน) สำหรับบาร์โค้ด: ' . implode(', ', $invalid_products));
-        }
+        // ลบการตรวจสอบความครบถ้วนของข้อมูลสินค้า
+        // อนุญาตให้ยืนยันได้แม้ว่าชื่อสินค้าจะเป็น 'ยังไม่ระบุ' หรือราคาทุนเป็น 0
 
         $stmt = $pdo->prepare("UPDATE lot SET lot_status_id = 2 WHERE lot_id = ?");
         $stmt->execute([$lot_id]);
