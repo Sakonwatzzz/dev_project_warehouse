@@ -57,6 +57,7 @@ try {
 }
 ?>
 
+
 <!DOCTYPE html>
 <html lang="th">
 
@@ -251,7 +252,7 @@ try {
                         <div class="flex-1">
                             <input type="text" id="barcode" name="barcode"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                placeholder="เช่น 120/50*12354685 หรือ -12354685 หรือ -50*12354685"
+                                placeholder="เช่น 12354685 หรือ 50*12354685 หรือ 120/50*12354685 หรือ -12354685 หรือ -50*12354685"
                                 pattern="[0-9*/\-\.]*"
                                 autocomplete="off"
                                 autofocus>
@@ -263,7 +264,7 @@ try {
                     <div class="flex flex-row space-x-8">
                         <p class="text-sm text-green-700 mt-1">
                             <i class="fas fa-info-circle mr-1"></i>
-                            รูปแบบการนำเข้า: ราคาทุน/จำนวน*รหัส
+                            รูปแบบการนำเข้า: รหัส หรือ จำนวน*รหัส หรือ ราคาทุน/จำนวน*รหัส
                         </p>
                         <p class="text-sm text-red-700 mt-1">
                             <i class="fas fa-info-circle mr-1"></i>
@@ -312,382 +313,381 @@ try {
                 <i class="fas fa-arrow-left mr-2"></i>กลับ
             </a>
         </div>
-    </div>
 
-    <!-- Edit Modal -->
-    <div id="edit-modal" class="modal">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-800">แก้ไขข้อมูลสินค้า</h2>
-                <button type="button" id="close-modal" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+        <!-- Edit Modal -->
+        <div id="edit-modal" class="modal">
+            <div class="modal-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">แก้ไขข้อมูลสินค้า</h2>
+                    <button type="button" id="close-modal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form id="edit-form" class="space-y-4">
+                    <input type="hidden" id="edit-lot-product-id">
+                    <input type="hidden" id="edit-barcode">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2" for="edit-barcode-display">บาร์โค้ด:</label>
+                        <input type="text" id="edit-barcode-display" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2" for="edit-product-name">ชื่อสินค้า:</label>
+                        <input type="text" id="edit-product-name" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2" for="edit-qty">จำนวน:</label>
+                        <input type="number" id="edit-qty" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="1">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2" for="edit-capital">ราคาทุน:</label>
+                        <input type="number" id="edit-capital" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="0" step="0.01">
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" class="btn bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium" id="cancel-edit">ยกเลิก</button>
+                        <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium">บันทึก</button>
+                    </div>
+                </form>
             </div>
-            <form id="edit-form" class="space-y-4">
-                <input type="hidden" id="edit-lot-product-id">
-                <input type="hidden" id="edit-barcode">
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="edit-barcode-display">บาร์โค้ด:</label>
-                    <input type="text" id="edit-barcode-display" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="edit-product-name">ชื่อสินค้า:</label>
-                    <input type="text" id="edit-product-name" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="edit-qty">จำนวน:</label>
-                    <input type="number" id="edit-qty" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="1">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="edit-capital">ราคาทุน:</label>
-                    <input type="number" id="edit-capital" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="0" step="0.01">
-                </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" class="btn bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium" id="cancel-edit">ยกเลิก</button>
-                    <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium">บันทึก</button>
-                </div>
-            </form>
         </div>
-    </div>
 
-    <script>
-        $(document).ready(function() {
-            // Shared state
-            const state = {
-                activeDeleteBarcode: null,
-                barcodeInput: $('#barcode')
-            };
+        <script>
+            $(document).ready(function() {
+                // Shared state
+                const state = {
+                    activeDeleteBarcode: null,
+                    barcodeInput: $('#barcode')
+                };
 
-            // Utility functions
-            const utils = {
-                refreshProductTable: function() {
-                    $.ajax({
-                        url: 'page/lot/ajax/lot_product/ajax_get_product_table.php',
-                        method: 'GET',
-                        data: {
-                            lot_id: <?php echo $lot_id; ?>
-                        },
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.success) {
-                                $('#products-table tbody').html(response.tableHtml);
-                                utils.updateRowHighlighting();
-                                state.barcodeInput.focus();
-                                utils.rebindTableEvents();
-                            } else {
+                // Utility functions
+                const utils = {
+                    refreshProductTable: function() {
+                        $.ajax({
+                            url: 'page/lot/ajax/lot_product/ajax_get_product_table.php',
+                            method: 'GET',
+                            data: {
+                                lot_id: <?php echo $lot_id; ?>
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.success) {
+                                    $('#products-table tbody').html(response.tableHtml);
+                                    utils.updateRowHighlighting();
+                                    state.barcodeInput.focus();
+                                    utils.rebindTableEvents();
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'เกิดข้อผิดพลาด',
+                                        text: response.error || 'กรุณาลองใหม่อีกครั้ง'
+                                    });
+                                }
+                            },
+                            error: function() {
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'เกิดข้อผิดพลาด',
-                                    text: response.error || 'กรุณาลองใหม่อีกครั้ง'
+                                    title: 'ข้อผิดพลาด',
+                                    text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'
                                 });
                             }
-                        },
-                        error: function() {
+                        });
+                    },
+
+                    rebindTableEvents: function() {
+                        $('.edit-product').off('click').on('click', function() {
+                            const lot_product_id = $(this).data('id');
+                            const qty = $(this).data('qty');
+                            const capital = $(this).data('capital');
+                            const name = $(this).data('name');
+                            const barcode = $(this).data('barcode');
+
+                            $('#edit-lot-product-id').val(lot_product_id);
+                            $('#edit-barcode').val(barcode);
+                            $('#edit-barcode-display').val(barcode);
+                            $('#edit-product-name').val(name);
+                            $('#edit-qty').val(qty);
+                            $('#edit-capital').val(capital);
+                            $('#edit-modal').fadeIn(200);
+                            $('#edit-product-name').focus();
+                        });
+
+                        $('.delete-product').off('click').on('click', function() {
+                            const lot_product_id = $(this).data('id');
+                            handleDeleteProductClick(lot_product_id);
+                        });
+                    },
+
+                    handleServerResponse: function(response) {
+                        if (response.success) {
+                            utils.refreshProductTable();
+                        } else {
                             Swal.fire({
-                                icon: 'error',
-                                title: 'ข้อผิดพลาด',
-                                text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'
+                                icon: 'warning',
+                                title: 'อุ๊ย! มีปัญหานิดหน่อย',
+                                text: response.error || 'กรุณาลองใหม่อีกครั้ง'
                             });
+                            state.barcodeInput.focus();
                         }
-                    });
-                },
+                    },
 
-                rebindTableEvents: function() {
-                    $('.edit-product').off('click').on('click', function() {
-                        const lot_product_id = $(this).data('id');
-                        const qty = $(this).data('qty');
-                        const capital = $(this).data('capital');
-                        const name = $(this).data('name');
-                        const barcode = $(this).data('barcode');
-
-                        $('#edit-lot-product-id').val(lot_product_id);
-                        $('#edit-barcode').val(barcode);
-                        $('#edit-barcode-display').val(barcode);
-                        $('#edit-product-name').val(name);
-                        $('#edit-qty').val(qty);
-                        $('#edit-capital').val(capital);
-                        $('#edit-modal').fadeIn(200);
-                        $('#edit-product-name').focus();
-                    });
-
-                    $('.delete-product').off('click').on('click', function() {
-                        const lot_product_id = $(this).data('id');
-                        handleDeleteProductClick(lot_product_id);
-                    });
-                },
-
-                handleServerResponse: function(response) {
-                    if (response.success) {
-                        utils.refreshProductTable();
-                    } else {
+                    handleServerError: function(xhr) {
+                        console.error('Server response:', xhr.responseText);
+                        try {
+                            const htmlContent = xhr.responseText;
+                            const jsonMatch = htmlContent.match(/\{.*\}/);
+                            if (jsonMatch) {
+                                const jsonResponse = JSON.parse(jsonMatch[0]);
+                                if (jsonResponse.success) {
+                                    utils.refreshProductTable();
+                                    return;
+                                }
+                            }
+                        } catch (e) {
+                            console.error('JSON parsing error:', e);
+                        }
                         Swal.fire({
-                            icon: 'warning',
-                            title: 'อุ๊ย! มีปัญหานิดหน่อย',
-                            text: response.error || 'กรุณาลองใหม่อีกครั้ง'
+                            icon: 'error',
+                            title: 'ข้อผิดพลาด',
+                            text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง'
                         });
                         state.barcodeInput.focus();
-                    }
-                },
+                    },
 
-                handleServerError: function(xhr) {
-                    console.error('Server response:', xhr.responseText);
-                    try {
-                        const htmlContent = xhr.responseText;
-                        const jsonMatch = htmlContent.match(/\{.*\}/);
-                        if (jsonMatch) {
-                            const jsonResponse = JSON.parse(jsonMatch[0]);
-                            if (jsonResponse.success) {
-                                utils.refreshProductTable();
-                                return;
+                    sendRequest: function(data) {
+                        $.ajax({
+                            url: 'page/lot/ajax/lot_product/ajax_lot_process.php',
+                            method: 'POST',
+                            data: data,
+                            dataType: 'json',
+                            success: function(response) {
+                                utils.handleServerResponse(response);
+                            },
+                            error: function(xhr) {
+                                utils.handleServerError(xhr);
                             }
+                        });
+                    },
+
+                    updateRowHighlighting: function() {
+                        $('#products-table tbody tr').removeClass('bg-pink-100');
+                        if (state.activeDeleteBarcode) {
+                            $(`#products-table tbody tr[data-product-id="${state.activeDeleteBarcode}"]`).addClass('bg-pink-100');
                         }
-                    } catch (e) {
-                        console.error('JSON parsing error:', e);
                     }
+                };
+
+                // Handle delete product
+                function handleDeleteProductClick(lot_product_id) {
                     Swal.fire({
-                        icon: 'error',
-                        title: 'ข้อผิดพลาด',
-                        text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง'
-                    });
-                    state.barcodeInput.focus();
-                },
-
-                sendRequest: function(data) {
-                    $.ajax({
-                        url: 'page/lot/ajax/lot_product/ajax_lot_process.php',
-                        method: 'POST',
-                        data: data,
-                        dataType: 'json',
-                        success: function(response) {
-                            utils.handleServerResponse(response);
-                        },
-                        error: function(xhr) {
-                            utils.handleServerError(xhr);
-                        }
-                    });
-                },
-
-                updateRowHighlighting: function() {
-                    $('#products-table tbody tr').removeClass('bg-pink-100');
-                    if (state.activeDeleteBarcode) {
-                        $(`#products-table tbody tr[data-product-id="${state.activeDeleteBarcode}"]`).addClass('bg-pink-100');
-                    }
-                }
-            };
-
-            // Handle delete product
-            function handleDeleteProductClick(lot_product_id) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'ยืนยันการลบ',
-                    text: 'คุณต้องการลบสินค้านี้ออกจากรายการหรือไม่?',
-                    showCancelButton: true,
-                    confirmButtonText: 'ยืนยัน',
-                    cancelButtonText: 'ยกเลิก',
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        utils.sendRequest({
-                            lot_product_id,
-                            action: 'delete_product'
-                        });
-                    }
-                });
-            }
-
-            // Bind events
-            function bindEvents() {
-                // Barcode input color change
-                $('#barcode').on('input', function() {
-                    const value = $(this).val();
-                    if (value.startsWith('-')) {
-                        $(this).addClass('bg-pink-100').removeClass('bg-white');
-                    } else {
-                        $(this).removeClass('bg-pink-100').addClass('bg-white');
-                    }
-                });
-
-                // Barcode form submission
-                $('#barcode-form').on('submit', function(e) {
-                    e.preventDefault();
-                    const barcode = $('#barcode').val().trim();
-                    const lot_id = <?php echo $lot_id; ?>;
-
-                    if (!barcode) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'กรุณาป้อนรหัสบาร์โค้ด',
-                            showConfirmButton: true
-                        });
-                        return;
-                    }
-
-                    // Updated regex to support price/qty*barcode, -barcode, or -qty*barcode
-                    if (!/^(?:-?\d+\/\d+\*\d+|-\d+|\d+\/\d+\*\d+|-\d+\*\d+)$/.test(barcode)) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'รูปแบบไม่ถูกต้อง',
-                            text: 'รูปแบบต้องเป็น ราคาทุน/จำนวน*รหัส หรือ -รหัส หรือ -จำนวน*รหัส'
-                        });
-                        return;
-                    }
-
-                    utils.sendRequest({
-                        barcode,
-                        lot_id,
-                        action: 'scan_product'
-                    });
-
-                    $('#barcode').val('').focus();
-                });
-
-                // Edit form submission (unchanged)
-                $('#edit-form').on('submit', function(e) {
-                    e.preventDefault();
-                    const lot_product_id = $('#edit-lot-product-id').val();
-                    const qty = parseInt($('#edit-qty').val());
-                    const capital = parseFloat($('#edit-capital').val());
-                    const product_name = $('#edit-product-name').val();
-                    const barcode = $('#edit-barcode').val();
-
-                    if (!product_name || product_name.trim() === '') {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'กรุณาระบุชื่อสินค้า',
-                            showConfirmButton: true
-                        });
-                        return;
-                    }
-
-                    if (isNaN(qty) || qty <= 0) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'จำนวนไม่ถูกต้อง',
-                            text: 'จำนวนต้องมากกว่า 0'
-                        });
-                        return;
-                    }
-
-                    if (isNaN(capital) || capital < 0) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'ราคาทุนไม่ถูกต้อง',
-                            text: 'ราคาทุนต้องไม่ต่ำกว่า 0'
-                        });
-                        return;
-                    }
-
-                    utils.sendRequest({
-                        lot_product_id,
-                        qty,
-                        capital,
-                        product_name,
-                        barcode,
-                        action: 'edit_product'
-                    });
-
-                    $('#edit-modal').fadeOut(200);
-                });
-
-                // Confirm lot (unchanged)
-                $('.confirm-lot').on('click', function() {
-                    const lot_id = $(this).data('lot-id');
-
-                    const hasProducts = $('#products-table tbody tr').length > 1 || !$('#products-table tbody tr').hasClass('total-row');
-
-                    if (!hasProducts) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'ไม่มีสินค้า',
-                            text: 'ต้องมีสินค้าอย่างน้อย 1 ชิ้นเพื่อยืนยันรายการ',
-                            confirmButtonText: 'ตกลง'
-                        });
-                        return;
-                    }
-
-                    Swal.fire({
-                        icon: 'question',
-                        title: 'ยืนยันรายการ',
-                        text: 'คุณต้องการยืนยันรายการนี้หรือไม่?',
+                        icon: 'warning',
+                        title: 'ยืนยันการลบ',
+                        text: 'คุณต้องการลบสินค้านี้ออกจากรายการหรือไม่?',
                         showCancelButton: true,
                         confirmButtonText: 'ยืนยัน',
                         cancelButtonText: 'ยกเลิก',
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33'
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            $.ajax({
-                                url: 'page/lot/ajax/lot_product/ajax_lot_process.php',
-                                type: 'POST',
-                                data: {
-                                    lot_id,
-                                    action: 'confirm_lot'
-                                },
-                                dataType: 'json',
-                                beforeSend: function() {
-                                    $('.confirm-lot').addClass('loading').prop('disabled', true);
-                                },
-                                success: function(response) {
-                                    $('.confirm-lot').removeClass('loading').prop('disabled', false);
-                                    if (response.success) {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'ยืนยันสำเร็จ',
-                                            text: response.message || 'การยืนยันล็อตสำเร็จ',
-                                            showConfirmButton: false,
-                                            timer: 1500
-                                        }).then(() => {
-                                            window.location.href = 'index.php?page=lot_listinsert';
-                                        });
-                                    } else {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: '⚠️ ไม่สามารถยืนยันได้',
-                                            text: response.error || 'กรุณาลองใหม่อีกครั้ง'
-                                        });
-                                    }
-                                },
-                                error: function(xhr) {
-                                    $('.confirm-lot').removeClass('loading').prop('disabled', false);
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'ข้อผิดพลาด',
-                                        text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: ' + (xhr.responseJSON?.error || 'กรุณาลองใหม่')
-                                    });
-                                }
+                            utils.sendRequest({
+                                lot_product_id,
+                                action: 'delete_product'
                             });
                         }
                     });
-                });
+                }
 
-                // Close modal (unchanged)
-                $('#cancel-edit, #close-modal').on('click', function() {
-                    $('#edit-modal').fadeOut(200);
-                });
+                // Bind events
+                function bindEvents() {
+                    // Barcode input color change
+                    $('#barcode').on('input', function() {
+                        const value = $(this).val();
+                        if (value.startsWith('-')) {
+                            $(this).addClass('bg-pink-100').removeClass('bg-white');
+                        } else {
+                            $(this).removeClass('bg-pink-100').addClass('bg-white');
+                        }
+                    });
 
-                $('#edit-modal').on('click', function(e) {
-                    if (e.target.id === 'edit-modal') {
+                    // Barcode form submission
+                    $('#barcode-form').on('submit', function(e) {
+                        e.preventDefault();
+                        const barcode = $('#barcode').val().trim();
+                        const lot_id = <?php echo $lot_id; ?>;
+
+                        if (!barcode) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'กรุณาป้อนรหัสบาร์โค้ด',
+                                showConfirmButton: true
+                            });
+                            return;
+                        }
+
+                        // Updated regex to support price/qty*barcode, qty*barcode, -barcode, -qty*barcode, or just barcode
+                        if (!/^(?:-?\d+\/\d+\*\d+|-\d+\*\d+|-\d+|\d+\/\d+\*\d+|\d+\*\d+|\d+)$/.test(barcode)) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'รูปแบบไม่ถูกต้อง',
+                                text: 'รูปแบบต้องเป็น รหัส หรือ จำนวน*รหัส หรือ ราคาทุน/จำนวน*รหัส หรือ -รหัส หรือ -จำนวน*รหัส'
+                            });
+                            return;
+                        }
+
+                        utils.sendRequest({
+                            barcode,
+                            lot_id,
+                            action: 'scan_product'
+                        });
+
+                        $('#barcode').val('').focus();
+                    });
+
+                    // Edit form submission
+                    $('#edit-form').on('submit', function(e) {
+                        e.preventDefault();
+                        const lot_product_id = $('#edit-lot-product-id').val();
+                        const qty = parseInt($('#edit-qty').val());
+                        const capital = parseFloat($('#edit-capital').val());
+                        const product_name = $('#edit-product-name').val();
+                        const barcode = $('#edit-barcode').val();
+
+                        if (!product_name || product_name.trim() === '') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'กรุณาระบุชื่อสินค้า',
+                                showConfirmButton: true
+                            });
+                            return;
+                        }
+
+                        if (isNaN(qty) || qty <= 0) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'จำนวนไม่ถูกต้อง',
+                                text: 'จำนวนต้องมากกว่า 0'
+                            });
+                            return;
+                        }
+
+                        if (isNaN(capital) || capital < 0) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'ราคาทุนไม่ถูกต้อง',
+                                text: 'ราคาทุนต้องไม่ต่ำกว่า 0'
+                            });
+                            return;
+                        }
+
+                        utils.sendRequest({
+                            lot_product_id,
+                            qty,
+                            capital,
+                            product_name,
+                            barcode,
+                            action: 'edit_product'
+                        });
+
                         $('#edit-modal').fadeOut(200);
-                    }
-                });
+                    });
 
-                $(document).keydown(function(e) {
-                    if (e.key === "Escape" && $('#edit-modal').is(':visible')) {
+                    // Confirm lot
+                    $('.confirm-lot').on('click', function() {
+                        const lot_id = $(this).data('lot-id');
+
+                        const hasProducts = $('#products-table tbody tr').length > 1 || !$('#products-table tbody tr').hasClass('total-row');
+
+                        if (!hasProducts) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'ไม่มีสินค้า',
+                                text: 'ต้องมีสินค้าอย่างน้อย 1 ชิ้นเพื่อยืนยันรายการ',
+                                confirmButtonText: 'ตกลง'
+                            });
+                            return;
+                        }
+
+                        Swal.fire({
+                            icon: 'question',
+                            title: 'ยืนยันรายการ',
+                            text: 'คุณต้องการยืนยันรายการนี้หรือไม่?',
+                            showCancelButton: true,
+                            confirmButtonText: 'ยืนยัน',
+                            cancelButtonText: 'ยกเลิก',
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                $.ajax({
+                                    url: 'page/lot/ajax/lot_product/ajax_lot_process.php',
+                                    type: 'POST',
+                                    data: {
+                                        lot_id,
+                                        action: 'confirm_lot'
+                                    },
+                                    dataType: 'json',
+                                    beforeSend: function() {
+                                        $('.confirm-lot').addClass('loading').prop('disabled', true);
+                                    },
+                                    success: function(response) {
+                                        $('.confirm-lot').removeClass('loading').prop('disabled', false);
+                                        if (response.success) {
+                                            Swal.fire({
+                                                icon: 'success',
+                                                title: 'ยืนยันสำเร็จ',
+                                                text: response.message || 'การยืนยันล็อตสำเร็จ',
+                                                showConfirmButton: false,
+                                                timer: 1500
+                                            }).then(() => {
+                                                window.location.href = 'index.php?page=lot_listinsert';
+                                            });
+                                        } else {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: '⚠️ ไม่สามารถยืนยันได้',
+                                                text: response.error || 'กรุณาลองใหม่อีกครั้ง'
+                                            });
+                                        }
+                                    },
+                                    error: function(xhr) {
+                                        $('.confirm-lot').removeClass('loading').prop('disabled', false);
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'ข้อผิดพลาด',
+                                            text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: ' + (xhr.responseJSON?.error || 'กรุณาลองใหม่')
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    });
+
+                    // Close modal
+                    $('#cancel-edit, #close-modal').on('click', function() {
                         $('#edit-modal').fadeOut(200);
-                    }
-                });
+                    });
 
-                $('#barcode').focus();
-            }
+                    $('#edit-modal').on('click', function(e) {
+                        if (e.target.id === 'edit-modal') {
+                            $('#edit-modal').fadeOut(200);
+                        }
+                    });
 
-            // Initialize events
-            bindEvents();
+                    $(document).keydown(function(e) {
+                        if (e.key === "Escape" && $('#edit-modal').is(':visible')) {
+                            $('#edit-modal').fadeOut(200);
+                        }
+                    });
 
-            // Initial table load
-            utils.refreshProductTable();
-        });
-    </script>
+                    $('#barcode').focus();
+                }
+
+                // Initialize events
+                bindEvents();
+
+                // Initial table load
+                utils.refreshProductTable();
+            });
+        </script>
 </body>
 
 </html>

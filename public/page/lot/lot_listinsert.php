@@ -201,7 +201,7 @@ ob_end_flush();
         <?php endif; ?>
 
         <!-- Form Section -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+        <div class=" bg-white rounded-lg shadow-lg overflow-hidden mb-8">
             <div class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
                 <h2 class="text-2xl font-bold text-gray-800 flex items-center">
                     <i class="fas fa-box-open mr-3 "></i>เพิ่มรอบสินค้าใหม่
@@ -256,7 +256,8 @@ ob_end_flush();
                                     <i class="fas fa-warehouse text-gray-400"></i>
                                 </div>
                                 <select name="warehouse_id" id="warehouse_id"
-                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    class="w-full border rounded-lg px-3 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                                    placeholder="เลือกคลัง" required>
                                     <?php foreach ($warehouse_lot as $warehouse): ?>
                                         <option value="<?= htmlspecialchars($warehouse['warehouse_id']) ?>">
                                             <?= htmlspecialchars($warehouse['warehouse_name']) ?>
@@ -267,17 +268,20 @@ ob_end_flush();
                                     <i class="fas fa-chevron-down text-gray-400"></i>
                                 </div>
                             </div>
+
+
                         </div>
 
                         <div class="form-group">
                             <label for="store_id"
-                                class="block text-gray-700 font-medium mb-2">รับมาจากร้าน</label>
+                                class="block text-gray-700 font-medium mb-2">รับมาจากร้าน <span class="text-red-500">*</span></label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                     <i class="fas fa-users text-gray-400"></i>
                                 </div>
                                 <select name="store_id" id="store_id"
-                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                   class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    placeholder="เลือกร้าน" required>
                                     <?php foreach ($store_lot as $store): ?>
                                         <option value="<?= htmlspecialchars($store['store_id']) ?>">
                                             <?= htmlspecialchars($store['store_name']) ?>
@@ -292,13 +296,13 @@ ob_end_flush();
 
                         <div class="form-group">
                             <label for="personnel_id"
-                                class="block text-gray-700 font-medium mb-2">พนักงาน</label>
+                                class="block text-gray-700 font-medium mb-2">พนักงาน <span class="text-red-500">*</span></label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                     <i class="fas fa-users text-gray-400"></i>
                                 </div>
                                 <select name="personnel_id" id="personnel_id"
-                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="เลือกพนักงาน" required>
                                     <?php foreach ($personnel_lot as $personnel): ?>
                                         <option value="<?= htmlspecialchars($personnel['personnel_id']) ?>">
                                             <?= htmlspecialchars($personnel['personnel_name']) ?>
