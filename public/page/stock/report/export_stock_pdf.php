@@ -4,10 +4,15 @@ require_once __DIR__ . '../../../../fpdf186/fpdf.php';
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
-// Function to convert text to TIS-620
+// Function to convert text to TIS-620 or keep UTF-8
 function thai($text)
 {
-    return iconv('UTF-8', 'TIS-620//IGNORE', $text);
+    if (!is_string($text)) {
+        return '';
+    }
+    $converted = iconv('UTF-8', 'TIS-620//IGNORE', $text);
+    error_log("Thai conversion - Input: $text, Output: $converted");
+    return $converted;
 }
 
 class THPDF extends FPDF
@@ -29,23 +34,13 @@ class THPDF extends FPDF
 
         // Report date
         $this->SetFont('THSarabunNew', '', 11);
-        $this->Cell(0, 6, thai('วันที่ออกรายงาน ณ เวลา: ') . date('d/m/Y H:i:s'), 0, 1, 'L');
-
-        // // Date range (today)
-        // $date_range = thai("วันที่: " . date('d/m/Y'));
-        // $this->Cell(0, 6, $date_range, 0, 1, 'L');
+        $this->Cell(0, 6, thai('วันที่ออกรายงานประจำวันและเวลาที่: ') . date('d/m/Y H:i:s'), 0, 1, 'L');
 
         // Stock details (if available)
         if (isset($this->stock_data) && count($this->stock_data) > 0) {
             $stock = $this->stock_data[0];
-            // $this->Cell(50, 6, thai('รหัสการตรวจ: ' . $stock['stock_check_id']), 0, 0, 'L');
-            // $this->Cell(50, 6, thai('รหัสสต๊อก: ' . $stock['stock_id']), 0, 0, 'L');
-            // $this->Cell(50, 6, thai('วันที่ตรวจ: ' . date('d/m/Y', strtotime($stock['stock_date']))), 0, 0, 'L');
-            // $this->Cell(40, 6, thai('คลัง: ' . $stock['warehouse_name']), 0, 1, 'L');
-
             if (!empty($stock['personnel_name'])) {
                 $this->Cell(100, 6, thai('ผู้ตรวจสอบ: ' . $stock['personnel_name']), 0, 0, 'L');
-                // $this->Cell(90, 6, thai('สถานะ: ' . $stock['check_status_name']), 0, 1, 'L');
             }
         }
         $this->Ln(7);
@@ -57,11 +52,10 @@ class THPDF extends FPDF
         // Table headers
         $this->SetFont('THSarabunNew', 'B', 11);
         $this->SetFillColor(200, 216, 537);
-        $this->Cell(25, 8, thai('รหัสสินค้า'), 1, 0, 'L', true);
-        $this->Cell(75, 8, thai('ชื่อสินค้า'), 1, 0, 'C', true);
-        $this->Cell(20, 8, thai('จากระบบ'), 1, 0, 'C', true);
-        $this->Cell(20, 8, thai('นับได้'), 1, 0, 'C', true);
-        $this->Cell(20, 8, thai('ส่วนต่าง'), 1, 0, 'C', true);
+        $this->Cell(30, 8, thai('รหัสสินค้า'), 1, 0, 'L', true);
+        $this->Cell(80, 8, thai('ชื่อสินค้า'), 1, 0, 'C', true);
+        $this->Cell(25, 8, thai('นับได้'), 1, 0, 'C', true);
+        $this->Cell(25, 8, thai('ส่วนต่าง'), 1, 0, 'C', true);
         $this->Cell(30, 8, thai('หมายเหตุ'), 1, 1, 'C', true);
     }
 
@@ -116,7 +110,7 @@ try {
             s.check_status_id,
             scs.check_status_name,
             scr.stock_check_remark_id,
-            scr.stock_check_remark_name AS stock_check_remark
+            scr.stock_check_remark_name
         FROM stock_check AS sc
         LEFT JOIN product p ON sc.product_id = p.product_id
         LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
@@ -168,11 +162,10 @@ try {
             if ($pdf->GetY() > 250) {
                 $pdf->AddPage();
                 $pdf->SetFont('THSarabunNew', 'B', 11);
-                $pdf->Cell(25, 8, thai('รหัสสินค้า'), 1, 0, 'L');
-                $pdf->Cell(75, 8, thai('ชื่อสินค้า'), 1, 0, 'C');
-                $pdf->Cell(20, 8, thai('จากระบบ'), 1, 0, 'C');
-                $pdf->Cell(20, 8, thai('นับได้'), 1, 0, 'C');
-                $pdf->Cell(20, 8, thai('ส่วนต่าง'), 1, 0, 'C');
+                $pdf->Cell(30, 8, thai('รหัสสินค้า'), 1, 0, 'L');
+                $pdf->Cell(80, 8, thai('ชื่อสินค้า'), 1, 0, 'C');
+                $pdf->Cell(25, 8, thai('นับได้'), 1, 0, 'C');
+                $pdf->Cell(25, 8, thai('ส่วนต่าง'), 1, 0, 'C');
                 $pdf->Cell(30, 8, thai('หมายเหตุ'), 1, 1, 'C');
                 $pdf->SetFont('THSarabunNew', '', 10);
             }
@@ -186,13 +179,12 @@ try {
 
             $product_name = $stock['product_name'];
             if (strlen($product_name) > 255) {
-                $product_name = substr($product_name, 0, 252) . '...';
+                $product_name = mb_substr($product_name, 0, 252, 'UTF-8') . '...';
             }
 
-            $pdf->Cell(25, 7, thai($stock['product_id']), 1, 0, 'L');
-            $pdf->Cell(75, 7, thai($product_name), 1, 0, 'L');
-            $pdf->Cell(20, 7, thai(number_format($system_qty)), 1, 0, 'C');
-            $pdf->Cell(20, 7, thai(number_format($actual_qty)), 1, 0, 'C');
+            $pdf->Cell(30, 7, thai($stock['product_id']), 1, 0, 'L');
+            $pdf->Cell(80, 7, thai($product_name), 1, 0, 'L');
+            $pdf->Cell(25, 7, thai(number_format($actual_qty)), 1, 0, 'C');
 
             $diff_text = ($difference > 0 ? '+' : '') . number_format($difference);
 
@@ -201,14 +193,15 @@ try {
                 $pdf->SetFont('THSarabunNew', 'B', 11);
             }
 
-            $pdf->Cell(20, 7, thai($diff_text), 1, 0, 'C');
+            $pdf->Cell(25, 7, thai($diff_text), 1, 0, 'C');
 
             if ($difference < 0) {
                 $pdf->SetTextColor(0, 0, 0);
                 $pdf->SetFont('THSarabunNew', '', 11);
             }
 
-            $remark = !empty($stock['stock_check_remark']) ? substr($stock['stock_check_remark'], 0, 15) : '-';
+            $remark = !empty($stock['stock_check_remark_name']) ? mb_substr($stock['stock_check_remark_name'], 0, 13, 'UTF-8') : 'ไม่มีหมายเหตุ';
+            error_log("stock_check_id: {$stock['stock_check_id']}, raw_remark: " . ($stock['stock_check_remark_name'] ?? 'NULL') . ", converted_remark: " . thai($stock['stock_check_remark_name'] ?? 'NULL') . ", final_remark: $remark");
             $pdf->Cell(30, 7, thai($remark), 1, 1, 'L');
         }
 
@@ -216,11 +209,10 @@ try {
         $pdf->SetFont('THSarabunNew', 'B', 11);
         $total_difference = $total_actual - $total_system;
 
-        $pdf->Cell(100, 8, thai('รวมทั้งหมด'), 1, 0, 'R');
-        $pdf->Cell(20, 8, thai(number_format($total_system)), 1, 0, 'C');
-        $pdf->Cell(20, 8, thai(number_format($total_actual)), 1, 0, 'C');
+        $pdf->Cell(110, 8, thai('รวมทั้งหมด'), 1, 0, 'R');
+        $pdf->Cell(25, 8, thai(number_format($total_actual)), 1, 0, 'C');
         $diff_total = ($total_difference > 0 ? '+' : '') . number_format($total_difference);
-        $pdf->Cell(20, 8, thai($diff_total), 1, 0, 'C');
+        $pdf->Cell(25, 8, thai($diff_total), 1, 0, 'C');
         $pdf->Cell(30, 8, '', 1, 1, 'C');
     } else {
         $pdf->Cell(190, 8, thai('ไม่พบข้อมูลการเช็คสต๊อก'), 1, 1, 'C');
@@ -237,8 +229,6 @@ try {
     $pdf->Cell(95, 6, thai('จำนวนรายการทั้งหมด: ') . count($stock_checks) . thai(' รายการ'), 0, 1, 'L');
 
     if (count($stock_checks) > 0) {
-        $pdf->SetX(10);
-        $pdf->Cell(95, 6, thai('จำนวนจากระบบ: ') . number_format($total_system), 0, 1, 'L');
         $pdf->SetX(10);
         $pdf->Cell(95, 6, thai('จำนวนนับจริง: ') . number_format($total_actual), 0, 1, 'L');
 
@@ -270,7 +260,7 @@ try {
     $pdf->SetFont('THSarabunNew', '', 11);
     $pdf->Cell(80, 8, thai('ลงชื่อ........................................................'), 0, 1, 'C');
     $pdf->SetX(120);
-    $pdf->Cell(60, 6, thai('ผู้ตรวจสอบสินค้า'), 0, 1, 'C');
+    $pdf->Cell(60, 6, thai('ผู้ตรวจสอบ'), 0, 1, 'C');
     $pdf->SetX(110);
     $pdf->Cell(80, 8, thai('(........................................................)'), 0, 1, 'C');
     $pdf->SetX(110);
@@ -286,7 +276,8 @@ try {
     $pdf->AliasNbPages();
     $pdf->AddPage();
     $pdf->SetFont('THSarabunNew', 'B', 12);
-    $pdf->Cell(0, 10, thai('เกิดข้อผิดพลาดในการดึงข้อมูล: ') . thai(htmlspecialchars($e->getMessage())), 0, 1, 'C');
+    $pdf->Cell(0, 10, thai('เกิดข้อผิดพลาดในการดึงข้อมูล: ') . htmlspecialchars($e->getMessage()), 0, 1, 'C');
     ob_end_clean();
     $pdf->Output();
 }
+?>
