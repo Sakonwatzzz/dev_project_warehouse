@@ -256,7 +256,7 @@ ob_end_flush();
                                     <i class="fas fa-warehouse text-gray-400"></i>
                                 </div>
                                 <select name="warehouse_id" id="warehouse_id"
-                                    class="w-full border rounded-lg px-3 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                                    class="w-full border rounded-lg pl-10 pr-10 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400"
                                     placeholder="เลือกคลัง" required>
                                     <?php foreach ($warehouse_lot as $warehouse): ?>
                                         <option value="<?= htmlspecialchars($warehouse['warehouse_id']) ?>">
