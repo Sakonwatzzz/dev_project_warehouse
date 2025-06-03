@@ -33,7 +33,7 @@ try {
         $stock_check_remark_id = 1; // ครบถ้วน
     } elseif ($stock_check_actual < $stock_check_system) {
         $stock_check_remark_id = 2; // ขาดหาย
-    } elseif ($stock_check_actual > $stock_check_system) {
+    } else {
         $stock_check_remark_id = 3; // จำนวนสินค้าเกิน
     }
     $pdo->beginTransaction();

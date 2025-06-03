@@ -121,13 +121,15 @@ try {
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
         LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
         WHERE s.check_status_id = 2
-        AND s.stock_date >= :today_start 
-        AND s.stock_date <= :today_end";
-
-    $params = [
-        ':today_start' => date('Y-m-d 00:00:00'),
-        ':today_end' => date('Y-m-d 23:59:59')
-    ];
+       
+       ";
+    //     AND DATE(s.stock_date) = CURDATE()
+    //     AND s.stock_date >= :today_start 
+    //     AND s.stock_date <= :today_end
+    // $params = [
+    //     ':today_start' => date('Y-m-d 00:00:00'),
+    //     ':today_end' => date('Y-m-d 23:59:59')
+    // ];
 
     if ($search) {
         $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
@@ -170,8 +172,8 @@ try {
                 $pdf->SetFont('THSarabunNew', '', 10);
             }
 
-            $system_qty = (int)$stock['stock_check_system'];
-            $actual_qty = (int)$stock['stock_check_actual'];
+            $system_qty = (int) $stock['stock_check_system'];
+            $actual_qty = (int) $stock['stock_check_actual'];
             $difference = $actual_qty - $system_qty;
 
             $total_system += $system_qty;
@@ -200,8 +202,8 @@ try {
                 $pdf->SetFont('THSarabunNew', '', 11);
             }
 
-            $remark = !empty($stock['stock_check_remark_name']) ? mb_substr($stock['stock_check_remark_name'], 0, 13, 'UTF-8') : 'ไม่มีหมายเหตุ';
-            error_log("stock_check_id: {$stock['stock_check_id']}, raw_remark: " . ($stock['stock_check_remark_name'] ?? 'NULL') . ", converted_remark: " . thai($stock['stock_check_remark_name'] ?? 'NULL') . ", final_remark: $remark");
+            $remark = !empty($stock['stock_check_remark_name']) ? mb_substr($stock['stock_check_remark_name'], 0, 20, 'UTF-8') :
+                error_log("stock_check_id: {$stock['stock_check_id']}, raw_remark: " . ($stock['stock_check_remark_name'] ?? 'NULL') . ", converted_remark: " . thai($stock['stock_check_remark_name'] ?? 'NULL') . ", final_remark: $remark");
             $pdf->Cell(30, 7, thai($remark), 1, 1, 'L');
         }
 
@@ -235,8 +237,8 @@ try {
         $negative_total = 0;
         $positive_total = 0;
         foreach ($stock_checks as $stock) {
-            $system_qty = (int)$stock['stock_check_system'];
-            $actual_qty = (int)$stock['stock_check_actual'];
+            $system_qty = (int) $stock['stock_check_system'];
+            $actual_qty = (int) $stock['stock_check_actual'];
             $difference = $actual_qty - $system_qty;
 
             if ($difference < 0) {

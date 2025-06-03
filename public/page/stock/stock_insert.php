@@ -102,7 +102,7 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="page/stock/js/search_product.js"></script>
+    <!-- <script src="page/stock/js/search_product.js"></script> -->
     <script src="page/stock/js/delete_product_check.js"></script>
     <!-- <script src="page/stock/js/stock_insert_list.js?t=<?= time() ?>"></script> -->
     <script src="page/stock/js/stock_check_detail_insert.js?t=<?= time() ?>"></script>
@@ -201,10 +201,10 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                             </p>
                         </div>
                         <button id="btn-submit" type="submit"
-                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer">
-                            <span class="text">บันทึก</span>
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer" hidden>
+                            <span class="text" hidden>บันทึก</span>
                             <span
-                                class="spinner hidden animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full ml-2"></span>
+                                class="spinner hidden animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full ml-2" hidden></span>
                         </button>
                     </div>
                 </form>
