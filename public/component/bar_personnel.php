@@ -12,33 +12,32 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'personnel_list';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../../output.css" rel="stylesheet">
+    <link href="../style/bar_button.css" rel="stylesheet">
     <title>Personnel Navigation</title>
+
 </head>
 
-<body class="bg-[#e3f2fd] text-gray-800 min-h-screen overflow-x-hidden font-sans">
+<body class=" text-gray-800 min-h-screen overflow-x-hidden font-sans">
     <!-- Button Bar for Desktop/Tablet (1024px and above) -->
-    <div class="button-bb hidden lg:flex flex-wrap gap-2 p-2 bg-[#d5e1f1] border-b-8 border-[#96aac4] shadow-md" role="navigation">
+    <div class="button-bb hidden lg:flex flex-wrap gap-2 p-2 px-4 " role="navigation">
         <!-- Personnel Section -->
-        <div class="section-container bg-gradient-to-r from-[#cbdbee] to-[#d5e1f1] border-2 border-[#a6c4de] rounded-lg shadow-lg">
-            <!-- <div class="section-header bg-[#c2d9f1] text-center font-bold text-sm py-2 border-b border-[#a6c4de] rounded-t-md">
-                บุคลากร
-            </div> -->
+        <div class="section-container   ">
             <div class="button-grid flex flex-wrap gap-2 p-2">
                 <a href="?page=personnel_list" class="button-link w-24 lg:w-28">
-                    <button class="<?php echo ($current_page == 'personnel_list') ? 'bg-gradient-to-t from-[#fffad1] to-[#fdbb2d] border-[#ffc107] shadow-inner' : 'bg-[#e1f5fe] border-[#4fc3f7]'; ?> w-full h-20 flex flex-col items-center justify-center border rounded-md transition-all duration-200 hover:bg-gradient-to-t hover:from-[#fffad1] hover:to-[#fdbb2d] hover:border-[#ffc107] hover:-translate-y-0.5 focus:bg-gradient-to-t focus:from-[#fffad1] focus:to-[#fdbb2d] focus:border-[#ffc107] focus:ring-2 focus:ring-blue-600 shadow-sm text-xs font-bold text-gray-800" aria-label="รายชื่อบุคลากร">
-                        <img src="../image/team.png" alt="ไอคอนรายชื่อบุคลากร" class="w-8 h-auto mb-1">
-                        <span>รายชื่อบุคลากร</span>
+                    <button class="<?php echo ($current_page == 'personnel_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการสินค้า">
+                        <i class="fas fa-box text-xl mb-1"></i>
+                        <span>รายการสินค้า</span>
                     </button>
                 </a>
                 <a href="?page=personnel_insert" class="button-link w-24 lg:w-28">
-                    <button class="<?php echo ($current_page == 'personnel_insert') ? 'bg-gradient-to-t from-[#fffad1] to-[#fdbb2d] border-[#ffc107] shadow-inner' : 'bg-[#e1f5fe] border-[#4fc3f7]'; ?> w-full h-20 flex flex-col items-center justify-center border rounded-md transition-all duration-200 hover:bg-gradient-to-t hover:from-[#fffad1] hover:to-[#fdbb2d] hover:border-[#ffc107] hover:-translate-y-0.5 focus:bg-gradient-to-t focus:from-[#fffad1] focus:to-[#fdbb2d] focus:border-[#ffc107] focus:ring-2 focus:ring-blue-600 shadow-sm text-xs font-bold text-gray-800" aria-label="เพิ่มบุคลากร">
-                        <img src="../image/add.png" alt="ไอคอนเพิ่มบุคลากร" class="w-8 h-auto mb-1">
+                    <button class="<?php echo ($current_page == 'personnel_insert') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="เพิ่มบุคลากร">
+                        <i class="fas fa-box text-xl mb-1"></i>
                         <span>เพิ่มบุคลากร</span>
                     </button>
                 </a>
                 <a href="?page=personnel_type" class="button-link w-24 lg:w-28">
-                    <button class="<?php echo ($current_page == 'personnel_type') ? 'bg-gradient-to-t from-[#fffad1] to-[#fdbb2d] border-[#ffc107] shadow-inner' : 'bg-[#e1f5fe] border-[#4fc3f7]'; ?> w-full h-20 flex flex-col items-center justify-center border rounded-md transition-all duration-200 hover:bg-gradient-to-t hover:from-[#fffad1] hover:to-[#fdbb2d] hover:border-[#ffc107] hover:-translate-y-0.5 focus:bg-gradient-to-t focus:from-[#fffad1] focus:to-[#fdbb2d] focus:border-[#ffc107] focus:ring-2 focus:ring-blue-600 shadow-sm text-xs font-bold text-gray-800" aria-label="ประเภทบุคลากร">
-                        <img src="../image/customer.png" alt="ไอคอนประเภทบุคลากร" class="w-8 h-auto mb-1">
+                    <button class="<?php echo ($current_page == 'personnel_type') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="ประเภทบุคลากร">
+                        <i class="fas fa-box text-xl mb-1"></i>
                         <span>ประเภทบุคลากร</span>
                     </button>
                 </a>
