@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-session_start();
 date_default_timezone_set('Asia/Bangkok');
 
 // Create CSRF token

@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
@@ -21,12 +20,14 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 $_SESSION['LAST_ACTIVITY'] = time();
 
 // CSRF Verification
-function verifyCsrfToken($token) {
+function verifyCsrfToken($token)
+{
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
 // Check duplicate product_id
-function checkProductIdExists($pdo, $product_id) {
+function checkProductIdExists($pdo, $product_id)
+{
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE product_id = ?");
     $stmt->execute([$product_id]);
     return $stmt->fetchColumn() > 0;
@@ -154,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
             product_price3, product_price4, product_capital,
             product_type_id, product_brand_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        
+
         $stmt->execute([
             $product_id,
             $name,
@@ -181,7 +182,7 @@ try {
     $typeResults = $pdo->query("SELECT product_type_id, product_type_name, product_type_date FROM product_type ORDER BY product_type_name");
     $brandResults = $pdo->query("SELECT product_brand_id, product_brand_name, product_brand_date FROM product_brand ORDER BY product_brand_name");
     $personnelResults = $pdo->query("SELECT personnel_id, personnel_name FROM personnel ORDER BY personnel_name");
-    
+
     $types = $typeResults->fetchAll(PDO::FETCH_ASSOC);
     $brands = $brandResults->fetchAll(PDO::FETCH_ASSOC);
     $personnel = $personnelResults->fetchAll(PDO::FETCH_ASSOC);
@@ -199,6 +200,7 @@ ob_end_flush();
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -208,6 +210,7 @@ ob_end_flush();
         .searchable-select {
             position: relative;
         }
+
         .searchable-input {
             width: 100%;
             padding: 8px 12px;
@@ -216,11 +219,13 @@ ob_end_flush();
             background-color: white;
             cursor: text;
         }
+
         .searchable-input:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
+
         .dropdown-menu {
             position: absolute;
             top: 100%;
@@ -235,26 +240,32 @@ ob_end_flush();
             z-index: 1000;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+
         .dropdown-item {
             padding: 8px 12px;
             cursor: pointer;
             border-bottom: 1px solid #f3f4f6;
         }
+
         .dropdown-item:hover {
             background-color: #f3f4f6;
         }
+
         .dropdown-item.selected {
             background-color: #dbeafe;
             color: #1d4ed8;
         }
+
         .dropdown-item:last-child {
             border-bottom: none;
         }
+
         .no-results {
             padding: 8px 12px;
             color: #6b7280;
             font-style: italic;
         }
+
         .dropdown-arrow {
             position: absolute;
             right: 12px;
@@ -263,6 +274,7 @@ ob_end_flush();
             pointer-events: none;
             transition: transform 0.2s;
         }
+
         .dropdown-arrow.open {
             transform: translateY(-50%) rotate(180deg);
         }
@@ -279,67 +291,67 @@ ob_end_flush();
                     </h3>
                     <form class="p-6 space-y-1" action="" method="POST" id="productForm">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">รหัสสินค้า:</label>
                             <div class="w-7/12 lg:w-8/12">
                                 <input type="text" name="product_id" id="product_id" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" required autocomplete="off" autofocus>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ชื่อสินค้า:</label>
                             <div class="w-7/12 lg:w-8/12">
                                 <input type="text" name="name" id="name" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 1:</label>
                             <div class="w-7/12 lg:w-8/12">
                                 <input type="number" name="price_1" id="price_1" step="0.01" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 2:</label>
                             <div class="w-7/12 lg:w-8/12">
                                 <input type="number" name="price_2" id="price_2" step="0.01" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 3:</label>
                             <div class="w-7/12 lg:w-8/12">
                                 <input type="number" name="price_3" id="price_3" step="0.01" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาที่ 4:</label>
                             <div class="w-7/12 lg:w-8/12">
                                 <input type="number" name="price_4" id="price_4" step="0.01" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">ราคาทุน:</label>
                             <div class="w-7/12 lg:w-8/12">
                                 <input type="number" name="capital" id="capital" step="0.01" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
                                 <a href="?page=product_type" class="text-blue-600 hover:underline">ประเภทสินค้า:</a>
                             </label>
                             <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
                                 <div class="searchable-select w-full">
-                                    <input type="text" 
-                                           id="typeSearch" 
-                                           class="searchable-input" 
-                                           placeholder="พิมพ์เพื่อค้นหาประเภทสินค้า..." 
-                                           autocomplete="off">
+                                    <input type="text"
+                                        id="typeSearch"
+                                        class="searchable-input"
+                                        placeholder="พิมพ์เพื่อค้นหาประเภทสินค้า..."
+                                        autocomplete="off">
                                     <div class="dropdown-arrow">
                                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -353,18 +365,18 @@ ob_end_flush();
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-4">
                             <label class="w-5/12 pl-11 p-2 lg:w-4/12 text-base font-medium text-gray-700">
                                 <a href="?page=product_brand" class="text-blue-600 hover:underline">แบรนด์สินค้า:</a>
                             </label>
                             <div class="w-7/12 lg:w-8/12 flex items-center gap-2">
                                 <div class="searchable-select w-full">
-                                    <input type="text" 
-                                           id="brandSearch" 
-                                           class="searchable-input" 
-                                           placeholder="พิมพ์เพื่อค้นหาแบรนด์สินค้า..." 
-                                           autocomplete="off">
+                                    <input type="text"
+                                        id="brandSearch"
+                                        class="searchable-input"
+                                        placeholder="พิมพ์เพื่อค้นหาแบรนด์สินค้า..."
+                                        autocomplete="off">
                                     <div class="dropdown-arrow">
                                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -378,7 +390,7 @@ ob_end_flush();
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div class="flex justify-end gap-4 mt-6">
                             <a href="/?page=product_list" class="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-200">
                                 ยกเลิก
@@ -425,11 +437,11 @@ ob_end_flush();
                 <div>
                     <label for="personnel_id_type" class="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
                     <div class="searchable-select w-full">
-                        <input type="text" 
-                               id="personnelSearchType" 
-                               class="searchable-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                               placeholder="พิมพ์เพื่อค้นหาพนักงาน..." 
-                               autocomplete="off">
+                        <input type="text"
+                            id="personnelSearchType"
+                            class="searchable-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="พิมพ์เพื่อค้นหาพนักงาน..."
+                            autocomplete="off">
                         <div class="dropdown-arrow">
                             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -471,11 +483,11 @@ ob_end_flush();
                 <div>
                     <label for="personnel_id_brand" class="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
                     <div class="searchable-select w-full">
-                        <input type="text" 
-                               id="personnelSearchBrand" 
-                               class="searchable-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                               placeholder="พิมพ์เพื่อค้นหาพนักงาน..." 
-                               autocomplete="off">
+                        <input type="text"
+                            id="personnelSearchBrand"
+                            class="searchable-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="พิมพ์เพื่อค้นหาพนักงาน..."
+                            autocomplete="off">
                         <div class="dropdown-arrow">
                             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -499,7 +511,7 @@ ob_end_flush();
 
     <script>
         const productTypes = [
-            <?php 
+            <?php
             $types_js = [];
             foreach ($types as $type) {
                 $types_js[] = "{ id: " . $type['product_type_id'] . ", name: '" . addslashes($type['product_type_name']) . "' }";
@@ -509,7 +521,7 @@ ob_end_flush();
         ];
 
         const productBrands = [
-            <?php 
+            <?php
             $brands_js = [];
             foreach ($brands as $brand) {
                 $brands_js[] = "{ id: " . $brand['product_brand_id'] . ", name: '" . addslashes($brand['product_brand_name']) . "' }";
@@ -519,7 +531,7 @@ ob_end_flush();
         ];
 
         const personnel = [
-            <?php 
+            <?php
             $personnel_js = [];
             foreach ($personnel as $person) {
                 $personnel_js[] = "{ id: " . $person['personnel_id'] . ", name: '" . addslashes($person['personnel_name']) . "' }";
@@ -631,7 +643,9 @@ ob_end_flush();
                 items.forEach((item, index) => {
                     if (index === this.highlightedIndex) {
                         item.classList.add('selected');
-                        item.scrollIntoView({ block: 'nearest' });
+                        item.scrollIntoView({
+                            block: 'nearest'
+                        });
                     } else {
                         item.classList.remove('selected');
                     }
@@ -674,7 +688,7 @@ ob_end_flush();
                 this.searchInput.value = item.name;
                 this.hiddenInput.value = item.id;
                 this.hideDropdown();
-                
+
                 this.searchInput.classList.remove('border-red-500');
                 this.hiddenInput.classList.remove('border-red-500');
             }
@@ -720,7 +734,7 @@ ob_end_flush();
             <?php if ($new_type_id): ?>
                 typeSelect.setValue(<?php echo $new_type_id; ?>);
             <?php endif; ?>
-            
+
             <?php if ($new_brand_id): ?>
                 brandSelect.setValue(<?php echo $new_brand_id; ?>);
             <?php endif; ?>
@@ -842,4 +856,5 @@ ob_end_flush();
         }
     </script>
 </body>
+
 </html>

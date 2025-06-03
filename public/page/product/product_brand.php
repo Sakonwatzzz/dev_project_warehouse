@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 require_once __DIR__ . '../../../fpdf186/fpdf.php';
-session_start();
 date_default_timezone_set('Asia/Bangkok');
 
 // Create CSRF token
@@ -316,18 +315,22 @@ try {
         body {
             background-color: #f8f9fa;
         }
+
         @media (max-width: 768px) {
             .table-responsive {
                 display: none;
             }
+
             .card-responsive {
                 display: block;
             }
         }
+
         @media (min-width: 769px) {
             .table-responsive {
                 display: block;
             }
+
             .card-responsive {
                 display: none;
             }
@@ -777,8 +780,7 @@ try {
 
             document.getElementById('addForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const fields = [
-                    {
+                const fields = [{
                         id: 'addBrandName',
                         errorId: 'addNameError',
                         label: 'ชื่อแบรนด์สินค้า',
@@ -798,8 +800,7 @@ try {
 
             document.getElementById('editForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const fields = [
-                    {
+                const fields = [{
                         id: 'editBrandName',
                         errorId: 'editNameError',
                         label: 'ชื่อแบรนด์สินค้า',
