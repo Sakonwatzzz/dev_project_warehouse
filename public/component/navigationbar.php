@@ -69,7 +69,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     </a>
                 </li>
                 <li>
-                    <a href="?page=bar_product" class="nav-link <?php echo ($main_section == 'product' || $current_page == 'bar_product') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                    <a href="?page=bar_product" class="nav-link <?php echo ($main_section == 'product' || $main_section == 'lot' || $main_section == 'warehouse' || $current_page == 'bar_product') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
                         <i class="fas fa-box"></i> สินค้า
                     </a>
                 </li>
@@ -133,7 +133,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 </a>
 
                 <!-- Products -->
-                <a href="?page=bar_product" class="sidebar-item <?php echo ($main_section == 'product' || $current_page == 'bar_product') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                <a href="?page=bar_product" class="sidebar-item <?php echo ($main_section == 'product' || $main_section == 'lot' || $main_section == 'warehouse' || $current_page == 'bar_product') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
                     <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                         <i class="fas fa-box text-blue-600"></i>
                     </div>
@@ -221,7 +221,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 
     <!-- Main Content -->
     <main class=" min-h-screen">
-        <div class=" shadow-2xl">
+        <div class="">
             <?php
             // Get page parameter and set defaults
             $page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
