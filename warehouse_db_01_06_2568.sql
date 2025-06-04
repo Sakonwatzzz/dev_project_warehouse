@@ -266,11 +266,13 @@ CREATE TABLE `stock_check`  (
 
 DROP TABLE IF EXISTS `stock`;
 CREATE TABLE `stock` (
+
   `stock_id` bigint NOT NULL AUTO_INCREMENT COMMENT 'รหัสเฉพาะสำหรับการตรวจสอบแต่ละครั้ง',
   `stock_date` datetime NULL DEFAULT NULL,
   `check_status_id` int NULL DEFAULT NULL COMMENT 'สถานะการเช็คสต๊อก',
   `warehouse_id` int NULL DEFAULT NULL COMMENT 'คลัง',
   `personnel_id` int NULL DEFAULT NULL COMMENT 'พนักงานที่ตรวจสอบ',
+
   PRIMARY KEY (`stock_id`) USING BTREE,
   INDEX `fk_stock_warehouse` (`warehouse_id` ASC) USING BTREE,
   INDEX `fk_stock_personnel` (`personnel_id` ASC) USING BTREE,
