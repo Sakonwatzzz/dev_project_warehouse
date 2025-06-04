@@ -265,15 +265,22 @@ CREATE TABLE `stock_check`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 DROP TABLE IF EXISTS `stock`;
-CREATE TABLE `stock`  (
+CREATE TABLE `stock` (
+
   `stock_id` bigint NOT NULL AUTO_INCREMENT COMMENT 'รหัสเฉพาะสำหรับการตรวจสอบแต่ละครั้ง',
   `stock_date` datetime NULL DEFAULT NULL,
   `check_status_id` int NULL DEFAULT NULL COMMENT 'สถานะการเช็คสต๊อก',
   `warehouse_id` int NULL DEFAULT NULL COMMENT 'คลัง',
   `personnel_id` int NULL DEFAULT NULL COMMENT 'พนักงานที่ตรวจสอบ',
-  PRIMARY KEY (`stock_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
+  PRIMARY KEY (`stock_id`) USING BTREE,
+  INDEX `fk_stock_warehouse` (`warehouse_id` ASC) USING BTREE,
+  INDEX `fk_stock_personnel` (`personnel_id` ASC) USING BTREE,
+  INDEX `fk_stock_check_status` (`check_status_id` ASC) USING BTREE,
+  CONSTRAINT `fk_stock_warehouse` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouse` (`warehouse_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_stock_personnel` FOREIGN KEY (`personnel_id`) REFERENCES `personnel` (`personnel_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_stock_check_status` FOREIGN KEY (`check_status_id`) REFERENCES `stock_check_status` (`check_status_id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for stock_check_status

@@ -38,13 +38,13 @@ function verifyCsrfToken($token)
 }
 
 // Validate stock check data
-function validateStockCheckData($stock_check_actual, $stock_check_remark)
+function validateStockCheckData($stock_check_actual, $stock_check_comment)
 {
     $errors = [];
     if (!is_numeric($stock_check_actual) || $stock_check_actual < 0) {
         $errors[] = 'จำนวนสินค้าที่นับได้จริงต้องเป็นตัวเลขที่ไม่ติดลบ';
     }
-    if (strlen($stock_check_remark) > 255) {
+    if (strlen($stock_check_comment) > 255) {
         $errors[] = 'หมายเหตุต้องมีความยาวไม่เกิน 255 ตัวอักษร';
     }
     return $errors;
@@ -62,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
     $stock_check_actual = trim($_POST['stock_check_actual']);
-    $stock_check_remark = trim($_POST['stock_check_remark']);
+    $stock_check_comment = trim($_POST['stock_check_comment']);
 
-    $errors = validateStockCheckData($stock_check_actual, $stock_check_remark);
+    $errors = validateStockCheckData($stock_check_actual, $stock_check_comment);
     if (!$stock_check_id) {
         $errors[] = 'รหัสการเช็คสต๊อกไม่ถูกต้อง';
     }
@@ -76,8 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE stock_check SET stock_check_actual = ?, stock_check_remark = ? WHERE stock_check_id = ?");
-        $stmt->execute([$stock_check_actual, $stock_check_remark, $stock_check_id]);
+        $stmt = $pdo->prepare("UPDATE stock_check SET stock_check_actual = ?, stock_check_comment = ? WHERE stock_check_id = ?");
+        $stmt->execute([$stock_check_actual, $stock_check_comment, $stock_check_id]);
         if ($stmt->rowCount() === 0) {
             $pdo->rollBack();
             header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการแก้ไข');
@@ -166,38 +166,36 @@ $total_pages = max(1, ceil($total_records / $records_per_page));
 // Fetch stock check data
 try {
     $query = "
-        SELECT 
-            sc.stock_check_id,
-            sc.product_id,
-            p.product_name,
-            sc.lot_id,
-            sc.warehouse_id,
-            w.warehouse_name,
-            sc.stock_check_remark,
-            per.personnel_name,
-            sc.lot_product_id,
-            lp.lot_product_remain,
-            s.stock_id,
-            s.stock_date,
-            sc.stock_check_system,
-            sc.stock_check_actual,
-            s.check_status_id,
-            scs.check_status_name
-        FROM stock_check sc
-        LEFT JOIN product p ON sc.product_id = p.product_id
-        LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
-        LEFT JOIN lot l ON sc.lot_id = l.lot_id
-        LEFT JOIN lot_product lp ON sc.lot_product_id = lp.lot_product_id
-        LEFT JOIN stock s ON sc.stock_id = s.stock_id
-        LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
-        LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
-        WHERE s.check_status_id = 2
-        AND s.stock_date >= :today_start 
-        AND s.stock_date <= :today_end";
-    $params = [
-        ':today_start' => date('Y-m-d 00:00:00'),
-        ':today_end' => date('Y-m-d 23:59:59')
-    ];
+    SELECT 
+        sc.stock_check_id,
+        sc.product_id,
+        p.product_name,
+        sc.lot_id,
+        sc.warehouse_id,
+        w.warehouse_name,
+        sc.stock_check_comment,
+        per.personnel_name,
+        sc.lot_product_id,
+        lp.lot_product_remain,
+        s.stock_id,
+        s.stock_date,
+        sc.stock_check_system,
+        sc.stock_check_actual,  
+        s.check_status_id,
+        scs.check_status_name,
+        scr.stock_check_remark_id,
+        scr.stock_check_remark_name
+    FROM stock_check sc
+    LEFT JOIN product p ON sc.product_id = p.product_id
+    LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
+    LEFT JOIN lot l ON sc.lot_id = l.lot_id
+    LEFT JOIN lot_product lp ON sc.lot_product_id = lp.lot_product_id
+    LEFT JOIN stock s ON sc.stock_id = s.stock_id
+    LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
+    LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
+    LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
+    WHERE s.check_status_id = 2";
+    $params = [];
     if (!empty($search)) {
         $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
@@ -207,12 +205,13 @@ try {
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':limit', $records_per_page, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', (int)$records_per_page, PDO::PARAM_INT);
     $stmt->execute();
     $check_stock = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    header('Location: index.php?page=stock_list&error=' . urlencode($e->getMessage()));
+} catch (PDOException $e) {
+    error_log("Query stock check error: " . $e->getMessage());
+    header('Location: index.php?page=stock_list&error=' . urlencode('Query error: ' . htmlspecialchars($e->getMessage())));
     exit;
 }
 ?>
@@ -306,18 +305,19 @@ try {
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse">
                         <thead>
-                            <tr class="bg-gray-50">
+                            <tr class="bg-gray-100">
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสรายการเช็คสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อสินค้า</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนจากระบบ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>จำนวนจากระบบ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนที่นับได้</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>สถานะ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">หมายเหตุ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>ข้อความเพิ่มเติม</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -330,11 +330,12 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['warehouse_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_id']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_actual']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_comment']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -413,7 +414,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">หมายเหตุ</label>
-                        <input type="text" id="editStockCheckRemark" name="stock_check_remark"
+                        <input type="text" id="editStockCheckRemark" name="stock_check_comment"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update">
                         <span id="editRemarkError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
@@ -514,18 +515,18 @@ try {
             };
         }
 
-        function showNotification(message, className) {
-            const notification = document.getElementById('notification');
-            const header = document.getElementById('notification-header');
-            const messageDiv = document.getElementById('notification-message');
-            header.className = `px-4 py-2 font-bold text-white ${className}`;
-            header.textContent = 'การแจ้งเตือน';
-            messageDiv.textContent = message;
-            notification.classList.remove('hidden');
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 5000);
-        }
+        /* function showNotification(message, className) {
+                const notification = document.getElementById('notification');
+                const header = document.getElementById('notification-header');
+                const messageDiv = document.getElementById('notification-message');
+                header.className = `px-4 py-2 font-bold text-white ${className}`;
+                header.textContent = 'การแจ้งเตือน';
+                messageDiv.textContent = message;
+                notification.classList.remove('hidden');
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 5000);
+            } */
 
         function exportPDF() {
             const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
