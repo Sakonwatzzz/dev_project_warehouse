@@ -24,15 +24,15 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'supplier_list';
         <div class="section-container  border border-gray-300 rounded-md shadow-md ">
             <div class="button-grid flex flex-wrap gap-2 p-2">
                 <a href="?page=supplier_list" class="button-link w-24 lg:w-28">
-                    <button class="<?php echo ($current_page == 'supplier_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการสินค้า">
+                    <button class="<?php echo ($current_page == 'supplier_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการผู้ส่งมอบ">
                         <i class="fas fa-box text-xl mb-1"></i>
-                        <span>รายการสินค้า</span>
+                        <span>รายการผู้ส่งมอบ</span>
                     </button>
                 </a>
                 <a href="?page=supplier_insert" class="button-link w-24 lg:w-28">
-                    <button class="<?php echo ($current_page == 'supplier_insert') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="เพิ่มบุคลากร">
+                    <button class="<?php echo ($current_page == 'supplier_insert') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="เพิ่มผู้ส่งมอบ">
                         <i class="fas fa-box text-xl mb-1"></i>
-                        <span>เพิ่มบุคลากร</span>
+                        <span>เพิ่มผู้ส่งมอบ</span>
                     </button>
                 </a>
             </div>
@@ -44,21 +44,17 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'supplier_list';
         <!-- Supplier Dropdown -->
         <div class="dropdown-section mb-2">
             <button class="dropdown-btn w-full py-3 px-4 font-bold text-sm text-white rounded-md shadow-sm flex justify-between items-center focus:ring-2 focus:ring-blue-600 transition-all duration-200" onclick="toggleDropdown('supplierDropdown')" aria-expanded="false" aria-controls="supplierDropdown">
-                บุคลากร <span>▼</span>
+                ผู้ส่งมอบ <span>▼</span>
             </button>
             <div id="supplierDropdown" class="dropdown-content hidden bg-[#f1f9fe] border border-[#a6c4de] rounded-md mt-1 shadow-lg max-h-80 overflow-y-auto z-10">
                 <a href="?page=supplier_list" class="<?php echo ($current_page == 'supplier_list') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
-                    <img src="../image/team.png" alt="ไอคอนรายชื่อบุคลากร" class="w-6 h-auto">
-                    <span>รายชื่อบุคลากร</span>
+                    <img src="../image/team.png" alt="ไอคอนรายชื่อผู้ส่งมอบ" class="w-6 h-auto">
+                    <span>รายชื่อผู้ส่งมอบ</span>
                 </a>
                 <a href="?page=supplier_insert" class="<?php echo ($current_page == 'supplier_insert') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
-                    <img src="../image/add.png" alt="ไอคอนเพิ่มบุคลากร" class="w-6 h-auto">
-                    <span>เพิ่มบุคลากร</span>
-                </a>
-                <a href="?page=supplier_type" class="<?php echo ($current_page == 'supplier_type') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
-                    <img src="../image/customer.png" alt="ไอคอนประเภทบุคลากร" class="w-6 h-auto">
-                    <span>ประเภทบุคลากร</span>
-                </a>
+                    <img src="../image/add.png" alt="ไอคอนเพิ่มผู้ส่งมอบ" class="w-6 h-auto">
+                    <span>เพิ่มผู้ส่งมอบ</span>
+                </a>               
             </div>
         </div>
     </div>

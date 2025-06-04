@@ -24,9 +24,9 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'personnel_list';
         <div class="section-container  border border-gray-300 rounded-md shadow-md ">
             <div class="button-grid flex flex-wrap gap-2 p-2">
                 <a href="?page=personnel_list" class="button-link w-24 lg:w-28">
-                    <button class="<?php echo ($current_page == 'personnel_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการสินค้า">
+                    <button class="<?php echo ($current_page == 'personnel_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการบุคลากร">
                         <i class="fas fa-box text-xl mb-1"></i>
-                        <span>รายการสินค้า</span>
+                        <span>รายการบุคลากร</span>
                     </button>
                 </a>
                 <a href="?page=personnel_insert" class="button-link w-24 lg:w-28">

@@ -64,8 +64,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         <nav class="hidden lg:block mt-4">
             <ul class="flex flex-wrap gap-2">
                 <li>
-                    <a href="?page=bar_index" class="nav-link <?php echo $is_dashboard ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-home"></i> หน้าแรก
+                    <a href="?page=bar_index" class="nav-link <?php echo ($main_section == 'dashboard' || $current_page == 'bar_index') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                        <i class="fas fa-users"></i> หน้าแรก
                     </a>
                 </li>
                 <li>
@@ -317,87 +317,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 // If dashboard or bar_index, show dashboard UI
                 if ($page == 'dashboard' || $page == 'bar_index') {
             ?>
-                    <!-- Page Header -->
-                    <div class="flex items-center gap-3 mb-8">
-                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-tachometer-alt text-white text-xl"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-3xl font-light text-gray-800">Dashboard</h2>
-                            <p class="text-gray-600">Welcome to the modern admin management system</p>
-                        </div>
-                    </div>
 
-                    <!-- Dashboard Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                        <!-- Card 1 -->
-                        <div class="dashboard-card dashboard-card-1 text-white p-6 rounded-2xl relative">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-lg font-medium opacity-90">Total Products</h3>
-                                    <p class="text-3xl font-bold">1,234</p>
-                                </div>
-                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                                    <i class="fas fa-box text-2xl"></i>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm opacity-80">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+12% from last month</span>
-                            </div>
-                        </div>
-
-                        <!-- Card 2 -->
-                        <div class="dashboard-card dashboard-card-2 text-white p-6 rounded-2xl relative">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-lg font-medium opacity-90">Active Users</h3>
-                                    <p class="text-3xl font-bold">856</p>
-                                </div>
-                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                                    <i class="fas fa-users text-2xl"></i>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm opacity-80">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+8% from last week</span>
-                            </div>
-                        </div>
-
-                        <!-- Card 3 -->
-                        <div class="dashboard-card dashboard-card-3 text-white p-6 rounded-2xl relative">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-lg font-medium opacity-90">Sales Today</h3>
-                                    <p class="text-3xl font-bold">₿45,290</p>
-                                </div>
-                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                                    <i class="fas fa-chart-line text-2xl"></i>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm opacity-80">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+15% from yesterday</span>
-                            </div>
-                        </div>
-
-                        <!-- Card 4 -->
-                        <div class="dashboard-card dashboard-card-4 text-white p-6 rounded-2xl relative">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-lg font-medium opacity-90">Stock Items</h3>
-                                    <p class="text-3xl font-bold">2,468</p>
-                                </div>
-                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                                    <i class="fas fa-warehouse text-2xl"></i>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm opacity-80">
-                                <i class="fas fa-arrow-down"></i>
-                                <span>-3% from last month</span>
-                            </div>
-                        </div>
-                    </div>
             <?php
                     $barfile = __DIR__ . "/bar_index.php";
                     if (file_exists($barfile)) {

@@ -4,7 +4,9 @@ body {
 
 /* Updated Blue Theme CSS from the first code */
 .glass-header {
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  /* background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); */
+  background: linear-gradient(135deg, #0d236d 0%, #0d236d 100%);
+  transform: translateY(-2px);
 }
 
 .glass-header {

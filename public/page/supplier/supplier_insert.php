@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header Section -->
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-indigo-900">เพิ่มผู้ส่งมอบ</h1>
+            <h1 class="text-3xl font-bold text-blue-900">เพิ่มผู้ส่งมอบ</h1>
             <p class="text-gray-600">กรอกข้อมูลเพื่อเพิ่มผู้ส่งมอบใหม่ลงในระบบ</p>
         </div>
 
