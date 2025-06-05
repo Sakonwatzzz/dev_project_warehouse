@@ -524,7 +524,7 @@ try {
                         }
 
                         // Updated regex to support price/qty*barcode, qty*barcode, -barcode, -qty*barcode, or just barcode
-                        if (!/^(?:-?\d+\/\d+\*\d+|-\d+\*\d+|-\d+|\d+\/\d+\*\d+|\d+\*\d+|\d+)$/.test(barcode)) {
+                        if (!/^(?:-?\d+\.\d*\/\d+\*\d+|-\d+\*\d+|-\d+|\d+\.\d*\/\d+\*\d+|\d+\*\d+|\d+)$/.test(barcode)) {
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'รูปแบบไม่ถูกต้อง',

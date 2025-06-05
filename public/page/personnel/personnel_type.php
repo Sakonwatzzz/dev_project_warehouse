@@ -300,7 +300,7 @@ try {
                 <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
                     <i class="fas fa-list mr-2"></i> <?php echo number_format($total_records); ?> รายการ
                 </span>
-                <button onclick="showAddModal()" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition justify-center md:justify-start">
+                <button onclick="showAddModal()" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition justify-center md:justify-start">
                     <i class="fas fa-plus mr-2"></i> เพิ่มประเภทบุคลากร
                 </button>
             </div>
@@ -331,10 +331,10 @@ try {
                         class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex items-end space-x-2">
-                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">
+                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
                         <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
                     </button>
-                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
                         <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
                     </button>
                 </div>

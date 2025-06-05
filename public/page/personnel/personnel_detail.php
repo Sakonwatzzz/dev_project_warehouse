@@ -175,10 +175,10 @@ try {
                 <i class="fas fa-user mr-2"></i>
                 <?php echo $is_update ? 'แก้ไขข้อมูลบุคลากร' : 'รายละเอียดบุคลากร'; ?>
             </h2>
-            <a href="/?page=personnel_list" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-blue-800 transition duration-300 ease-in-out">
+            <!-- <a href="/?page=personnel_list" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-blue-800 transition duration-300 ease-in-out">
                 <i class="fas fa-arrow-left"></i>
                 <span>ย้อนกลับ</span>
-            </a>
+            </a> -->
         </div>
 
         <!-- Notification -->
@@ -268,11 +268,11 @@ try {
                 <div class="flex justify-end gap-4 mt-6">
                     <?php if ($is_update): ?>
                         <a href="/?page=personnel_detail&tabel=personnel&id=<?php echo htmlspecialchars($personnel['personnel_id']); ?>"
-                            class="inline-flex items-center px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
+                            class="inline-flex items-center px-4 py-2  border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                             <i class="fas fa-times mr-2"></i> ยกเลิก
                         </a>
                         <button type="submit"
-                            class="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition">
+                            class="inline-flex items-center px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition">
                             <i class="fas fa-save mr-2"></i> บันทึก
                         </button>
                     <?php else: ?>

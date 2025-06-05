@@ -308,7 +308,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจัดการบุคลากร</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../style/page_list.css">
 </head>
@@ -321,7 +321,7 @@ try {
                 <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
                     <i class="fas fa-users mr-2"></i> <?php echo $total_records; ?> รายการ
                 </span>
-                <button onclick="showAddModal()" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition justify-center md:justify-start">
+                <button onclick="showAddModal()" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition justify-center md:justify-start">
                     <i class="fas fa-plus mr-2"></i> เพิ่มบุคลากร
                 </button>
             </div>
@@ -352,10 +352,10 @@ try {
                         class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex items-end space-x-2">
-                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">
+                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
                         <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
                     </button>
-                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition">
                         <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
                     </button>
                 </div>
@@ -498,42 +498,42 @@ try {
                     </h3>
                     <p class="text-sm text-gray-500">กรุณากรอกข้อมูลบุคลากร</p>
                 </div>
-                <form id="addForm" method="POST" class="space-y-4">
+                <form id="addForm" method="POST" class="space-y-4" autocomplete="off">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">ชื่อ-นามสกุล</label>
                         <input type="text" id="addPersonnelName" name="add_personnel_name"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addNameError">
+                            required aria-describedby="addNameError" autocomplete="off">
                         <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้</label>
                         <input type="text" id="addPersonnelUsername" name="add_personnel_username"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addUsernameError">
+                            required aria-describedby="addUsernameError" autocomplete="off">
                         <span id="addUsernameError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">ที่อยู่</label>
                         <textarea id="addPersonnelAddress" name="add_personnel_address"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addAddressError"></textarea>
+                            required aria-describedby="addAddressError" autocomplete="off"></textarea>
                         <span id="addAddressError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
                         <input type="text" id="addPersonnelPhone" name="add_personnel_phone"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPhoneError">
+                            required aria-describedby="addPhoneError" autocomplete="off">
                         <span id="addPhoneError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
                         <input type="password" id="addPersonnelPassword" name="add_personnel_password"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPasswordError">
+                            required aria-describedby="addPasswordError" autocomplete="off">
                         <span id="addPasswordError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>

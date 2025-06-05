@@ -165,8 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     try {
         $pdo->beginTransaction();
-        $query = "UPDATE personnel SET personnel_name = ?, personnel_username = ?, personnel_type_id = ?, personnel_address = ?, personnel_phone = ?";
-        $params = [$name, $username, $type_id, $address, $phone];
+        $query = "UPDATE personnel SET personnel_name = ?, personnel_username = ?, personnel_type_id = ?, personnel_address = ?, personnel_phone = ? , personnel_password = ?";
+        $params = [$name, $username, $type_id, $address, $phone, $password];
 
         $query .= " WHERE personnel_id = ?";
         $params[] = $id;
@@ -286,6 +286,7 @@ try {
             p.personnel_id,
             p.personnel_name,
             p.personnel_username,
+            p.personnel_password,
             p.personnel_address,
             p.personnel_phone,
             p.personnel_create_date,
@@ -363,7 +364,7 @@ try {
                 <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
                     <i class="fas fa-users mr-2"></i> <?php echo number_format($total_records); ?> รายการ
                 </span>
-                <button onclick="showAddModal()" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition justify-center md:justify-start">
+                <button onclick="showAddModal()" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition justify-center md:justify-start">
                     <i class="fas fa-plus mr-2"></i> เพิ่มบุคลากร
                 </button>
             </div>
@@ -395,10 +396,10 @@ try {
                         class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex items-end space-x-2">
-                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">
+                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
                         <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
                     </button>
-                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
                         <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
                     </button>
                 </div>
@@ -450,7 +451,7 @@ try {
                                     <td class="px-6 py-3 border-t"><?php echo htmlspecialchars($person['personnel_create_date']); ?></td>
                                     <td class="px-6 py-3 border-t text-center">
                                         <div class="flex justify-center space-x-2">
-                                            <button onclick="showEditModal('<?php echo htmlspecialchars($person['personnel_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_name'])); ?>', '<?php echo htmlspecialchars($person['personnel_username']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_address'])); ?>', '<?php echo htmlspecialchars($person['personnel_phone']); ?>', '<?php echo htmlspecialchars($person['personnel_type_id']); ?>')"
+                                            <button onclick="showEditModal('<?php echo htmlspecialchars($person['personnel_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_name'])); ?>', '<?php echo htmlspecialchars($person['personnel_username']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_address'])); ?>', '<?php echo htmlspecialchars($person['personnel_phone']); ?>', '<?php echo htmlspecialchars($person['personnel_password']); ?>', '<?php echo htmlspecialchars($person['personnel_type_id']); ?>')"
                                                 class="flex items-center justify-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition">
                                                 <div class="hidden md:flex">
                                                     <i class="fas fa-edit mr-1"></i>
@@ -523,7 +524,7 @@ try {
                                 <span class="text-sm"><?php echo htmlspecialchars($person['personnel_create_date']); ?></span>
                             </div>
                             <div class="flex justify-center space-x-2 mt-4">
-                                <button onclick="showEditModal('<?php echo htmlspecialchars($person['personnel_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_name'])); ?>', '<?php echo htmlspecialchars($person['personnel_username']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_address'])); ?>', '<?php echo htmlspecialchars($person['personnel_phone']); ?>', '<?php echo htmlspecialchars($person['personnel_type_id']); ?>')"
+                                <button onclick="showEditModal('<?php echo htmlspecialchars($person['personnel_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_name'])); ?>', '<?php echo htmlspecialchars($person['personnel_username']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_address'])); ?>', '<?php echo htmlspecialchars($person['personnel_phone']); ?>', '<?php echo htmlspecialchars($person['personnel_password']); ?>', '<?php echo htmlspecialchars($person['personnel_type_id']); ?>')"
                                     class="flex items-center justify-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition">
                                     <i class="fas fa-edit mr-1"></i> แก้ไข
                                 </button>
@@ -593,14 +594,14 @@ try {
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex justify-center space-x-4 mt-6">
+        <!-- <div class="flex justify-center space-x-4 mt-6">
             <a href="/?page=personnel_list" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
                 <i class="fas fa-list mr-2"></i> หน้ารายการ
             </a>
             <a href="/?page=personnel_type" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
                 <i class="fas fa-tags mr-2"></i> หน้าประเภท
             </a>
-        </div>
+        </div> -->
 
         <!-- Add Modal -->
         <div id="addModal" class="modal hidden">
@@ -775,13 +776,13 @@ try {
             document.getElementById('addModal').classList.add('hidden');
         };
 
-        const showEditModal = (id, name, username, address, phone, typeId) => {
+        const showEditModal = (id, name, username, address, phone, password, typeId) => {
             document.getElementById('editPersonnelId').value = id;
             document.getElementById('editPersonnelName').value = name;
             document.getElementById('editPersonnelUsername').value = username;
-            document.getElementById('editPersonnelAddress').value = address;
+            document.getElementById('editPersonnelPassword').value = password || '';
             document.getElementById('editPersonnelPhone').value = phone;
-            document.getElementById('editPersonnelPassword').value = '';
+            document.getElementById('editPersonnelAddress').value = address;
             document.getElementById('editPersonnelTypeId').value = typeId;
             document.getElementById('editNameError').classList.add('hidden');
             document.getElementById('editUsernameError').classList.add('hidden');

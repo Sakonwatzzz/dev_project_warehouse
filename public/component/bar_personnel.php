@@ -25,19 +25,19 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'personnel_list';
             <div class="button-grid flex flex-wrap gap-2 p-2">
                 <a href="?page=personnel_list" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'personnel_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการบุคลากร">
-                        <i class="fas fa-box text-xl mb-1"></i>
+                        <i class="fas fa-users text-xl mb-1"></i>
                         <span>รายการบุคลากร</span>
                     </button>
                 </a>
                 <a href="?page=personnel_insert" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'personnel_insert') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="เพิ่มบุคลากร">
-                        <i class="fas fa-box text-xl mb-1"></i>
+                        <i class="fas fa-user-plus text-xl mb-1"></i>
                         <span>เพิ่มบุคลากร</span>
                     </button>
                 </a>
                 <a href="?page=personnel_type" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'personnel_type') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="ประเภทบุคลากร">
-                        <i class="fas fa-box text-xl mb-1"></i>
+                        <i class="fas fa-tags text-xl mb-1"></i>
                         <span>ประเภทบุคลากร</span>
                     </button>
                 </a>
@@ -54,16 +54,16 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'personnel_list';
             </button>
             <div id="personnelDropdown" class="dropdown-content hidden bg-[#f1f9fe] border border-[#a6c4de] rounded-md mt-1 shadow-lg max-h-80 overflow-y-auto z-10">
                 <a href="?page=personnel_list" class="<?php echo ($current_page == 'personnel_list') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
-                    <img src="../image/team.png" alt="ไอคอนรายชื่อบุคลากร" class="w-6 h-auto">
-                    <span>รายชื่อบุคลากร</span>
+                    <i class="fas fa-users text-xl mb-1 text-blue-900 "></i>
+                    <span class="font-bold">รายการบุคลากร</span>
                 </a>
                 <a href="?page=personnel_insert" class="<?php echo ($current_page == 'personnel_insert') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
-                    <img src="../image/add.png" alt="ไอคอนเพิ่มบุคลากร" class="w-6 h-auto">
-                    <span>เพิ่มบุคลากร</span>
+                    <i class="fas fa-user-plus text-xl mb-1 text-blue-900 "></i>
+                    <span class="font-bold">เพิ่มบุคลากร</span>
                 </a>
                 <a href="?page=personnel_type" class="<?php echo ($current_page == 'personnel_type') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
-                    <img src="../image/customer.png" alt="ไอคอนประเภทบุคลากร" class="w-6 h-auto">
-                    <span>ประเภทบุคลากร</span>
+                    <i class="fas fa-tags text-xl mb-1 text-blue-900 "></i>
+                    <span class="font-bold">ประเภทบุคลากร</span>
                 </a>
             </div>
         </div>

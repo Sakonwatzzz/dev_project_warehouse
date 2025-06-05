@@ -25,19 +25,19 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'member_list';
             <div class="button-grid flex flex-wrap gap-2 p-2">
                 <a href="?page=member_list" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'member_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการสมาชิก">
-                        <i class="fas fa-box text-xl mb-1"></i>
+                        <i class="fas fa-users text-xl mb-1"></i>
                         <span>รายการสมาชิก</span>
                     </button>
                 </a>
                 <a href="?page=member_insert" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'member_insert') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="เพิ่มสมาชิก">
-                        <i class="fas fa-box text-xl mb-1"></i>
+                        <i class="fas fa-user-plus text-xl mb-1"></i>
                         <span>เพิ่มสมาชิก</span>
                     </button>
                 </a>
                 <a href="?page=member_type" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'member_type') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="ประเภทสมาชิก">
-                        <i class="fas fa-box text-xl mb-1"></i>
+                        <i class="fas fa-tags text-xl mb-1"></i>
                         <span>ประเภทสมาชิก</span>
                     </button>
                 </a>

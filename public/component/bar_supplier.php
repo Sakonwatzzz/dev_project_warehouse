@@ -25,13 +25,13 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'supplier_list';
             <div class="button-grid flex flex-wrap gap-2 p-2">
                 <a href="?page=supplier_list" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'supplier_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการผู้ส่งมอบ">
-                        <i class="fas fa-box text-xl mb-1"></i>
+                        <i class="fas fa-users text-xl mb-1"></i>
                         <span>รายการผู้ส่งมอบ</span>
                     </button>
                 </a>
                 <a href="?page=supplier_insert" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'supplier_insert') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="เพิ่มผู้ส่งมอบ">
-                        <i class="fas fa-box text-xl mb-1"></i>
+                        <i class="fas fa-user-plus text-xl mb-1"></i>
                         <span>เพิ่มผู้ส่งมอบ</span>
                     </button>
                 </a>
