@@ -11,16 +11,16 @@ date_default_timezone_set('Asia/Bangkok');
 $displayDateTime = date("d/m/Y H:i:s");
 
 // Get sale_id from GET or session
-$sale_id = $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
+// $sale_id = $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 
-if (!$sale_id) {
-    die(json_encode(['status' => 'error', 'message' => 'Error: sale_id is required.']));
-}
-if (!$sale_id) {
-    $_SESSION['error'] = "กรุณาเปิดบิลใหม่ก่อนดูใบเสร็จ";
-    header("Location: sale_add.php");
-    exit;
-}
+// if (!$sale_id) {
+//     die(json_encode(['status' => 'error', 'message' => 'Error: sale_id is required.']));
+// }
+// if (!$sale_id) {
+//     $_SESSION['error'] = "กรุณาเปิดบิลใหม่ก่อนดูใบเสร็จ";
+//     header("Location: sale_add.php");
+//     exit;
+// }
 ?>
 
 <!DOCTYPE html>
@@ -55,7 +55,8 @@ if (!$sale_id) {
                 </div>
             </div>
         </header>
-        <form action="" method="POST" enctype="multipart/form-data" class="space-y-4 mb-6">
+        <form id="advertisement_form" action="/page/sale/api/active_advertisement.php" method="POST"
+            enctype="multipart/form-data" class="space-y-4 mb-6">
             <!-- <div>
                     <label class="block text-sm font-medium text-gray-700">ชื่อโฆษณา</label>
                     <input type="text" name="ad_title" required
@@ -70,7 +71,28 @@ if (!$sale_id) {
                 </label>
                 <input id="ad_image_1" type="file" name="ad_image[]" accept="image/*" required class="hidden" />
             </div> -->
-
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">วันที่เริ่ม</label>
+                <input type="date" name="start_date" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด</label>
+                <input type="date" name="end_date" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">ลำดับความสำคัญ (1-100)</label>
+                <input type="number" name="priority" min="1" max="100" value="1" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">เลือกรูปภาพโฆษณา</label>
+                <input type="file" name="ad_image" accept="image/jpeg,image/png" class="mt-1 block w-full">
+            </div>
+            <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">บันทึกโฆษณา</button>
             <div class="flex justify-center gap-4">
                 <div class="">
                     <label class="block text-sm font-medium text-gray-700">เลือกรูปภาพโฆษณา</label>
@@ -268,7 +290,11 @@ if (!$sale_id) {
         </div>
     </div>
 
-    <script>
+</body>
+
+</html>
+
+    <!-- <script>
         $(document).ready(function () {
             const saleId = '<?php echo htmlspecialchars($sale_id); ?>';
 
@@ -350,8 +376,5 @@ if (!$sale_id) {
                 <?php unset($_SESSION['error']); ?>
             <?php endif; ?>
         });
-    </script>
-</body>
-
-</html>
+    </script> -->
 <?php ob_end_flush(); ?>
