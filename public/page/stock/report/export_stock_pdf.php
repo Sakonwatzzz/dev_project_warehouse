@@ -7,10 +7,14 @@ date_default_timezone_set('Asia/Bangkok');
 // Function to convert text to TIS-620 or keep UTF-8
 function thai($text)
 {
-    if (!is_string($text)) {
+    if (!is_string($text)) { // || !empty($text)
         return '';
     }
     $converted = iconv('UTF-8', 'TIS-620//IGNORE', $text);
+    // if ($converted === false) {
+    //     error_log('iconv failed for text:', $text);
+    //     return $text;
+    // }
     error_log("Thai conversion - Input: $text, Output: $converted");
     return $converted;
 }
@@ -51,7 +55,7 @@ class THPDF extends FPDF
 
         // Table headers
         $this->SetFont('THSarabunNew', 'B', 11);
-        $this->SetFillColor(200, 216, 537);
+        $this->SetFillColor(200, 216, 255);
         $this->Cell(30, 8, thai('รหัสสินค้า'), 1, 0, 'L', true);
         $this->Cell(80, 8, thai('ชื่อสินค้า'), 1, 0, 'C', true);
         $this->Cell(25, 8, thai('นับได้'), 1, 0, 'C', true);
@@ -83,14 +87,20 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 $_SESSION['LAST_ACTIVITY'] = time();
 
 // Verify CSRF token
-if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
-    error_log("CSRF Validation Failed: Session Token: " . ($_SESSION['csrf_token'] ?? 'unset') . ", GET Token: " . ($_GET['csrf_token'] ?? 'unset'));
-    header('HTTP/1.1 403 Forbidden');
-    exit('Invalid CSRF token');
-}
+// if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
+//     error_log("CSRF Validation Failed: Session Token: " . ($_SESSION['csrf_token'] ?? 'unset') . ", GET Token: " . ($_GET['csrf_token'] ?? 'unset'));
+//     header('HTTP/1.1 403 Forbidden');
+//     exit('Invalid CSRF token');
+// }
+
 try {
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+    // รับ selected_date จาก URL หรือใช้วันที่ปัจจุบันเป็นค่าเริ่มต้น
+    $selected_date = isset($_GET['selected_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['selected_date'])
+        ? $_GET['selected_date']
+        : date("Y-m-d");
 
+    $params = [];
     $query = "
         SELECT 
             sc.stock_check_id, 
@@ -120,27 +130,20 @@ try {
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
         LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
-        WHERE s.check_status_id = 2
-       
-       ";
-    //     AND DATE(s.stock_date) = CURDATE()
-    //     AND s.stock_date >= :today_start 
-    //     AND s.stock_date <= :today_end
-    // $params = [
-    //     ':today_start' => date('Y-m-d 00:00:00'),
-    //     ':today_end' => date('Y-m-d 23:59:59')
-    // ];
+        WHERE s.check_status_id = 2 
+        AND DATE(s.stock_date) = :selected_date
+        ";
 
     if ($search) {
         $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
     }
     $query .= " ORDER BY s.stock_date DESC";
-
     error_log("Query: $query");
     error_log("Params: " . json_encode($params));
 
     $stmt = $pdo->prepare($query);
+    $stmt->bindParam(':selected_date', $selected_date);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
@@ -205,6 +208,8 @@ try {
             $remark = !empty($stock['stock_check_remark_name']) ? mb_substr($stock['stock_check_remark_name'], 0, 20, 'UTF-8') :
                 error_log("stock_check_id: {$stock['stock_check_id']}, raw_remark: " . ($stock['stock_check_remark_name'] ?? 'NULL') . ", converted_remark: " . thai($stock['stock_check_remark_name'] ?? 'NULL') . ", final_remark: $remark");
             $pdf->Cell(30, 7, thai($remark), 1, 1, 'L');
+        
+
         }
 
         $pdf->Ln(2);

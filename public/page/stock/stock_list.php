@@ -50,8 +50,9 @@ function validateStockCheckData($stock_check_actual, $stock_check_comment)
     return $errors;
 }
 
-// Handle search parameters
+// Handle search and date parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$selected_date = isset($_GET['selected_date']) ? trim($_GET['selected_date']) : date('Y-m-d');
 
 // Handle POST requests for updating stock check
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
@@ -84,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             exit;
         }
         $pdo->commit();
-        header('Location: index.php?page=stock_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        header('Location: index.php?page=stock_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : '') . '&selected_date=' . urlencode($selected_date));
         exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -117,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['sto
             exit;
         }
         $pdo->commit();
-        header("Location: index.php?page=stock_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        header("Location: index.php?page=stock_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : '') . '&selected_date=' . urlencode($selected_date));
         exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -135,12 +136,8 @@ try {
                     LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
                     LEFT JOIN stock s ON sc.stock_id = s.stock_id
                     WHERE s.check_status_id = 2 
-                    AND s.stock_date >= :today_start 
-                    AND s.stock_date <= :today_end";
-    $params = [
-        ':today_start' => date('Y-m-d 00:00:00'),
-        ':today_end' => date('Y-m-d 23:59:59')
-    ];
+                    AND DATE(s.stock_date) = :selected_date";
+    $params = [':selected_date' => $selected_date];
     if (!empty($search)) {
         $count_query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
@@ -150,7 +147,7 @@ try {
         $stmt->bindValue($key, $value);
     }
     $stmt->execute();
-    $total_records = (int)$stmt->fetchColumn();
+    $total_record = (int) $stmt->fetchColumn();
 } catch (PDOException $e) {
     error_log("Count stock check error: " . $e->getMessage());
     header('Location: index.php?page=stock_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
@@ -159,9 +156,9 @@ try {
 
 // Pagination logic
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
+$page = isset($_GET['page_num']) ? max(1, min((int) $_GET['page_num'], ceil($total_record / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
-$total_pages = max(1, ceil($total_records / $records_per_page));
+$total_pages = max(1, ceil($total_record / $records_per_page));
 
 // Fetch stock check data
 try {
@@ -194,8 +191,9 @@ try {
     LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
     LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
     LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
-    WHERE s.check_status_id = 2";
-    $params = [];
+    WHERE s.check_status_id = 2
+    AND DATE(s.stock_date) = :selected_date";
+    $params = [':selected_date' => $selected_date];
     if (!empty($search)) {
         $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
@@ -205,8 +203,8 @@ try {
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
-    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
-    $stmt->bindValue(':limit', (int)$records_per_page, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int) $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', (int) $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
     $check_stock = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -218,26 +216,44 @@ try {
 
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ประวัติรายการเช็คสต๊อกสินค้า</title>
+    <title>ประวัติรายการเช็คสต๊อกสินค้า - รายวัน</title>
     <link rel="stylesheet" href="../../output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
     <style>
         body {
             font-family: 'Sarabun', sans-serif;
             background-color: #f8f9fa;
         }
-
         .input-update {
             border-color: black;
             border-radius: 3px;
         }
+        .flatpickr-input {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em;
+        }
+        .flatpickr-calendar {
+            @apply bg-white shadow-lg rounded-lg border border-gray-200;
+        }
+        .flatpickr-day.selected {
+            @apply bg-blue-500 border-blue-500 text-white;
+        }
+        .flatpickr-day.today {
+            @apply border-blue-400;
+        }
+        .flatpickr-day:hover {
+            @apply bg-blue-100;
+        }
     </style>
 </head>
-
 <body class="bg-gray-50">
     <div class="mx-auto px-4 py-8">
         <!-- Header and Search Section -->
@@ -246,16 +262,22 @@ try {
                 <div class="flex space-x-2">
                     <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
                         <i class="fas fa-boxes mr-2"></i>
-                        <?php echo $total_records; ?>
-                        <span>รายการ</span>
+                        <?php echo $total_record; ?>
+                        <span>รายการ (วันที่ <?php echo htmlspecialchars(date('d/m/Y', strtotime($selected_date))); ?>)</span>
                     </div>
                 </div>
-
+                <div class="flex items-center gap-2">
+                    <label class="text-gray-700 font-medium">วันที่</label>
+                    <input type="text" id="selectedDate" name="selected_date"
+                        class="flatpickr-input border border-gray-200 rounded-md px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-36"
+                        value="<?php echo htmlspecialchars(date('d/m/Y', strtotime($selected_date))); ?>">
+                </div>
             </div>
             <div class="flex items-center">
                 <form action="" method="GET" id="searchForm" class="w-full text-end">
                     <input type="hidden" name="page" value="stock_list">
                     <input type="hidden" name="page_num" value="1">
+                    <input type="hidden" name="selected_date" id="hiddenSelectedDate" value="<?php echo htmlspecialchars($selected_date); ?>">
                     <div class="relative">
                         <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
                             value="<?php echo htmlspecialchars($search); ?>"
@@ -268,7 +290,7 @@ try {
             </div>
             <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
                 <!-- Export Buttons -->
-                <div class="grid grid-cols-2 gap-4 pt-2  md:grid md:grid-cols-2 md:gap-4">
+                <div class="grid grid-cols-2 gap-4 pt-2 md:grid md:grid-cols-2 md:gap-4">
                     <button onclick="exportPDF()"
                         class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
                         <i class="fas fa-file-pdf"></i> ส่งออก PDF
@@ -340,7 +362,7 @@ try {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-gray-600">ไม่มีข้อมูลการเช็คสต๊อก</td>
+                                    <td colspan="10" class="text-center py-4 text-gray-600">ไม่มีข้อมูลการเช็คสต๊อกในวันที่เลือก</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -354,7 +376,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=stock_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
@@ -364,7 +386,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=stock_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         1
                     </a>
@@ -373,7 +395,7 @@ try {
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=stock_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -382,14 +404,14 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=stock_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=stock_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
@@ -408,8 +430,7 @@ try {
                     <div>
                         <label class="block text-sm font-medium text-gray-700">จำนวนที่นับได้</label>
                         <input type="number" step="0.01" id="editStockCheckActual" name="stock_check_actual"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update"
-                            required>
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update" required>
                         <span id="editActualError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
@@ -451,6 +472,16 @@ try {
     </div>
 
     <script>
+        // Initialize Flatpickr
+        flatpickr('#selectedDate', {
+            dateFormat: 'd/m/Y',
+            locale: 'th',
+            onChange: function(selectedDates, dateStr) {
+                document.getElementById('hiddenSelectedDate').value = selectedDates[0].toISOString().split('T')[0];
+                document.getElementById('searchForm').submit();
+            }
+        });
+
         function updateClock() {
             const now = new Date();
             const day = String(now.getDate()).padStart(2, '0');
@@ -471,7 +502,6 @@ try {
             const hours = now.getHours();
             const minutes = now.getMinutes();
             const seconds = now.getSeconds();
-            // Check if it's 00:00:00
             if (hours === 0 && minutes === 0 && seconds === 0) {
                 window.location.reload();
             }
@@ -515,28 +545,28 @@ try {
             };
         }
 
-        /* function showNotification(message, className) {
-                const notification = document.getElementById('notification');
-                const header = document.getElementById('notification-header');
-                const messageDiv = document.getElementById('notification-message');
-                header.className = `px-4 py-2 font-bold text-white ${className}`;
-                header.textContent = 'การแจ้งเตือน';
-                messageDiv.textContent = message;
-                notification.classList.remove('hidden');
-                setTimeout(() => {
-                    notification.classList.add('hidden');
-                }, 5000);
-            } */
+        function showNotification(message, className) {
+            const notification = document.getElementById('notification');
+            const header = document.getElementById('notification-header');
+            const messageDiv = document.getElementById('notification-message');
+            header.className = `px-4 py-2 font-bold text-white ${className}`;
+            header.textContent = 'การแจ้งเตือน';
+            messageDiv.textContent = message;
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 5000);
+        }
 
         function exportPDF() {
             const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
-            let url = '/page/stock/report/export_stock_pdf.php?csrf_token=' + encodeURIComponent(csrfToken);
+            let url = '/page/stock/report/export_stock_pdf.php?csrf_token=' + encodeURIComponent(csrfToken) + '&selected_date=' + encodeURIComponent('<?php echo $selected_date; ?>');
             window.open(url, '_blank');
         }
 
         function exportExcel() {
             const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
-            let url = '/page/stock/report/export_stock_excel.php?csrf_token=' + encodeURIComponent(csrfToken);
+            let url = '/page/stock/report/export_stock_excel.php?csrf_token=' + encodeURIComponent(csrfToken) + '&selected_date=' + encodeURIComponent('<?php echo $selected_date; ?>');
             window.open(url, '_blank');
         }
 
@@ -547,7 +577,7 @@ try {
 
             searchInput.focus();
 
-            searchInput.addEventListener('keydown', function(e) {
+            searchInput.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') {
                     this.value = '';
                     this.form.submit();
@@ -565,7 +595,7 @@ try {
                 localStorage.removeItem('searchPreserve');
             }
 
-            searchInput.addEventListener('input', function() {
+            searchInput.addEventListener('input', function () {
                 if (this.value.trim() === '') {
                     this.form.submit();
                 }
@@ -576,6 +606,29 @@ try {
             } else if (urlParams.has('error')) {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
+
+            document.getElementById('editForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const fields = [{
+                    id: 'editStockCheckActual',
+                    errorId: 'editActualError',
+                    label: 'จำนวนที่นับได้',
+                    type: 'number',
+                    required: true,
+                    maxLength: Infinity
+                },
+                {
+                    id: 'editStockCheckRemark',
+                    errorId: 'editRemarkError',
+                    label: 'หมายเหตุ',
+                    required: false,
+                    maxLength: 255
+                }
+                ];
+                if (validateForm('editForm', fields)) {
+                    this.submit();
+                }
+            });
 
             function validateForm(formId, fields) {
                 let hasError = false;
@@ -600,31 +653,7 @@ try {
                 });
                 return !hasError;
             }
-
-            document.getElementById('editForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const fields = [{
-                        id: 'editStockCheckActual',
-                        errorId: 'editActualError',
-                        label: 'จำนวนที่นับได้',
-                        type: 'number',
-                        required: true,
-                        maxLength: Infinity
-                    },
-                    {
-                        id: 'editStockCheckRemark',
-                        errorId: 'editRemarkError',
-                        label: 'หมายเหตุ',
-                        required: false,
-                        maxLength: 255
-                    }
-                ];
-                if (validateForm('editForm', fields)) {
-                    this.submit();
-                }
-            });
         });
     </script>
 </body>
-
 </html>
