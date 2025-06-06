@@ -1,9 +1,12 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
-session_start();
 date_default_timezone_set('Asia/Bangkok');
 
+// Session Management
+if (!isset($_SESSION)) {
+    session_start();
+}
 // Create CSRF token
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

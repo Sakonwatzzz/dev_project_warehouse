@@ -266,7 +266,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>จัดการประเภทบุคลากร</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../style/page_list.css">
     <style>
@@ -554,7 +554,10 @@ try {
         <!-- Edit Modal -->
         <div id="editModal" class="modal hidden">
             <div class="modal-content">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขข้อมูลประเภทบุคลากร</h3>
+                <div class="flex items-center space-x-2 mb-4">
+                    <i class="far fa-edit text-blue-600 text-xl"></i>
+                    <h3 class="text-xl font-bold text-gray-800">แก้ไขข้อมูลประเภทบุคลากร</h3>
+                </div>
                 <form id="editForm" method="POST" class="space-y-4">
                     <input type="hidden" id="editPersonnelTypeId" name="id">
                     <input type="hidden" name="action" value="update">
@@ -707,7 +710,12 @@ try {
 
             const validateForm = (formId, fields) => {
                 let hasError = false;
-                fields.forEach(({ id, errorId, label, maxLength }) => {
+                fields.forEach(({
+                    id,
+                    errorId,
+                    label,
+                    maxLength
+                }) => {
                     const input = document.getElementById(id);
                     const error = document.getElementById(errorId);
                     if (!input.value.trim()) {
@@ -727,14 +735,12 @@ try {
 
             document.getElementById('addForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const fields = [
-                    {
-                        id: 'addPersonnelType',
-                        errorId: 'addNameError',
-                        label: 'ชื่อประเภทบุคลากร',
-                        maxLength: 255
-                    }
-                ];
+                const fields = [{
+                    id: 'addPersonnelType',
+                    errorId: 'addNameError',
+                    label: 'ชื่อประเภทบุคลากร',
+                    maxLength: 255
+                }];
                 if (validateForm('addForm', fields)) {
                     e.target.submit();
                 }
@@ -742,14 +748,12 @@ try {
 
             document.getElementById('editForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const fields = [
-                    {
-                        id: 'editPersonnelType',
-                        errorId: 'editNameError',
-                        label: 'ชื่อประเภทบุคลากร',
-                        maxLength: 255
-                    }
-                ];
+                const fields = [{
+                    id: 'editPersonnelType',
+                    errorId: 'editNameError',
+                    label: 'ชื่อประเภทบุคลากร',
+                    maxLength: 255
+                }];
                 if (validateForm('editForm', fields)) {
                     e.target.submit();
                 }

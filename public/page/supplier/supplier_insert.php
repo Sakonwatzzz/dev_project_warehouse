@@ -1,6 +1,7 @@
 <?php
+ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
-date_default_timezone_set('Asia/Bangkok'); 
+date_default_timezone_set('Asia/Bangkok');
 
 // สร้าง CSRF token
 if (empty($_SESSION['csrf_token'])) {
@@ -26,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $address = trim($_POST['address'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $detail = trim($_POST['detail'] ?? '');
-    $createdate = date('Y-m-d H:i:s'); // ใช้เวลาปัจจุบันในรูปแบบ DATETIME
+    $createdate = date('Y-m-d H:i:s');
     $personnel = filter_var($_POST['personnel'] ?? 0, FILTER_VALIDATE_INT);
 
     // ตรวจสอบข้อมูล
@@ -61,6 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
+
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
@@ -69,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/output.css" rel="stylesheet">
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <title>เพิ่มผู้ส่งมอบ | ระบบจัดการข้อมูล</title>
 </head>
@@ -78,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header Section -->
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-blue-900">เพิ่มผู้ส่งมอบ</h1>
+            <h1 class="text-3xl font-bold text-indigo-900">เพิ่มผู้ส่งมอบ</h1>
             <p class="text-gray-600">กรอกข้อมูลเพื่อเพิ่มผู้ส่งมอบใหม่ลงในระบบ</p>
         </div>
 
@@ -93,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="w-full sm:w-3/4">
                         <input type="text" name="name" id="supplier-name" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        <span id="nameError" class="text-rose-500 text-xs mt-1 hidden">กรุณากรอกชื่อผู้ส่งมอบ</span>
+                        <span id="nameError" class="text-rose-500 text-xs mt-1 hidden">ชื่อผู้ส่งมอบต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร</span>
                     </div>
                 </div>
 
@@ -103,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="w-full sm:w-3/4">
                         <textarea name="address" id="supplier-address" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none" rows="3"></textarea>
-                        <span id="addressError" class="text-rose-500 text-xs mt-1 hidden">กรุณากรอกที่อยู่</span>
+                        <span id="addressError" class="text-rose-500 text-xs mt-1 hidden">ที่อยู่ต้องไม่ว่างและมีความยาวไม่เกิน 500 ตัวอักษร</span>
                     </div>
                 </div>
 
@@ -121,8 +124,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                     <label for="supplier-detail" class="w-full sm:w-1/4 text-sm font-medium text-gray-700">รายละเอียด:</label>
                     <div class="w-full sm:w-3/4">
-                        <input type="text" name="detail" id="supplier-detail"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <textarea name="detail" id="supplier-detail"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none" rows="3"></textarea>
+                        <span id="detailError" class="text-rose-500 text-xs mt-1 hidden">รายละเอียดต้องมีความยาวไม่เกิน 500 ตัวอักษร</span>
                     </div>
                 </div>
 
@@ -181,7 +185,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">ยืนยันการยกเลิก</h3>
                     <p class="text-sm text-gray-500 mb-6">คุณแน่ใจหรือไม่ว่าต้องการยกเลิก? ข้อมูลที่กรอกจะไม่ถูกบันทึก</p>
-
                     <div class="flex justify-center gap-3">
                         <button type="button" onclick="closeCancelModal()"
                             class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
@@ -250,7 +253,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             notification.classList.add('translate-x-full');
         }
 
-        // อัปเดตวันที่และเวลาแบบเรียลไทม์
         function updateDateTime() {
             const dateInput = document.getElementById('supplier-createdate');
             const now = new Date();
@@ -268,10 +270,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const name = document.getElementById('supplier-name').value.trim();
             const address = document.getElementById('supplier-address').value.trim();
             const phone = document.getElementById('supplier-phone').value.trim();
+            const detail = document.getElementById('supplier-detail').value.trim();
             const personnel = document.getElementById('supplier-personnel').value;
             const nameError = document.getElementById('nameError');
             const addressError = document.getElementById('addressError');
             const phoneError = document.getElementById('phoneError');
+            const detailError = document.getElementById('detailError');
             const personnelError = document.getElementById('personnelError');
 
             let hasError = false;
@@ -300,7 +304,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 phoneError.classList.add('hidden');
             }
 
+            if (detail && detail.length > 500) {
+                detailError.textContent = 'รายละเอียดต้องมีความยาวไม่เกิน 500 ตัวอักษร';
+                detailError.classList.remove('hidden');
+                hasError = true;
+            } else {
+                detailError.classList.add('hidden');
+            }
+
             if (!personnel) {
+                personnelError.textContent = 'กรุณาเลือกพนักงาน';
                 personnelError.classList.remove('hidden');
                 hasError = true;
             } else {
@@ -315,11 +328,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             document.getElementById('supplier-name').focus();
-            updateDateTime(); // อัปเดตวันที่และเวลาเมื่อโหลดหน้า
-            setInterval(updateDateTime, 1000); // อัปเดตทุกวินาที
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
 
             if (urlParams.has('error')) {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
+            } else if (urlParams.has('success') && urlParams.get('success') === '1') {
+                showNotification('เพิ่มผู้ส่งมอบสำเร็จ', 'bg-green-500');
             }
         });
 

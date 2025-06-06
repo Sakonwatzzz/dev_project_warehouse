@@ -563,7 +563,10 @@ try {
         <!-- Edit Modal -->
         <div id="editModal" class="modal hidden">
             <div class="modal-content">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขข้อมูลบุคลากร</h3>
+                <div class="flex items-center space-x-2 mb-4">
+                    <i class="far fa-edit text-blue-600 text-xl"></i>
+                    <h3 class="text-xl font-bold text-gray-800">แก้ไขข้อมูลบุคลากร</h3>
+                </div>
                 <form id="editForm" method="POST" class="space-y-4">
                     <input type="hidden" id="editPersonnelId" name="id">
                     <input type="hidden" name="action" value="edit">

@@ -358,6 +358,12 @@ try {
 
 <body class="bg-gray-100 font-sans">
     <div class="container mx-auto px-4 py-8">
+        <!-- Header Section -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-indigo-900">กลุ่มบุคลากร: <?php echo htmlspecialchars($type); ?></h1>
+            <p class="text-gray-600">ข้อมูลบุคลากรทั้งหมดในประเภท <?php echo htmlspecialchars($type); ?></p>
+        </div>
+
         <!-- Header and Search Section -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
             <div class="flex flex-col w-full md:flex-row md:w-auto items-center space-y-2 md:space-y-0 md:space-x-4">
@@ -676,7 +682,10 @@ try {
         <!-- Edit Modal -->
         <div id="editModal" class="modal hidden">
             <div class="modal-content">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขข้อมูลบุคลากร</h3>
+                <div class="flex items-center space-x-2 mb-4">
+                    <i class="far fa-edit text-blue-600 text-xl"></i>
+                    <h3 class="text-xl font-bold text-gray-800">แก้ไขข้อมูลบุคลากร</h3>
+                </div>
                 <form id="editForm" method="POST" class="space-y-4">
                     <input type="hidden" id="editPersonnelId" name="id">
                     <input type="hidden" name="action" value="edit">
