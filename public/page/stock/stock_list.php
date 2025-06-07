@@ -54,79 +54,6 @@ function validateStockCheckData($stock_check_actual, $stock_check_comment)
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $selected_date = isset($_GET['selected_date']) ? trim($_GET['selected_date']) : date('Y-m-d');
 
-// Handle POST requests for updating stock check
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
-    if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=stock_list&error=Invalid CSRF token');
-        exit;
-    }
-
-    $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
-    $stock_check_actual = trim($_POST['stock_check_actual']);
-    $stock_check_comment = trim($_POST['stock_check_comment']);
-
-    $errors = validateStockCheckData($stock_check_actual, $stock_check_comment);
-    if (!$stock_check_id) {
-        $errors[] = 'รหัสการเช็คสต๊อกไม่ถูกต้อง';
-    }
-
-    if (!empty($errors)) {
-        header('Location: index.php?page=stock_list&error=' . urlencode(implode(', ', $errors)));
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE stock_check SET stock_check_actual = ?, stock_check_comment = ? WHERE stock_check_id = ?");
-        $stmt->execute([$stock_check_actual, $stock_check_comment, $stock_check_id]);
-        if ($stmt->rowCount() === 0) {
-            $pdo->rollBack();
-            header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการแก้ไข');
-            exit;
-        }
-        $pdo->commit();
-        header('Location: index.php?page=stock_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : '') . '&selected_date=' . urlencode($selected_date));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Update stock check error: " . $e->getMessage());
-        header('Location: index.php?page=stock_list&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
-        exit;
-    }
-}
-
-// Handle DELETE request
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['stock_check_id'], $_POST['csrf_token']) && $_POST['action'] === 'delete') {
-    if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=stock_list&error=Invalid CSRF token');
-        exit;
-    }
-
-    $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
-    if (!$stock_check_id) {
-        header('Location: index.php?page=stock_list&error=Invalid stock check ID');
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("DELETE FROM stock_check WHERE stock_check_id = ?");
-        $stmt->execute([$stock_check_id]);
-        if ($stmt->rowCount() === 0) {
-            $pdo->rollBack();
-            header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการลบ');
-            exit;
-        }
-        $pdo->commit();
-        header("Location: index.php?page=stock_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : '') . '&selected_date=' . urlencode($selected_date));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Delete stock check error: Stock Check ID=$stock_check_id, Error=" . $e->getMessage());
-        header("Location: index.php?page=stock_list&error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())));
-        exit;
-    }
-}
 
 // Count total records for pagination
 try {
@@ -263,24 +190,18 @@ try {
                     <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
                         <i class="fas fa-boxes mr-2"></i>
                         <?php echo $total_record; ?>
-                        <span>รายการ (วันที่ <?php echo htmlspecialchars(date('d/m/Y', strtotime($selected_date))); ?>)</span>
+                        <span>รายการ (วันที่ <?php echo(date('d/m/Y', strtotime($selected_date))); ?>)</span>
                     </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-gray-700 font-medium">วันที่</label>
-                    <input type="text" id="selectedDate" name="selected_date"
-                        class="flatpickr-input border border-gray-200 rounded-md px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-36"
-                        value="<?php echo htmlspecialchars(date('d/m/Y', strtotime($selected_date))); ?>">
                 </div>
             </div>
             <div class="flex items-center">
                 <form action="" method="GET" id="searchForm" class="w-full text-end">
                     <input type="hidden" name="page" value="stock_list">
                     <input type="hidden" name="page_num" value="1">
-                    <input type="hidden" name="selected_date" id="hiddenSelectedDate" value="<?php echo htmlspecialchars($selected_date); ?>">
+                    <input type="hidden" name="selected_date" id="hiddenSelectedDate" value="<?php echo($selected_date); ?>">
                     <div class="relative">
                         <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
-                            value="<?php echo htmlspecialchars($search); ?>"
+                            value="<?php echo($search); ?>"
                             class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-search"></i>
@@ -346,18 +267,18 @@ try {
                             <?php if (count($check_stock) > 0): ?>
                                 <?php foreach ($check_stock as $stock): ?>
                                     <tr class="hover:bg-gray-100">
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_id']); ?></td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_id']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_date']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['warehouse_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_id']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_name']); ?></td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_actual']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark_name']); ?></td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_comment']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['stock_check_id']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['stock_id']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['stock_date']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['warehouse_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['product_id']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['product_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['stock_check_system']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['stock_check_actual']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['personnel_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['check_status_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['stock_check_remark_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['stock_check_comment']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -418,70 +339,9 @@ try {
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-
-        <!-- Edit Modal -->
-        <div id="editModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
-            <div class="bg-white rounded-lg w-full max-w-md p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขข้อมูลการเช็คสต๊อก</h3>
-                <form id="editForm" method="POST" class="space-y-4">
-                    <input type="hidden" id="editStockCheckId" name="stock_check_id">
-                    <input type="hidden" name="action" value="update">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">จำนวนที่นับได้</label>
-                        <input type="number" step="0.01" id="editStockCheckActual" name="stock_check_actual"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update" required>
-                        <span id="editActualError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">หมายเหตุ</label>
-                        <input type="text" id="editStockCheckRemark" name="stock_check_comment"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update">
-                        <span id="editRemarkError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeEditModal()"
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                            บันทึก
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Delete Confirmation Modal -->
-        <div id="deleteModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
-            <div class="bg-white rounded-lg w-full max-w-md p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
-                <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?</p>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeDeleteModal()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-                        ยกเลิก
-                    </button>
-                    <button type="button" id="confirmDeleteBtn"
-                        class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                        ลบ
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
-        // Initialize Flatpickr
-        flatpickr('#selectedDate', {
-            dateFormat: 'd/m/Y',
-            locale: 'th',
-            onChange: function(selectedDates, dateStr) {
-                document.getElementById('hiddenSelectedDate').value = selectedDates[0].toISOString().split('T')[0];
-                document.getElementById('searchForm').submit();
-            }
-        });
-
         function updateClock() {
             const now = new Date();
             const day = String(now.getDate()).padStart(2, '0');
@@ -515,47 +375,6 @@ try {
                 urlParams.delete('search');
                 window.location.search = urlParams.toString();
             }
-        }
-
-        function showEditModal(id, actual, remark) {
-            document.getElementById('editStockCheckId').value = id;
-            document.getElementById('editStockCheckActual').value = actual;
-            document.getElementById('editStockCheckRemark').value = remark;
-            document.getElementById('editActualError').classList.add('hidden');
-            document.getElementById('editRemarkError').classList.add('hidden');
-            document.getElementById('editModal').classList.remove('invisible', 'opacity-0');
-        }
-
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('invisible', 'opacity-0');
-        }
-
-        function showDeleteModal() {
-            document.getElementById('deleteModal').classList.remove('invisible', 'opacity-0');
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.add('invisible', 'opacity-0');
-        }
-
-        function confirmDelete(form) {
-            showDeleteModal();
-            document.getElementById('confirmDeleteBtn').onclick = () => {
-                form.submit();
-            };
-        }
-
-        function showNotification(message, className) {
-            const notification = document.getElementById('notification');
-            const header = document.getElementById('notification-header');
-            const messageDiv = document.getElementById('notification-message');
-            header.className = `px-4 py-2 font-bold text-white ${className}`;
-            header.textContent = 'การแจ้งเตือน';
-            messageDiv.textContent = message;
-            notification.classList.remove('hidden');
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 5000);
         }
 
         function exportPDF() {
@@ -607,52 +426,6 @@ try {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
 
-            document.getElementById('editForm').addEventListener('submit', function (e) {
-                e.preventDefault();
-                const fields = [{
-                    id: 'editStockCheckActual',
-                    errorId: 'editActualError',
-                    label: 'จำนวนที่นับได้',
-                    type: 'number',
-                    required: true,
-                    maxLength: Infinity
-                },
-                {
-                    id: 'editStockCheckRemark',
-                    errorId: 'editRemarkError',
-                    label: 'หมายเหตุ',
-                    required: false,
-                    maxLength: 255
-                }
-                ];
-                if (validateForm('editForm', fields)) {
-                    this.submit();
-                }
-            });
-
-            function validateForm(formId, fields) {
-                let hasError = false;
-                fields.forEach(field => {
-                    const input = document.getElementById(field.id);
-                    const error = document.getElementById(field.errorId);
-                    if (field.required && !input.value.trim()) {
-                        error.textContent = `กรุณากรอก${field.label}`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (field.maxLength && input.value.length > field.maxLength) {
-                        error.textContent = `${field.label}ยาวเกิน ${field.maxLength} ตัวอักษร`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (field.type === 'number' && (isNaN(input.value) || input.value < 0)) {
-                        error.textContent = `${field.label}ต้องเป็นตัวเลขที่ไม่ติดลบ`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else {
-                        error.classList.add('hidden');
-                    }
-                });
-                return !hasError;
-            }
         });
     </script>
 </body>
