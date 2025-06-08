@@ -485,7 +485,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
-                        <input type="text" id="addSupplierPhone" name="add_supplier_phone"
+                        <input type="text" id="addSupplierPhone" name="add_supplier_phone" maxlength="10"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             aria-describedby="addPhoneError" autocomplete="off">
                         <span id="addPhoneError" class="text-red-500 text-xs mt-1 hidden"></span>
@@ -541,7 +541,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
-                        <input type="text" id="editSupplierPhone" name="update_supplier_phone"
+                        <input type="text" id="editSupplierPhone" name="update_supplier_phone" maxlength="10"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             aria-describedby="editPhoneError">
                         <span id="editPhoneError" class="text-red-500 text-xs mt-1 hidden"></span>

@@ -100,9 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         try {
+            date_default_timezone_set('Asia/Bangkok');
+            $currentDate = date('Y-m-d H:i:s');
             $pdo->beginTransaction();
-            $stmt = $pdo->prepare("INSERT INTO product_type (product_type_name, product_type_date, personnel_id) VALUES (?, NOW(), ?)");
-            $stmt->execute([$typename, $personnel_id]);
+            $stmt = $pdo->prepare("INSERT INTO product_type (product_type_name, product_type_date, personnel_id) VALUES (?, ?, ?)");
+            $stmt->execute([$typename, $currentDate, $personnel_id]);
             $pdo->commit();
             header('Location: index.php?page=product_type&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
             exit;
@@ -129,9 +131,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         try {
+            date_default_timezone_set('Asia/Bangkok');
+            $currentDate = date('Y-m-d H:i:s');
             $pdo->beginTransaction();
-            $stmt = $pdo->prepare("UPDATE product_type SET product_type_name = ?, product_type_date = NOW(), personnel_id = ? WHERE product_type_id = ?");
-            $stmt->execute([$typename, $personnel_id, $id]);
+            $stmt = $pdo->prepare("UPDATE product_type SET product_type_name = ?, product_type_date = ?, personnel_id = ? WHERE product_type_id = ?");
+            $stmt->execute([$typename, $currentDate, $personnel_id, $id]);
             if ($stmt->rowCount() === 0) {
                 $pdo->rollBack();
                 header('Location: index.php?page=product_type&error=ไม่พบข้อมูลประเภทสินค้าที่ต้องการแก้ไข');
@@ -292,14 +296,17 @@ try {
             .table-responsive {
                 display: none;
             }
+
             .card-responsive {
                 display: block;
             }
         }
+
         @media (min-width: 769px) {
             .table-responsive {
                 display: block;
             }
+
             .card-responsive {
                 display: none;
             }
@@ -767,7 +774,12 @@ try {
 
             const validateForm = (formId, fields) => {
                 let hasError = false;
-                fields.forEach(({ id, errorId, label, maxLength }) => {
+                fields.forEach(({
+                    id,
+                    errorId,
+                    label,
+                    maxLength
+                }) => {
                     const input = document.getElementById(id);
                     const error = document.getElementById(errorId);
                     if (!input.value.trim()) {
@@ -787,9 +799,18 @@ try {
 
             document.getElementById('addForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const fields = [
-                    { id: 'addTypeName', errorId: 'addNameError', label: 'ชื่อประเภทสินค้า', maxLength: 255 },
-                    { id: 'addPersonnelId', errorId: 'addPersonnelError', label: 'พนักงาน', maxLength: Infinity }
+                const fields = [{
+                        id: 'addTypeName',
+                        errorId: 'addNameError',
+                        label: 'ชื่อประเภทสินค้า',
+                        maxLength: 255
+                    },
+                    {
+                        id: 'addPersonnelId',
+                        errorId: 'addPersonnelError',
+                        label: 'พนักงาน',
+                        maxLength: Infinity
+                    }
                 ];
                 if (validateForm('addForm', fields)) {
                     e.target.submit();
@@ -798,9 +819,18 @@ try {
 
             document.getElementById('editForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const fields = [
-                    { id: 'editTypeName', errorId: 'editNameError', label: 'ชื่อประเภทสินค้า', maxLength: 255 },
-                    { id: 'editPersonnelId', errorId: 'editPersonnelError', label: 'พนักงาน', maxLength: Infinity }
+                const fields = [{
+                        id: 'editTypeName',
+                        errorId: 'editNameError',
+                        label: 'ชื่อประเภทสินค้า',
+                        maxLength: 255
+                    },
+                    {
+                        id: 'editPersonnelId',
+                        errorId: 'editPersonnelError',
+                        label: 'พนักงาน',
+                        maxLength: Infinity
+                    }
                 ];
                 if (validateForm('editForm', fields)) {
                     e.target.submit();

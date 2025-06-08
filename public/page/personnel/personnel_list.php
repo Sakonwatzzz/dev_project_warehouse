@@ -524,7 +524,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
-                        <input type="text" id="addPersonnelPhone" name="add_personnel_phone"
+                        <input type="text" id="addPersonnelPhone" name="add_personnel_phone" maxlength="10"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required aria-describedby="addPhoneError" autocomplete="off">
                         <span id="addPhoneError" class="text-red-500 text-xs mt-1 hidden"></span>
@@ -594,7 +594,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
-                        <input type="text" id="editPersonnelPhone" name="update_personnel_phone"
+                        <input type="text" id="editPersonnelPhone" name="update_personnel_phone" maxlength="10"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required aria-describedby="editPhoneError">
                         <span id="editPhoneError" class="text-red-500 text-xs mt-1 hidden"></span>
@@ -777,20 +777,23 @@ try {
                     label,
                     maxLength,
                     regex,
-                    isOptional
+                    isOptional,
+                    regexError
                 }) => {
                     const input = document.getElementById(id);
                     const error = document.getElementById(errorId);
-                    if (!isOptional && !input.value.trim()) {
+                    const value = input.value.trim();
+
+                    if (!isOptional && !value) {
                         error.textContent = `กรุณากรอก${label}`;
                         error.classList.remove('hidden');
                         hasError = true;
-                    } else if (input.value.length > maxLength) {
+                    } else if (value.length > maxLength) {
                         error.textContent = `${label}ยาวเกิน ${maxLength} ตัวอักษร`;
                         error.classList.remove('hidden');
                         hasError = true;
-                    } else if (regex && input.value && !regex.test(input.value)) {
-                        error.textContent = `${label}ต้องมากกว่า 6 ตัวอักษร`;
+                    } else if (regex && value && !regex.test(value)) {
+                        error.textContent = regexError || `${label}รูปแบบไม่ถูกต้อง`;
                         error.classList.remove('hidden');
                         hasError = true;
                     } else {
@@ -799,6 +802,7 @@ try {
                 });
                 return !hasError;
             };
+
 
             document.getElementById('addForm').addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -825,14 +829,16 @@ try {
                         errorId: 'addPhoneError',
                         label: 'เบอร์โทรศัพท์',
                         maxLength: 10,
-                        regex: /^[0-9]{10}$/
+                        regex: /^[0-9]{10}$/,
+                        regexError: 'เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก'
                     },
                     {
                         id: 'addPersonnelPassword',
                         errorId: 'addPasswordError',
                         label: 'รหัสผ่าน',
                         maxLength: 100,
-                        regex: /^.{6,}$/
+                        regex: /^.{6,}$/,
+                        regexError: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
                     },
                     {
                         id: 'addPersonnelTypeId',
