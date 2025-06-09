@@ -338,6 +338,7 @@ try {
                     <i class="fas fa-list mr-2"></i> <?php echo number_format($total_records); ?> รายการ
                 </span>
             </div>
+
             <form action="" method="GET" class="w-full md:w-auto">
                 <input type="hidden" name="page" value="lot_list">
                 <input type="hidden" name="page_num" value="1">
@@ -430,18 +431,23 @@ try {
                                     <td class="px-6 py-3 text-center">
                                         <div class="flex justify-center space-x-2">
                                             <?php if ($lot['lot_status_id'] == 2): ?>
-                                                <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                                <!-- <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
                                                     class="flex items-center justify-center px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
                                                     <i class="fas fa-eye mr-1"></i>
                                                     <span class="hidden md:inline">ดู</span>
                                                     <span class="md:hidden">ดู</span>
+                                                </a> -->
+                                                <a href="index.php?page=lot_listdetail&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
+                                                    class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition">
+                                                    <i class="fas fa-eye mr-1"></i>ดู
                                                 </a>
                                             <?php else: ?>
-                                                <button onclick="showEditModal('<?php echo htmlspecialchars($lot['lot_id']); ?>', '<?php echo htmlspecialchars(addslashes($lot['lot_name'])); ?>', '<?php echo htmlspecialchars(addslashes($lot['lot_detail'])); ?>', '<?php echo htmlspecialchars($lot['lot_status_id']); ?>', '<?php echo htmlspecialchars($lot['warehouse_id']); ?>', '<?php echo htmlspecialchars($lot['supplier_id']); ?>')"
-                                                    class="flex items-center justify-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition">
-                                                    <i class="fas fa-edit mr-1"></i>
-                                                    <span class="hidden md:inline">แก้ไข</span>
-                                                    <span class="md:hidden">แก้ไข</span>
+                                                <button
+                                                    class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
+                                                    <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                                        class="">
+                                                        <i class="fas fa-edit mr-1"></i> แก้ไข
+                                                    </a>
                                                 </button>
                                                 <form action="" method="POST" class="delete-form inline-flex">
                                                     <input type="hidden" name="id" value="<?php echo htmlspecialchars($lot['lot_id']); ?>">
@@ -521,14 +527,17 @@ try {
                             </div>
                             <div class="flex justify-center space-x-2 mt-4">
                                 <?php if ($lot['lot_status_id'] == 2): ?>
-                                    <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                    <a href="?page=lot_listdetail&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
                                         class="flex items-center justify-center px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
                                         <i class="fas fa-eye mr-1"></i> ดู
                                     </a>
                                 <?php else: ?>
-                                    <button onclick="showEditModal('<?php echo htmlspecialchars($lot['lot_id']); ?>', '<?php echo htmlspecialchars(addslashes($lot['lot_name'])); ?>', '<?php echo htmlspecialchars(addslashes($lot['lot_detail'])); ?>', '<?php echo htmlspecialchars($lot['lot_status_id']); ?>', '<?php echo htmlspecialchars($lot['warehouse_id']); ?>', '<?php echo htmlspecialchars($lot['supplier_id']); ?>')"
-                                        class="flex items-center justify-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition">
-                                        <i class="fas fa-edit mr-1"></i> แก้ไข
+                                    <button
+                                        class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
+                                        <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                            class="">
+                                            <i class="fas fa-edit mr-1"></i> แก้ไข
+                                        </a>
                                     </button>
                                     <form action="" method="POST" class="delete-form inline-flex">
                                         <input type="hidden" name="id" value="<?php echo htmlspecialchars($lot['lot_id']); ?>">
@@ -596,165 +605,8 @@ try {
             <?php endif; ?>
         </div>
 
-        <!-- Add Modal -->
-        <div id="addModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div class="modal-content bg-white rounded-lg p-6 max-w-lg w-full">
-                <div class="mb-5">
-                    <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                        <i class="fas fa-plus-circle text-blue-600 mr-2"></i>เพิ่มล็อตสินค้าใหม่
-                    </h3>
-                    <p class="text-sm text-gray-500">กรุณากรอกข้อมูลล็อตสินค้า</p>
-                </div>
-                <form id="addForm" method="POST" class="space-y-4">
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ชื่อล็อต</label>
-                        <input type="text" id="addLotName" name="lot_name"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addNameError">
-                        <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">รายละเอียด</label>
-                        <textarea id="addLotDetail" name="lot_detail"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                        <span id="addDetailError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">สถานะล็อต</label>
-                        <select id="addLotStatusId" name="lot_status_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addStatusError">
-                            <option value="">เลือกสถานะล็อต</option>
-                            <?php foreach ($status_lot as $status): ?>
-                                <option value="<?php echo htmlspecialchars($status['lot_status_id']); ?>">
-                                    <?php echo htmlspecialchars($status['lot_status_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="addStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">คลังปลายทาง</label>
-                        <select id="addWarehouseId" name="warehouse_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addWarehouseError">
-                            <option value="">เลือกคลัง</option>
-                            <?php foreach ($warehouse_lot as $warehouse): ?>
-                                <option value="<?php echo htmlspecialchars($warehouse['warehouse_id']); ?>">
-                                    <?php echo htmlspecialchars($warehouse['warehouse_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="addWarehouseError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ผู้ส่งมอบ</label>
-                        <select id="addSupplierId" name="supplier_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addSupplierError">
-                            <option value="">เลือกผู้ส่งมอบ</option>
-                            <?php foreach ($supplier_lot as $supplier): ?>
-                                <option value="<?php echo htmlspecialchars($supplier['supplier_id']); ?>">
-                                    <?php echo htmlspecialchars($supplier['supplier_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="addSupplierError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                            บันทึก
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Edit Modal -->
-        <div id="editModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div class="modal-content bg-white rounded-lg p-6 max-w-lg w-full">
-                <div class="flex items-center space-x-2 mb-4">
-                    <i class="fas fa-edit text-blue-600 text-xl"></i>
-                    <h3 class="text-xl font-bold text-gray-800">แก้ไขข้อมูลล็อตสินค้า</h3>
-                </div>
-                <form id="editForm" method="POST" class="space-y-4">
-                    <input type="hidden" id="editLotId" name="id">
-                    <input type="hidden" name="action" value="edit">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ชื่อล็อต</label>
-                        <input type="text" id="editLotName" name="lot_name"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editNameError">
-                        <span id="editNameError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">รายละเอียด</label>
-                        <textarea id="editLotDetail" name="lot_detail"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                        <span id="editDetailError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">สถานะล็อต</label>
-                        <select id="editLotStatusId" name="lot_status_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editStatusError">
-                            <option value="">เลือกสถานะล็อต</option>
-                            <?php foreach ($status_lot as $status): ?>
-                                <option value="<?php echo htmlspecialchars($status['lot_status_id']); ?>">
-                                    <?php echo htmlspecialchars($status['lot_status_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="editStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">คลังปลายทาง</label>
-                        <select id="editWarehouseId" name="warehouse_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editWarehouseError">
-                            <option value="">เลือกคลัง</option>
-                            <?php foreach ($warehouse_lot as $warehouse): ?>
-                                <option value="<?php echo htmlspecialchars($warehouse['warehouse_id']); ?>">
-                                    <?php echo htmlspecialchars($warehouse['warehouse_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="editWarehouseError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ผู้ส่งมอบ</label>
-                        <select id="editSupplierId" name="supplier_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editSupplierError">
-                            <option value="">เลือกผู้ส่งมอบ</option>
-                            <?php foreach ($supplier_lot as $supplier): ?>
-                                <option value="<?php echo htmlspecialchars($supplier['supplier_id']); ?>">
-                                    <?php echo htmlspecialchars($supplier['supplier_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="editSupplierError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                            บันทึก
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Delete Confirmation Modal -->
-        <div id="deleteModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+        <div id="deleteModal" class="modal hidden fixed  inset-0 bg-gray-600 bg-opacity-50  items-center justify-center">
             <div class="modal-content bg-white rounded-lg p-6 max-w-sm w-full">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
                 <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบล็อตนี้?</p>
@@ -773,6 +625,7 @@ try {
     <script>
         function showDeleteModal() {
             document.getElementById('deleteModal').classList.remove('hidden');
+            document.getElementById('deleteModal').classList.add('flex');
         }
 
         function closeDeleteModal() {
@@ -902,91 +755,7 @@ try {
                 return !hasError;
             }
 
-            document.getElementById('addForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const fields = [{
-                        id: 'addLotName',
-                        errorId: 'addNameError',
-                        label: 'ชื่อล็อต',
-                        maxLength: 255,
-                        required: true
-                    },
-                    {
-                        id: 'addLotDetail',
-                        errorId: 'addDetailError',
-                        label: 'รายละเอียด',
-                        maxLength: 1000,
-                        required: false
-                    },
-                    {
-                        id: 'addLotStatusId',
-                        errorId: 'addStatusError',
-                        label: 'สถานะล็อต',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'addWarehouseId',
-                        errorId: 'addWarehouseError',
-                        label: 'คลังปลายทาง',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'addSupplierId',
-                        errorId: 'addSupplierError',
-                        label: 'ผู้ส่งมอบ',
-                        maxLength: Infinity,
-                        required: true
-                    }
-                ];
-                if (validateForm('addForm', fields)) {
-                    e.target.submit();
-                }
-            });
 
-            document.getElementById('editForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const fields = [{
-                        id: 'editLotName',
-                        errorId: 'editNameError',
-                        label: 'ชื่อล็อต',
-                        maxLength: 255,
-                        required: true
-                    },
-                    {
-                        id: 'editLotDetail',
-                        errorId: 'editDetailError',
-                        label: 'รายละเอียด',
-                        maxLength: 1000,
-                        required: false
-                    },
-                    {
-                        id: 'editLotStatusId',
-                        errorId: 'editStatusError',
-                        label: 'สถานะล็อต',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'editWarehouseId',
-                        errorId: 'editWarehouseError',
-                        label: 'คลังปลายทาง',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'editSupplierId',
-                        errorId: 'editSupplierError',
-                        label: 'ผู้ส่งมอบ',
-                        maxLength: Infinity,
-                        required: true
-                    }
-                ];
-                if (validateForm('editForm', fields)) {
-                    e.target.submit();
-                }
-            });
 
             document.getElementById('start_date').addEventListener('change', updateDateFilter);
             document.getElementById('end_date').addEventListener('change', updateDateFilter);
