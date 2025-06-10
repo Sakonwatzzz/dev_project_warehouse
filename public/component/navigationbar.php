@@ -61,12 +61,28 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             </div>
             <ul>
                 <li><a href="?page=bar_index" class="<?php echo $is_dashboard ? 'active' : ''; ?>">หน้าแรก</a></li>
-                <li><a href="?page=bar_product" class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a></li>
-                <li><a href="?page=bar_personnel" class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
-                <li><a href="?page=bar_member" class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
-                <li><a href="?page=bar_supplier" class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
-                <li><a href="?page=bar_sale" class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a></li>
-                <li><a href="?page=bar_stock" class="<?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?>">เช็คสต๊อก</a></li>
+                <li><a href="?page=bar_product"
+                        class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a>
+                </li>
+                <li><a href="?page=bar_personnel"
+                        class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a>
+                </li>
+                <li><a href="?page=bar_member"
+                        class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a>
+                </li>
+                <li><a href="?page=bar_supplier"
+                        class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a>
+                </li>
+                <li><a href="?page=bar_store"
+                        class="<?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?>">ร้านค้า</a>
+                </li>
+                <li><a href="?page=bar_sale"
+                        class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a>
+                </li>
+                <li><a href="?page=bar_stock"
+                        class="<?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?>">เช็คสต๊อก</a>
+                </li>
+
             </ul>
         </div>
 
@@ -78,12 +94,28 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             <div class="link">
                 <ul>
                     <li><a href="?page=bar_index" class="<?php echo $is_dashboard ? 'active' : ''; ?>">หน้าแรก</a></li>
-                    <li><a href="?page=bar_product" class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a></li>
-                    <li><a href="?page=bar_personnel" class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a></li>
-                    <li><a href="?page=bar_member" class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a></li>
-                    <li><a href="?page=bar_supplier" class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a></li>
-                    <li><a href="?page=bar_sale" class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a></li>
-                    <li><a href="?page=bar_stock" class="<?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?>">เช็คสต๊อก</a></li>
+                    <li><a href="?page=bar_product"
+                            class="<?php echo ($current_page == 'bar_product' || isInSection($current_page, $product_section_pages)) ? 'active' : ''; ?>">สินค้า</a>
+                    </li>
+                    <li><a href="?page=bar_personnel"
+                            class="<?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?>">บุคลากร</a>
+                    </li>
+                    <li><a href="?page=bar_member"
+                            class="<?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?>">สมาชิก</a>
+                    </li>
+                    <li><a href="?page=bar_supplier"
+                            class="<?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?>">supplier</a>
+                    </li>
+                    <li><a href="?page=bar_store"
+                            class="<?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?>">ร้านค้า</a>
+                    </li>
+                    <li><a href="?page=bar_sale"
+                            class="<?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?>">ขาย</a>
+                    </li>
+                    <li><a href="?page=bar_stock"
+                            class="<?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?>">เช็คสต๊อก</a>
+                    </li>
+
                 </ul>
             </div>
         </div>
@@ -93,7 +125,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         <?php
         // Get page parameter and set defaults
         $page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
-        $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale' ,'bar_stock'];
+        $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale', 'bar_stock', 'bar_store'];
 
         $dashboard_pages = [
             'dashboard'
@@ -176,12 +208,15 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'stock_insert',
             'stock_list'
         ];
+        $store_pages = [
+            'store_list'
+        ];
 
         if ($page) {
             $parts = explode('_', $page);
             $prefix = $parts[0] ?? null;  // 'bar' หรือ 'member'
             $module = $parts[1] ?? null;  // 'product', 'supplier', 'list', 'insert','add', etc.
-
+        
             // If no page is specified or it's the homepage/bar_index, show dashboard
             if ($page == 'dashboard' || $page == 'bar_index') {
                 $barfile = __DIR__ . "/bar_index.php";
@@ -210,7 +245,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         'member' => 'member',
                         'lot' => 'lot',
                         'sale' => 'sale',
-                        'stock' => 'stock'
+                        'stock' => 'stock',
+                        'store' => 'store'
                     ];
 
                     if (isset($folderMapping[$module])) {
@@ -366,6 +402,17 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     }
                     $action = $parts[1] ?? 'insert';
                     $filepath = "$basePath/stock/stock_{$action}.php";
+
+                    if (isset($_GET['id'])) {
+                        $_REQUEST['id'] = $_GET['id'];
+                    }
+                } elseif ($prefix === 'store' && in_array($page, $store_pages)) {
+                    $barfile = __DIR__ . "/bar_store.php";
+                    if (file_exists($barfile)) {
+                        include $barfile;
+                    }
+                    $action = $parts[1] ?? 'list';
+                    $filepath = "$basePath/store/store_{$action}.php";
 
                     if (isset($_GET['id'])) {
                         $_REQUEST['id'] = $_GET['id'];
