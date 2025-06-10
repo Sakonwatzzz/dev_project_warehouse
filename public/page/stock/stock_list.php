@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '.././../../../config/database_server.php';
+require_once __DIR__ . '../../../../config/database_server.php';
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
@@ -36,18 +36,20 @@ function fetchData($pdo, $query, $params = [])
 
 // Handle search parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
+error_log("Search parameter: " . $search); // Debug log
 
 // Count total records for pagination
 try {
     $count_query = "SELECT COUNT(*) as total_count 
                     FROM stock_check sc
                     LEFT JOIN stock s ON sc.stock_id = s.stock_id
+                    LEFT JOIN product p ON sc.product_id = p.product_id
+                    LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
                     WHERE s.check_status_id = 2 
                     AND DATE(s.stock_date) = DATE(NOW())";
     $params = [];
     if (!empty($search)) {
-        $count_query .= " AND (sc.stock_check_id LIKE :search OR s.stock_id LIKE :search OR sc.product_id LIKE :search)";
+        $count_query .= " AND (sc.stock_check_id LIKE :search OR s.stock_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
     }
     $stmt = $pdo->prepare($count_query);
@@ -56,6 +58,7 @@ try {
     }
     $stmt->execute();
     $total_records = (int) $stmt->fetchColumn();
+    error_log("Total records: " . $total_records); // Debug log
 } catch (PDOException $e) {
     error_log("Count stock check error: " . $e->getMessage());
     header('Location: index.php?page=stock_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
@@ -103,7 +106,7 @@ try {
     AND DATE(s.stock_date) = DATE(NOW())";
     $params = [];
     if (!empty($search)) {
-        $query .= " AND (sc.stock_check_id LIKE :search OR s.stock_id LIKE :search)";
+        $query .= " AND (sc.stock_check_id LIKE :search OR s.stock_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
     }
     $query .= " ORDER BY s.stock_date DESC LIMIT :offset, :limit";
@@ -115,6 +118,7 @@ try {
     $stmt->bindValue(':limit', (int) $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
     $check_stock = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    error_log("Fetched rows: " . count($check_stock)); // Debug log
 } catch (PDOException $e) {
     error_log("Query stock check error: " . $e->getMessage());
     header('Location: index.php?page=stock_list&error=' . urlencode('Query error: ' . htmlspecialchars($e->getMessage())));
@@ -137,7 +141,6 @@ try {
             background-color: #f8f9fa;
         }
     </style>
-    <script src="page/stock/js/stock_list.js"></script>
 </head>
 
 <body class="bg-gray-50">
@@ -145,36 +148,22 @@ try {
         <!-- Header and Search Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
             <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
-                <div class="flex justify-center items-center">
-                    <div class="px-4 py-2 bg-gray-200 border rounded font-bold text-blue-800" hidden>
-                        <!-- <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 48 48">
-                            <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round"
-                                stroke-width="4">
-                                <path d="M5 10L8 13L14 7" />
-                                <path d="M5 24L8 27L14 21" />
-                                <path d="M5 38L8 41L14 35" />
-                                <path d="M21 24H43" />
-                                <path d="M21 38H43" />
-                                <path d="M21 10H43" />
-                            </g>
-                        </svg> -->
-                        <div class="text-xl">
-                            <span class="">ออกรายงานประจำวันที่:
-                                <?php echo htmlspecialchars($total_records); ?></span>
-                            <span>(วันที่ <?php echo htmlspecialchars(date('d/m/Y')); ?>)</span>
-                        </div>
+                <div class="flex space-x-2">
+                    <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
+                        <i class="fas fa-boxes mr-2"></i>
+                        <?php echo htmlspecialchars($total_records); ?>
+                        <span>รายการ (วันที่ <?php echo htmlspecialchars(date('d/m/Y')); ?>)</span>
                     </div>
                 </div>
             </div>
             <div class="flex items-center">
                 <form action="" method="GET" id="searchForm" class="w-full text-end">
                     <input type="hidden" name="page" value="stock_list">
-                    <input type="hidden" name="page_num" value="<?php echo $page; ?>">
+                    <input type="hidden" name="page_num" value="1" id="pageNumInput">
                     <div class="relative">
                         <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
                             value="<?php echo htmlspecialchars($search); ?>"
-                            class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            autofocus>
+                            class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-search"></i>
                         </button>
@@ -275,26 +264,15 @@ try {
                                             <?php echo htmlspecialchars($stock['stock_check_comment']); ?>
                                         </td>
                                     </tr>
-
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
                                     <td colspan="10" class="text-center py-4 text-gray-600">ไม่มีข้อมูลการเช็คสต๊อกในวันนี้
                                         (<?php echo htmlspecialchars(date('d/m/Y')); ?>)</td>
                                 </tr>
-
                             <?php endif; ?>
                         </tbody>
-
                     </table>
-                    <div class="w-full text-xl flex justify-end items-center p-2 py-2">
-                        <tr>
-                            <div class="text-blue-600 ">
-                                <span class="">จำนวนรายการสินค้าที่ตรวจสอบ:</span>
-                                <td class="px-6 py-2 border"><?php echo $total_records ?></td>
-                            </div>
-                        </tr>
-                    </div>
                 </div>
             </div>
         </div>
@@ -347,6 +325,8 @@ try {
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- <script src="page/stock/js/stock_list.js"></script> -->
     <script>
 
         function exportPDF() {
@@ -360,6 +340,110 @@ try {
             let url = '/page/stock/report/export_stock_excel.php?csrf_token=' + encodeURIComponent(csrfToken) + '&selected_date=' + encodeURIComponent('<?php echo $selected_date; ?>');
             window.open(url, '_blank');
         }
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('searchInput');
+            const searchForm = document.getElementById('searchForm');
+
+            function showNotification(message, className) {
+                const notification = document.getElementById('notification');
+                const header = document.getElementById('notification-header');
+                const messageDiv = document.getElementById('notification-message');
+                header.className = `px-4 py-2 font-bold text-white ${className}`;
+                header.textContent = 'การแจ้งเตือน';
+                messageDiv.textContent = message;
+                notification.classList.remove('hidden');
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 5000);
+            }
+
+            function updateClock() {
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                const formattedDate = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+                document.getElementById('clock-realtime').textContent = formattedDate;
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            function checkMidnightRefresh() {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+                if (hours === 0 && minutes === 0 && seconds === 0) {
+                    window.location.reload();
+                }
+            }
+            setInterval(checkMidnightRefresh, 1000);
+
+            function checkEmptySearch(input) {
+                if (input.value.trim() === '') {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('page', 'stock_list');
+                    urlParams.delete('search');
+                    window.location.search = urlParams.toString();
+                }
+            }
+
+
+            // Search handling
+            searchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    this.value = '';
+                    checkEmptySearch(this);
+                }
+                if (e.key === 'Enter') {
+                    localStorage.setItem('searchPreserve', this.value);
+                    this.form.submit();
+                }
+            });
+
+            const preserved = localStorage.getItem('searchPreserve');
+            if (preserved) {
+                searchInput.value = preserved;
+                searchInput.focus();
+                searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
+                localStorage.removeItem('searchPreserve');
+                searchForm.submit();
+            }
+
+            searchInput.addEventListener('input', function () {
+                checkEmptySearch(this);
+            });
+
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const urlParams = new URLSearchParams();
+                urlParams.set('page', 'stock_list');
+                urlParams.set('page_num', 1);
+                if (searchInput.value) urlParams.set('search', searchInput.value);
+                window.location.search = urlParams.toString();
+            });
+
+            // Handle URL parameters on page load
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('success')) {
+                showNotification(urlParams.get('success'), 'bg-green-500');
+            } else if (urlParams.has('error')) {
+                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
+            }
+
+            // Helper function to escape HTML
+            function htmlspecialchars(str) {
+                return str
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+        });
     </script>
 </body>
 
