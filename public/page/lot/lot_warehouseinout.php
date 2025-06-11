@@ -422,7 +422,7 @@ ob_end_flush();
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-3"><?php echo htmlspecialchars($lot['lot_id']); ?></td>
                                     <td class="px-6 py-3">
-                                        <a href="?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                        <a href="?page=lot_detailmove&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
                                             class="text-blue-600 hover:underline cursor-pointer">
                                             <?php echo htmlspecialchars($lot['lot_name']); ?>
                                         </a>
