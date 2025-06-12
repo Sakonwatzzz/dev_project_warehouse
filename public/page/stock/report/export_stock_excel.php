@@ -35,29 +35,40 @@ try {
 
     // Build the main query
     $query = "
-    SELECT 
-        sc.stock_check_id,
-        p.product_id,
-        p.product_name,
-        sc.stock_check_system,
-        sc.stock_check_actual,
-        scr.stock_check_remark_name AS stock_check_remark,
-        w.warehouse_name,
-        s.stock_date,
-        per.personnel_name
-    FROM stock_check sc
-    LEFT JOIN product p ON sc.product_id = p.product_id
-    LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
-    LEFT JOIN stock s ON sc.stock_id = s.stock_id
-    LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
-    LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
-    LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
-    WHERE s.check_status_id = 2";
-    $params = [];
+        SELECT 
+            sc.stock_check_id,
+            p.product_id,
+            p.product_name,
+            sc.stock_check_system,
+            sc.stock_check_actual,
+            sc.stock_check_remark,
+            w.warehouse_name,
+            s.stock_date,
+            per.personnel_name
+        FROM stock_check sc
+        LEFT JOIN product p ON sc.product_id = p.product_id
+        LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
+        LEFT JOIN stock s ON sc.stock_id = s.stock_id
+        LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
+        LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
+        WHERE s.check_status_id = 2
+        AND s.stock_date >= :today_start 
+        AND s.stock_date <= :today_end";
+
+    // Set date parameters
+    $params = [
+        ':today_start' => date('Y-m-d 00:00:00'),
+        ':today_end' => date('Y-m-d 23:59:59')
+    ];
+
+    // Add search filter if provided
     if ($search) {
-        $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
+        $query .= " AND (sc.stock_check_id LIKE :search 
+                    OR p.product_name LIKE :search 
+                    OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
     }
+
     $query .= " ORDER BY s.stock_date DESC";
 
     // Execute query

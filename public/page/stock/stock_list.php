@@ -38,13 +38,13 @@ function verifyCsrfToken($token)
 }
 
 // Validate stock check data
-function validateStockCheckData($stock_check_actual, $stock_check_comment)
+function validateStockCheckData($stock_check_actual, $stock_check_remark)
 {
     $errors = [];
     if (!is_numeric($stock_check_actual) || $stock_check_actual < 0) {
         $errors[] = 'จำนวนสินค้าที่นับได้จริงต้องเป็นตัวเลขที่ไม่ติดลบ';
     }
-    if (strlen($stock_check_comment) > 255) {
+    if (strlen($stock_check_remark) > 255) {
         $errors[] = 'หมายเหตุต้องมีความยาวไม่เกิน 255 ตัวอักษร';
     }
     return $errors;
@@ -54,6 +54,80 @@ function validateStockCheckData($stock_check_actual, $stock_check_comment)
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $selected_date = isset($_GET['selected_date']) ? trim($_GET['selected_date']) : date('Y-m-d');
 
+
+// Handle POST requests for updating stock check
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
+    if (!verifyCsrfToken($_POST['csrf_token'])) {
+        header('Location: index.php?page=stock_list&error=Invalid CSRF token');
+        exit;
+    }
+
+    $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
+    $stock_check_actual = trim($_POST['stock_check_actual']);
+    $stock_check_remark = trim($_POST['stock_check_remark']);
+
+    $errors = validateStockCheckData($stock_check_actual, $stock_check_remark);
+    if (!$stock_check_id) {
+        $errors[] = 'รหัสการเช็คสต๊อกไม่ถูกต้อง';
+    }
+
+    if (!empty($errors)) {
+        header('Location: index.php?page=stock_list&error=' . urlencode(implode(', ', $errors)));
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare("UPDATE stock_check SET stock_check_actual = ?, stock_check_remark = ? WHERE stock_check_id = ?");
+        $stmt->execute([$stock_check_actual, $stock_check_remark, $stock_check_id]);
+        if ($stmt->rowCount() === 0) {
+            $pdo->rollBack();
+            header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการแก้ไข');
+            exit;
+        }
+        $pdo->commit();
+        header('Location: index.php?page=stock_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        exit;
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log("Update stock check error: " . $e->getMessage());
+        header('Location: index.php?page=stock_list&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
+        exit;
+    }
+}
+
+// Handle DELETE request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['stock_check_id'], $_POST['csrf_token']) && $_POST['action'] === 'delete') {
+    if (!verifyCsrfToken($_POST['csrf_token'])) {
+        header('Location: index.php?page=stock_list&error=Invalid CSRF token');
+        exit;
+    }
+
+    $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
+    if (!$stock_check_id) {
+        header('Location: index.php?page=stock_list&error=Invalid stock check ID');
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare("DELETE FROM stock_check WHERE stock_check_id = ?");
+        $stmt->execute([$stock_check_id]);
+        if ($stmt->rowCount() === 0) {
+            $pdo->rollBack();
+            header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการลบ');
+            exit;
+        }
+        $pdo->commit();
+        header("Location: index.php?page=stock_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        exit;
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log("Delete stock check error: Stock Check ID=$stock_check_id, Error=" . $e->getMessage());
+        header("Location: index.php?page=stock_list&error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())));
+        exit;
+    }
+}
 
 // Count total records for pagination
 try {
@@ -145,6 +219,7 @@ try {
 } catch (PDOException $e) {
     error_log("Query stock check error: " . $e->getMessage());
     header('Location: index.php?page=stock_list&error=' . urlencode('Query error: ' . htmlspecialchars($e->getMessage())));
+
     exit;
 }
 ?>
@@ -262,19 +337,18 @@ try {
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse">
                         <thead>
-                            <tr class="bg-gray-100">
+                            <tr class="bg-gray-50">
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสรายการเช็คสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อสินค้า</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>จำนวนจากระบบ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนจากระบบ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนที่นับได้</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>สถานะ</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">หมายเหตุ</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>ข้อความเพิ่มเติม</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -287,12 +361,11 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['warehouse_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_id']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_name']); ?></td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_actual']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark_name']); ?></td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_comment']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -370,7 +443,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">หมายเหตุ</label>
-                        <input type="text" id="editStockCheckRemark" name="stock_check_comment"
+                        <input type="text" id="editStockCheckRemark" name="stock_check_remark"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update">
                         <span id="editRemarkError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>

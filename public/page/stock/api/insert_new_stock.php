@@ -27,17 +27,17 @@ try {
     $pdo->beginTransaction();
 
     // ตรวจสอบว่าคลังถูกใช้งานโดยผู้ใช้คนอื่นหรือไม่
-    // $stmt = $pdo->prepare("SELECT stock_id, personnel_id FROM stock WHERE warehouse_id = ? AND check_status_id = 1 AND personnel_id != ? LIMIT 1");
-    // $stmt->execute([$warehouse_id, $personnel_id]);
-    // $other_user_stock = $stmt->fetch(PDO::FETCH_ASSOC);
-    // if ($other_user_stock) {
-    //     $pdo->rollBack();
-    //     echo json_encode([
-    //         'status' => 'warning',
-    //         'message' => "คลังนี้กำลังถูกตรวจสอบโดยผู้ใช้คนอื่น (stock_id: {$other_user_stock['stock_id']})"
-    //     ]);
-    //     exit;
-    // }
+    $stmt = $pdo->prepare("SELECT stock_id, personnel_id FROM stock WHERE warehouse_id = ? AND check_status_id = 1 AND personnel_id != ? LIMIT 1");
+    $stmt->execute([$warehouse_id, $personnel_id]);
+    $other_user_stock = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($other_user_stock) {
+        $pdo->rollBack();
+        echo json_encode([
+            'status' => 'warning',
+            'message' => "คลังนี้กำลังถูกตรวจสอบโดยผู้ใช้คนอื่น (stock_id: {$other_user_stock['stock_id']})"
+        ]);
+        exit;
+    }
 
     // ตรวจสอบว่า personnel_id มีเซสชันที่รอดำเนินการในคลังนี้หรือไม่
     $stmt = $pdo->prepare("SELECT stock_id FROM stock WHERE personnel_id = ? AND warehouse_id = ? AND check_status_id = 1 LIMIT 1");

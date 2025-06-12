@@ -102,7 +102,7 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <!-- <script src="page/stock/js/search_product.js"></script> -->
+    <script src="page/stock/js/search_product.js"></script>
     <script src="page/stock/js/delete_product_check.js"></script>
     <!-- <script src="page/stock/js/stock_insert_list.js?t=<?= time() ?>"></script> -->
     <script src="page/stock/js/stock_check_detail_insert.js?t=<?= time() ?>"></script>
@@ -206,6 +206,7 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                             <span
                                 class="spinner hidden animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full ml-2" hidden></span>
                         </button> -->
+
                     </div>
                 </form>
                 <div class="flex justify-end mt-4">
@@ -228,7 +229,7 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">ชื่อสินค้า
                                 </th>
-                                <th class="px-6 py-3 text-right text-sm font-bold text-gray-900 uppercase" hidden>จำนวนจากระบบ
+                                <th class="px-6 py-3 text-right text-sm font-bold text-gray-900 uppercase">จำนวนจากระบบ
                                 </th>
                                 <th class="px-6 py-3 text-right text-sm font-bold text-gray-900 uppercase">จำนวนนับจริง
                                 </th>
