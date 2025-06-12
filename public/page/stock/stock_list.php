@@ -52,80 +52,8 @@ function validateStockCheckData($stock_check_actual, $stock_check_comment)
 
 // Handle search and date parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$selected_date = isset($_GET['selected_date']) ? trim($_GET['selected_date']) : date('Y-m-d');
 
-// Handle POST requests for updating stock check
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
-    if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=stock_list&error=Invalid CSRF token');
-        exit;
-    }
-
-    $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
-    $stock_check_actual = trim($_POST['stock_check_actual']);
-    $stock_check_comment = trim($_POST['stock_check_comment']);
-
-    $errors = validateStockCheckData($stock_check_actual, $stock_check_comment);
-    if (!$stock_check_id) {
-        $errors[] = 'รหัสการเช็คสต๊อกไม่ถูกต้อง';
-    }
-
-    if (!empty($errors)) {
-        header('Location: index.php?page=stock_list&error=' . urlencode(implode(', ', $errors)));
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE stock_check SET stock_check_actual = ?, stock_check_comment = ? WHERE stock_check_id = ?");
-        $stmt->execute([$stock_check_actual, $stock_check_comment, $stock_check_id]);
-        if ($stmt->rowCount() === 0) {
-            $pdo->rollBack();
-            header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการแก้ไข');
-            exit;
-        }
-        $pdo->commit();
-        header('Location: index.php?page=stock_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : '') . '&selected_date=' . urlencode($selected_date));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Update stock check error: " . $e->getMessage());
-        header('Location: index.php?page=stock_list&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
-        exit;
-    }
-}
-
-// Handle DELETE request
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['stock_check_id'], $_POST['csrf_token']) && $_POST['action'] === 'delete') {
-    if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=stock_list&error=Invalid CSRF token');
-        exit;
-    }
-
-    $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
-    if (!$stock_check_id) {
-        header('Location: index.php?page=stock_list&error=Invalid stock check ID');
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("DELETE FROM stock_check WHERE stock_check_id = ?");
-        $stmt->execute([$stock_check_id]);
-        if ($stmt->rowCount() === 0) {
-            $pdo->rollBack();
-            header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการลบ');
-            exit;
-        }
-        $pdo->commit();
-        header("Location: index.php?page=stock_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : '') . '&selected_date=' . urlencode($selected_date));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Delete stock check error: Stock Check ID=$stock_check_id, Error=" . $e->getMessage());
-        header("Location: index.php?page=stock_list&error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())));
-        exit;
-    }
-}
 
 // Count total records for pagination
 try {
@@ -269,10 +197,8 @@ try {
                 <div class="flex space-x-2">
                     <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
                         <i class="fas fa-boxes mr-2"></i>
-                        <?php echo htmlspecialchars($total_records); ?>
-                        <span>รายการ (วันที่ <?php echo htmlspecialchars(date('d/m/Y')); ?>)</span>
-
-
+                        <?php echo $total_record; ?>
+                        <span>รายการ (วันที่ <?php echo(date('d/m/Y', strtotime($selected_date))); ?>)</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -285,11 +211,11 @@ try {
             <div class="flex items-center">
                 <form action="" method="GET" id="searchForm" class="w-full text-end">
                     <input type="hidden" name="page" value="stock_list">
-                    <input type="hidden" name="page_num" value="1" id="pageNumInput">
+                    <input type="hidden" name="page_num" value="1">
+                    <input type="hidden" name="selected_date" id="hiddenSelectedDate" value="<?php echo($selected_date); ?>">
                     <div class="relative">
                         <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
-                            value="<?php echo htmlspecialchars($search); ?>"
-
+                            value="<?php echo($search); ?>"
                             class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-search"></i>
@@ -673,62 +599,7 @@ try {
             } else if (urlParams.has('error')) {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
-            // Helper function to escape HTML
-            function htmlspecialchars(str) {
-                return str
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;");
-            }
 
-            document.getElementById('editForm').addEventListener('submit', function (e) {
-                e.preventDefault();
-                const fields = [{
-                    id: 'editStockCheckActual',
-                    errorId: 'editActualError',
-                    label: 'จำนวนที่นับได้',
-                    type: 'number',
-                    required: true,
-                    maxLength: Infinity
-                },
-                {
-                    id: 'editStockCheckRemark',
-                    errorId: 'editRemarkError',
-                    label: 'หมายเหตุ',
-                    required: false,
-                    maxLength: 255
-                }
-                ];
-                if (validateForm('editForm', fields)) {
-                    this.submit();
-                }
-            });
-
-            function validateForm(formId, fields) {
-                let hasError = false;
-                fields.forEach(field => {
-                    const input = document.getElementById(field.id);
-                    const error = document.getElementById(field.errorId);
-                    if (field.required && !input.value.trim()) {
-                        error.textContent = `กรุณากรอก${field.label}`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (field.maxLength && input.value.length > field.maxLength) {
-                        error.textContent = `${field.label}ยาวเกิน ${field.maxLength} ตัวอักษร`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (field.type === 'number' && (isNaN(input.value) || input.value < 0)) {
-                        error.textContent = `${field.label}ต้องเป็นตัวเลขที่ไม่ติดลบ`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else {
-                        error.classList.add('hidden');
-                    }
-                });
-                return !hasError;
-            }
         });
     </script>
 </body>
