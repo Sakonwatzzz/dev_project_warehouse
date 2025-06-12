@@ -200,12 +200,12 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 รูปแบบการลบ: -จำนวน*รหัสสินค้า (เช่น -50*9998887776665554)
                             </p>
                         </div>
-                        <button id="btn-submit" type="submit"
+                        <!-- <button id="btn-submit" type="submit"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center cursor-pointer" hidden>
                             <span class="text" hidden>บันทึก</span>
                             <span
                                 class="spinner hidden animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full ml-2" hidden></span>
-                        </button>
+                        </button> -->
                     </div>
                 </form>
                 <div class="flex justify-end mt-4">
@@ -228,7 +228,8 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">ชื่อสินค้า
                                 </th>
-                                <th class="px-6 py-3 text-right text-sm font-bold text-gray-900 uppercase" hidden>จำนวนจากระบบ
+                                <th class="px-6 py-3 text-right text-sm font-bold text-gray-900 uppercase" hidden>
+                                    จำนวนจากระบบ
                                 </th>
                                 <th class="px-6 py-3 text-right text-sm font-bold text-gray-900 uppercase">จำนวนนับจริง
                                 </th>
