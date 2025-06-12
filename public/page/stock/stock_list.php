@@ -142,7 +142,7 @@ try {
     $params = [':selected_date' => $selected_date];
     if (!empty($search)) {
 
-        $count_query .= " AND (sc.stock_check_id LIKE :search OR s.stock_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
+        $count_query .= " AND (sc.stock_check_id LIKE :search OR s.stock_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search OR sc.product_id  LIKE :search )";
 
         $params[':search'] = "%$search%";
     }
@@ -161,7 +161,7 @@ try {
 }
 
 // Pagination logic
-$records_per_page = 5;
+$records_per_page = 10;
 $page = isset($_GET['page_num']) ? max(1, min((int) $_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_records / $records_per_page));
@@ -282,8 +282,8 @@ try {
                         <span>รายการ (วันที่ <?php echo (date('d/m/Y', strtotime($selected_date))); ?>)</span>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-gray-700 font-medium">วันที่</label>
+                <div class="items-center gap-2 hidden" >
+                    <label class="text-gray-700 font-medium ">วันที่</label>
                     <input type="text" id="selectedDate" name="selected_date"
                         class="flatpickr-input border border-gray-200 rounded-md px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-36"
                         value="<?php echo htmlspecialchars(date('d/m/Y', strtotime($selected_date))); ?>">
@@ -296,7 +296,7 @@ try {
                     <input type="hidden" name="selected_date" id="hiddenSelectedDate"
                         value="<?php echo ($selected_date); ?>">
                     <div class="relative">
-                        <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
+                        <input type="text" name="search" id="searchInput" placeholder="ค้นหารายการสินค้าเช็คสต๊อก...."
                             value="<?php echo ($search); ?>"
                             class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
