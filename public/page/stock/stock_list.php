@@ -18,9 +18,6 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
-// Set database timezone to match PHP
-$pdo->exec("SET time_zone = '+07:00'");
-
 // Function to fetch data
 function fetchData($pdo, $query, $params = [])
 {
@@ -34,22 +31,46 @@ function fetchData($pdo, $query, $params = [])
     }
 }
 
-// Handle search parameters
+// Verify CSRF token
+function verifyCsrfToken($token)
+{
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+// Validate stock check data
+function validateStockCheckData($stock_check_actual, $stock_check_comment)
+{
+    $errors = [];
+    if (!is_numeric($stock_check_actual) || $stock_check_actual < 0) {
+        $errors[] = 'จำนวนสินค้าที่นับได้จริงต้องเป็นตัวเลขที่ไม่ติดลบ';
+    }
+    if (strlen($stock_check_comment) > 255) {
+        $errors[] = 'หมายเหตุต้องมีความยาวไม่เกิน 255 ตัวอักษร';
+    }
+    return $errors;
+}
+
+// Handle search and date parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 error_log("Search parameter: " . $search); // Debug log
 
 // Count total records for pagination
 try {
     $count_query = "SELECT COUNT(*) as total_count 
                     FROM stock_check sc
+                    LEFT JOIN product p ON sc.product_id = p.product_id
+                    LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
                     LEFT JOIN stock s ON sc.stock_id = s.stock_id
                     LEFT JOIN product p ON sc.product_id = p.product_id
                     LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
                     WHERE s.check_status_id = 2 
-                    AND DATE(s.stock_date) = DATE(NOW())";
-    $params = [];
+                    AND DATE(s.stock_date) = :selected_date";
+    $params = [':selected_date' => $selected_date];
     if (!empty($search)) {
+
         $count_query .= " AND (sc.stock_check_id LIKE :search OR s.stock_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
+
         $params[':search'] = "%$search%";
     }
     $stmt = $pdo->prepare($count_query);
@@ -59,6 +80,7 @@ try {
     $stmt->execute();
     $total_records = (int) $stmt->fetchColumn();
     error_log("Total records: " . $total_records); // Debug log
+
 } catch (PDOException $e) {
     error_log("Count stock check error: " . $e->getMessage());
     header('Location: index.php?page=stock_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
@@ -67,9 +89,9 @@ try {
 
 // Pagination logic
 $records_per_page = 5;
-$page = isset($_GET['page_num']) ? max(1, min((int) $_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
+$page = isset($_GET['page_num']) ? max(1, min((int) $_GET['page_num'], ceil($total_record / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
-$total_pages = max(1, ceil($total_records / $records_per_page));
+$total_pages = max(1, ceil($total_record / $records_per_page));
 
 // Fetch stock check data
 try {
@@ -103,10 +125,11 @@ try {
     LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
     LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
     WHERE s.check_status_id = 2
-    AND DATE(s.stock_date) = DATE(NOW())";
-    $params = [];
+    AND DATE(s.stock_date) = :selected_date";
+    $params = [':selected_date' => $selected_date];
     if (!empty($search)) {
         $query .= " AND (sc.stock_check_id LIKE :search OR s.stock_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
+
         $params[':search'] = "%$search%";
     }
     $query .= " ORDER BY s.stock_date DESC LIMIT :offset, :limit";
@@ -128,21 +151,44 @@ try {
 
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ประวัติรายการเช็คสต๊อกสินค้า - รายวัน</title>
     <link rel="stylesheet" href="../../output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
     <style>
         body {
             font-family: 'Sarabun', sans-serif;
             background-color: #f8f9fa;
         }
+        .input-update {
+            border-color: black;
+            border-radius: 3px;
+        }
+        .flatpickr-input {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em;
+        }
+        .flatpickr-calendar {
+            @apply bg-white shadow-lg rounded-lg border border-gray-200;
+        }
+        .flatpickr-day.selected {
+            @apply bg-blue-500 border-blue-500 text-white;
+        }
+        .flatpickr-day.today {
+            @apply border-blue-400;
+        }
+        .flatpickr-day:hover {
+            @apply bg-blue-100;
+        }
     </style>
 </head>
-
 <body class="bg-gray-50">
     <div class="mx-auto px-4 py-8">
         <!-- Header and Search Section -->
@@ -151,8 +197,10 @@ try {
                 <div class="flex space-x-2">
                     <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
                         <i class="fas fa-boxes mr-2"></i>
+
                         <?php echo htmlspecialchars($total_records); ?>
                         <span>รายการ (วันที่ <?php echo htmlspecialchars(date('d/m/Y')); ?>)</span>
+
                     </div>
                 </div>
             </div>
@@ -163,6 +211,7 @@ try {
                     <div class="relative">
                         <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
                             value="<?php echo htmlspecialchars($search); ?>"
+
                             class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-search"></i>
@@ -170,8 +219,7 @@ try {
                     </div>
                 </form>
             </div>
-            <div
-                class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
+            <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
                 <!-- Export Buttons -->
                 <div class="grid grid-cols-2 gap-4 pt-2 md:grid md:grid-cols-2 md:gap-4">
                     <button onclick="exportPDF()"
@@ -187,8 +235,7 @@ try {
         </div>
 
         <!-- Notification -->
-        <div id="notification"
-            class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
+        <div id="notification" class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
             <div id="notification-header" class="px-4 py-2 font-bold text-white"></div>
             <div class="px-4 py-3" id="notification-message"></div>
         </div>
@@ -212,63 +259,41 @@ try {
                     <table class="w-full border-collapse">
                         <thead>
                             <tr class="bg-gray-100">
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>
-                                    รหัสรายการเช็คสต๊อก</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสรายการเช็คสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสสินค้า</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อสินค้า</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>จำนวนจากระบบ
-                                </th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>จำนวนจากระบบ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">จำนวนที่นับได้</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>สถานะ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">หมายเหตุ</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>
-                                    ข้อความเพิ่มเติม</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>ข้อความเพิ่มเติม</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (count($check_stock) > 0): ?>
                                 <?php foreach ($check_stock as $stock): ?>
                                     <tr class="hover:bg-gray-100">
-                                        <td class="px-6 py-2 border" hidden>
-                                            <?php echo htmlspecialchars($stock['stock_check_id']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_id']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border">
-                                            <?php echo htmlspecialchars(date('Y-m-d', strtotime($stock['stock_date']))); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['warehouse_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_id']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border" hidden>
-                                            <?php echo htmlspecialchars($stock['stock_check_system']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border">
-                                            <?php echo htmlspecialchars($stock['stock_check_actual']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border" hidden>
-                                            <?php echo htmlspecialchars($stock['check_status_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border">
-                                            <?php echo htmlspecialchars($stock['stock_check_remark_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border" hidden>
-                                            <?php echo htmlspecialchars($stock['stock_check_comment']); ?>
-                                        </td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['stock_check_id']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['stock_id']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['stock_date']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['warehouse_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['product_id']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['product_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['stock_check_system']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['stock_check_actual']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['personnel_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['check_status_name']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo($stock['stock_check_remark_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden><?php echo($stock['stock_check_comment']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-gray-600">ไม่มีข้อมูลการเช็คสต๊อกในวันนี้
-                                        (<?php echo htmlspecialchars(date('d/m/Y')); ?>)</td>
+                                    <td colspan="10" class="text-center py-4 text-gray-600">ไม่มีข้อมูลการเช็คสต๊อกในวันที่เลือก</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -282,7 +307,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=stock_list&page_num=<?= $page - 1 ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
+                    <a href="?page=stock_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
@@ -292,7 +317,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=stock_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         1
                     </a>
@@ -301,7 +326,7 @@ try {
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=stock_list&page_num=<?= $i ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
+                    <a href="?page=stock_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -310,14 +335,14 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=stock_list&page_num=<?= $total_pages ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
+                    <a href="?page=stock_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=stock_list&page_num=<?= $page + 1 ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"
+                    <a href="?page=stock_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>&selected_date=<?= urlencode($selected_date) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
@@ -325,9 +350,43 @@ try {
             <?php endif; ?>
         </div>
     </div>
-
     <!-- <script src="page/stock/js/stock_list.js"></script> -->
+
     <script>
+        function updateClock() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const formattedDate = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('clock-realtime').textContent = formattedDate;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Midnight refresh
+        function checkMidnightRefresh() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            if (hours === 0 && minutes === 0 && seconds === 0) {
+                window.location.reload();
+            }
+        }
+        setInterval(checkMidnightRefresh, 1000);
+
+        function checkEmptySearch(input) {
+            if (input.value.trim() === '') {
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('page', 'stock_list');
+                urlParams.delete('search');
+                window.location.search = urlParams.toString();
+            }
+        }
 
         function exportPDF() {
             const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
@@ -401,6 +460,7 @@ try {
                 if (e.key === 'Enter') {
                     localStorage.setItem('searchPreserve', this.value);
                     this.form.submit();
+
                 }
             });
 
@@ -433,7 +493,6 @@ try {
             } else if (urlParams.has('error')) {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
-
             // Helper function to escape HTML
             function htmlspecialchars(str) {
                 return str
@@ -443,8 +502,8 @@ try {
                     .replace(/"/g, "&quot;")
                     .replace(/'/g, "&#039;");
             }
+
         });
     </script>
 </body>
-
 </html>
