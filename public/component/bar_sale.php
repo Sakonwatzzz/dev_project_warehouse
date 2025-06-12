@@ -115,10 +115,10 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
                     <p>แสดงรายการขาย(ลูกค้า)</p>
                 </button>
             </a>
-            <a href="?page=sale_inserttest" class="button-link">
-                <button class="<?php echo ($current_page == 'sale_inserttest') ? 'active' : ''; ?>">
+            <a href="?page=sale_adminoutput" class="button-link">
+                <button class="<?php echo ($current_page == 'sale_adminoutput') ? 'active' : ''; ?>">
                     <img src="../image/box.png" alt="">
-                    <p>หน้าการขายสินค้า(ทดลอง4)</p>
+                    <p>แสดงรายการขาย(Admin)</p>
                 </button>
             </a>
 

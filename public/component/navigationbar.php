@@ -202,7 +202,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             'sale_insert',
             'sale_detail',
             'sale_output',
-            'sale_inserttest'
+            'sale_adminoutput'
         ];
         $stock_pages = [
             'stock_insert',
