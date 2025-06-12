@@ -48,9 +48,7 @@ if (!$sale_id) {
             <div class="py-4 px-6 flex justify-between items-center">
                 <h1 class="text-2xl font-bold">ใบเสร็จการขาย</h1>
                 <div class="flex items-center space-x-4">
-                    <p class="text-sm text-white"><strong>สมาชิก:</strong> <span id="member_name"></span></p>
-                    <span class="text-sm">บิล #: <span
-                            id="sale_id"><?php echo htmlspecialchars($sale_id); ?></span></span>
+                    <span class="text-sm">บิล #: <span id="sale_id"><?php echo htmlspecialchars($sale_id); ?></span></span>
                     <span class="text-sm">วันที่: <?php echo $displayDateTime; ?></span>
                 </div>
             </div>
@@ -59,10 +57,8 @@ if (!$sale_id) {
         <!-- Sale Details -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6" hidden>
             <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 ข้อมูลการขาย
             </h2>
@@ -77,89 +73,76 @@ if (!$sale_id) {
                 </div>
             </div>
         </div>
+
+        <!-- Product List -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">โฆษณา</h2>
-            <div id="ad_slideshow" class="relative h-64 swiper-container">
-                <div class="swiper-wrapper"></div>
-                <div class="swiper-pagination"></div>
-                
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                รายการสินค้า
+            </h2>
+            <div class="overflow-x-auto rounded-lg border border-gray-200">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-700">
+                            <th class="py-3 px-4 text-left font-medium text-sm">รหัสสินค้า</th>
+                            <th class="py-3 px-4 text-left font-medium text-sm">ชื่อสินค้า</th>
+                            <th class="py-3 px-4 text-center font-medium text-sm">จำนวน</th>
+                            <th class="py-3 px-4 text-right font-medium text-sm">ราคาขาย</th>
+                            <th class="py-3 px-4 text-right font-medium text-sm">ยอดรวม</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product_table_body"></tbody>
+                </table>
+            </div>
+            <div id="no_products" class="text-center py-8 text-gray-500 hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <p class="mt-2">ไม่พบสินค้าในการขายนี้</p>
             </div>
         </div>
-        <div class="flex justify-center items-center gap-10">
 
-            <!-- Product List -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6 w-[50%]">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    รายการสินค้า
-                </h2>
-                <div class="overflow-x-auto rounded-lg border border-gray-200">
-                    <table class="w-full border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-700">
-                                <th class="py-3 px-4 text-left font-medium text-sm">รหัสสินค้า</th>
-                                <th class="py-3 px-4 text-left font-medium text-sm">ชื่อสินค้า</th>
-                                <th class="py-3 px-4 text-center font-medium text-sm">จำนวน</th>
-                                <th class="py-3 px-4 text-right font-medium text-sm">ราคาขาย</th>
-                                <th class="py-3 px-4 text-right font-medium text-sm">ยอดรวม</th>
-                            </tr>
-                        </thead>
-                        <tbody id="product_table_body"></tbody>
-                    </table>
+        <!-- Payment Summary -->
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <h2 class="text-2xl font-semibold mb-3 text-gray-800 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                สรุปการชำระเงิน
+            </h2>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="flex justify-between text-gray-800 mb-2">
+                    <span class="font-medium text-sm">ยอดสุทธิ (ไม่รวม VAT):</span>
+                    <span class="text-sm" id="sale-net-amount">0.00 บาท</span>
                 </div>
-                <div id="no_products" class="text-center py-8 text-gray-500 hidden">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    <p class="mt-2">ไม่พบสินค้าในการขายนี้</p>
+                <div class="flex justify-between text-gray-800 mb-2">
+                    <span class="font-medium text-sm">VAT (7%):</span>
+                    <span class="text-sm" id="sale-vat-amount">0.00 บาท</span>
                 </div>
-
-                <h2 class="text-xl font-semibold mb-3 text-gray-800 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    สรุปการชำระเงิน
-                </h2>
-                <div class="p-3 bg-gray-50 rounded-lg">
-                    <div class="flex justify-between text-gray-800 mb-2">
-                        <span class="font-medium text-sm">ยอดสุทธิ (ไม่รวม VAT):</span>
-                        <span class="text-sm" id="sale-net-amount">0.00 บาท</span>
-                    </div>
-                    <div class="flex justify-between text-gray-800 mb-2">
-                        <span class="font-medium text-sm">VAT (7%):</span>
-                        <span class="text-sm" id="sale-vat-amount">0.00 บาท</span>
-                    </div>
-                    <div class="flex justify-between text-gray-800 mb-2">
-                        <span class="font-medium text-sm">ยอดรวมสินค้า:</span>
-                        <span class="text-sm" id="sale-total-amount">0.00 บาท</span>
-                    </div>
-                    <div class="border-t border-gray-200 pt-2 flex justify-between font-semibold text-xl">
-                        <span>ยอดรวมสุทธิที่ต้องชำระ:</span>
-                        <span class="text-blue-700" id="total-net">0.00 บาท</span>
-                    </div>
-                    <div class="flex justify-between text-gray-800 mt-2">
-                        <span class="font-medium text-sm">เงินที่ชำระ:</span>
-                        <span class="text-sm" id="sale-paid-amount">0.00 บาท</span>
-                    </div>
-                    <div class="flex justify-between text-gray-800 mt-2">
-                        <span class="font-medium text-sm">เงินทอน:</span>
-                        <span class="text-sm text-blue-700 font-semibold" id="sale-change-amount">0.00 บาท</span>
-                    </div>
+                <div class="flex justify-between text-gray-800 mb-2">
+                    <span class="font-medium text-sm">ยอดรวมสินค้า:</span>
+                    <span class="text-sm" id="sale-total-amount">0.00 บาท</span>
+                </div>
+                <div class="border-t border-gray-200 pt-2 flex justify-between font-semibold text-2xl">
+                    <span>ยอดรวมสุทธิที่ต้องชำระ:</span>
+                    <span class="text-blue-700" id="total-net">0.00 บาท</span>
+                </div>
+                <div class="flex justify-between text-gray-800 mt-2">
+                    <span class="font-medium text-sm">เงินที่ชำระ:</span>
+                    <span class="text-sm" id="sale-paid-amount">0.00 บาท</span>
+                </div>
+                <div class="flex justify-between text-gray-800 mt-2">
+                    <span class="font-medium text-sm">เงินทอน:</span>
+                    <span class="text-sm text-blue-700 font-semibold" id="sale-change-amount">0.00 บาท</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             const saleId = '<?php echo htmlspecialchars($sale_id); ?>';
 
             function fetchSaleDetail() {
@@ -170,7 +153,7 @@ if (!$sale_id) {
                         sale_id: saleId
                     },
                     dataType: 'json',
-                    success: function (response) {
+                    success: function(response) {
                         if (response.status === 'success') {
                             updateUI(response.data);
                         } else {
@@ -182,7 +165,7 @@ if (!$sale_id) {
                             });
                         }
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         Swal.fire({
                             icon: 'error',
                             title: 'ข้อผิดพลาด',
@@ -230,7 +213,7 @@ if (!$sale_id) {
             fetchSaleDetail();
             setInterval(fetchSaleDetail, 2000);
 
-            <?php if (isset($_SESSION['error'])): ?>
+            <?php if (isset($_SESSION['error'])) : ?>
                 Swal.fire({
                     icon: 'error',
                     title: 'ข้อผิดพลาด',
