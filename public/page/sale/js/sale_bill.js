@@ -45,7 +45,8 @@ $(document).ready(function () {
                 icon: "success",
                 title: response.message,
               }).then(() => {
-                window.location.href = response.redirect;
+                window.location.reload();
+                // window.location.href = response.redirect;
               });
             } else {
               Swal.fire({

@@ -17,6 +17,10 @@ try {
     exit();
 }
 
+// if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+//     echo json_encode(['status' => 'error', 'message' => 'Invalid CSRF token']);
+//     exit();
+// }
 
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
@@ -38,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $_SESSION['active_sales'][] = $new_sale_id;
         $_SESSION['current_sale_id'] = $new_sale_id;
         $pdo->commit();
+        // $redirect_url = "/?page=sale_add&sale_id=$new_sale_id";
         echo json_encode([
             'status' => 'success',
             'sale_id' => $new_sale_id,

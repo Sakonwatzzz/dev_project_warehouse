@@ -16,8 +16,14 @@ $(document).ready(function () {
     },
   });
 
+  const saleId = $('input[name="sale_id"]').val() || window.SALE_ID || "";
+  console.log(
+    'input[name="sale_id"] exists:',
+    $('input[name="sale_id"]').length
+  );
   // ดึง saleId จาก DOM
-  const saleId = $('input[name="sale_id"]').val() || "";
+  // const saleId = $('input[name="sale_id"]').val() || "";
+  console.log("saleId:", saleId);
 
   if (!saleId) {
     console.error("sale_id is not defined");
@@ -25,8 +31,9 @@ $(document).ready(function () {
       icon: "error",
       title: "ข้อผิดพลาด",
       text: "ไม่พบรหัสการขาย (sale_id)",
+    }).then(() => {
+      window.location.href = "?page=sale_add"; // Redirect เพื่อสร้างบิลใหม่
     });
-    return;
   }
 
   function resetPaymentValues() {

@@ -6,7 +6,8 @@ header('Content-Type: application/json');
 try {
     $sale_id = $_GET['sale_id'] ?? null;
     if (!$sale_id) {
-        throw new Exception("ไม่พบ sale_id ในคำขอ กรุณาเปิดบิลใหม่และเพิ่มข้อมูลการขาย");
+        echo json_encode(['status' => 'error', 'message' => 'ไม่มี sale_id']);
+        exit;
     }
 
     error_log("ajax_get_sale_product: sale_id=$sale_id");

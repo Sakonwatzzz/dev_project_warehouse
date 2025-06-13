@@ -52,7 +52,11 @@ if (!isset($_SESSION['active_sales'])) {
 // ถ้าไม่พบ sale_id จริง ๆ : บันทึก error ลง log -> ส่ง HTTP response code 400 (Bad Request) = ส่งข้อความ error เป็น JSON
 
 // Get sale_id from POST, GET, or session
-$sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
+$sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'];
+if (isset($_GET['sale_id']) && !$_SESSION['current_sale_id']) {
+    $_SESSION['current_sale_id'] = $_GET['sale_id'];
+    $sale_id = $_GET['sale_id'];
+}
 
 // Create new sale if none exists
 if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
@@ -73,6 +77,7 @@ if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
         $_SESSION['active_sales'][] = $sale_id;
         $_SESSION['current_sale_id'] = $sale_id;
         $pdo->commit();
+        error_log("Created new sale_id: $sale_id");
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -303,31 +308,35 @@ $sale_status_result = $pdo->query("SELECT sale_status_id, sale_status_name FROM 
 // Validate active sales against database
 $valid_active_sale = [];
 if (!empty($_SESSION['active_sales'])) {
-    $placeholders = implode(',', array_fill(0, count($_SESSION['active_sales']), '?'));
     try {
-        // เปลี่ยนจาก sale_status_id = 2 เป็น sale_status_id IN (1, 2) เพื่อให้บิลที่ยืนยันแล้วยังคงอยู่ใน active_sales ชั่วคราว
-        $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders) AND sale_status_id IN (1, 2)");
+        $active_sales_query = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_status_id IN (1, 2)");
+        $active_sales_query->execute();
+        $db_active_sales = $active_sales_query->fetchAll(PDO::FETCH_COLUMN);
+        $_SESSION['active_sales'] = array_unique(array_intersect($_SESSION['active_sales'] ?? [], $db_active_sales));
+        $placeholders = implode(',', array_fill(0, count($_SESSION['active_sales']), '?'));
+        $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders)");
         $stmt->execute(array_values($_SESSION['active_sales']));
         $valid_sales = $stmt->fetchAll(PDO::FETCH_COLUMN);
         $valid_active_sale = array_intersect($_SESSION['active_sales'], $valid_sales);
+
+        if ($sale_id) {
+            $check_current = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id = ?");
+            $check_current->execute([$sale_id]);
+            if ($check_current->rowCount() > 0 && !in_array($sale_id, $valid_active_sale)) {
+                $valid_active_sale[] = $sale_id;
+            }
+        }
+
         $_SESSION['active_sales'] = $valid_active_sale;
         if (!in_array($_SESSION['current_sale_id'], $valid_active_sale)) {
-            $_SESSION['current_sale_id'] = !empty($valid_active_sale) ? reset($valid_active_sale) : null;
-            $sale_id = $_SESSION['current_sale_id'];
+            $_SESSION['current_sale_id'] = $sale_id ?: (!empty($valid_active_sale) ? reset($valid_active_sale) : null);
         }
         error_log("Validated active_sales: " . json_encode($valid_active_sale));
     } catch (PDOException $e) {
         error_log("Error validating active sales: " . $e->getMessage());
-        $_SESSION['active_sales'] = [];
-        $_SESSION['current_sale_id'] = null;
-        $sale_id = null;
+        $_SESSION['error'] = 'เกิดข้อผิดพลาดในการตรวจสอบบิล';
     }
-} else {
-    $_SESSION['active_sales'] = [];
-    $_SESSION['current_sale_id'] = null;
-    $sale_id = null;
 }
-
 $sale_status_id = $sale_data['sale_status_id'] ?? 2;
 $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย';
 ?>
@@ -352,13 +361,13 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
     sale_id จาก sale_add.php ไปยัง JavaScript ผ่านวิธีอื่น เช่น การกำหนดตัวแปรใน <script> หรือผ่าน attribute ใน HTML. -->
     <script>
         const SALE_ID = '<?php echo htmlspecialchars($sale_id); ?>';
+        console.log ('SALE_ID :' ,SALE_ID);
     </script>
     <script src="page/sale/js/sale_delete.js"></script>
     <script src="page/sale/js/sale_bill.js"></script>
     <script src="page/sale/js/sale_confirm_btn.js"></script>
     <script src="page/sale/js/sale_modal_edit.js"></script>
-    <script src="page/sale/js/sale_payment.js"></script>
-
+    <script defer src="page/sale/js/sale_payment.js"></script>
     <style>
         #edit-product-modal {
             z-index: 1000;
@@ -430,7 +439,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
         <div class="container mx-auto p-6">
             <div class="flex items-center space-x-2 mb-6 rounded-lg shadow-md py-2 px-2">
                 <button id="new_sale"
-                    class="w-40 px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors flex items-center ">
+                    class="w-40 px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors flex items-center cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -452,7 +461,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 </div>
             </div>
             <?php if (isset($_SESSION['success'])): ?>
-                <script>
+                <scrip>
                     Swal.fire({
                         toast: true,
                         position: 'center',
@@ -463,7 +472,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         timerProgressBar: true
                     });
                     <?php unset($_SESSION['success']); ?>
-                </script>
+                </scrip>
             <?php endif; ?>
             <?php if (isset($_SESSION['error'])): ?>
                 <script>
@@ -723,7 +732,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     <div class="space-y-3">
                         <!-- ปุ่มพิมพ์ใบเสร็จ (เริ่มต้นซ่อน) -->
                         <button id="print_receipt"
-                            class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center <?php echo ($sale_data['sale_status_id'] == 1) ? '' : 'hidden'; ?>">
+                            class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center cursor-pointer <?php echo ($sale_data['sale_status_id'] == 1) ? '' : 'hidden'; ?>">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -805,7 +814,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
         </div>
 
         <!-- เพิ่ม CSRF token -->
-        <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+        <!-- <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>"> -->
 
         <script>
             $(document).ready(function() {
@@ -854,6 +863,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     $("#calculate_change").prop("disabled", false).removeClass("opacity-50 cursor-not-allowed");
                     $("#print_receipt").addClass("hidden");
                 }
+                refreshBillTabs();
                 const saleNetAmount = parseFloat(<?php echo json_encode((float)$sale_net_amount); ?>) || 0;
                 $(document).trigger("productListUpdated", [saleNetAmount]);
 
@@ -956,7 +966,22 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
                 }
                 bindEditProductEvents();
+                function refreshBillTabs() {
+                $.ajax({
+                    url: 'page/sale/ajax/ajax_get_active_sale.php',
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            $('#billTabs').html(response.html);
+                            updateTabStyles();
+                        }
+                    }
+                });
+            }
+           refreshBillTabs(); // Refresh ทุก 5 วินาที
             });
+            
         </script>
     </div>
 </body>
