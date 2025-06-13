@@ -513,21 +513,7 @@ ob_end_flush();
                                 <span class="text-gray-700 font-semibold text-sm">วันที่รับสินค้า:</span>
                                 <span class="text-sm"><?php echo htmlspecialchars($lot_product['lot_product_date']); ?></span>
                             </div>
-                            <div class="flex justify-center space-x-2 mt-4">
-                                <button onclick="showEditModal('<?php echo htmlspecialchars($lot_product['lot_product_id']); ?>', '<?php echo htmlspecialchars($lot_product['lot_id']); ?>', '<?php echo htmlspecialchars($lot_product['product_id']); ?>', '<?php echo htmlspecialchars($lot_product['lot_product_qty']); ?>', '<?php echo htmlspecialchars($lot_product['lot_product_capital']); ?>', '<?php echo htmlspecialchars($lot_product['lot_product_date']); ?>')"
-                                    class="flex items-center justify-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition">
-                                    <i class="fas fa-edit mr-1"></i> แก้ไข
-                                </button>
-                                <form action="" method="POST" class="delete-form inline-flex">
-                                    <input type="hidden" name="lot_product_id" value="<?php echo htmlspecialchars($lot_product['lot_product_id']); ?>">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                    <button type="button" onclick="confirmDelete(this.parentElement)"
-                                        class="flex items-center justify-center px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
-                                        <i class="fas fa-trash-alt mr-1"></i> ลบ
-                                    </button>
-                                </form>
-                            </div>
+                            
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>

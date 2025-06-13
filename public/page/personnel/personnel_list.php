@@ -6,6 +6,7 @@ date_default_timezone_set('Asia/Bangkok');
 if (!isset($_SESSION)) {
     session_start();
 }
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -68,8 +69,13 @@ function validatePersonnelData($name, $username, $type_id, $address, $phone, $pa
     if (empty($phone) || !preg_match('/^[0-9]{10}$/', $phone)) {
         $errors[] = 'เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก';
     }
-    if (empty($password) || strlen($password) < 6 || strlen($password) > 100) {
-        $errors[] = 'รหัสผ่านต้องมีความยาว 6-100 ตัวอักษร';
+    // ตรวจสอบรหัสผ่านเฉพาะเมื่อมีการกรอก
+    if ($password) {
+        if (strlen($password) < 6 || strlen($password) > 100) {
+            $errors[] = 'รหัสผ่านต้องมีความยาว 6-100 ตัวอักษร';
+        } elseif (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{6,100}$/', $password)) {
+            $errors[] = 'รหัสผ่านต้องมีตัวอักษรพิมพ์เล็ก พิมพ์ใหญ่ ตัวเลข และอักขระพิเศษอย่างน้อย 1 ตัว';
+        }
     }
     return $errors;
 }
@@ -136,7 +142,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $password = trim($_POST['update_personnel_password']);
 
         $errors = validatePersonnelData($name, $username, $type_id, $address, $phone, $password ?: 'dummy', $pdo, $id);
-        if (!$id) {
+        $id = trim($_POST['id']);
+        if (empty($id)) {
             $errors[] = 'รหัสบุคลากรไม่ถูกต้อง';
         }
 
@@ -265,6 +272,7 @@ try {
             p.personnel_username,
             p.personnel_address,
             p.personnel_phone,
+            p.personnel_password, -- เพิ่มคอลัมน์นี้
             p.personnel_create_date,
             p.personnel_type_id,
             pt.personnel_type_name
@@ -409,7 +417,7 @@ try {
                                     <td class="px-6 py-3 border-t"><?php echo htmlspecialchars($person['personnel_create_date']); ?></td>
                                     <td class="px-6 py-3 border-t text-center">
                                         <div class="flex justify-center space-x-2">
-                                            <button onclick="showEditModal('<?php echo htmlspecialchars($person['personnel_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_name'])); ?>', '<?php echo htmlspecialchars($person['personnel_username']); ?>', '<?php echo htmlspecialchars($person['personnel_type_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_address'])); ?>', '<?php echo htmlspecialchars($person['personnel_phone']); ?>')"
+                                            <button onclick="showEditModal('<?php echo htmlspecialchars($person['personnel_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_name'])); ?>', '<?php echo htmlspecialchars($person['personnel_username']); ?>', '<?php echo htmlspecialchars($person['personnel_type_id']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_address'])); ?>', '<?php echo htmlspecialchars($person['personnel_phone']); ?>', '<?php echo htmlspecialchars(addslashes($person['personnel_password'])); ?>')"
                                                 class="flex items-center justify-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition">
                                                 <div class="hidden md:flex">
                                                     <i class="fas fa-edit mr-1"></i>
@@ -600,10 +608,15 @@ try {
                         <span id="editPhoneError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">รหัสผ่าน </label>
-                        <input type="password" id="editPersonnelPassword" name="update_personnel_password"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            aria-describedby="editPasswordError">
+                        <label class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
+                        <div class="relative">
+                            <input type="password" id="editPersonnelPassword" name="update_personnel_password"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                aria-describedby="editPasswordError">
+                            <button type="button" id="togglePassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <span id="editPasswordError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
@@ -669,7 +682,7 @@ try {
             document.getElementById('editPersonnelUsername').value = username;
             document.getElementById('editPersonnelAddress').value = address;
             document.getElementById('editPersonnelPhone').value = phone;
-            document.getElementById('editPersonnelPassword').value = password;
+            document.getElementById('editPersonnelPassword').value = password || ''; // แสดงรหัสผ่านเดิม
             document.getElementById('editPersonnelTypeId').value = typeId;
             ['editNameError', 'editUsernameError', 'editAddressError', 'editPhoneError', 'editPasswordError', 'editTypeError'].forEach(id => document.getElementById(id).classList.add('hidden'));
             document.getElementById('editModal').classList.remove('hidden');
@@ -732,6 +745,58 @@ try {
             window.open(url, '_blank');
         };
 
+        const validateForm = (formId, fields) => {
+            let hasError = false;
+            fields.forEach(({
+                id,
+                errorId,
+                label,
+                maxLength,
+                regex,
+                regexError,
+                isOptional
+            }) => {
+                const input = document.getElementById(id);
+                const error = document.getElementById(errorId);
+                const value = input.value.trim();
+
+                if (id === 'editPersonnelPassword') {
+                    if (value) { // ตรวจสอบเฉพาะเมื่อมีการกรอกรหัสผ่าน
+                        if (value.length > maxLength) {
+                            error.textContent = `${label}ยาวเกิน ${maxLength} ตัวอักษร`;
+                            error.classList.remove('hidden');
+                            hasError = true;
+                        } else if (regex && !regex.test(value)) {
+                            error.textContent = regexError;
+                            error.classList.remove('hidden');
+                            hasError = true;
+                        } else {
+                            error.classList.add('hidden');
+                        }
+                    } else {
+                        error.classList.add('hidden'); // ไม่แสดงข้อผิดพลาดถ้าปล่อยว่าง
+                    }
+                } else {
+                    if (!isOptional && !value) {
+                        error.textContent = `กรุณากรอก${label}`;
+                        error.classList.remove('hidden');
+                        hasError = true;
+                    } else if (value.length > maxLength) {
+                        error.textContent = `${label}ยาวเกิน ${maxLength} ตัวอักษร`;
+                        error.classList.remove('hidden');
+                        hasError = true;
+                    } else if (regex && value && !regex.test(value)) {
+                        error.textContent = regexError || `${label}รูปแบบไม่ถูกต้อง`;
+                        error.classList.remove('hidden');
+                        hasError = true;
+                    } else {
+                        error.classList.add('hidden');
+                    }
+                }
+            });
+            return !hasError;
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
@@ -769,41 +834,6 @@ try {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
 
-            const validateForm = (formId, fields) => {
-                let hasError = false;
-                fields.forEach(({
-                    id,
-                    errorId,
-                    label,
-                    maxLength,
-                    regex,
-                    isOptional,
-                    regexError
-                }) => {
-                    const input = document.getElementById(id);
-                    const error = document.getElementById(errorId);
-                    const value = input.value.trim();
-
-                    if (!isOptional && !value) {
-                        error.textContent = `กรุณากรอก${label}`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (value.length > maxLength) {
-                        error.textContent = `${label}ยาวเกิน ${maxLength} ตัวอักษร`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (regex && value && !regex.test(value)) {
-                        error.textContent = regexError || `${label}รูปแบบไม่ถูกต้อง`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else {
-                        error.classList.add('hidden');
-                    }
-                });
-                return !hasError;
-            };
-
-
             document.getElementById('addForm').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const fields = [{
@@ -837,8 +867,8 @@ try {
                         errorId: 'addPasswordError',
                         label: 'รหัสผ่าน',
                         maxLength: 100,
-                        regex: /^.{6,}$/,
-                        regexError: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
+                        regex: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{6,100}$/,
+                        regexError: 'รหัสผ่านต้องมีตัวอักษรพิมพ์เล็ก พิมพ์ใหญ่ ตัวเลข และอักขระพิเศษอย่างน้อย 1 ตัว'
                     },
                     {
                         id: 'addPersonnelTypeId',
@@ -884,7 +914,8 @@ try {
                         errorId: 'editPasswordError',
                         label: 'รหัสผ่าน',
                         maxLength: 100,
-                        regex: /^.{6,}$/,
+                        regex: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{6,100}$/,
+                        regexError: 'รหัสผ่านต้องมีตัวอักษรพิมพ์เล็ก พิมพ์ใหญ่ ตัวเลข และอักขระพิเศษอย่างน้อย 1 ตัว',
                         isOptional: true
                     },
                     {
@@ -913,6 +944,17 @@ try {
                 else urlParams.delete('end_date');
                 window.location.search = urlParams.toString();
             }
+            document.getElementById('togglePassword').addEventListener('click', () => {
+                const passwordInput = document.getElementById('editPersonnelPassword');
+                const toggleIcon = document.getElementById('togglePassword').querySelector('i');
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleIcon.className = 'fas fa-eye-slash';
+                } else {
+                    passwordInput.type = 'password';
+                    toggleIcon.className = 'fas fa-eye';
+                }
+            });
         });
     </script>
 </body>
