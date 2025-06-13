@@ -805,7 +805,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
         </div>
 
         <!-- เพิ่ม CSRF token -->
-        <!-- <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>"> -->
+        <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
         <script>
             $(document).ready(function() {
