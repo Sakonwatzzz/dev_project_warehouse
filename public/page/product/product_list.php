@@ -15,16 +15,12 @@ function fetchData($pdo, $query, $params = [])
 }
 
 try {
-    // นับจำนวนสินค้าทั้งหมดในตาราง product
     $query = "SELECT COUNT(*) as total_count FROM product";
     $stmt = $pdo->query($query);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $count = $row['total_count'];
 
-    // ตรวจสอบโหมดการแสดงผล (แสดงข้อมูลไม่ครบถ้วนหรือทั้งหมด)
     $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
-
-    // เพิ่มตัวแปรสำหรับการค้นหาและกรองวันที่
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
     $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
     $end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
@@ -36,7 +32,6 @@ try {
         ? array_filter(array_map('intval', explode(',', $_GET['product_brand'])))
         : [];
 
-    // จัดการคำขอ POST สำหรับการอัปเดตสินค้า
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
         $name = $_POST['name'] ?? '';
@@ -82,7 +77,6 @@ try {
         }
     }
 
-    // จัดการคำขอลบสินค้า
     if (isset($_GET['id'])) {
         $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
@@ -90,7 +84,6 @@ try {
             $stmt = $pdo->prepare("DELETE FROM product WHERE product_id = ?");
             $stmt->execute([$id]);
 
-            // รีเซ็ต AUTO_INCREMENT ถ้าตารางว่าง
             $stmt = $pdo->query("SELECT COUNT(*) FROM product");
             $count = $stmt->fetchColumn();
 
@@ -103,12 +96,10 @@ try {
         }
     }
 
-    // ตั้งค่าการแบ่งหน้า
     $records_per_page = 10;
     $page = isset($_GET['page_num']) ? max(1, (int) $_GET['page_num']) : 1;
     $offset = ($page - 1) * $records_per_page;
 
-    // สร้างเงื่อนไข WHERE สำหรับการกรอง
     $where_conditions = [];
     $bind_params = [];
 
@@ -156,7 +147,6 @@ try {
         ? 'WHERE ' . implode(' AND ', $where_conditions)
         : '';
 
-    // คิวรีหลักเพื่อดึงข้อมูลสินค้า
     $query = "SELECT 
         product.product_id, 
         product.product_name, 
@@ -196,7 +186,6 @@ try {
     $stmt->execute();
     $resultsproduct = $stmt;
 
-    // นับจำนวนสินค้าที่ไม่สมบูรณ์เมื่ออยู่ในโหมด incomplete
     if ($incomplete_mode) {
         $incomplete_query = "SELECT COUNT(*) FROM product WHERE 
             product_name IS NULL OR TRIM(product_name) = '' OR 
@@ -213,7 +202,6 @@ try {
         $incomplete_count = $incomplete_stmt->fetchColumn();
     }
 
-    // นับจำนวนเรคคอร์ดทั้งหมดสำหรับการแบ่งหน้า
     $count_query = "SELECT COUNT(DISTINCT product.product_id) FROM product 
                     LEFT JOIN product_brand ON product.product_brand_id = product_brand.product_brand_id
                     LEFT JOIN product_type ON product.product_type_id = product_type.product_type_id
@@ -231,7 +219,6 @@ try {
     $total_records = $count_stmt->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
 
-    // ตัวกรองประเภทสินค้าและแบรนด์
     $typeLimit = isset($_POST['type_limit']) ? intval($_POST['type_limit']) : 5;
     $brandLimit = isset($_POST['brand_limit']) ? intval($_POST['brand_limit']) : 5;
     $action = isset($_POST['action']) ? $_POST['action'] : '';
@@ -239,13 +226,11 @@ try {
     $totalTypeCount = $pdo->query("SELECT COUNT(*) FROM product_type")->fetchColumn();
     $totalBrandCount = $pdo->query("SELECT COUNT(*) FROM product_brand")->fetchColumn();
 
-    // ดึงข้อมูลประเภทสินค้า
     $type_stmt = $pdo->prepare("SELECT product_type_id, product_type_name FROM product_type LIMIT ?");
     $type_stmt->bindValue(1, $typeLimit, PDO::PARAM_INT);
     $type_stmt->execute();
     $typeResults = $type_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // ดึงข้อมูลแบรนด์สินค้า
     $brand_stmt = $pdo->prepare("SELECT product_brand_id, product_brand_name FROM product_brand LIMIT ?");
     $brand_stmt->bindValue(1, $brandLimit, PDO::PARAM_INT);
     $brand_stmt->execute();
@@ -263,11 +248,32 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายการสินค้า</title>
-    <link href="../../output.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 50%, #ffffff 100%);
+            min-height: 100vh;
+            font-size: 1rem;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        .card-shadow {
+            box-shadow: 0 6px 24px rgba(59, 130, 246, 0.1);
+        }
+
+        .gradient-blue {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            transition: transform 0.3s ease;
         }
 
         @media (max-width: 640px) {
@@ -279,199 +285,264 @@ try {
             }
 
             .table-responsive table {
-                min-width: 800px;
+                min-width: 750px;
             }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .filter-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+        }
+
+        th,
+        td {
+            font-size: 0.875rem;
+        }
+
+        .standard-input {
+            padding: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .standard-button {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
         }
     </style>
 </head>
 
-<body class="bg-gray-50">
-    <div class="px-4 py-6 sm:py-8">
-        <!-- Header and Search Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
-            <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
-                <div class="flex space-x-2">
-                    <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
-                        <i class="fas fa-list mr-2"></i>
-                        <?php echo $total_records; ?>
-                        <span>รายการ</span>
+<body>
+    <div class="px-4 py-6 sm:px-6 sm:py-8 animate-fade-in">
+        <!-- Header Section -->
+        <div class="glass-effect rounded-xl p-5 mb-6 card-shadow">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 gradient-blue rounded-lg flex items-center justify-center">
+                        <i class="fas fa-boxes text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">รายการสินค้า</h1>
+                        <p class="text-blue-600 text-sm">จัดการข้อมูลสินค้าทั้งหมด</p>
                     </div>
                 </div>
-                <button "
-                    class=" bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
-                    <a href="/?page=product_insert"
-                        class="">
-                        <i class="fas fa-plus mr-2"></i>เพิ่มสินค้า
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="bg-blue-100 px-3 py-1.5 rounded border border-blue-200 text-sm">
+                        <i class="fas fa-list mr-1 text-blue-600"></i>
+                        <span class="font-semibold text-blue-800"><?php echo $total_records; ?></span>
+                        <span class="text-blue-600">รายการ</span>
+                    </div>
+                    <a href="/?page=product_insert" class="btn-primary text-white standard-button rounded-lg font-medium hover-lift">
+                        <i class="fas fa-plus mr-1"></i>เพิ่มสินค้า
                     </a>
-                </button>
-            </div>
-
-            <div class="flex items-center">
-                <form action="" method="GET" id="searchForm" class="w-full text-end">
-                    <input type="hidden" name="page" value="product_list">
-                    <input type="hidden" name="page_num" value="1">
-                    <div class="relative">
-                        <input type="text" name="search" id="searchInput" placeholder="ค้นหาประเภทสินค้า..." value="<?php echo htmlspecialchars($search); ?>" class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
-                            <i class="fas fa-search"></i>
-                        </button>
+                    <div class="relative flex-1 sm:w-64">
+                        <form action="" method="GET" id="searchForm">
+                            <input type="hidden" name="page" value="product_list">
+                            <input type="hidden" name="page_num" value="1">
+                            <input type="text" name="search" id="searchInput"
+                                placeholder="ค้นหาสินค้า..."
+                                value="<?php echo htmlspecialchars($search); ?>"
+                                class="w-full standard-input pl-10 pr-10 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 text-sm"></i>
+                            <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-500 hover:text-blue-700 text-sm" id="clearSearch" style="display: <?php echo $search ? 'block' : 'none'; ?>;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </form>
                     </div>
-                </form>
-            </div>
-
-            <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
-                <!-- Mobile Date Filter -->
-                <div class="grid grid-cols-2 gap-4 md:w-[100%]">
-                    <div>
-                        <label for="start_date" class="text-sm font-medium text-gray-700">เริ่มจาก</label>
-                        <input type="date" id="start_date" name="start_date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition" value="<?php echo htmlspecialchars($start_date); ?>">
-                    </div>
-                    <div>
-                        <label for="end_date" class="text-sm font-medium text-gray-700">ถึงวันที่</label>
-                        <input type="date" id="end_date" name="end_date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition" value="<?php echo htmlspecialchars($end_date); ?>">
-                    </div>
-                </div>
-                <!-- Export Buttons -->
-                <div class="grid grid-cols-2 gap-4 pt-2 md:w-[100%] md:grid md:grid-cols-2 md:gap-4">
-                    <button onclick="exportPDF()" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
-                        <i class="fas fa-file-pdf"></i> ส่งออก PDF
-                    </button>
-                    <button onclick="exportExcel()" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
-                        <i class="fas fa-file-excel"></i> ส่งออก Excel
-                    </button>
                 </div>
             </div>
         </div>
 
-
-        <!-- ตัวกรองและตาราง -->
-        <div class="flex flex-col lg:flex-row gap-6">
-            <!-- ตัวกรอง -->
-            <div class="w-full lg:w-1/6">
-                <button id="toggleFilters" class="lg:hidden w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-md mb-4 flex items-center justify-between">
-                    <span>ตัวกรอง</span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div id="filters" class="hidden lg:block bg-white p-4 rounded-lg shadow-lg">
-                    <h1 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
-                        <i class="fa-solid fa-filter text-blue-500"></i>
-                        <span>ค้นหาแบบละเอียด</span>
-                    </h1>
-
-                    <!-- ตัวกรองประเภทสินค้า -->
-                    <div class="pt-2 pb-4 border-b border-gray-400">
-                        <h2 class="text-base sm:text-lg font-semibold text-gray-700 mb-3">ค้นหาตามหมวดหมู่</h2>
-                        <div class="flex flex-col gap-2 sm:gap-3">
-                            <?php foreach ($typeResults as $typeRow): ?>
-                                <div class="flex items-center gap-2 text-gray-600 text-sm sm:text-base">
-                                    <input type="checkbox"
-                                        class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                        name="product_type[]" value="<?php echo $typeRow['product_type_id']; ?>"
-                                        <?php echo in_array($typeRow['product_type_id'], $selected_types) ? 'checked' : ''; ?>
-                                        onchange="updateFilters()">
-                                    <span><?php echo htmlspecialchars($typeRow['product_type_name']); ?></span>
-                                </div>
-                            <?php endforeach; ?>
-
-                            <div class="flex flex-col sm:flex-row justify-between mt-2 gap-2">
-                                <?php if ($typeLimit < $totalTypeCount): ?>
-                                    <form action="" method="POST" class="w-full sm:w-1/2">
-                                        <input type="hidden" name="type_limit" value="<?php echo $typeLimit + 5; ?>">
-                                        <input type="hidden" name="brand_limit" value="<?php echo $brandLimit; ?>">
-                                        <input type="hidden" name="action" value="show_more_types">
-                                        <button type="submit"
-                                            class="w-full py-1.5 px-2 bg-white border border-gray-300 rounded-md text-gray-700 text-xs sm:text-sm hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">แสดงเพิ่มเติม</button>
-                                    </form>
-                                <?php endif; ?>
-                                <?php if ($typeLimit > 5): ?>
-                                    <form action="" method="POST" class="w-full sm:w-1/2">
-                                        <input type="hidden" name="type_limit" value="5">
-                                        <input type="hidden" name="brand_limit" value="<?php echo $brandLimit; ?>">
-                                        <input type="hidden" name="action" value="show_less_types">
-                                        <button type="submit"
-                                            class="w-full py-1.5 px-2 bg-white border border-gray-300 rounded-md text-gray-700 text-xs sm:text-sm hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">แสดงน้อยลง</button>
-                                    </form>
-                                <?php endif; ?>
-                            </div>
+        <!-- Controls Section -->
+        <div class="glass-effect rounded-xl p-5 mb-6 card-shadow">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <i class="fas fa-calendar-alt text-blue-500 text-sm"></i>
+                        กรองตามวันที่
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">วันที่เริ่มต้น</label>
+                            <input type="date" id="start_date" name="start_date"
+                                class="w-full standard-input border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80"
+                                value="<?php echo htmlspecialchars($start_date); ?>">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">วันที่สิ้นสุด</label>
+                            <input type="date" id="end_date" name="end_date"
+                                class="w-full standard-input border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80"
+                                value="<?php echo htmlspecialchars($end_date); ?>">
                         </div>
                     </div>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <i class="fas fa-download text-blue-500 text-sm"></i>
+                        ส่งออกข้อมูล
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="exportPDF()" class="standard-button bg-red-500 text-white rounded-lg hover:bg-red-600 transition hover-lift text-sm">
+                            <i class="fas fa-file-pdf mr-1"></i>PDF
+                        </button>
+                        <button onclick="exportExcel()" class="standard-button bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition hover-lift text-sm">
+                            <i class="fas fa-file-excel mr-1"></i>Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <!-- ตัวกรองแบรนด์สินค้า -->
-                    <div class="pt-2 pb-4">
-                        <h2 class="text-base sm:text-lg font-semibold text-gray-700 mb-3">ค้นหาตามแบรนด์</h2>
-                        <div class="flex flex-col gap-2 sm:gap-3">
-                            <?php foreach ($brandResults as $brandRow): ?>
-                                <div class="flex items-center gap-2 text-gray-600 text-sm sm:text-base">
-                                    <input type="checkbox"
-                                        class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                        name="product_brand[]" value="<?php echo $brandRow['product_brand_id']; ?>"
-                                        <?php echo in_array($brandRow['product_brand_id'], $selected_brands) ? 'checked' : ''; ?>
-                                        onchange="updateFilters()">
-                                    <span><?php echo htmlspecialchars($brandRow['product_brand_name']); ?></span>
+        <!-- Main Content -->
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Filters Sidebar -->
+            <div class="w-full lg:w-1/4">
+                <div class="filter-card rounded-xl p-5 card-shadow">
+                    <button id="toggleFilters" class="lg:hidden w-full bg-blue-50 text-blue-700 standard-button rounded-lg mb-3 flex items-center justify-between hover:bg-blue-100 transition text-sm">
+                        <span class="font-medium">ตัวกรอง</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div id="filters" class="hidden lg:block">
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4">
+                            <i class="fas fa-filter text-blue-500 text-sm"></i>
+                            ค้นหาแบบละเอียด
+                        </h2>
+                        <div class="mb-6">
+                            <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                <i class="fas fa-tags text-blue-500 text-sm"></i>
+                                หมวดหมู่สินค้า
+                            </h3>
+                            <div class="space-y-2">
+                                <?php foreach ($typeResults as $typeRow): ?>
+                                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition cursor-pointer text-sm">
+                                        <input type="checkbox" name="product_type[]" value="<?php echo $typeRow['product_type_id']; ?>"
+                                            class="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                                            <?php echo in_array($typeRow['product_type_id'], $selected_types) ? 'checked' : ''; ?>
+                                            onchange="updateFilters()">
+                                        <span class="text-gray-700"><?php echo htmlspecialchars($typeRow['product_type_name']); ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                                <div class="flex gap-3 mt-3">
+                                    <?php if ($typeLimit < $totalTypeCount): ?>
+                                        <form action="" method="POST" class="w-1/2">
+                                            <input type="hidden" name="type_limit" value="<?php echo $typeLimit + 5; ?>">
+                                            <input type="hidden" name="brand_limit" value="<?php echo $brandLimit; ?>">
+                                            <input type="hidden" name="action" value="show_more_types">
+                                            <button type="submit" class="w-full standard-button text-blue-600 hover:text-blue-800 text-sm hover:bg-blue-50 rounded-lg">แสดงเพิ่ม</button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <?php if ($typeLimit > 5): ?>
+                                        <form action="" method="POST" class="w-1/2">
+                                            <input type="hidden" name="type_limit" value="5">
+                                            <input type="hidden" name="brand_limit" value="<?php echo $brandLimit; ?>">
+                                            <input type="hidden" name="action" value="show_less_types">
+                                            <button type="submit" class="w-full standard-button text-blue-600 hover:text-blue-800 text-sm hover:bg-blue-50 rounded-lg">แสดงน้อย</button>
+                                        </form>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endforeach; ?>
-
-                            <div class="flex flex-col sm:flex-row justify-between mt-2 gap-2">
-                                <?php if ($brandLimit < $totalBrandCount): ?>
-                                    <form action="" method="POST" class="w-full sm:w-1/2">
-                                        <input type="hidden" name="brand_limit" value="<?php echo $brandLimit + 5; ?>">
-                                        <input type="hidden" name="type_limit" value="<?php echo $typeLimit; ?>">
-                                        <input type="hidden" name="action" value="show_more_brands">
-                                        <button type="submit"
-                                            class="w-full py-1.5 px-2 bg-white border border-gray-300 rounded-md text-gray-700 text-xs sm:text-sm hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">แสดงเพิ่มเติม</button>
-                                    </form>
-                                <?php endif; ?>
-                                <?php if ($brandLimit > 5): ?>
-                                    <form action="" method="POST" class="w-full sm:w-1/2">
-                                        <input type="hidden" name="brand_limit" value="5">
-                                        <input type="hidden" name="type_limit" value="<?php echo $typeLimit; ?>">
-                                        <input type="hidden" name="action" value="show_less_brands">
-                                        <button type="submit"
-                                            class="w-full py-1.5 px-2 bg-white border border-gray-300 rounded-md text-gray-700 text-xs sm:text-sm hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">แสดงน้อยลง</button>
-                                    </form>
-                                <?php endif; ?>
                             </div>
                         </div>
+                        <div class="mb-6">
+                            <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                <i class="fas fa-star text-blue-500 text-sm"></i>
+                                แบรนด์สินค้า
+                            </h3>
+                            <div class="space-y-2">
+                                <?php foreach ($brandResults as $brandRow): ?>
+                                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition cursor-pointer text-sm">
+                                        <input type="checkbox" name="product_brand[]" value="<?php echo $brandRow['product_brand_id']; ?>"
+                                            class="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                                            <?php echo in_array($brandRow['product_brand_id'], $selected_brands) ? 'checked' : ''; ?>
+                                            onchange="updateFilters()">
+                                        <span class="text-gray-700"><?php echo htmlspecialchars($brandRow['product_brand_name']); ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                                <div class="flex gap-3 mt-3">
+                                    <?php if ($brandLimit < $totalBrandCount): ?>
+                                        <form action="" method="POST" class="w-1/2">
+                                            <input type="hidden" name="brand_limit" value="<?php echo $brandLimit + 5; ?>">
+                                            <input type="hidden" name="type_limit" value="<?php echo $typeLimit; ?>">
+                                            <input type="hidden" name="action" value="show_more_brands">
+                                            <button type="submit" class="w-full standard-button text-blue-600 hover:text-blue-800 text-sm hover:bg-blue-50 rounded-lg">แสดงเพิ่ม</button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <?php if ($brandLimit > 5): ?>
+                                        <form action="" method="POST" class="w-1/2">
+                                            <input type="hidden" name="brand_limit" value="5">
+                                            <input type="hidden" name="type_limit" value="<?php echo $typeLimit; ?>">
+                                            <input type="hidden" name="action" value="show_less_brands">
+                                            <button type="submit" class="w-full standard-button text-blue-600 hover:text-blue-800 text-sm hover:bg-blue-50 rounded-lg">แสดงน้อย</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="clearFilters()" class="w-full standard-button bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm">
+                            <i class="fas fa-times mr-1"></i>ล้างตัวกรอง
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- ส่วนตาราง -->
-            <div class="w-full lg:w-4/5">
-                <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6 sm:mb-8">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
-                        <!-- หัวข้อ -->
-                        <h2 class="text-lg sm:text-2xl font-bold text-gray-800 flex items-center mb-2 md:mb-0">
-                            <i class="fas fa-list mr-2"></i>รายการสินค้า
-                        </h2>
-
-                        <!-- ปุ่ม -->
-                        <div class=" grid grid-cols-2 gap-2 md:flex md:items-center md:space-x-2 ">
-                            <a href="?page=product_list"
-                                class="px-3 py-1.5 text-center sm:px-4 sm:py-2 rounded-md font-bold transition-all text-sm sm:text-base <?php echo !$incomplete_mode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 border border-gray-300'; ?>">
-                                แสดงทั้งหมด
-                            </a>
-                            <a href="?page=product_list&mode=incomplete"
-                                class="px-3 py-1.5 text-center sm:px-4 sm:py-2 rounded-md font-bold transition-all text-sm sm:text-base <?php echo $incomplete_mode ? 'bg-red-600 text-white' : 'bg-red-100 text-red-600 border border-red-300'; ?>">
-                                แสดงข้อมูลไม่ครบ
-                            </a>
+            <!-- Table Section -->
+            <div class="w-full lg:w-3/4">
+                <div class="glass-effect rounded-xl overflow-hidden card-shadow">
+                    <div class="table-header p-4 text-white">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <h2 class="text-lg font-bold flex items-center gap-2 ">
+                                <i class="fas fa-table text-sm"></i>
+                                ตารางสินค้า
+                            </h2>
+                            <div class="flex gap-2">
+                                <a href="?page=product_list" class="standard-button bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition text-sm">แสดงทั้งหมด</a>
+                                <a href="?page=product_list&mode=incomplete" class="standard-button bg-red-500/80 backdrop-blur-sm rounded-lg hover:bg-red-500 transition text-sm">ข้อมูลไม่ครบ</a>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="p-4 sm:p-6">
+                    <div class="p-4">
                         <div class="table-responsive">
-                            <table class="w-full border-collapse" id="dataTable">
+                            <table class="w-full text-sm">
                                 <thead>
-                                    <tr class="bg-gray-50">
-                                        <th class="px-3 bg-blue-400 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">รหัสสินค้า</th>
-                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ชื่อสินค้า</th>
-                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ราคาทุน</th>
-                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ราคาขาย</th>
-                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ประเภทสินค้า</th>
-                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">แบรนด์สินค้า</th>
-                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">วันที่นำเข้า</th>
-                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">ชื่อพนักงาน</th>
-                                        <th class="px-3 text-center py-2 sm:py-3 border text-gray-700 font-semibold text-xs sm:text-sm">การจัดการ</th>
+                                    <tr class="bg-blue-50 border-b border-blue-100">
+                                        <th class="px-3 py-3 text-left font-semibold text-blue-900">รหัสสินค้า</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-blue-900">ชื่อสินค้า</th>
+                                        <th class="px-3 py-3 text-right font-semibold text-blue-900">ราคาทุน</th>
+                                        <th class="px-3 py-3 text-right font-semibold text-blue-900">ราคาขาย</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-blue-900">ประเภท</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-blue-900">แบรนด์</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-blue-900">วันที่นำเข้า</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-blue-900">พนักงาน</th>
+                                        <th class="px-3 py-3 text-center font-semibold text-blue-900">จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -487,40 +558,48 @@ try {
                                                 empty($product_list['product_type_id']) ||
                                                 empty($product_list['product_brand_id']);
                                             ?>
-                                            <tr class="hover:bg-gray-100 <?php echo $is_incomplete ? 'bg-red-50' : ''; ?>">
-                                                <td class="px-3 bg-yellow-400 bg-opacity-50 py-2 border border-gray-300 text-xs sm:text-sm"><?php echo htmlspecialchars($product_list['product_id']); ?></td>
-                                                <td class="px-3 py-2 border text-blue-600 hover:underline cursor-pointer text-xs sm:text-sm <?php echo empty($product_list['product_name']) ? 'text-red-600 font-bold' : ''; ?>"
-                                                    onclick="window.location.href='?page=product_detail&tabel=product&id=<?php echo htmlspecialchars($product_list['product_id']); ?>'">
-                                                    <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_name']); ?>
+                                            <tr class="border-b border-gray-100 hover:bg-blue-50/50 transition <?php echo $is_incomplete ? 'bg-red-50' : ''; ?>">
+                                                <td class="px-3 py-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-medium"><?php echo htmlspecialchars($product_list['product_id']); ?></span>
                                                 </td>
-                                                <td class="px-3 py-2 border text-right text-xs sm:text-sm <?php echo empty($product_list['product_capital']) ? 'text-red-600 font-bold' : ''; ?>">
-                                                    <?php echo empty($product_list['product_capital']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_capital']); ?>
+                                                <td class="px-3 py-3">
+                                                    <a href="?page=product_detail&tabel=product&id=<?php echo htmlspecialchars($product_list['product_id']); ?>"
+                                                        class="font-medium <?php echo empty($product_list['product_name']) ? 'text-red-600' : 'text-gray-900'; ?> hover:underline">
+                                                        <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_name']); ?>
+                                                    </a>
                                                 </td>
-                                                <td class="px-3 py-2 border text-right text-xs sm:text-sm <?php echo empty($product_list['product_price4']) ? 'text-red-600 font-bold' : ''; ?>">
-                                                    <?php echo empty($product_list['product_price4']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_price4']); ?>
+                                                <td class="px-3 py-3 text-right <?php echo empty($product_list['product_capital']) ? 'text-red-600' : 'text-gray-900'; ?> font-medium">
+                                                    <?php echo empty($product_list['product_capital']) ? '-' : number_format($product_list['product_capital'], 2); ?>
                                                 </td>
-                                                <td class="px-3 py-2 border text-xs sm:text-sm <?php echo empty($product_list['product_type_id']) ? 'text-red-600 font-bold' : ''; ?>">
-                                                    <?php echo !empty($product_list['product_type_name']) ? htmlspecialchars($product_list['product_type_name']) : 'ไม่มีข้อมูล'; ?>
+                                                <td class="px-3 py-3 text-right <?php echo empty($product_list['product_price4']) ? 'text-red-600' : 'text-green-600'; ?> font-semibold">
+                                                    <?php echo empty($product_list['product_price4']) ? '-' : number_format($product_list['product_price4'], 2); ?>
                                                 </td>
-                                                <td class="px-3 py-2 border text-xs sm:text-sm <?php echo empty($product_list['product_brand_id']) ? 'text-red-600 font-bold' : ''; ?>">
-                                                    <?php echo !empty($product_list['product_brand_name']) ? htmlspecialchars($product_list['product_brand_name']) : 'ไม่มีข้อมูล'; ?>
+                                                <td class="px-3 py-3">
+                                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs <?php echo empty($product_list['product_type_id']) ? 'bg-red-100 text-red-800' : ''; ?>">
+                                                        <?php echo !empty($product_list['product_type_name']) ? htmlspecialchars($product_list['product_type_name']) : '-'; ?>
+                                                    </span>
                                                 </td>
-                                                <td class="px-3 py-2 border text-xs sm:text-sm <?php echo empty($product_list['lot_product_date']) ? '' : ''; ?>">
-                                                    <?php echo !empty($product_list['lot_product_date']) ? htmlspecialchars($product_list['lot_product_date']) : 'ไม่มีข้อมูล'; ?>
+                                                <td class="px-3 py-3">
+                                                    <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs <?php echo empty($product_list['product_brand_id']) ? 'bg-red-100 text-red-800' : ''; ?>">
+                                                        <?php echo !empty($product_list['product_brand_name']) ? htmlspecialchars($product_list['product_brand_name']) : '-'; ?>
+                                                    </span>
                                                 </td>
-                                                <td class="px-3 py-2 border text-xs sm:text-sm <?php echo empty($product_list['personnel_name']) ? '' : ''; ?>">
-                                                    <?php echo !empty($product_list['personnel_name']) ? htmlspecialchars($product_list['personnel_name']) : 'ไม่มีข้อมูล'; ?>
+                                                <td class="px-3 py-3 text-gray-600">
+                                                    <?php echo !empty($product_list['lot_product_date']) ? htmlspecialchars(date('Y-m-d', strtotime($product_list['lot_product_date']))) : '-'; ?>
                                                 </td>
-                                                <td class="px-3 py-2 border text-center">
-                                                    <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-2">
+                                                <td class="px-3 py-3 text-gray-600">
+                                                    <?php echo !empty($product_list['personnel_name']) ? htmlspecialchars($product_list['personnel_name']) : '-'; ?>
+                                                </td>
+                                                <td class="px-3 py-3 text-center">
+                                                    <div class="flex justify-center gap-2">
                                                         <a href="?page=product_update&id=<?php echo htmlspecialchars($product_list['product_id']); ?>"
-                                                            class="bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm">
-                                                            <i class="fas fa-edit mr-1"></i>แก้ไข
+                                                            class="bg-yellow-500 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-600 transition text-sm hover-lift">
+                                                            <i class="fas fa-edit"></i>
                                                         </a>
                                                         <a href="?page=product_list&id=<?php echo htmlspecialchars($product_list['product_id']); ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
-                                                            onclick="return confirm('กรุณาตรวจสอบข้อมูลก่อนลบ ถ้าคุณแน่ใจแล้วให้กดลบ')"
-                                                            class="bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm">
-                                                            <i class="fas fa-trash-alt mr-1"></i>ลบ
+                                                            onclick="return confirm('ยืนยันการลบ?')"
+                                                            class="bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition text-sm hover-lift">
+                                                            <i class="fas fa-trash"></i>
                                                         </a>
                                                     </div>
                                                 </td>
@@ -528,7 +607,7 @@ try {
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="9" class="text-center py-4 text-gray-600 text-sm sm:text-base">
+                                            <td colspan="9" class="px-3 py-3 text-center text-gray-600">
                                                 <?php echo $incomplete_mode ? 'ไม่พบสินค้าที่มีข้อมูลไม่ครบ' : 'ไม่พบข้อมูลสินค้า'; ?>
                                             </td>
                                         </tr>
@@ -536,306 +615,211 @@ try {
                                 </tbody>
                             </table>
                         </div>
+                        <div class="flex flex-col sm:flex-row items-center justify-between mt-6 gap-3 text-sm">
+                            <div class="text-gray-600">
+                                แสดง <?php echo ($offset + 1); ?>-<?php echo min($offset + $records_per_page, $total_records); ?> จาก <?php echo $total_records; ?> รายการ
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition <?php echo $page <= 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>"
+                                    <?php echo $page <= 1 ? 'disabled' : ''; ?>
+                                    onclick="goToPage(<?php echo $page - 1; ?>)">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <?php
+                                $start_page = max(1, $page - 2);
+                                $end_page = min($total_pages, $page + 2);
+                                if ($start_page > 1): ?>
+                                    <button class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition" onclick="goToPage(1)">1</button>
+                                    <?php if ($start_page > 2): ?>
+                                        <span class="px-2 text-gray-500">...</span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                    <button class="px-3 py-1.5 rounded-lg <?php echo $i == $page ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'; ?> transition"
+                                        onclick="goToPage(<?php echo $i; ?>)"><?php echo $i; ?></button>
+                                <?php endfor; ?>
+                                <?php if ($end_page < $total_pages): ?>
+                                    <?php if ($end_page < $total_pages - 1): ?>
+                                        <span class="px-2 text-gray-500">...</span>
+                                    <?php endif; ?>
+                                    <button class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition" onclick="goToPage(<?php echo $total_pages; ?>)"><?php echo $total_pages; ?></button>
+                                <?php endif; ?>
+                                <button class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition <?php echo $page >= $total_pages ? 'opacity-50 cursor-not-allowed' : ''; ?>"
+                                    <?php echo $page >= $total_pages ? 'disabled' : ''; ?>
+                                    onclick="goToPage(<?php echo $page + 1; ?>)">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <!-- การแบ่งหน้า -->
-                <div class="pagination mt-5 flex flex-wrap justify-center items-center gap-2">
-                    <?php
-                    // สร้าง query string สำหรับลิงก์การแบ่งหน้าเพื่อรักษาตัวกรอง
-                    $query_params = [];
-                    $query_params['page'] = 'product_list';
-                    if ($incomplete_mode) {
-                        $query_params['mode'] = 'incomplete';
-                    }
-                    if (!empty($selected_types)) {
-                        $query_params['product_type'] = implode(',', $selected_types);
-                    }
-                    if (!empty($selected_brands)) {
-                        $query_params['product_brand'] = implode(',', $selected_brands);
-                    }
-                    if ($search) {
-                        $query_params['search'] = $search;
-                    }
-                    if ($start_date) {
-                        $query_params['start_date'] = $start_date;
-                    }
-                    if ($end_date) {
-                        $query_params['end_date'] = $end_date;
-                    }
-                    ?>
-                    <?php if ($total_pages > 1): ?>
-                        <!-- ปุ่มก่อนหน้า -->
-                        <?php if ($page > 1): ?>
-                            <?php $query_params['page_num'] = $page - 1; ?>
-                            <a href="?<?php echo http_build_query($query_params); ?>"
-                                class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
-                                « ก่อนหน้า
-                            </a>
-                        <?php endif; ?>
-
-                        <!-- หมายเลขหน้า -->
-                        <?php
-                        $start_page = max(1, $page - 2);
-                        $end_page = min($total_pages, $page + 2);
-                        if ($start_page > 1): ?>
-                            <?php $query_params['page_num'] = 1; ?>
-                            <a href="?<?php echo http_build_query($query_params); ?>"
-                                class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
-                                1
-                            </a>
-                            <?php if ($start_page > 2): ?>
-                                <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
-                            <?php endif; ?>
-                        <?php endif; ?>
-
-                        <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                            <?php $query_params['page_num'] = $i; ?>
-                            <a href="?<?php echo http_build_query($query_params); ?>"
-                                class="px-3 py-2 rounded-md transition-colors text-sm md:text-base <?php echo $i == $page ? 'bg-gray-800 text-white' : 'bg-blue-100 text-black hover:bg-gray-300'; ?>">
-                                <?php echo $i; ?>
-                            </a>
-                        <?php endfor; ?>
-
-                        <?php if ($end_page < $total_pages): ?>
-                            <?php if ($end_page < $total_pages - 1): ?>
-                                <span class="px-3 py-2 text-gray-500 text-sm md:text-base">...</span>
-                            <?php endif; ?>
-                            <?php $query_params['page_num'] = $total_pages; ?>
-                            <a href="?<?php echo http_build_query($query_params); ?>"
-                                class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
-                                <?php echo $total_pages; ?>
-                            </a>
-                        <?php endif; ?>
-
-                        <!-- ปุ่มถัดไป -->
-                        <?php if ($page < $total_pages): ?>
-                            <?php $query_params['page_num'] = $page + 1; ?>
-                            <a href="?<?php echo http_build_query($query_params); ?>"
-                                class="px-3 py-2 bg-blue-100 text-black rounded-md hover:bg-gray-300 transition-colors text-sm md:text-base">
-                                ถัดไป »
-                            </a>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- การแจ้งเตือน -->
-            <div id="notification-edit"
-                class="fixed top-5 right-5 w-64 sm:w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
-                <div class="bg-yellow-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 font-bold text-sm sm:text-base">การแจ้งเตือน</div>
-                <div class="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base">แก้ไขสินค้าสำเร็จ!</div>
-            </div>
-            <div id="notification-delete"
-                class="fixed top-5 right-5 w-64 sm:w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
-                <div class="bg-red-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 font-bold text-sm sm:text-base">การแจ้งเตือน</div>
-                <div class="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base">ลบสินค้าสำเร็จ!</div>
             </div>
         </div>
 
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const urlParams = new URLSearchParams(window.location.search);
-                // แสดงการแจ้งเตือนเมื่อแก้ไขหรือลบสำเร็จ
-                if (urlParams.has('edit_success')) {
-                    showNotification('แก้ไขสินค้าสำเร็จ!', 'bg-yellow-500', 'notification-edit');
-                } else if (urlParams.has('delete_success')) {
-                    showNotification('ลบสินค้าสำเร็จ!', 'bg-red-500', 'notification-delete');
-                }
+        <!-- Notification -->
+        <div id="notification" class="fixed top-5 right-5 w-72 bg-white border-l-4 border-blue-500 rounded-lg shadow-lg z-50 overflow-hidden hidden animate-fade-in">
+            <div class="bg-blue-500 text-white px-4 py-2 font-semibold text-sm">การแจ้งเตือน</div>
+            <div class="px-4 py-3 text-gray-700 text-sm" id="notificationMessage"></div>
+        </div>
+    </div>
 
-                const searchInput = document.getElementById('searchInput');
-                if (!searchInput) return;
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('edit_success')) {
+                showNotification('แก้ไขสินค้าสำเร็จ!', 'success');
+            } else if (urlParams.has('delete_success')) {
+                showNotification('ลบสินค้าสำเร็จ!', 'success');
+            }
 
-                searchInput.focus();
+            const searchInput = document.getElementById('searchInput');
+            const clearSearch = document.getElementById('clearSearch');
 
-                searchInput.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape') {
-                        this.value = '';
-                        this.form.submit();
-                    }
-                    if (e.key === 'Enter') {
-                        localStorage.setItem('searchPreserve', this.value);
-                    }
-                });
-
-                const preserved = localStorage.getItem('searchPreserve');
-                if (preserved) {
-                    searchInput.value = preserved;
-                    searchInput.focus();
-                    searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
-                    localStorage.removeItem('searchPreserve');
-                }
-
-                searchInput.addEventListener('input', function() {
-                    if (this.value.trim() === '') {
-                        this.form.submit();
-                    }
-                });
-
-                // สลับการแสดงตัวกรองในโหมดมือถือ
-                document.getElementById('toggleFilters').addEventListener('click', () => {
-                    const filters = document.getElementById('filters');
-                    const chevron = document.querySelector('#toggleFilters i');
-                    filters.classList.toggle('hidden');
-                    chevron.classList.toggle('fa-chevron-down');
-                    chevron.classList.toggle('fa-chevron-up');
-                });
+            searchInput.addEventListener('input', function() {
+                clearSearch.style.display = this.value.length > 0 ? 'block' : 'none';
             });
 
-            // ล้างการค้นหาเมื่อช่องว่างเปล่า
-            function checkEmptySearch(input) {
-                if (input.value.trim() === '') {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    urlParams.set('page', 'product_list');
-                    <?php if ($incomplete_mode): ?>
-                        urlParams.set('mode', 'incomplete');
-                    <?php else: ?>
-                        urlParams.delete('mode');
-                    <?php endif; ?>
-                    urlParams.delete('search');
-                    window.location.search = urlParams.toString();
+            clearSearch.addEventListener('click', function() {
+                searchInput.value = '';
+                clearSearch.style.display = 'none';
+                searchInput.focus();
+                updateFilters();
+            });
+
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    this.value = '';
+                    updateFilters();
                 }
+                if (e.key === 'Enter') {
+                    updateFilters();
+                }
+            });
+
+            const toggleFilters = document.getElementById('toggleFilters');
+            const filters = document.getElementById('filters');
+
+            toggleFilters.addEventListener('click', function() {
+                filters.classList.toggle('hidden');
+                const chevron = this.querySelector('i');
+                chevron.classList.toggle('fa-chevron-down');
+                chevron.classList.toggle('fa-chevron-up');
+            });
+
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateFilters);
+            });
+
+            const dateInputs = document.querySelectorAll('input[type="date"]');
+            dateInputs.forEach(input => {
+                input.addEventListener('change', updateFilters);
+            });
+        });
+
+        function updateFilters() {
+            const urlParams = new URLSearchParams();
+            urlParams.set('page', 'product_list');
+            urlParams.set('page_num', '1');
+            <?php if ($incomplete_mode): ?>
+                urlParams.set('mode', 'incomplete');
+            <?php endif; ?>
+            const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
+            if (productTypes.length > 0) {
+                urlParams.set('product_type', productTypes.join(','));
             }
-
-            // อัปเดตตัวกรองเมื่อเลือก checkbox
-            function updateFilters() {
-                const urlParams = new URLSearchParams(window.location.search);
-                urlParams.set('page', 'product_list');
-                <?php if ($incomplete_mode): ?>
-                    urlParams.set('mode', 'incomplete');
-                <?php else: ?>
-                    urlParams.delete('mode');
-                <?php endif; ?>
-
-                const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
-                if (productTypes.length > 0) {
-                    urlParams.set('product_type', productTypes.join(','));
-                } else {
-                    urlParams.delete('product_type');
-                }
-
-                const productBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
-                if (productBrands.length > 0) {
-                    urlParams.set('product_brand', productBrands.join(','));
-                } else {
-                    urlParams.delete('product_brand');
-                }
-
-                const searchInput = document.getElementById('searchInput').value;
-                if (searchInput.trim()) {
-                    urlParams.set('search', searchInput);
-                } else {
-                    urlParams.delete('search');
-                }
-
-                const startDate = document.getElementById('start_date').value;
-                if (startDate) {
-                    urlParams.set('start_date', startDate);
-                } else {
-                    urlParams.delete('start_date');
-                }
-
-                const endDate = document.getElementById('end_date').value;
-                if (endDate) {
-                    urlParams.set('end_date', endDate);
-                } else {
-                    urlParams.delete('end_date');
-                }
-
-                window.location.search = urlParams.toString();
+            const productBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
+            if (productBrands.length > 0) {
+                urlParams.set('product_brand', productBrands.join(','));
             }
-
-            // แสดงการแจ้งเตือน
-            function showNotification(message, headerClass, notificationId = 'notification-delete') {
-                const notification = document.getElementById(notificationId);
-                const header = notification.querySelector('div:first-child');
-                const body = notification.querySelector('div:last-child');
-
-                header.className = `bg-${headerClass} text-white px-3 sm:px-4 py-1.5 sm:py-2 font-bold text-sm sm:text-base`;
-                header.textContent = 'การแจ้งเตือน';
-                body.textContent = message;
-                notification.classList.remove('hidden');
-
-                setTimeout(() => {
-                    notification.classList.add('hidden');
-                }, 1000);
+            const searchInput = document.getElementById('searchInput').value.trim();
+            if (searchInput) {
+                urlParams.set('search', searchInput);
             }
-
-            // ส่งออก PDF
-            function exportPDF() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
-                const mode = '<?php echo $incomplete_mode ? 'incomplete' : 'complete'; ?>';
-                let url = `/page/product/report/export_product_pdf.php?mode=${mode}`;
-                if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-                if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
-                window.open(url, '_blank');
+            const startDate = document.getElementById('start_date').value;
+            if (startDate) {
+                urlParams.set('start_date', startDate);
             }
-
-            // ส่งออก Excel
-            function exportExcel() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
-                const mode = '<?php echo $incomplete_mode ? 'incomplete' : 'complete'; ?>';
-                let url = `/page/product/report/export_product_excel.php?mode=${mode}`;
-                if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-                if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
-                window.open(url, '_blank');
+            const endDate = document.getElementById('end_date').value;
+            if (endDate) {
+                urlParams.set('end_date', endDate);
             }
+            window.location.search = urlParams.toString();
+        }
 
-            // อัปเดต URL เมื่อเปลี่ยนวันที่
-            document.getElementById('start_date').addEventListener('change', updateDateFilter);
-            document.getElementById('end_date').addEventListener('change', updateDateFilter);
+        function clearFilters() {
+            const urlParams = new URLSearchParams();
+            urlParams.set('page', 'product_list');
+            urlParams.set('page_num', '1');
+            <?php if ($incomplete_mode): ?>
+                urlParams.set('mode', 'incomplete');
+            <?php endif; ?>
+            window.location.search = urlParams.toString();
+        }
 
-            function updateDateFilter() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
-                const urlParams = new URLSearchParams(window.location.search);
-                urlParams.set('page', 'product_list');
-
-                <?php if ($incomplete_mode): ?>
-                    urlParams.set('mode', 'incomplete');
-                <?php else: ?>
-                    urlParams.delete('mode');
-                <?php endif; ?>
-
-                if (startDate) {
-                    urlParams.set('start_date', startDate);
-                } else {
-                    urlParams.delete('start_date');
-                }
-
-                if (endDate) {
-                    urlParams.set('end_date', endDate);
-                } else {
-                    urlParams.delete('end_date');
-                }
-
-                const searchInput = document.getElementById('searchInput').value;
-                if (searchInput.trim()) {
-                    urlParams.set('search', searchInput);
-                } else {
-                    urlParams.delete('search');
-                }
-
-                const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
-                if (productTypes.length > 0) {
-                    urlParams.set('product_type', productTypes.join(','));
-                } else {
-                    urlParams.delete('product_type');
-                }
-
-                const productBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
-                if (productBrands.length > 0) {
-                    urlParams.set('product_brand', productBrands.join(','));
-                } else {
-                    urlParams.delete('product_brand');
-                }
-
-                window.location.search = urlParams.toString();
+        function goToPage(pageNum) {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', 'product_list');
+            urlParams.set('page_num', pageNum);
+            <?php if ($incomplete_mode): ?>
+                urlParams.set('mode', 'incomplete');
+            <?php endif; ?>
+            const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
+            if (productTypes.length > 0) {
+                urlParams.set('product_type', productTypes.join(','));
             }
-        </script>
-    </div>
+            const productBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
+            if (productBrands.length > 0) {
+                urlParams.set('product_brand', productBrands.join(','));
+            }
+            const searchInput = document.getElementById('searchInput').value.trim();
+            if (searchInput) {
+                urlParams.set('search', searchInput);
+            }
+            const startDate = document.getElementById('start_date').value;
+            if (startDate) {
+                urlParams.set('start_date', startDate);
+            }
+            const endDate = document.getElementById('end_date').value;
+            if (endDate) {
+                urlParams.set('end_date', endDate);
+            }
+            window.location.search = urlParams.toString();
+        }
+
+        function exportPDF() {
+            showNotification('กำลังส่งออก PDF...', 'info');
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const mode = '<?php echo $incomplete_mode ? 'incomplete' : 'complete'; ?>';
+            let url = `/page/product/report/export_product_pdf.php?mode=${mode}`;
+            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportExcel() {
+            showNotification('กำลังส่งออก Excel...', 'info');
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const mode = '<?php echo $incomplete_mode ? 'incomplete' : 'complete'; ?>';
+            let url = `/page/product/report/export_product_excel.php?mode=${mode}`;
+            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+            window.open(url, '_blank');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const messageElement = document.getElementById('notificationMessage');
+            messageElement.textContent = message;
+            notification.classList.remove('hidden');
+            notification.querySelector('div:first-child').className = `bg-${type === 'success' ? 'blue-500' : 'yellow-500'} text-white px-4 py-2 font-semibold text-sm`;
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
 </body>
 
 </html>
