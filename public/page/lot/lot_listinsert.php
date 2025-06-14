@@ -551,13 +551,13 @@ ob_end_flush();
                 <table class="w-full">
                     <thead>
                         <tr class="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
-                            <th class="px-6 py-3 text-left font-semibold text-gray-700">รหัส Lot</th>
-                            <th class="px-6 py-3 text-left font-semibold text-gray-700">ชื่อ Lot</th>
-                            <th class="px-6 py-3 text-left font-semibold text-gray-700">คลังสินค้า</th>
-                            <th class="px-6 py-3 text-left font-semibold text-gray-700">เจ้าหน้าที่</th>
-                            <th class="px-6 py-3 text-left font-semibold text-gray-700">วันที่</th>
-                            <th class="px-6 py-3 text-left font-semibold text-gray-700">สถานะ</th>
-                            <th class="px-6 py-3 text-center font-semibold text-gray-700">การจัดการ</th>
+                            <th class="px-6 py-3 text-left font-semibold text-blue-900">รหัส Lot</th>
+                            <th class="px-6 py-3 text-left font-semibold text-blue-900">ชื่อ Lot</th>
+                            <th class="px-6 py-3 text-left font-semibold text-blue-900">คลังสินค้า</th>
+                            <th class="px-6 py-3 text-left font-semibold text-blue-900">เจ้าหน้าที่</th>
+                            <th class="px-6 py-3 text-left font-semibold text-blue-900">วันที่</th>
+                            <th class="px-6 py-3 text-left font-semibold text-blue-900">สถานะ</th>
+                            <th class="px-6 py-3 text-center font-semibold text-blue-900">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="lotsTableBody">

@@ -262,10 +262,10 @@ try {
                 <i class="fas fa-box mr-2"></i>
                 <?php echo $is_update ? 'แก้ไขข้อมูลสินค้า' : 'รายละเอียดสินค้า'; ?>
             </h2>
-            <a href="/?page=product_list" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-blue-800 transition duration-300 ease-in-out">
+            <!-- <a href="/?page=product_list" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl shadow-md hover:from-blue-600 hover:to-blue-800 transition duration-300 ease-in-out">
                 <i class="fas fa-arrow-left"></i>
                 <span>ย้อนกลับ</span>
-            </a>
+            </a> -->
         </div>
 
         <!-- Notification -->

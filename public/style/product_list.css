@@ -1,0 +1,143 @@
+body {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 50%, #ffffff 100%);
+  min-height: 100vh;
+  font-size: 1rem;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.card-shadow {
+  box-shadow: 0 6px 24px rgba(59, 130, 246, 0.1);
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  transition: transform 0.3s ease;
+}
+
+@media (max-width: 640px) {
+  .table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-responsive table {
+    min-width: 750px;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.table-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #3b82f6 100%);
+}
+
+th,
+td {
+  font-size: 0.875rem;
+}
+
+.standard-input {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.standard-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+}
+
+.standard-input-sm {
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  width: 130px;
+}
+
+.standard-button-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+}
+
+/* Mobile-specific classes */
+.standard-input-mobile {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.standard-button-mobile {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  width: 100%;
+  min-height: 44px;
+  /* Touch-friendly minimum height */
+}
+
+/* Custom breakpoint for very small screens */
+@media (min-width: 480px) {
+  .xs\:flex-row {
+    flex-direction: row;
+  }
+
+  .standard-input-mobile {
+    width: auto;
+    flex: 1;
+  }
+
+  .standard-button-mobile {
+    width: auto;
+    flex: 1;
+  }
+}
+
+/* Tablet and desktop adjustments */
+@media (min-width: 640px) {
+  .standard-input-mobile {
+    width: 130px;
+  }
+
+  .standard-button-mobile {
+    width: auto;
+    flex: none;
+  }
+}

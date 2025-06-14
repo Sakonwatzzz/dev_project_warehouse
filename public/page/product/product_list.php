@@ -250,102 +250,13 @@ try {
     <title>รายการสินค้า</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 50%, #ffffff 100%);
-            min-height: 100vh;
-            font-size: 1rem;
-        }
-
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(59, 130, 246, 0.1);
-        }
-
-        .card-shadow {
-            box-shadow: 0 6px 24px rgba(59, 130, 246, 0.1);
-        }
-
-        .gradient-blue {
-            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-        }
-
-        .hover-lift:hover {
-            transform: translateY(-2px);
-            transition: transform 0.3s ease;
-        }
-
-        @media (max-width: 640px) {
-            .table-responsive {
-                display: block;
-                width: 100%;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .table-responsive table {
-                min-width: 750px;
-            }
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .filter-card {
-            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-            border: 1px solid #e2e8f0;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-
-        .table-header {
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-        }
-
-        th,
-        td {
-            font-size: 0.875rem;
-        }
-
-        .standard-input {
-            padding: 0.75rem;
-            font-size: 0.875rem;
-        }
-
-        .standard-button {
-            padding: 0.75rem 1.5rem;
-            font-size: 0.875rem;
-        }
-    </style>
+    <link rel="stylesheet" href="../../style/product_list.css">
 </head>
 
 <body>
     <div class="px-4 py-6 sm:px-6 sm:py-8 animate-fade-in">
         <!-- Header Section -->
-        <div class="glass-effect rounded-xl p-5 mb-6 card-shadow">
+        <div class=" glass-effect rounded-xl p-5 mb-6 card-shadow">
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 gradient-blue rounded-lg flex items-center justify-center">
@@ -356,7 +267,7 @@ try {
                         <p class="text-blue-600 text-sm">จัดการข้อมูลสินค้าทั้งหมด</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="flex flex-col md:flex md:flex-row md:items-center gap-3 w-full sm:w-auto">
                     <div class="bg-blue-100 px-3 py-1.5 rounded border border-blue-200 text-sm">
                         <i class="fas fa-list mr-1 text-blue-600"></i>
                         <span class="font-semibold text-blue-800"><?php echo $total_records; ?></span>
@@ -366,15 +277,28 @@ try {
                         <i class="fas fa-plus mr-1"></i>เพิ่มสินค้า
                     </a>
                     <div class="relative flex-1 sm:w-64">
-                        <form action="" method="GET" id="searchForm">
+                        <form action="" method="GET" id="searchForm" class="relative">
                             <input type="hidden" name="page" value="product_list">
                             <input type="hidden" name="page_num" value="1">
-                            <input type="text" name="search" id="searchInput"
+
+                            <input
+                                type="text"
+                                name="search"
+                                id="searchInput"
                                 placeholder="ค้นหาสินค้า..."
                                 value="<?php echo htmlspecialchars($search); ?>"
-                                class="w-full standard-input pl-10 pr-10 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80">
-                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 text-sm"></i>
-                            <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-500 hover:text-blue-700 text-sm" id="clearSearch" style="display: <?php echo $search ? 'block' : 'none'; ?>;">
+                                class="w-full pl-10 pr-10 py-2 text-sm border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/90 placeholder-gray-400">
+
+                            <!-- ไอคอนค้นหา -->
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 text-sm pointer-events-none"></i>
+
+                            <!-- ปุ่มล้างการค้นหา -->
+                            <button
+                                type="button"
+                                id="clearSearch"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 hover:text-red-500 transition duration-200"
+                                style="display: <?php echo $search ? 'block' : 'none'; ?>;"
+                                aria-label="ล้างการค้นหา">
                                 <i class="fas fa-times"></i>
                             </button>
                         </form>
@@ -383,42 +307,38 @@ try {
             </div>
         </div>
 
+
         <!-- Controls Section -->
-        <div class="glass-effect rounded-xl p-5 mb-6 card-shadow">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="sm:col-span-2">
-                    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <div class="glass-effect rounded-xl p-3 sm:p-4 mb-6 card-shadow">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                <!-- Date Filter -->
+                <div class="flex flex-col gap-3 w-full sm:w-auto sm:flex-row sm:items-center">
+                    <h3 class="text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2 mb-2 sm:mb-0">
                         <i class="fas fa-calendar-alt text-blue-500 text-sm"></i>
                         กรองตามวันที่
                     </h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-sm text-gray-600 mb-1">วันที่เริ่มต้น</label>
-                            <input type="date" id="start_date" name="start_date"
-                                class="w-full standard-input border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80"
-                                value="<?php echo htmlspecialchars($start_date); ?>">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-gray-600 mb-1">วันที่สิ้นสุด</label>
-                            <input type="date" id="end_date" name="end_date"
-                                class="w-full standard-input border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80"
-                                value="<?php echo htmlspecialchars($end_date); ?>">
-                        </div>
+                    <div class="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+                        <input type="date" id="start_date" name="start_date"
+                            class="standard-input-mobile sm:standard-input-sm border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80"
+                            value="<?php echo htmlspecialchars($start_date); ?>">
+                        <input type="date" id="end_date" name="end_date"
+                            class="standard-input-mobile sm:standard-input-sm border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80"
+                            value="<?php echo htmlspecialchars($end_date); ?>">
                     </div>
                 </div>
-                <div>
-                    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <i class="fas fa-download text-blue-500 text-sm"></i>
-                        ส่งออกข้อมูล
-                    </h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="exportPDF()" class="standard-button bg-red-500 text-white rounded-lg hover:bg-red-600 transition hover-lift text-sm">
-                            <i class="fas fa-file-pdf mr-1"></i>PDF
-                        </button>
-                        <button onclick="exportExcel()" class="standard-button bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition hover-lift text-sm">
-                            <i class="fas fa-file-excel mr-1"></i>Excel
-                        </button>
-                    </div>
+
+                <!-- Export Buttons -->
+                <div class="flex flex-col xs:flex-row gap-2 w-full sm:w-auto border-t border-gray-200/50 pt-3 sm:border-t-0 sm:pt-0">
+                    <button onclick="exportPDF()" class="standard-button-mobile sm:standard-button-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition hover-lift flex items-center justify-center gap-2">
+                        <i class="fas fa-file-pdf"></i>
+                        <span class="block sm:hidden">ส่งออก PDF</span>
+                        <span class="hidden sm:block">PDF</span>
+                    </button>
+                    <button onclick="exportExcel()" class="standard-button-mobile sm:standard-button-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition hover-lift flex items-center justify-center gap-2">
+                        <i class="fas fa-file-excel"></i>
+                        <span class="block sm:hidden">ส่งออก Excel</span>
+                        <span class="hidden sm:block">Excel</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -517,7 +437,7 @@ try {
             <!-- Table Section -->
             <div class="w-full lg:w-3/4">
                 <div class="glass-effect rounded-xl overflow-hidden card-shadow">
-                    <div class="table-header p-4 text-white">
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-4 text-white">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <h2 class="text-lg font-bold flex items-center gap-2 ">
                                 <i class="fas fa-table text-sm"></i>
@@ -564,7 +484,7 @@ try {
                                                 </td>
                                                 <td class="px-3 py-3">
                                                     <a href="?page=product_detail&tabel=product&id=<?php echo htmlspecialchars($product_list['product_id']); ?>"
-                                                        class="font-medium <?php echo empty($product_list['product_name']) ? 'text-red-600' : 'text-gray-900'; ?> hover:underline">
+                                                        class="font-medium <?php echo empty($product_list['product_name']) ? 'text-red-600' : 'text-gray-900'; ?> hover:underline decoration-blue-200 hover:decoration-blue-400 hover:text-blue-500">
                                                         <?php echo empty($product_list['product_name']) ? 'ไม่มีข้อมูล' : htmlspecialchars($product_list['product_name']); ?>
                                                     </a>
                                                 </td>
