@@ -96,7 +96,7 @@ function validateProductData($name, $price1, $price2, $price3, $price4, $capital
 function checkProductDependencies($pdo, $product_id)
 {
     $dependencies = [];
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM order_details WHERE product_id = ?");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM sale_product WHERE product_id = ?");
     $stmt->execute([$product_id]);
     $count = $stmt->fetchColumn();
     if ($count > 0) {
@@ -106,30 +106,32 @@ function checkProductDependencies($pdo, $product_id)
 }
 
 // Handle search and brand parameters
-$productBrand = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : '';
+$productBrandId = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
 $end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
+$productBrandName = isset($_GET['product_brand_name']) ? trim($_GET['product_brand_name']) : '';
 
 // Get product brand name
 try {
     $stmtBrand = $pdo->prepare("SELECT product_brand_name FROM product_brand WHERE product_brand_id = :product_brand_id");
-    $stmtBrand->bindParam(':product_brand_id', $productBrand, PDO::PARAM_INT);
+    $stmtBrand->bindParam(':product_brand_id', $productBrandId, PDO::PARAM_INT);
     $stmtBrand->execute();
     $brandResult = $stmtBrand->fetch(PDO::FETCH_ASSOC);
     $productBrandName = $brandResult['product_brand_name'] ?? 'ไม่ทราบแบรนด์';
 } catch (PDOException $e) {
-    header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode('เกิดข้อผิดพลาดในการดึงชื่อแบรนด์: ' . htmlspecialchars($e->getMessage())));
+    header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode('เกิดข้อผิดพลาดในการดึงชื่อแบรนด์: ' . htmlspecialchars($e->getMessage())));
     exit;
 }
 
 // Handle POST requests for adding product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=Invalid CSRF token');
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=Invalid CSRF token');
         exit;
     }
 
+    $product_id = trim($_POST['add_product_id']);
     $name = trim($_POST['add_product_name']);
     $price1 = filter_var($_POST['add_product_price1'], FILTER_VALIDATE_FLOAT);
     $price2 = filter_var($_POST['add_product_price2'], FILTER_VALIDATE_FLOAT);
@@ -141,21 +143,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $errors = validateProductData($name, $price1, $price2, $price3, $price4, $capital, $brand_id, $pdo);
 
     if (!empty($errors)) {
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode(implode(', ', $errors)));
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode(implode(', ', $errors)) . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     }
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("INSERT INTO product (product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_brand_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $price1, $price2, $price3, $price4, $capital, $brand_id]);
+        $stmt = $pdo->prepare("INSERT INTO product (product_id, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_brand_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$product_id, $name, $price1, $price2, $price3, $price4, $capital, $brand_id]);
         $pdo->commit();
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : '') . '&product_brand_name=' . urlencode($productBrandName));
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : '') . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Add product error: " . $e->getMessage());
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())) . '&product_brand_name=' . urlencode($productBrandName));
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())) . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     }
 }
@@ -163,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Handle POST requests for updating product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=Invalid CSRF token');
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=Invalid CSRF token');
         exit;
     }
 
@@ -182,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     if (!empty($errors)) {
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode(implode(', ', $errors)) . '&product_brand_name=' . urlencode($productBrandName));
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode(implode(', ', $errors)) . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     }
 
@@ -192,16 +194,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute([$name, $price1, $price2, $price3, $price4, $capital, $brand_id, $id]);
         if ($stmt->rowCount() === 0) {
             $pdo->rollBack();
-            header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=ไม่พบข้อมูลสินค้าที่ต้องการแก้ไข' . '&product_brand_name=' . urlencode($productBrandName));
+            header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=ไม่พบข้อมูลสินค้าที่ต้องการแก้ไข' . '&product_brand_name=' . urlencode($productBrandName));
             exit;
         }
         $pdo->commit();
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : '') . '&product_brand_name=' . urlencode($productBrandName));
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : '') . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Update product error: " . $e->getMessage());
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())) . '&product_brand_name=' . urlencode($productBrandName));
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())) . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     }
 }
@@ -209,13 +211,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Handle DELETE request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id']) && $_POST['action'] === 'delete') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=Invalid CSRF token');
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=Invalid CSRF token');
         exit;
     }
 
     $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
     if (!$id) {
-        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=รหัสสินค้าไม่ถูกต้อง' . '&product_brand_name=' . urlencode($productBrandName));
+        header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=รหัสสินค้าไม่ถูกต้อง' . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     }
 
@@ -225,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         if (!empty($dependencies)) {
             $pdo->rollBack();
             $dependency_list = implode(', ', $dependencies);
-            header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode("ไม่สามารถลบสินค้าได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: {$dependency_list}") . '&product_brand_name=' . urlencode($productBrandName));
+            header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode("ไม่สามารถลบสินค้าได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: {$dependency_list}") . '&product_brand_name=' . urlencode($productBrandName));
             exit;
         }
 
@@ -233,11 +235,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         $stmt->execute([$id]);
         if ($stmt->rowCount() === 0) {
             $pdo->rollBack();
-            header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=ไม่พบข้อมูลสินค้าที่ต้องการลบ' . '&product_brand_name=' . urlencode($productBrandName));
+            header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=ไม่พบข้อมูลสินค้าที่ต้องการลบ' . '&product_brand_name=' . urlencode($productBrandName));
             exit;
         }
         $pdo->commit();
-        header("Location: index.php?page=product_brandgroup&id=" . urlencode($productBrand) . "&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : '') . '&product_brand_name=' . urlencode($productBrandName));
+        header("Location: index.php?page=product_brandgroup&id=" . urlencode($productBrandId) . "&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : '') . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -245,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         $error_message = strpos($e->getMessage(), '1451') !== false
             ? 'ไม่สามารถลบสินค้าได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่ในระบบ'
             : 'เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage());
-        header("Location: index.php?page=product_brandgroup&id=" . urlencode($productBrand) . "&error=" . urlencode($error_message) . '&product_brand_name=' . urlencode($productBrandName));
+        header("Location: index.php?page=product_brandgroup&id=" . urlencode($productBrandId) . "&error=" . urlencode($error_message) . '&product_brand_name=' . urlencode($productBrandName));
         exit;
     }
 }
@@ -253,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 // Count total records for pagination
 try {
     $count_query = "SELECT COUNT(*) as total_count FROM product WHERE product_brand_id = :product_brand_id";
-    $params = [':product_brand_id' => $productBrand];
+    $params = [':product_brand_id' => $productBrandId];
     if (!empty($search)) {
         $count_query .= " AND (product_name LIKE :search OR product_id LIKE :search)";
         $params[':search'] = "%$search%";
@@ -274,7 +276,7 @@ try {
     $total_records = (int)$stmt->fetchColumn();
 } catch (PDOException $e) {
     error_log("Count product error: " . $e->getMessage());
-    header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode('เกิดข้อผิดพลาดในการนับข้อมูล: ' . htmlspecialchars($e->getMessage())) . '&product_brand_name=' . urlencode($productBrandName));
+    header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode('เกิดข้อผิดพลาดในการนับข้อมูล: ' . htmlspecialchars($e->getMessage())) . '&product_brand_name=' . urlencode($productBrandName));
     exit;
 }
 
@@ -289,7 +291,7 @@ try {
     $product_brand_query = "SELECT product_brand_id, product_brand_name FROM product_brand ORDER BY product_brand_name";
     $product_brands = fetchData($pdo, $product_brand_query)->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode($e->getMessage()) . '&product_brand_name=' . urlencode($productBrandName));
+    header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode($e->getMessage()) . '&product_brand_name=' . urlencode($productBrandName));
     exit;
 }
 
@@ -309,7 +311,7 @@ try {
         FROM product p
         INNER JOIN product_brand pb ON p.product_brand_id = pb.product_brand_id
         WHERE p.product_brand_id = :product_brand_id";
-    $params = [':product_brand_id' => $productBrand];
+    $params = [':product_brand_id' => $productBrandId];
     if (!empty($search)) {
         $query .= " AND (p.product_name LIKE :search OR p.product_id LIKE :search)";
         $params[':search'] = "%$search%";
@@ -332,7 +334,7 @@ try {
     $stmt->execute();
     $productData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrand) . '&error=' . urlencode($e->getMessage()) . '&product_brand_name=' . urlencode($productBrandName));
+    header('Location: index.php?page=product_brandgroup&id=' . urlencode($productBrandId) . '&error=' . urlencode($e->getMessage()) . '&product_brand_name=' . urlencode($productBrandName));
     exit;
 }
 ?>
@@ -390,7 +392,7 @@ try {
             </div>
             <form action="" method="GET" class="w-full md:w-auto">
                 <input type="hidden" name="page" value="product_brandgroup">
-                <input type="hidden" name="id" value="<?php echo htmlspecialchars($productBrand); ?>">
+                <input type="hidden" name="id" value="<?php echo htmlspecialchars($productBrandId); ?>">
                 <input type="hidden" name="product_brand_name" value="<?php echo htmlspecialchars($productBrandName); ?>">
                 <input type="hidden" name="page_num" value="1">
                 <div class="relative">
@@ -509,7 +511,7 @@ try {
                                         <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
                                         <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
                                             <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
-                                                <a href="?page=product_brandgroup&id=<?php echo urlencode($productBrand); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
+                                                <a href="?page=product_brandgroup&id=<?php echo urlencode($productBrandId); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
                                             </p>
                                         <?php else: ?>
                                             <p class="text-gray-500 mt-1">ยังไม่มีข้อมูลสินค้าในแบรนด์นี้</p>
@@ -586,7 +588,7 @@ try {
                             <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
                             <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
                                 <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
-                                    <a href="?page=product_brandgroup&id=<?php echo urlencode($productBrand); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
+                                    <a href="?page=product_brandgroup&id=<?php echo urlencode($productBrandId); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
                                 </p>
                             <?php else: ?>
                                 <p class="text-gray-500 mt-1">ยังไม่มีข้อมูลสินค้าในแบรนด์นี้</p>
@@ -601,199 +603,207 @@ try {
         <div class="flex justify-center mt-6 space-x-2">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
-                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrand) ?>&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
+                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrandId) ?>&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">« ก่อนหน้า</a>
                 <?php endif; ?>
                 <?php
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrand) ?>&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
+                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrandId) ?>&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">1</a>
                     <?php if ($start_page > 2): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrand) ?>&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
+                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrandId) ?>&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
                         class="px-4 py-2 rounded-md transition <?= $i == $page ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>"><?= $i ?></a>
                 <?php endfor; ?>
                 <?php if ($end_page < $total_pages): ?>
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrand) ?>&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
+                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrandId) ?>&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition"><?= $total_pages ?></a>
                 <?php endif; ?>
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrand) ?>&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
+                    <a href="?page=product_brandgroup&id=<?= urlencode($productBrandId) ?>&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>&product_brand_name=<?= urlencode($productBrandName) ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">ถัดไป »</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
 
-        <!-- Navigation Links -->
-        <!-- <div class="flex justify-center space-x-4 mt-6">
-            <a href="?page=product_list" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
-                <i class="fas fa-list mr-2"></i> หน้ารายการ
-            </a>
-            <a href="?page=product_brand" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
-                <i class="fas fa-tags mr-2"></i> หน้าแบรนด์
-            </a>
-        </div> -->
-
         <!-- Add Modal -->
-        <div id="addModal" class="modal hidden">
-            <div class="modal-content">
-                <div class="mb-5">
-                    <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                        <i class="fas fa-plus-circle text-blue-600 mr-2"></i>เพิ่มสินค้าใหม่
-                    </h3>
-                    <p class="text-sm text-gray-500">กรุณากรอกข้อมูลสินค้า</p>
+        <div id="addModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50  items-center justify-center z-50 p-4">
+            <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md md:max-w-lg lg:max-w-xl max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                            <i class="fas fa-plus-circle text-blue-600 mr-2"></i>เพิ่มสินค้าใหม่
+                        </h3>
+                        <p class="text-sm text-gray-500">กรุณากรอกข้อมูลสินค้า</p>
+                    </div>
+                    <form id="addForm" method="POST" class="space-y-4">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <input type="hidden" name="product_brand_id" id="addProductBrandId"
+                            value="<?php echo htmlspecialchars($productBrandId); ?>">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">รหัสสินค้า</label>
+                            <input type="text" id="addProductId" name="add_product_id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addIdError">
+                            <span id="addIdError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
+                            <input type="text" id="addProductName" name="add_product_name"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addNameError">
+                            <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 1</label>
+                            <input type="number" step="0.01" id="addProductPrice1" name="add_product_price1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addPrice1Error">
+                            <span id="addPrice1Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 2</label>
+                            <input type="number" step="0.01" id="addProductPrice2" name="add_product_price2"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addPrice2Error">
+                            <span id="addPrice2Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 3</label>
+                            <input type="number" step="0.01" id="addProductPrice3" name="add_product_price3"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addPrice3Error">
+                            <span id="addPrice3Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 4</label>
+                            <input type="number" step="0.01" id="addProductPrice4" name="add_product_price4"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addPrice4Error">
+                            <span id="addPrice4Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาทุน</label>
+                            <input type="number" step="0.01" id="addProductCapital" name="add_product_capital"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addCapitalError">
+                            <span id="addCapitalError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">แบรนด์สินค้า</label>
+                            <p class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                                <?php echo htmlspecialchars($productBrandName); ?>
+                            </p>
+                        </div>
+                        <div class="flex justify-end space-x-2 pt-4">
+                            <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                                ยกเลิก
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">บันทึก</button>
+                        </div>
+                    </form>
                 </div>
-                <form id="addForm" method="POST" class="space-y-4">
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <input type="hidden" name="product_brand_id" id="addProductBrandId"
-                        value="<?php echo htmlspecialchars($productBrand); ?>">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
-                        <input type="text" id="addProductName" name="add_product_name"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addNameError">
-                        <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 1</label>
-                        <input type="number" step="0.01" id="addProductPrice1" name="add_product_price1"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPrice1Error">
-                        <span id="addPrice1Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 2</label>
-                        <input type="number" step="0.01" id="addProductPrice2" name="add_product_price2"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPrice2Error">
-                        <span id="addPrice2Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 3</label>
-                        <input type="number" step="0.01" id="addProductPrice3" name="add_product_price3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPrice3Error">
-                        <span id="addPrice3Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 4</label>
-                        <input type="number" step="0.01" id="addProductPrice4" name="add_product_price4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPrice4Error">
-                        <span id="addPrice4Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาทุน</label>
-                        <input type="number" step="0.01" id="addProductCapital" name="add_product_capital"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addCapitalError">
-                        <span id="addCapitalError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">แบรนด์สินค้า</label>
-                        <p class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
-                            <?php echo htmlspecialchars($productBrandName); ?>
-                        </p>
-                    </div>
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">บันทึก</button>
-                    </div>
-                </form>
             </div>
         </div>
 
         <!-- Edit Modal -->
-        <div id="editModal" class="modal hidden">
-            <div class="modal-content">
-                <div class="flex items-center space-x-2 mb-4">
-                    <i class="far fa-edit text-blue-600 text-xl"></i>
-                    <h3 class="text-xl font-bold text-gray-800">แก้ไขข้อมูลสินค้า</h3>
+        <div id="editModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50  items-center justify-center z-50 p-4">
+            <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md md:max-w-lg lg:max-w-xl max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="far fa-edit text-blue-600 text-xl"></i>
+                        <h3 class="text-xl font-bold text-gray-800">แก้ไขข้อมูลสินค้า</h3>
+                    </div>
+                    <form id="editForm" method="POST" class="space-y-4">
+                        <input type="hidden" id="editProductId" name="id">
+                        <input type="hidden" name="action" value="edit">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">รหัสสินค้า</label>
+                            <input type="text" id="editProductIdDisplay" disabled
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700"
+                                aria-describedby="editIdError">
+                            <span id="editIdError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
+                            <input type="text" id="editProductName" name="update_product_name"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="editNameError">
+                            <span id="editNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 1</label>
+                            <input type="number" step="0.01" id="editProductPrice1" name="update_product_price1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="editPrice1Error">
+                            <span id="editPrice1Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 2</label>
+                            <input type="number" step="0.01" id="editProductPrice2" name="update_product_price2"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="editPrice2Error">
+                            <span id="editPrice2Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 3</label>
+                            <input type="number" step="0.01" id="editProductPrice3" name="update_product_price3"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="editPrice3Error">
+                            <span id="editPrice3Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 4</label>
+                            <input type="number" step="0.01" id="editProductPrice4" name="update_product_price4"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="editPrice4Error">
+                            <span id="editPrice4Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาทุน</label>
+                            <input type="number" step="0.01" id="editProductCapital" name="update_product_capital"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="editCapitalError">
+                            <span id="editCapitalError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">แบรนด์สินค้า</label>
+                            <select id="editProductBrandId" name="update_product_brand_id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="editBrandError">
+                                <option value="">เลือกแบรนด์สินค้า</option>
+                                <?php foreach ($product_brands as $pbrand): ?>
+                                    <option value="<?php echo htmlspecialchars($pbrand['product_brand_id']); ?>">
+                                        <?php echo htmlspecialchars($pbrand['product_brand_name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span id="editBrandError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div class="flex justify-end space-x-2 pt-4">
+                            <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                                ยกเลิก
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">บันทึก</button>
+                        </div>
+                    </form>
                 </div>
-                <form id="editForm" method="POST" class="space-y-4">
-                    <input type="hidden" id="editProductId" name="id">
-                    <input type="hidden" name="action" value="edit">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
-                        <input type="text" id="editProductName" name="update_product_name"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editNameError">
-                        <span id="editNameError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 1</label>
-                        <input type="number" step="0.01" id="editProductPrice1" name="update_product_price1"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editPrice1Error">
-                        <span id="editPrice1Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 2</label>
-                        <input type="number" step="0.01" id="editProductPrice2" name="update_product_price2"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editPrice2Error">
-                        <span id="editPrice2Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 3</label>
-                        <input type="number" step="0.01" id="editProductPrice3" name="update_product_price3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editPrice3Error">
-                        <span id="editPrice3Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 4</label>
-                        <input type="number" step="0.01" id="editProductPrice4" name="update_product_price4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editPrice4Error">
-                        <span id="editPrice4Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาทุน</label>
-                        <input type="number" step="0.01" id="editProductCapital" name="update_product_capital"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editCapitalError">
-                        <span id="editCapitalError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">แบรนด์สินค้า</label>
-                        <select id="editProductBrandId" name="update_product_brand_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="editBrandError">
-                            <option value="">เลือกแบรนด์สินค้า</option>
-                            <?php foreach ($product_brands as $pbrand): ?>
-                                <option value="<?php echo htmlspecialchars($pbrand['product_brand_id']); ?>">
-                                    <?php echo htmlspecialchars($pbrand['product_brand_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="editBrandError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">บันทึก</button>
-                    </div>
-                </form>
             </div>
         </div>
 
         <!-- Delete Confirmation Modal -->
-        <div id="deleteModal" class="modal hidden">
-            <div class="modal-content">
+        <div id="deleteModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50  items-center justify-center z-50 p-4">
+            <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
                 <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?</p>
                 <div class="flex justify-end space-x-2">
@@ -810,6 +820,7 @@ try {
 
     <script>
         const showAddModal = () => {
+            document.getElementById('addProductId').value = '';
             document.getElementById('addProductName').value = '';
             document.getElementById('addProductPrice1').value = '';
             document.getElementById('addProductPrice2').value = '';
@@ -831,6 +842,7 @@ try {
 
         const showEditModal = (id, name, price1, price2, price3, price4, capital, brandId) => {
             document.getElementById('editProductId').value = id;
+            document.getElementById('editProductIdDisplay').value = id;
             document.getElementById('editProductName').value = name;
             document.getElementById('editProductPrice1').value = price1;
             document.getElementById('editProductPrice2').value = price2;
@@ -838,6 +850,7 @@ try {
             document.getElementById('editProductPrice4').value = price4;
             document.getElementById('editProductCapital').value = capital;
             document.getElementById('editProductBrandId').value = brandId;
+            document.getElementById('editIdError').classList.add('hidden');
             document.getElementById('editNameError').classList.add('hidden');
             document.getElementById('editPrice1Error').classList.add('hidden');
             document.getElementById('editPrice2Error').classList.add('hidden');
@@ -890,7 +903,7 @@ try {
         const exportPDF = () => {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
-            let url = '/page/product/report/export_product_brandgroup_pdf.php?id=<?php echo urlencode($productBrand); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>';
+            let url = '/page/product/report/export_product_brandgroup_pdf.php?id=<?php echo urlencode($productBrandId); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>';
             if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
             if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
             window.open(url, '_blank');
@@ -899,7 +912,7 @@ try {
         const exportExcel = () => {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
-            let url = '/page/product/report/export_product_brandgroup_excel.php?id=<?php echo urlencode($productBrand); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>';
+            let url = '/page/product/report/export_product_brandgroup_excel.php?id=<?php echo urlencode($productBrandId); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>&product_brand_name=<?php echo urlencode($productBrandName); ?>';
             if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
             if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
             window.open(url, '_blank');
@@ -977,12 +990,18 @@ try {
             document.getElementById('addForm').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const fields = [{
+                        id: 'addProductId',
+                        errorId: 'addIdError',
+                        label: 'รหัสสินค้า',
+                        required: true
+                    }, {
                         id: 'addProductName',
                         errorId: 'addNameError',
                         label: 'ชื่อสินค้า',
                         maxLength: 255,
                         required: true
                     },
+
                     {
                         id: 'addProductPrice1',
                         errorId: 'addPrice1Error',
@@ -1098,7 +1117,7 @@ try {
                 const endDate = document.getElementById('end_date').value;
                 const urlParams = new URLSearchParams(window.location.search);
                 urlParams.set('page', 'product_brandgroup');
-                urlParams.set('id', '<?php echo urlencode($productBrand); ?>');
+                urlParams.set('id', '<?php echo urlencode($productBrandId); ?>');
                 urlParams.set('product_brand_name', '<?php echo urlencode($productBrandName); ?>');
                 if (startDate) urlParams.set('start_date', startDate);
                 else urlParams.delete('start_date');

@@ -42,9 +42,27 @@ function verifyCsrfToken($token)
 }
 
 // Validate product data
-function validateProductData($name, $price1, $price2, $price3, $price4, $capital, $type_id, $pdo, $exclude_id = null)
+function validateProductData($product_id, $name, $price1, $price2, $price3, $price4, $capital, $type_id, $pdo, $exclude_id = null)
 {
     $errors = [];
+    // Validate product_id
+    if (empty($product_id)) {
+        $errors[] = 'รหัสสินค้าต้องไม่ว่าง';
+    } else {
+        $query = "SELECT COUNT(*) FROM product WHERE product_id = :product_id";
+        if ($exclude_id) {
+            $query .= " AND product_id != :exclude_id";
+        }
+        $stmt = $pdo->prepare($query);
+        $stmt->bindValue(':product_id', $product_id);
+        if ($exclude_id) {
+            $stmt->bindValue(':exclude_id', $exclude_id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        if ($stmt->fetchColumn() > 0) {
+            $errors[] = 'รหัสสินค้านี้มีอยู่ในระบบแล้ว';
+        }
+    }
     if (empty($name) || strlen($name) > 255) {
         $errors[] = 'ชื่อสินค้าต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร';
     } else {
@@ -87,7 +105,7 @@ function validateProductData($name, $price1, $price2, $price3, $price4, $capital
 function checkProductDependencies($pdo, $product_id)
 {
     $dependencies = [];
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM order_details WHERE product_id = ?");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM sale_product WHERE product_id = ?");
     $stmt->execute([$product_id]);
     $count = $stmt->fetchColumn();
     if ($count > 0) {
@@ -121,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
+    $product_id = trim($_POST['add_product_id']);
     $name = trim($_POST['add_product_name']);
     $price1 = filter_var($_POST['add_product_price1'], FILTER_VALIDATE_FLOAT);
     $price2 = filter_var($_POST['add_product_price2'], FILTER_VALIDATE_FLOAT);
@@ -129,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $capital = filter_var($_POST['add_product_capital'], FILTER_VALIDATE_FLOAT);
     $type_id = filter_var($_POST['product_type_id'], FILTER_VALIDATE_INT);
 
-    $errors = validateProductData($name, $price1, $price2, $price3, $price4, $capital, $type_id, $pdo);
+    $errors = validateProductData($product_id, $name, $price1, $price2, $price3, $price4, $capital, $type_id, $pdo);
 
     if (!empty($errors)) {
         header('Location: index.php?page=product_typegroup&id=' . urlencode($productTypeId) . '&error=' . urlencode(implode(', ', $errors)));
@@ -138,8 +157,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     try {
         $pdo->beginTransaction();
-        $stmt = $pdo->prepare("INSERT INTO product (product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $price1, $price2, $price3, $price4, $capital, $type_id]);
+        $stmt = $pdo->prepare("INSERT INTO product (product_id, product_name, product_price1, product_price2, product_price3, product_price4, product_capital, product_type_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$product_id, $name, $price1, $price2, $price3, $price4, $capital, $type_id]);
         $pdo->commit();
         header('Location: index.php?page=product_typegroup&id=' . urlencode($productTypeId) . '&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
         exit;
@@ -167,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $capital = filter_var($_POST['update_product_capital'], FILTER_VALIDATE_FLOAT);
     $type_id = filter_var($_POST['update_product_type_id'], FILTER_VALIDATE_INT);
 
-    $errors = validateProductData($name, $price1, $price2, $price3, $price4, $capital, $type_id, $pdo, $id);
+    $errors = validateProductData($id, $name, $price1, $price2, $price3, $price4, $capital, $type_id, $pdo, $id);
     if (!$id) {
         $errors[] = 'รหัสสินค้าไม่ถูกต้อง';
     }
@@ -622,91 +641,89 @@ try {
             <?php endif; ?>
         </div>
 
-        <!-- Navigation Links -->
-        <!-- <div class="flex justify-center space-x-4 mt-6">
-            <a href="?page=product_list" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
-                <i class="fas fa-list mr-2"></i> หน้ารายการ
-            </a>
-            <a href="?page=product_type" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
-                <i class="fas fa-tags mr-2"></i> หน้าประเภท
-            </a>
-        </div> -->
-
         <!-- Add Modal -->
-        <div id="addModal" class="modal hidden">
-            <div class="modal-content">
-                <div class="mb-5">
-                    <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                        <i class="fas fa-plus-circle text-blue-600 mr-2"></i>เพิ่มสินค้าใหม่
-                    </h3>
-                    <p class="text-sm text-gray-500">กรุณากรอกข้อมูลสินค้า</p>
+        <div id="addModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50 p-4">
+            <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md md:max-w-lg lg:max-w-xl max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                            <i class="fas fa-plus-circle text-blue-600 mr-2"></i>เพิ่มสินค้าใหม่
+                        </h3>
+                        <p class="text-sm text-gray-500">กรุณากรอกข้อมูลสินค้า</p>
+                    </div>
+                    <form id="addForm" method="POST" class="space-y-4">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <input type="hidden" name="product_type_id" id="addProductTypeId" value="<?php echo htmlspecialchars($productTypeId); ?>">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">รหัสสินค้า</label>
+                            <input type="text" id="addProductId" name="add_product_id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addIdError">
+                            <span id="addIdError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
+                            <input type="text" id="addProductName" name="add_product_name"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addNameError">
+                            <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 1</label>
+                            <input type="number" step="0.01" id="addProductPrice1" name="add_product_price1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addPrice1Error">
+                            <span id="addPrice1Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 2</label>
+                            <input type="number" step="0.01" id="addProductPrice2" name="add_product_price2"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addPrice2Error">
+                            <span id="addPrice2Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 3</label>
+                            <input type="number" step="0.01" id="addProductPrice3" name="add_product_price3"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addPrice3Error">
+                            <span id="addPrice3Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาขาย 4</label>
+                            <input type="number" step="0.01" id="addProductPrice4" name="add_product_price4"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addPrice4Error">
+                            <span id="addPrice4Error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ราคาทุน</label>
+                            <input type="number" step="0.01" id="addProductCapital" name="add_product_capital"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required aria-describedby="addCapitalError">
+                            <span id="addCapitalError" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ประเภทสินค้า</label>
+                            <p class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                                <?php echo htmlspecialchars($productTypeName); ?>
+                            </p>
+                        </div>
+                        <div class="flex justify-end space-x-2 pt-4">
+                            <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                                ยกเลิก
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">บันทึก</button>
+                        </div>
+                    </form>
                 </div>
-                <form id="addForm" method="POST" class="space-y-4">
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <input type="hidden" name="product_type_id" id="addProductTypeId"
-                        value="<?php echo htmlspecialchars($productTypeId); ?>">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
-                        <input type="text" id="addProductName" name="add_product_name"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addNameError">
-                        <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 1</label>
-                        <input type="number" step="0.01" id="addProductPrice1" name="add_product_price1"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPrice1Error">
-                        <span id="addPrice1Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 2</label>
-                        <input type="number" step="0.01" id="addProductPrice2" name="add_product_price2"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPrice2Error">
-                        <span id="addPrice2Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 3</label>
-                        <input type="number" step="0.01" id="addProductPrice3" name="add_product_price3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPrice3Error">
-                        <span id="addPrice3Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาขาย 4</label>
-                        <input type="number" step="0.01" id="addProductPrice4" name="add_product_price4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPrice4Error">
-                        <span id="addPrice4Error" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ราคาทุน</label>
-                        <input type="number" step="0.01" id="addProductCapital" name="add_product_capital"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addCapitalError">
-                        <span id="addCapitalError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ประเภทสินค้า</label>
-                        <p class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
-                            <?php echo htmlspecialchars($productTypeName); ?>
-                        </p>
-                    </div>
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">บันทึก</button>
-                    </div>
-                </form>
             </div>
         </div>
-
+        
         <!-- Edit Modal -->
-        <div id="editModal" class="modal hidden">
-            <div class="modal-content">
+        <div id="editModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50 p-4">
+            <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md md:max-w-lg lg:max-w-xl max-h-[90vh] overflow-y-auto">
                 <div class="flex items-center space-x-2 mb-4">
                     <i class="far fa-edit text-blue-600 text-xl"></i>
                     <h3 class="text-xl font-bold text-gray-800">แก้ไขข้อมูลสินค้า</h3>
@@ -715,6 +732,13 @@ try {
                     <input type="hidden" id="editProductId" name="id">
                     <input type="hidden" name="action" value="edit">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">รหัสสินค้า</label>
+                        <input type="text" id="editProductIdDisplay" disabled
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700"
+                            aria-describedby="editIdError">
+                        <span id="editIdError" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">ชื่อสินค้า</label>
                         <input type="text" id="editProductName" name="update_product_name"
@@ -800,12 +824,14 @@ try {
 
     <script>
         const showAddModal = () => {
+            document.getElementById('addProductId').value = '';
             document.getElementById('addProductName').value = '';
             document.getElementById('addProductPrice1').value = '';
             document.getElementById('addProductPrice2').value = '';
             document.getElementById('addProductPrice3').value = '';
             document.getElementById('addProductPrice4').value = '';
             document.getElementById('addProductCapital').value = '';
+            document.getElementById('addIdError').classList.add('hidden');
             document.getElementById('addNameError').classList.add('hidden');
             document.getElementById('addPrice1Error').classList.add('hidden');
             document.getElementById('addPrice2Error').classList.add('hidden');
@@ -821,6 +847,7 @@ try {
 
         const showEditModal = (id, name, price1, price2, price3, price4, capital, typeId) => {
             document.getElementById('editProductId').value = id;
+            document.getElementById('editProductIdDisplay').value = id;
             document.getElementById('editProductName').value = name;
             document.getElementById('editProductPrice1').value = price1;
             document.getElementById('editProductPrice2').value = price2;
@@ -828,6 +855,7 @@ try {
             document.getElementById('editProductPrice4').value = price4;
             document.getElementById('editProductCapital').value = capital;
             document.getElementById('editProductTypeId').value = typeId;
+            document.getElementById('editIdError').classList.add('hidden');
             document.getElementById('editNameError').classList.add('hidden');
             document.getElementById('editPrice1Error').classList.add('hidden');
             document.getElementById('editPrice2Error').classList.add('hidden');
@@ -967,6 +995,12 @@ try {
             document.getElementById('addForm').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const fields = [{
+                        id: 'addProductId',
+                        errorId: 'addIdError',
+                        label: 'รหัสสินค้า',
+                        required: true
+                    },
+                    {
                         id: 'addProductName',
                         errorId: 'addNameError',
                         label: 'ชื่อสินค้า',
