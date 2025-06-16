@@ -453,7 +453,7 @@ ob_end_flush();
                             </tr>
                         <?php else: ?>
                             <?php foreach ($lots as $lot): ?>
-                                <tr class="border-b border-blue-100 hover:bg-blue-50 transition-colors duration-200">
+                                <tr class=" bg-white border-b border-blue-100 hover:bg-blue-50 transition-colors duration-200">
                                     <td class="px-6 py-3 font-medium text-blue-600"><?= htmlspecialchars($lot['lot_id']) ?></td>
                                     <td class="px-6 py-3 text-gray-700"><?= htmlspecialchars($lot['lot_name']) ?></td>
                                     <td class="px-6 py-3 text-gray-700"><?= htmlspecialchars($lot['warehouse_from_name'] ?? 'ไม่ระบุ') ?></td>

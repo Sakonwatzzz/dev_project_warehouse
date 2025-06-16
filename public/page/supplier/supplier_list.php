@@ -9,7 +9,7 @@ if (!isset($_SESSION)) {
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 3600)) {
     session_unset();
     session_destroy();
     $query_params = http_build_query(['timeout' => 1, 'page' => 'supplier_list'] + ($_GET ?? []));
@@ -22,12 +22,15 @@ $_SESSION['LAST_ACTIVITY'] = time();
 function fetchData($pdo, $query, $params = [])
 {
     try {
+        if (!$pdo) {
+            throw new Exception("PDO object is not initialized");
+        }
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
         return $stmt;
     } catch (PDOException $e) {
         error_log("Database query error: " . $e->getMessage());
-        throw new Exception("เกิดข้อผิดพลาดในฐานข้อมูล: " . htmlspecialchars($e->getMessage()));
+        die("เกิดข้อผิดพลาดในฐานข้อมูล: " . htmlspecialchars($e->getMessage()));
     }
 }
 
@@ -189,6 +192,8 @@ try {
         $count_query .= " WHERE supplier_id LIKE :search OR supplier_name LIKE :search OR supplier_phone LIKE :search";
         $params[':search'] = "%$search%";
     }
+    // ลบเงื่อนไขวันที่ชั่วคราวเพื่อทดสอบ
+    /*
     if ($start_date || $end_date) {
         $count_query .= (!empty($search) ? " AND" : " WHERE") . " 1=1";
         if ($start_date) {
@@ -200,29 +205,32 @@ try {
             $params[':end_date'] = $end_date . ' 23:59:59';
         }
     }
+    */
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
     $stmt->execute();
     $total_records = (int)$stmt->fetchColumn();
+    error_log("Total Records: $total_records");
 } catch (PDOException $e) {
     error_log("Count supplier error: " . $e->getMessage());
-    header('Location: index.php?page=supplier_list&error=' . urlencode('เกิดข้อผิดพลาดในการนับข้อมูล: ' . htmlspecialchars($e->getMessage())));
-    exit;
+    die("เกิดข้อผิดพลาดในการนับข้อมูล: " . htmlspecialchars($e->getMessage()));
 }
 
 $records_per_page = 5;
 $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_records / $records_per_page));
+error_log("Page: $page, Offset: $offset, Total Pages: $total_pages");
 
 // Fetch Personnel Data
 try {
     $personnels = fetchData($pdo, "SELECT personnel_id, personnel_name FROM personnel")->fetchAll(PDO::FETCH_ASSOC);
+    error_log("Personnels: " . print_r($personnels, true));
 } catch (Exception $e) {
-    header('Location: index.php?page=supplier_list&error=' . urlencode($e->getMessage()));
-    exit;
+    error_log("Fetch personnel error: " . $e->getMessage());
+    die("เกิดข้อผิดพลาด: " . htmlspecialchars($e->getMessage()));
 }
 
 // Fetch Supplier Data
@@ -235,25 +243,25 @@ try {
             sup.supplier_phone, 
             sup.supplier_create_date,
             sup.personnel_id, 
-            per.personnel_name
+            COALESCE(per.personnel_name, 'ไม่ระบุ') AS personnel_name
         FROM supplier sup
-        INNER JOIN personnel per ON sup.personnel_id = per.personnel_id";
+        LEFT JOIN personnel per ON sup.personnel_id = per.personnel_id";
     $params = [];
-    if (!empty($search) || $start_date || $end_date) {
-        $query .= " WHERE 1=1";
-        if (!empty($search)) {
-            $query .= " AND (sup.supplier_id LIKE :search OR sup.supplier_name LIKE :search OR sup.supplier_phone LIKE :search)";
-            $params[':search'] = "%$search%";
-        }
-        if ($start_date) {
-            $query .= " AND sup.supplier_create_date >= :start_date";
-            $params[':start_date'] = $start_date . ' 00:00:00';
-        }
-        if ($end_date) {
-            $query .= " AND sup.supplier_create_date <= :end_date";
-            $params[':end_date'] = $end_date . ' 23:59:59';
-        }
+    if (!empty($search)) {
+        $query .= " WHERE (sup.supplier_id LIKE :search OR sup.supplier_name LIKE :search OR sup.supplier_phone LIKE :search)";
+        $params[':search'] = "%$search%";
     }
+    // ลบเงื่อนไขวันที่ชั่วคราวเพื่อทดสอบ
+    /*
+    if ($start_date) {
+        $query .= (!empty($search) ? " AND" : " WHERE") . " sup.supplier_create_date >= :start_date";
+        $params[':start_date'] = $start_date . ' 00:00:00';
+    }
+    if ($end_date) {
+        $query .= (!empty($search) || $start_date ? " AND" : " WHERE") . " sup.supplier_create_date <= :end_date";
+        $params[':end_date'] = $end_date . ' 23:59:59';
+    }
+    */
     $query .= " ORDER BY sup.supplier_id DESC LIMIT :offset, :limit";
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
@@ -263,9 +271,12 @@ try {
     $stmt->bindValue(':limit', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
     $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    error_log("SQL Query: $query");
+    error_log("Params: " . print_r($params, true));
+    error_log("Suppliers: " . print_r($suppliers, true));
 } catch (Exception $e) {
-    header('Location: index.php?page=supplier_list&error=' . urlencode($e->getMessage()));
-    exit;
+    error_log("Fetch supplier error: " . $e->getMessage());
+    die("เกิดข้อผิดพลาด: " . htmlspecialchars($e->getMessage()));
 }
 ?>
 
@@ -279,6 +290,17 @@ try {
     <link href="/output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/style/page_list.css">
+    <style>
+        /* เพิ่ม CSS เพื่อให้แน่ใจว่าตารางแสดง */
+        table {
+            display: table !important;
+            visibility: visible !important;
+        }
+
+        tbody tr {
+            display: table-row !important;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 font-sans">
