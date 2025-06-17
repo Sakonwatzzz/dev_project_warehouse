@@ -14,7 +14,7 @@ $(document).ready(function () {
     }
     console.log("sending print request for sale_id", sale_id);
     $.ajax({
-      url: "page/sale/sale_add.php",
+      url: "page/sale/api/api_print_receipt.php",
       method: "POST",
       data: {
         action: "print_receipt",
