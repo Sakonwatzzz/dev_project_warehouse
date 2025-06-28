@@ -1,0 +1,4 @@
+/* Custom styles for insert pages (supplier and personnel) */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+}

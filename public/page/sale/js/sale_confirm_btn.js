@@ -48,7 +48,11 @@ $(document).ready(function () {
               );
             },
           }).then(() => {
-            window.location.href = response.redirect; // รีเฟรชหน้า
+            // รีเฟรช ตารางและสถานะ
+            // if (){
+            // } else{
+            // }
+            // window.location.href = response.redirect;
           });
         } else {
           Swal.fire({

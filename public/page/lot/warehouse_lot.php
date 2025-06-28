@@ -1,7 +1,11 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
-session_start();
+
+// Session Management
+if (!isset($_SESSION)) {
+    session_start();
+}
 
 // CSRF Token Generation
 if (empty($_SESSION['csrf_token'])) {

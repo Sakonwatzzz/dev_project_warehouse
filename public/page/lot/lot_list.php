@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-session_start();
 date_default_timezone_set('Asia/Bangkok');
 
 // Create CSRF token
@@ -27,7 +26,7 @@ function fetchData($pdo, $query, $params = [])
         return $stmt;
     } catch (PDOException $e) {
         error_log("Database query error: " . $e->getMessage());
-        throw new Exception("Database error: " . htmlspecialchars($e->getMessage()));
+        throw new Exception("เกิดข้อผิดพลาดในฐานข้อมูล: " . htmlspecialchars($e->getMessage()));
     }
 }
 
@@ -107,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Add lot error: " . $e->getMessage());
-        header('Location: index.php?page=lot_list&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
+        header('Location: index.php?page=lot_list&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())));
         exit;
     }
 }
@@ -151,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Update lot error: " . $e->getMessage());
-        header('Location: index.php?page=lot_list&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
+        header('Location: index.php?page=lot_list&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())));
         exit;
     }
 }
@@ -165,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
     if (!$id) {
-        header('Location: index.php?page=lot_list&error=Invalid lot ID');
+        header('Location: index.php?page=lot_list&error=รหัสล็อตไม่ถูกต้อง');
         exit;
     }
 
@@ -213,14 +212,14 @@ try {
 
 // Count total records for pagination
 try {
-    $count_query = "SELECT COUNT(*) as total_count FROM lot WHERE warehouse_inout = 1";
+    $count_query = "SELECT COUNT(*) FROM lot WHERE warehouse_inout = 1";
     $params = [];
     if (!empty($search)) {
         $count_query .= " AND (lot_id LIKE :search OR lot_name LIKE :search)";
         $params[':search'] = "%$search%";
     }
     if ($start_date || $end_date) {
-        $count_query .= (!empty($search) ? " AND" : " WHERE") . " 1=1";
+        $count_query .= " AND 1=1";
         if ($start_date) {
             $count_query .= " AND lot_date >= :start_date";
             $params[':start_date'] = $start_date . ' 00:00:00';
@@ -231,20 +230,17 @@ try {
         }
     }
     $stmt = $pdo->prepare($count_query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
-    $stmt->execute();
+    $stmt->execute($params);
     $total_records = (int)$stmt->fetchColumn();
 } catch (PDOException $e) {
     error_log("Count lot error: " . $e->getMessage());
-    header('Location: index.php?page=lot_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
+    header('Location: index.php?page=lot_list&error=' . urlencode('เกิดข้อผิดพลาดในการนับข้อมูล: ' . htmlspecialchars($e->getMessage())));
     exit;
 }
 
 // Pagination logic
-$records_per_page = 5;
-$page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
+$records_per_page = 10;
+$page = isset($_GET['page_num']) ? max(1, (int)$_GET['page_num']) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_records / $records_per_page));
 
@@ -261,11 +257,13 @@ try {
             lot.supplier_id,
             lot_status.lot_status_name,
             warehouse.warehouse_name,
-            supplier.supplier_name
+            supplier.supplier_name,
+            COALESCE(COUNT(lp.lot_product_id), 0) as product_count
         FROM lot
         LEFT JOIN lot_status ON lot.lot_status_id = lot_status.lot_status_id
         LEFT JOIN warehouse ON lot.warehouse_id = warehouse.warehouse_id
         LEFT JOIN supplier ON lot.supplier_id = supplier.supplier_id
+        LEFT JOIN lot_product lp ON lot.lot_id = lp.lot_id
         WHERE lot.warehouse_inout = 1";
     $params = [];
     if (!empty($search) || $start_date || $end_date) {
@@ -283,7 +281,7 @@ try {
             $params[':end_date'] = $end_date . ' 23:59:59';
         }
     }
-    $query .= " ORDER BY lot.lot_date DESC LIMIT :offset, :limit";
+    $query .= " GROUP BY lot.lot_id ORDER BY lot.lot_date DESC LIMIT :offset, :limit";
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -305,76 +303,74 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจัดการล็อตสินค้า</title>
-    <link rel="stylesheet" href="../../output.css">
+    <link href="../../output.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../style/page_list.css">
     <style>
-        body {
-            background-color: #f8f9fa;
+        @media (max-width: 768px) {
+            .table-responsive {
+                display: none;
+            }
+
+            .card-responsive {
+                display: block;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .table-responsive {
+                display: block;
+            }
+
+            .card-responsive {
+                display: none;
+            }
         }
     </style>
 </head>
 
-<body class="bg-gray-50">
+<body class="bg-gray-100 font-sans">
     <div class="container mx-auto px-4 py-8">
         <!-- Header and Search Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
-            <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
-                <div class="flex space-x-2">
-                    <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
-                        <i class="fas fa-boxes mr-2"></i>
-                        <?php echo $total_records; ?>
-                        <span>รายการ</span>
-                    </div>
-                </div>
-                <button "
-                    class=" bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
-                    <a href="/?page=lot_listinsert"
-                        class="">
-                        <i class="fas fa-plus mr-2"></i>เพิ่มล็อตสินค้า
-                    </a>
-                </button>
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
+            <div class="flex flex-col w-full md:flex-row md:w-auto items-center space-y-2 md:space-y-0 md:space-x-4">
+                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
+                    <i class="fas fa-list mr-2"></i> <?php echo number_format($total_records); ?> รายการ
+                </span>
             </div>
-            <div class="flex items-center">
-                <form action="" method="GET" id="searchForm" class="w-full text-end">
-                    <input type="hidden" name="page" value="lot_list">
-                    <input type="hidden" name="page_num" value="1">
-                    <div class="relative">
-                        <input type="text" name="search" id="searchInput"
-                            placeholder="ค้นหาล็อตสินค้า..."
-                            value="<?php echo htmlspecialchars($search); ?>"
-                            class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
-                <!-- Mobile Date Filter -->
-                <div class="grid grid-cols-2 gap-4 md:w-[100%]">
-                    <div>
-                        <label for="start_date" class="text-sm font-medium text-gray-700">เริ่มจาก</label>
-                        <input type="date" id="start_date" name="start_date"
-                            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
-                            value="<?php echo htmlspecialchars($start_date); ?>">
-                    </div>
-                    <div>
-                        <label for="end_date" class="text-sm font-medium text-gray-700">ถึงวันที่</label>
-                        <input type="date" id="end_date" name="end_date"
-                            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
-                            value="<?php echo htmlspecialchars($end_date); ?>">
-                    </div>
-                </div>
 
-                <!-- Export Buttons -->
-                <div class="grid grid-cols-2 gap-4 pt-2 md:w-[100%] md:grid md:grid-cols-2 md:gap-4">
-                    <button onclick="exportPDF()"
-                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
-                        <i class="fas fa-file-pdf"></i> ส่งออก PDF
+            <form action="" method="GET" class="w-full md:w-auto">
+                <input type="hidden" name="page" value="lot_list">
+                <input type="hidden" name="page_num" value="1">
+                <div class="relative">
+                    <input type="text" name="search" id="searchInput" placeholder="ค้นหาล็อตสินค้า..." value="<?php echo htmlspecialchars($search); ?>"
+                        class="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        <i class="fas fa-search"></i>
                     </button>
-                    <button onclick="exportExcel()"
-                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
-                        <i class="fas fa-file-excel"></i> ส่งออก Excel
+                </div>
+            </form>
+        </div>
+
+        <!-- Date Filter and Export Buttons -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700">เริ่มจาก</label>
+                    <input type="date" id="start_date" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>"
+                        class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-700">ถึงวันที่</label>
+                    <input type="date" id="end_date" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>"
+                        class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex items-end space-x-2">
+                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                        <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
+                    </button>
+                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                        <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
                     </button>
                 </div>
             </div>
@@ -382,314 +378,243 @@ try {
 
         <!-- Notification -->
         <div id="notification"
-            class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
-            <div id="notification-header" class="px-4 py-2 font-bold text-white"></div>
-            <div class="px-4 py-3" id="notification-message"></div>
+            class="fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 transform translate-x-full transition-transform duration-300 z-50 flex items-center">
+            <div id="notification-header" class="flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg">
+                <i id="notificationIcon" class="fas fa-check-circle text-2xl"></i>
+            </div>
+            <div class="flex-1 ml-4 pr-4 py-4">
+                <p id="notificationTitle" class="text-sm font-medium text-gray-900"></p>
+                <p id="notificationMessage" class="mt-1 text-sm text-gray-500"></p>
+            </div>
+            <button onclick="hideNotification()" class="mr-4 text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
-        <!-- Table -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-gradient-to-b from-[#d7e1ec] to-[#e6effb] p-4 border-b border-[#cfd5dc]">
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center">
-                        <i class="fas fa-list mr-2"></i> รายการล็อตสินค้า
-                    </h2>
-                </div>
-            </div>
-            <div class="p-6">
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50">
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">รหัสล็อต</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ชื่อล็อต</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังปลายทาง</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">ผู้ส่งมอบ</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่และเวลา</th>
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
-                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold">การจัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (count($result_lot_list) > 0): ?>
-                                <?php foreach ($result_lot_list as $lot): ?>
-                                    <tr class="hover:bg-gray-100">
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($lot['lot_id']); ?></td>
-                                        <td class="px-6 py-2 border">
-                                            <a href="?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
-                                                class="text-blue-600 hover:underline cursor-pointer">
-                                                <?php echo htmlspecialchars($lot['lot_name']); ?>
-                                            </a>
-                                        </td>
-                                        <td class="px-6 py-2 border cursor-pointer hover:underline"
-                                            onclick="window.location.href='?page=warehouse_lot&warehouse_id=<?php echo htmlspecialchars($lot['warehouse_id']); ?>'">
-                                            <?php echo htmlspecialchars($lot['warehouse_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border cursor-pointer hover:underline"
-                                            onclick="window.location.href='?page=supplier_lot&supplier_id=<?php echo htmlspecialchars($lot['supplier_id']); ?>'">
-                                            <?php echo htmlspecialchars($lot['supplier_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border">
-                                            <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
-                                                class="text-blue-600 hover:underline cursor-pointer block w-full h-full">
-                                                <?php echo htmlspecialchars(date('d/m/Y H:i:s', strtotime($lot['lot_date']))); ?>
-                                            </a>
-                                        </td>
-                                        <td class="px-6 py-2 border cursor-pointer hover:underline text-green-600"
-                                            onclick="window.location.href='?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>'">
-                                            <?php echo htmlspecialchars($lot['lot_status_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-2 border text-center">
-                                            <div class="flex flex-wrap justify-center gap-2">
-                                                <?php if ($lot['lot_status_id'] == 2): ?>
-                                                    <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
-                                                        class="bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600 transition flex items-center whitespace-nowrap">
-                                                        <i class="fas fa-eye mr-1"></i> ดูรายละเอียด
+        <!-- Table Section -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="overflow-x-auto table-responsive">
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-700 text-sm">
+                            <th class="px-6 py-3 text-left font-semibold">รหัสล็อต</th>
+                            <th class="px-6 py-3 text-left font-semibold">ชื่อล็อต</th>
+                            <th class="px-6 py-3 text-left font-semibold">คลังปลายทาง</th>
+                            <th class="px-6 py-3 text-left font-semibold">ผู้ส่งมอบ</th>
+                            <th class="px-6 py-3 text-left font-semibold">วันที่และเวลา</th>
+                            <th class="px-6 py-3 text-left font-semibold">สถานะ</th>
+                            <th class="px-6 py-3 text-left font-semibold">จำนวนสินค้า</th>
+                            <th class="px-6 py-3 text-center font-semibold">การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <?php if (count($result_lot_list) > 0): ?>
+                            <?php foreach ($result_lot_list as $lot): ?>
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-3"><?php echo htmlspecialchars($lot['lot_id']); ?></td>
+                                    <td class="px-6 py-3">
+                                        <a href="?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                            class="text-blue-600 hover:underline cursor-pointer">
+                                            <?php echo htmlspecialchars($lot['lot_name']); ?>
+                                        </a>
+                                    </td>
+                                    <td class="px-6 py-3"><?php echo htmlspecialchars($lot['warehouse_name']); ?></td>
+                                    <td class="px-6 py-3"><?php echo htmlspecialchars($lot['supplier_name']); ?></td>
+                                    <td class="px-6 py-3"><?php echo htmlspecialchars(date('Y-m-d H:i:s', strtotime($lot['lot_date']))); ?></td>
+                                    <td class="px-6 py-3"><?php echo htmlspecialchars($lot['lot_status_name']); ?></td>
+                                    <td class="px-6 py-3">
+                                        <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                            class="text-blue-600 hover:underline cursor-pointer">
+                                            <?php echo number_format($lot['product_count']); ?> รายการ
+                                        </a>
+                                    </td>
+                                    <td class="px-6 py-3 text-center">
+                                        <div class="flex justify-center space-x-2">
+                                            <?php if ($lot['lot_status_id'] == 2): ?>
+                                                <!-- <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                                    class="flex items-center justify-center px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    <span class="hidden md:inline">ดู</span>
+                                                    <span class="md:hidden">ดู</span>
+                                                </a> -->
+                                                <a href="index.php?page=lot_listdetail&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
+                                                    class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition">
+                                                    <i class="fas fa-eye mr-1"></i>ดู
+                                                </a>
+                                            <?php else: ?>
+                                                <button
+                                                    class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
+                                                    <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                                        class="">
+                                                        <i class="fas fa-edit mr-1"></i> แก้ไข
                                                     </a>
-                                                <?php else: ?>
-                                                    <button
-                                                        class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
-                                                        <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
-                                                            class="">
-                                                            <i class="fas fa-edit mr-1"></i> แก้ไข
-                                                        </a>
+                                                </button>
+                                                <form action="" method="POST" class="delete-form inline-flex">
+                                                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($lot['lot_id']); ?>">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                    <button type="button" onclick="confirmDelete(this.form)"
+                                                        class="flex items-center justify-center px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
+                                                        <i class="fas fa-trash-alt mr-1"></i>
+                                                        <span class="hidden md:inline">ลบ</span>
+                                                        <span class="md:hidden">ลบ</span>
                                                     </button>
-                                                    <form action="" method="POST" style="display:inline;" class="delete-form">
-                                                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($lot['lot_id']); ?>">
-                                                        <input type="hidden" name="action" value="delete">
-                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                        <button type="button" onclick="confirmDelete(this.parentElement)"
-                                                            class="bg-red-500 text-white text-sm px-3 py-1 rounded hover:bg-red-600 transition flex items-center whitespace-nowrap">
-                                                            <i class="fas fa-trash-alt mr-1"></i> ลบ
-                                                        </button>
-                                                    </form>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="7" class="text-center py-4 text-gray-600">ไม่มีรายการล็อตสินค้า</td>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
                                 </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                                    <div class="flex flex-col items-center justify-center py-6">
+                                        <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
+                                        <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
+                                        <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
+                                            <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
+                                                <a href="?page=lot_list" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
+                                            </p>
+                                        <?php else: ?>
+                                            <p class="text-gray-500 mt-1">ยังไม่มีข้อมูลล็อตสินค้าในระบบ</p>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Card View (Mobile) -->
+            <div class="card-responsive p-6">
+                <?php if (count($result_lot_list) > 0): ?>
+                    <?php foreach ($result_lot_list as $lot): ?>
+                        <div class="bg-white p-4 mb-4 rounded-lg shadow" data-id="<?php echo htmlspecialchars($lot['lot_id']); ?>">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-700 font-semibold text-sm">รหัสล็อต:</span>
+                                <span class="text-sm"><?php echo htmlspecialchars($lot['lot_id']); ?></span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-700 font-semibold text-sm">ชื่อล็อต:</span>
+                                <a href="?page=lot_detail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                    class="text-blue-600 hover:underline text-sm">
+                                    <?php echo htmlspecialchars($lot['lot_name']); ?>
+                                </a>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-700 font-semibold text-sm">คลังปลายทาง:</span>
+                                <span class="text-sm"><?php echo htmlspecialchars($lot['warehouse_name']); ?></span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-700 font-semibold text-sm">ผู้ส่งมอบ:</span>
+                                <span class="text-sm"><?php echo htmlspecialchars($lot['supplier_name']); ?></span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-700 font-semibold text-sm">วันที่และเวลา:</span>
+                                <span class="text-sm"><?php echo htmlspecialchars(date('Y-m-d H:i:s', strtotime($lot['lot_date']))); ?></span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-700 font-semibold text-sm">สถานะ:</span>
+                                <span class="text-sm"><?php echo htmlspecialchars($lot['lot_status_name']); ?></span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-700 font-semibold text-sm">จำนวนสินค้า:</span>
+                                <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                    class="text-blue-600 hover:underline text-sm">
+                                    <?php echo number_format($lot['product_count']); ?> รายการ
+                                </a>
+                            </div>
+                            <div class="flex justify-center space-x-2 mt-4">
+                                <?php if ($lot['lot_status_id'] == 2): ?>
+                                    <a href="?page=lot_listdetail&lot_id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                        class="flex items-center justify-center px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
+                                        <i class="fas fa-eye mr-1"></i> ดู
+                                    </a>
+                                <?php else: ?>
+                                    <button
+                                        class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center whitespace-nowrap">
+                                        <a href="?page=lot_listdetail&tabel=lot&id=<?php echo htmlspecialchars($lot['lot_id']); ?>"
+                                            class="">
+                                            <i class="fas fa-edit mr-1"></i> แก้ไข
+                                        </a>
+                                    </button>
+                                    <form action="" method="POST" class="delete-form inline-flex">
+                                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($lot['lot_id']); ?>">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                        <button type="button" onclick="confirmDelete(this.form)"
+                                            class="flex items-center justify-center px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
+                                            <i class="fas fa-trash-alt mr-1"></i> ลบ
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center py-4 text-gray-600 text-sm">
+                        <div class="flex flex-col items-center justify-center py-6">
+                            <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
+                            <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
+                            <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
+                                <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
+                                    <a href="?page=lot_list" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
+                                </p>
+                            <?php else: ?>
+                                <p class="text-gray-500 mt-1">ยังไม่มีข้อมูลล็อตสินค้าในระบบ</p>
                             <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
         <!-- Pagination -->
         <div class="flex justify-center mt-6 space-x-2">
             <?php if ($total_pages > 1): ?>
-                <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=lot_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
-                        « ก่อนหน้า
-                    </a>
+                    <a href="?page=lot_list&page_num=<?php echo $page - 1; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?><?php echo !empty($start_date) ? '&start_date=' . urlencode($start_date) : ''; ?><?php echo !empty($end_date) ? '&end_date=' . urlencode($end_date) : ''; ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">« ก่อนหน้า</a>
                 <?php endif; ?>
-                <!-- Page Numbers -->
                 <?php
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=lot_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
-                        1
-                    </a>
+                    <a href="?page=lot_list&page_num=1<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?><?php echo !empty($start_date) ? '&start_date=' . urlencode($start_date) : ''; ?><?php echo !empty($end_date) ? '&end_date=' . urlencode($end_date) : ''; ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">1</a>
                     <?php if ($start_page > 2): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=lot_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
-                        <?= $i ?>
-                    </a>
+                    <a href="?page=lot_list&page_num=<?php echo $i; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?><?php echo !empty($start_date) ? '&start_date=' . urlencode($start_date) : ''; ?><?php echo !empty($end_date) ? '&end_date=' . urlencode($end_date) : ''; ?>"
+                        class="px-4 py-2 rounded-md transition <?php echo $i == $page ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'; ?>"><?php echo $i; ?></a>
                 <?php endfor; ?>
                 <?php if ($end_page < $total_pages): ?>
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=lot_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
-                        <?= $total_pages ?>
-                    </a>
+                    <a href="?page=lot_list&page_num=<?php echo $total_pages; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?><?php echo !empty($start_date) ? '&start_date=' . urlencode($start_date) : ''; ?><?php echo !empty($end_date) ? '&end_date=' . urlencode($end_date) : ''; ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition"><?php echo $total_pages; ?></a>
                 <?php endif; ?>
-                <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=lot_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
-                        ถัดไป »
-                    </a>
+                    <a href="?page=lot_list&page_num=<?php echo $page + 1; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?><?php echo !empty($start_date) ? '&start_date=' . urlencode($start_date) : ''; ?><?php echo !empty($end_date) ? '&end_date=' . urlencode($end_date) : ''; ?>"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">ถัดไป »</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
 
-        <!-- Add Modal -->
-        <div id="addModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 opacity-0 invisible transition-all duration-300 backdrop-blur-sm">
-            <div class="bg-white rounded-lg w-full max-w-md p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">เพิ่มล็อตสินค้าใหม่</h3>
-                <form id="addForm" method="POST" class="space-y-4">
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ชื่อล็อต</label>
-                        <input type="text" id="addLotName" name="lot_name"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                        <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">รายละเอียด</label>
-                        <textarea id="addLotDetail" name="lot_detail"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                        <span id="addDetailError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">สถานะล็อต</label>
-                        <select id="addLotStatusId" name="lot_status_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                            <option value="">เลือกสถานะล็อต</option>
-                            <?php foreach ($status_lot as $status): ?>
-                                <option value="<?php echo htmlspecialchars($status['lot_status_id']); ?>">
-                                    <?php echo htmlspecialchars($status['lot_status_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="addStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">คลังปลายทาง</label>
-                        <select id="addWarehouseId" name="warehouse_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                            <option value="">เลือกคลัง</option>
-                            <?php foreach ($warehouse_lot as $warehouse): ?>
-                                <option value="<?php echo htmlspecialchars($warehouse['warehouse_id']); ?>">
-                                    <?php echo htmlspecialchars($warehouse['warehouse_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="addWarehouseError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ผู้ส่งมอบ</label>
-                        <select id="addSupplierId" name="supplier_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                            <option value="">เลือกผู้ส่งมอบ</option>
-                            <?php foreach ($supplier_lot as $supplier): ?>
-                                <option value="<?php echo htmlspecialchars($supplier['supplier_id']); ?>">
-                                    <?php echo htmlspecialchars($supplier['supplier_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="addSupplierError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeAddModal()"
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                            บันทึก
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Edit Modal -->
-        <div id="editModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
-            <div class="bg-white rounded-lg w-full max-w-md p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขข้อมูลล็อตสินค้า</h3>
-                <form id="editForm" method="POST" class="space-y-4">
-                    <input type="hidden" id="editLotId" name="id">
-                    <input type="hidden" name="action" value="edit">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">ชื่อล็อต</label>
-                        <input type="text" id="editLotName" name="lot_name"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                        <span id="editNameError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">รายละเอียด</label>
-                        <textarea id="editLotDetail" name="lot_detail"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                        <span id="editDetailError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">สถานะล็อต</label>
-                        <select id="editLotStatusId" name="lot_status_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                            <option value="">เลือกสถานะล็อต</option>
-                            <?php foreach ($status_lot as $status): ?>
-                                <option value="<?php echo htmlspecialchars($status['lot_status_id']); ?>">
-                                    <?php echo htmlspecialchars($status['lot_status_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="editStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">คลังปลายทาง</label>
-                        <select id="editWarehouseId" name="warehouse_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                            <option value="">เลือกคลัง</option>
-                            <?php foreach ($warehouse_lot as $warehouse): ?>
-                                <option value="<?php echo htmlspecialchars($warehouse['warehouse_id']); ?>">
-                                    <?php echo htmlspecialchars($warehouse['warehouse_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="editWarehouseError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">พนักงาน</label>
-                        <select id="editSupplierId" name="supplier_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                            <option value="">เลือกพนักงาน</option>
-                            <?php foreach ($supplier_lot as $supplier): ?>
-                                <option value="<?php echo htmlspecialchars($supplier['supplier_id']); ?>">
-                                    <?php echo htmlspecialchars($supplier['supplier_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span id="editSupplierError" class="text-red-500 text-xs mt-1 hidden"></span>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeEditModal()"
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                            บันทึก
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Delete Confirmation Modal -->
-        <div id="deleteModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
-            <div class="bg-white rounded-lg w-full max-w-md p-6">
+        <div id="deleteModal" class="modal hidden fixed  inset-0 bg-gray-600 bg-opacity-50  items-center justify-center">
+            <div class="modal-content bg-white rounded-lg p-6 max-w-sm w-full">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
                 <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบล็อตนี้?</p>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeDeleteModal()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
                         ยกเลิก
                     </button>
-                    <button type="button" id="confirmDeleteBtn"
-                        class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    <button type="button" id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
                         ลบ
                     </button>
                 </div>
@@ -698,86 +623,48 @@ try {
     </div>
 
     <script>
-        function checkEmptySearch(input) {
-            if (input.value.trim() === '') {
-                const urlParams = new URLSearchParams(window.location.search);
-                urlParams.set('page', 'lot_list');
-                urlParams.delete('search');
-                window.location.search = urlParams.toString();
-            }
-        }
-
-        function showAddModal() {
-            document.getElementById('addLotName').value = '';
-            document.getElementById('addLotDetail').value = '';
-            document.getElementById('addLotStatusId').value = '';
-            document.getElementById('addWarehouseId').value = '';
-            document.getElementById('addSupplierId').value = '';
-            document.getElementById('addNameError').classList.add('hidden');
-            document.getElementById('addDetailError').classList.add('hidden');
-            document.getElementById('addStatusError').classList.add('hidden');
-            document.getElementById('addWarehouseError').classList.add('hidden');
-            document.getElementById('addSupplierError').classList.add('hidden');
-            document.getElementById('addModal').classList.remove('invisible', 'opacity-0');
-        }
-
-        function closeAddModal() {
-            document.getElementById('addModal').classList.add('invisible', 'opacity-0');
-        }
-
-        function showEditModal(id, name, detail, statusId, warehouseId, supplierId) {
-            document.getElementById('editLotId').value = id;
-            document.getElementById('editLotName').value = name;
-            document.getElementById('editLotDetail').value = detail;
-            document.getElementById('editLotStatusId').value = statusId;
-            document.getElementById('editWarehouseId').value = warehouseId;
-            document.getElementById('editSupplierId').value = supplierId;
-            document.getElementById('editNameError').classList.add('hidden');
-            document.getElementById('editDetailError').classList.add('hidden');
-            document.getElementById('editStatusError').classList.add('hidden');
-            document.getElementById('editWarehouseError').classList.add('hidden');
-            document.getElementById('editSupplierError').classList.add('hidden');
-            document.getElementById('editModal').classList.remove('invisible', 'opacity-0');
-        }
-
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('invisible', 'opacity-0');
-        }
-
         function showDeleteModal() {
-            document.getElementById('deleteModal').classList.remove('invisible', 'opacity-0');
+            document.getElementById('deleteModal').classList.remove('hidden');
+            document.getElementById('deleteModal').classList.add('flex');
         }
 
         function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.add('invisible', 'opacity-0');
+            document.getElementById('deleteModal').classList.add('hidden');
         }
 
         function confirmDelete(form) {
             showDeleteModal();
-            document.getElementById('confirmDeleteBtn').onclick = () => {
-                form.submit();
-            };
+            document.getElementById('confirmDeleteBtn').onclick = () => form.submit();
         }
 
-        function showNotification(message, className) {
+        function showNotification(message, headerClass) {
             const notification = document.getElementById('notification');
             const header = document.getElementById('notification-header');
-            const messageDiv = document.getElementById('notification-message');
-            header.className = `px-4 py-2 font-bold text-white ${className}`;
-            header.textContent = 'การแจ้งเตือน';
-            messageDiv.textContent = message;
-            notification.classList.remove('hidden');
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 5000);
+            const title = document.getElementById('notificationTitle');
+            const body = document.getElementById('notificationMessage');
+            const icon = document.getElementById('notificationIcon');
+
+            header.className = `flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg ${headerClass}`;
+            title.textContent = 'แจ้งเตือน';
+            body.textContent = message;
+            icon.className = `fas ${headerClass.includes('bg-green') ? 'fa-check-circle' : 'fa-exclamation-circle'} text-2xl`;
+            notification.classList.remove('translate-x-full');
+
+            setTimeout(hideNotification, 5000);
+        }
+
+        function hideNotification() {
+            document.getElementById('notification').classList.add('translate-x-full');
         }
 
         function exportPDF() {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
             let url = '/page/lot/ajax/report/export_lot_list_pdf.php';
-            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            const params = [];
+            if (startDate) params.push(`start_date=${encodeURIComponent(startDate)}`);
+            if (endDate) params.push(`end_date=${encodeURIComponent(endDate)}`);
+            if (params.length) url += `?${params.join('&')}`;
             window.open(url, '_blank');
         }
 
@@ -785,59 +672,80 @@ try {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
             let url = '/page/lot/ajax/report/export_lot_list_excel.php';
-            if (startDate) url += `?start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `${startDate ? '&' : '?'}end_date=${encodeURIComponent(endDate)}`;
+            const params = [];
+            if (startDate) params.push(`start_date=${encodeURIComponent(startDate)}`);
+            if (endDate) params.push(`end_date=${encodeURIComponent(endDate)}`);
+            if (params.length) url += `?${params.join('&')}`;
             window.open(url, '_blank');
+        }
+
+        function updateDateFilter() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', 'lot_list');
+            urlParams.set('page_num', '1');
+            if (startDate) urlParams.set('start_date', startDate);
+            else urlParams.delete('start_date');
+            if (endDate) urlParams.set('end_date', endDate);
+            else urlParams.delete('end_date');
+            window.location.search = urlParams.toString();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
-            if (!searchInput) return;
 
-            searchInput.focus();
-
-            searchInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    this.value = '';
-                    this.form.submit();
-                }
-                if (e.key === 'Enter') {
-                    localStorage.setItem('searchPreserve', this.value);
-                }
-            });
-
-            const preserved = localStorage.getItem('searchPreserve');
-            if (preserved) {
-                searchInput.value = preserved;
+            if (searchInput) {
                 searchInput.focus();
-                searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
-                localStorage.removeItem('searchPreserve');
+                searchInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        searchInput.value = '';
+                        searchInput.form.submit();
+                    }
+                    if (e.key === 'Enter') {
+                        localStorage.setItem('searchPreserve', searchInput.value);
+                    }
+                });
+
+                const preserved = localStorage.getItem('searchPreserve');
+                if (preserved) {
+                    searchInput.value = preserved;
+                    searchInput.focus();
+                    searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
+                    localStorage.removeItem('searchPreserve');
+                }
+
+                searchInput.addEventListener('input', () => {
+                    if (searchInput.value.trim() === '') {
+                        searchInput.form.submit();
+                    }
+                });
             }
 
-            searchInput.addEventListener('input', function() {
-                if (this.value.trim() === '') {
-                    this.form.submit();
-                }
-            });
-
             if (urlParams.has('success')) {
-                showNotification(urlParams.get('success'), 'bg-green-500');
+                showNotification(decodeURIComponent(urlParams.get('success')), 'bg-green-500');
             } else if (urlParams.has('error')) {
                 showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
             }
 
             function validateForm(formId, fields) {
                 let hasError = false;
-                fields.forEach(field => {
-                    const input = document.getElementById(field.id);
-                    const error = document.getElementById(field.errorId);
-                    if (!input.value.trim() && field.required) {
-                        error.textContent = `กรุณากรอก${field.label}`;
+                fields.forEach(({
+                    id,
+                    errorId,
+                    label,
+                    maxLength,
+                    required
+                }) => {
+                    const input = document.getElementById(id);
+                    const error = document.getElementById(errorId);
+                    if (!input.value.trim() && required) {
+                        error.textContent = `กรุณากรอก${label}`;
                         error.classList.remove('hidden');
                         hasError = true;
-                    } else if (input.value.length > field.maxLength) {
-                        error.textContent = `${field.label}ยาวเกิน ${field.maxLength} ตัวอักษร`;
+                    } else if (maxLength !== Infinity && input.value.length > maxLength) {
+                        error.textContent = `${label}ยาวเกิน ${maxLength} ตัวอักษร`;
                         error.classList.remove('hidden');
                         hasError = true;
                     } else {
@@ -847,115 +755,10 @@ try {
                 return !hasError;
             }
 
-            document.getElementById('addForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const fields = [{
-                        id: 'addLotName',
-                        errorId: 'addNameError',
-                        label: 'ชื่อล็อต',
-                        maxLength: 255,
-                        required: true
-                    },
-                    {
-                        id: 'addLotDetail',
-                        errorId: 'addDetailError',
-                        label: 'รายละเอียด',
-                        maxLength: 1000,
-                        required: false
-                    },
-                    {
-                        id: 'addLotStatusId',
-                        errorId: 'addStatusError',
-                        label: 'สถานะล็อต',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'addWarehouseId',
-                        errorId: 'addWarehouseError',
-                        label: 'คลังปลายทาง',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'addSupplierId',
-                        errorId: 'addSupplierError',
-                        label: 'ผู้ส่งมอบ',
-                        maxLength: Infinity,
-                        required: true
-                    }
-                ];
-                if (validateForm('addForm', fields)) {
-                    this.submit();
-                }
-            });
 
-            document.getElementById('editForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const fields = [{
-                        id: 'editLotName',
-                        errorId: 'editNameError',
-                        label: 'ชื่อล็อต',
-                        maxLength: 255,
-                        required: true
-                    },
-                    {
-                        id: 'editLotDetail',
-                        errorId: 'editDetailError',
-                        label: 'รายละเอียด',
-                        maxLength: 1000,
-                        required: false
-                    },
-                    {
-                        id: 'editLotStatusId',
-                        errorId: 'editStatusError',
-                        label: 'สถานะล็อต',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'editWarehouseId',
-                        errorId: 'editWarehouseError',
-                        label: 'คลังปลายทาง',
-                        maxLength: Infinity,
-                        required: true
-                    },
-                    {
-                        id: 'editSupplierId',
-                        errorId: 'editSupplierError',
-                        label: 'เจ้าหน้า�ที่',
-                        maxLength: Infinity,
-                        required: true
-                    }
-                ];
-                if (validateForm('editForm', fields)) {
-                    this.submit();
-                }
-            });
 
             document.getElementById('start_date').addEventListener('change', updateDateFilter);
             document.getElementById('end_date').addEventListener('change', updateDateFilter);
-
-            function updateDateFilter() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
-                const urlParams = new URLSearchParams(window.location.search);
-                urlParams.set('page', 'lot_list');
-
-                if (startDate) {
-                    urlParams.set('start_date', startDate);
-                } else {
-                    urlParams.delete('start_date');
-                }
-
-                if (endDate) {
-                    urlParams.set('end_date', endDate);
-                } else {
-                    urlParams.delete('end_date');
-                }
-
-                window.location.search = urlParams.toString();
-            }
         });
     </script>
 </body>

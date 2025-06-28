@@ -1,0 +1,139 @@
+.button-bb {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.button-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-link button {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e0f2fe;
+  transition: all 0.3s ease;
+}
+
+.button-link button::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
+  transition: all 0.3s ease;
+}
+
+.button-link button:hover::before {
+  left: 100%;
+}
+
+.button-link button:hover {
+  background: linear-gradient(135deg, #365fb8 0%, #0d236d 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.button-link button.active {
+  /* background: linear-gradient(135deg, #f8a538 0%, #e95e0e 100%);
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+  animation: pulse 1s;
+  color: white; */
+
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  box-shadow: 0 8px 32px rgba(6, 182, 212, 0.4),
+    0 4px 16px rgba(8, 145, 178, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 3px rgba(6, 182, 212, 0.2);
+  animation: activeGlow 2s ease-in-out infinite alternate;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+  }
+}
+
+.dropdown-btn {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e0f2fe;
+  transition: all 0.3s ease;
+}
+
+.dropdown-content {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgb(14, 185, 237);
+  position: relative;
+  overflow: hidden;
+  color: #e0f2fe;
+}
+
+.dropdown-content a {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.dropdown-content a::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
+  transition: left 0.3s ease;
+}
+
+.dropdown-content a:hover::before,
+.dropdown-content a:active::before,
+.dropdown-content a.hover::before {
+  left: 100%;
+}
+
+.dropdown-content a:hover,
+.dropdown-content a:active,
+.dropdown-content a.hover {
+  border: 1px linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-content a.active {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  box-shadow: 0 8px 32px rgba(6, 182, 212, 0.4),
+    0 4px 16px rgba(8, 145, 178, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 3px rgba(6, 182, 212, 0.2);
+  animation: activeGlow 2s ease-in-out infinite alternate;
+  color: #ffffff;
+  font-weight: 700;
+}

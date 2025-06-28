@@ -7,12 +7,6 @@ ob_start();
 $lot_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;
 
-// CSRF Token Generation
-session_start();
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
 // Initialize variables
 $error = null;
 
