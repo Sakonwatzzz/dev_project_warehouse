@@ -17,7 +17,6 @@ function thai($text)
     }
     error_log("Thai conversion - Input: $text, Output: $converted");
     return $converted;
-
 }
 
 class THPDF extends FPDF
@@ -53,7 +52,6 @@ class THPDF extends FPDF
             if (!empty($stock['personnel_name'])) {
 
                 $this->Cell(100, 5, thai('ผู้ตรวจสอบ: ' . $stock['personnel_name']), 0, 0, 'L');
-
             }
         }
         $this->Ln(5); // Reduced from Ln(7) to Ln(5)
@@ -71,7 +69,6 @@ class THPDF extends FPDF
         $this->Cell(20, 8, thai('จำนวนที่นับได้'), 1, 0, 'C', true);
         $this->Cell(20, 8, thai('ส่วนต่าง'), 1, 0, 'C', true);
         $this->Cell(25, 8, thai('หมายเหตุ'), 1, 1, 'C', true);
-
     }
 
     function Footer()
@@ -98,11 +95,11 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 $_SESSION['LAST_ACTIVITY'] = time();
 
 // Verify CSRF token
-if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
-    error_log("CSRF Validation Failed: Session Token: " . ($_SESSION['csrf_token'] ?? 'unset') . ", GET Token: " . ($_GET['csrf_token'] ?? 'unset'));
-    header('HTTP/1.1 403 Forbidden');
-    exit('Invalid CSRF token');
-}
+// if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
+//     error_log("CSRF Validation Failed: Session Token: " . ($_SESSION['csrf_token'] ?? 'unset') . ", GET Token: " . ($_GET['csrf_token'] ?? 'unset'));
+//     header('HTTP/1.1 403 Forbidden');
+//     exit('Invalid CSRF token');
+// }
 
 try {
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -127,7 +124,8 @@ try {
             sc.stock_check_actual,
             per.personnel_name,
             scs.check_status_name,
-            sc.stock_check_remark
+            sc.stock_check_remark_id,
+            scr.stock_check_remark_name
         FROM stock_check sc
         LEFT JOIN product p ON sc.product_id = p.product_id
         LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
@@ -217,9 +215,18 @@ try {
                 $pdf->SetFont('THSarabunNew', '', 11);  // ตัวหนา
             }
 
-            $remark = !empty($stock['stock_check_remark_name']) ? mb_substr($stock['stock_check_remark_name'], 0, 20, 'UTF-8') : '';
-            $pdf->Cell(25, 7, thai($remark), 1, 1, 'L');
 
+            $remark = !empty($stock['stock_check_remark_name']) ? mb_substr($stock['stock_check_remark_name'], 0, 20, 'UTF-8') : '';
+            if ($stock['stock_check_remark_id'] == 2 && $stock['stock_check_remark_name'] === 'ขาดหาย') {
+                $pdf->SetTextColor(139, 0, 0); // สีแดงเข้ม
+                $pdf->SetFont('THSarabunNew', 'B', 11); // ตัวหนา
+                $remark = thai($remark);
+            }
+            $pdf->Cell(25, 7, thai($remark), 1, 1, 'L');
+            if ($stock['stock_check_remark_id'] == 2 && $stock['stock_check_remark_name'] === 'ขาดหาย') {
+                $pdf->SetTextColor(0, 0, 0); // กลับเป็นสีดำ
+                $pdf->SetFont('THSarabunNew', '', 10);
+            }
         }
 
         // Summary row
@@ -235,7 +242,6 @@ try {
         $diff_total = ($total_difference > 0 ? '+' : '') . number_format($total_difference);
         $pdf->Cell(20, 8, thai($diff_total), 1, 0, 'C');
         $pdf->Cell(25, 8, '', 1, 1, 'C');
-
     } else {
         $pdf->Cell(190, 8, thai('ไม่พบข้อมูลการเช็คสต๊อก'), 1, 1, 'C');
     }
@@ -252,14 +258,14 @@ try {
     $pdf->Cell(95, 8, thai('สรุปรายงาน'), 0, 1, 'L');
     $pdf->SetFont('THSarabunNew', '', 11);
     $pdf->SetX(10);
-    $pdf->Cell(95, 6, thai('จำนวนรายการสินค้าตรวจสอบทั้งหมด:') . count($stock_checks) . thai(' รายการ'), 0, 1, 'L');
+    $pdf->Cell(95, 6, thai('จำนวนรายการสินค้าตรวจสอบทั้งหมด: ') . count($stock_checks) . thai(' รายการ'), 0, 1, 'L');
 
     if (count($stock_checks) > 0) {
         $pdf->SetX(10);
-        $pdf->Cell(95, 6, thai('จำนวนสินค้าคงเหลือจากระบบ:') . number_format($total_system), 0, 1, 'L');
+        $pdf->Cell(95, 6, thai('จำนวนสินค้าคงเหลือจากรายการที่ตรวจสอบจากระบบ: ') . number_format($total_system) . thai(' ชิ้น'), 0, 1, 'L');
 
         $pdf->SetX(10);
-        $pdf->Cell(95, 6, thai('จำนวนที่นับได้จริง: ') . number_format($total_actual), 0, 1, 'L');
+        $pdf->Cell(95, 6, thai('จำนวนสินค้าที่นับได้จริงรวมทั้งหมด: ') . number_format($total_actual) . thai(' ชิ้น'),  0, 1, 'L');
 
 
         // คำนวณยอดรวมติดลบ (รายการที่มีส่วนต่างติดลบ)
@@ -280,11 +286,11 @@ try {
 
         if ($positive_total > 0) {
             $pdf->SetX(10);
-            $pdf->Cell(95, 6, thai('สินค้าที่เกิน: +') . number_format($positive_total), 0, 1, 'L');
+            $pdf->Cell(95, 6, thai('จำนวนสินค้าที่เกินรวมทั้งหมด: +') . number_format($positive_total) . thai(' ชิ้น'), 0, 1, 'L');
         }
         if ($negative_total < 0) {
             $pdf->SetX(10);
-            $pdf->Cell(95, 6, thai('สินค้าที่ขาด: ') . number_format(abs($negative_total)), 0, 1, 'L');
+            $pdf->Cell(95, 6, thai('จำนวนสินค้าที่ขาดรวมทั้งหมด: ') . number_format(abs($negative_total)) . thai(' ชิ้น'), 0, 1, 'L');
         }
     }
 

@@ -16,7 +16,7 @@ try {
         warehouse.warehouse_name,
         stock_check.stock_check_comment,
         stock_check.stock_check_remark_id,
-        stock_check_remarks.stock_check_remark_name, -- แก้ไขที่นี่
+        stock_check_remarks.stock_check_remark_name, 
         personnel.personnel_name,
         stock_check.lot_product_id,
         lot_product.lot_product_remain,
