@@ -9,6 +9,30 @@ body {
   transform: translateY(-2px);
 }
 
+.glass-header h1 {
+  font-size: 20px !important;
+  line-height: 28px !important;
+  font-weight: 600 !important;
+  color: white !important;
+  letter-spacing: 0.025em !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  
+  /* ป้องกันการเปลี่ยนแปลง */
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  
+  /* กำหนดความกว้างสูงสุด */
+  max-width: 300px !important;
+  min-height: 28px !important;
+  
+  /* ป้องกัน font substitution */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-display: swap !important;
+}
+
 .glass-header {
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -135,7 +159,6 @@ body {
 .content-glass {
   animation: slideInUp 0.9s ease-out;
 }
-
 
 .dashboard-card-1 {
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);

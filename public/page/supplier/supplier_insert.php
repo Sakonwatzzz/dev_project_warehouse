@@ -73,6 +73,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../../output.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../style/page_insert.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <title>เพิ่มผู้ส่งมอบ | ระบบจัดการข้อมูล</title>
 </head>
@@ -86,7 +87,7 @@ ob_end_flush();
         </div>
 
         <!-- Form Section -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-lg shadow-lg border border-gray-100 p-6">
             <form id="supplierForm" class="space-y-4" action="" method="POST">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 

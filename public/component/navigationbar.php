@@ -37,7 +37,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="../../output.css" rel="stylesheet">
     <link href="../style/navbar.css" rel="stylesheet">
     <title>Admin System</title>
 
@@ -47,7 +47,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
     <!-- Header -->
     <div class="glass-header top-0 z-50 px-4 py-4 shadow-lg">
         <div class="flex items-center justify-between">
-            <h1 class="text-white text-xl lg:text-2xl font-semibold tracking-wide drop-shadow-md">
+            <h1 class="text-white text-xl lg:text-[24px] font-semibold tracking-wide drop-shadow-md">
                 Admin Management System
             </h1>
 
@@ -248,7 +248,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 'warehouse_update'
             ];
             $lot_pages = [
-                'lot_listinsert',
+                'lot_insert',
                 'lot_list',
                 'lot_insert',
                 'lot_productlist',

@@ -22,7 +22,8 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'personnel_list';
     <div class="button-bb hidden lg:flex flex-wrap gap-2 p-2 px-4 " role="navigation">
         <!-- Personnel Section -->
         <div class="section-container  border border-gray-300 rounded-md shadow-md ">
-            <div class="button-grid flex flex-wrap gap-2 p-2">
+
+            <div class="button-grid flex flex-wrap gap-2 p-1">
                 <a href="?page=personnel_list" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'personnel_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการบุคลากร">
                         <i class="fas fa-users text-xl mb-1"></i>

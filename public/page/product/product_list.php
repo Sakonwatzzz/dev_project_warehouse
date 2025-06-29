@@ -43,7 +43,7 @@ try {
 </head>
 
 <body class="bg-gradient-to-br from-blue-50 to-white min-h-screen font-sans text-base">
-    <div class=" mx-auto px-4 py-6">
+    <div class="mx-auto px-4 py-6">
         <div class="flex flex-col lg:flex-row gap-6">
             <!-- Filters Sidebar -->
             <div class="w-full lg:w-1/4">

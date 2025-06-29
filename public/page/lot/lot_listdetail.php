@@ -306,7 +306,7 @@ try {
 
         <!-- Action Buttons -->
         <div class="flex justify-between mt-6">
-            <a href="?page=lot_listinsert" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+            <a href="?page=lot_insert" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
                 <i class="fas fa-arrow-left mr-2"></i>กลับ
             </a>
         </div>
@@ -635,7 +635,7 @@ try {
                                                 showConfirmButton: false,
                                                 timer: 1500
                                             }).then(() => {
-                                                window.location.href = 'index.php?page=lot_listinsert';
+                                                window.location.href = 'index.php?page=lot_insert';
                                             });
                                         } else {
                                             Swal.fire({

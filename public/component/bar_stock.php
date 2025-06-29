@@ -23,7 +23,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : '';
             <!-- <div class="section-header bg-[#c2d9f1] text-center font-bold text-sm py-2 border-b border-[#a6c4de] rounded-t-md">
                 เช็คสต๊อก
             </div> -->
-            <div class="button-grid flex flex-wrap gap-2 p-2">
+            <div class="button-grid flex flex-wrap gap-2 p-1">
                 <a href="?page=stock_insert" class="button-link w-24 lg:w-28" aria-current="<?php echo ($current_page == 'stock_insert') ? 'page' : 'false'; ?>">
                     <button class="<?php echo ($current_page == 'stock_insert') ? 'bg-gradient-to-t from-[#fffad1] to-[#fdbb2d] border-[#ffc107] shadow-inner' : 'bg-[#e1f5fe] border-[#4fc3f7]'; ?> w-full h-20 flex flex-col items-center justify-center border rounded-md transition-all duration-200 hover:bg-gradient-to-t hover:from-[#fffad1] hover:to-[#fdbb2d] hover:border-[#ffc107] hover:-translate-y-0.5 focus:bg-gradient-to-t focus:from-[#fffad1] focus:to-[#fdbb2d] focus:border-[#ffc107] focus:ring-2 focus:ring-blue-600 shadow-sm text-xs font-bold text-gray-800" aria-label="รายชื่อสมาชิก">
                         <img src="../image/team.png" alt="ไอคอนรายชื่อสมาชิก" class="w-8 h-auto mb-1">

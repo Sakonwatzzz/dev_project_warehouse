@@ -293,6 +293,49 @@ try {
     exit;
 }
 
+// คำนวณราคารวมสำหรับเรคคอร์ดที่แสดง
+try {
+    $total_price_query = "
+        SELECT SUM(lp.lot_product_qty * lp.lot_product_capital) as total_price
+        FROM lot_product lp
+        LEFT JOIN lot l ON lp.lot_id = l.lot_id
+        LEFT JOIN product p ON lp.product_id = p.product_id
+        LEFT JOIN supplier s ON l.supplier_id = s.supplier_id";
+    $total_price_params = [];
+    if ($lot_id || !empty($search) || $start_date || $end_date) {
+        $total_price_query .= " WHERE";
+        $conditions = [];
+        if ($lot_id) {
+            $conditions[] = " lp.lot_id = :lot_id";
+            $total_price_params[':lot_id'] = $lot_id;
+        }
+        if (!empty($search)) {
+            $conditions[] = " (lp.lot_product_id LIKE :search OR p.product_name LIKE :search)";
+            $total_price_params[':search'] = "%$search%";
+        }
+        if ($start_date) {
+            $conditions[] = " lp.lot_product_date >= :start_date";
+            $total_price_params[':start_date'] = $start_date . ' 00:00:00';
+        }
+        if ($end_date) {
+            $conditions[] = " lp.lot_product_date <= :end_date";
+            $total_price_params[':end_date'] = $end_date . ' 23:59:59';
+        }
+        $total_price_query .= " " . implode(" AND ", $conditions);
+    }
+    $total_price_stmt = $pdo->prepare($total_price_query);
+    foreach ($total_price_params as $key => $value) {
+        $total_price_stmt->bindValue($key, $value);
+    }
+    $total_price_stmt->execute();
+    $total_price_result = $total_price_stmt->fetch(PDO::FETCH_ASSOC);
+    $total_price = $total_price_result['total_price'] ?? 0;
+} catch (Exception $e) {
+    error_log("ข้อผิดพลาดการคำนวณราคารวม: " . $e->getMessage());
+    header("Location: index.php?page=lot_productlist&lot_id=$lot_id&error=" . urlencode('เกิดข้อผิดพลาดในการคำนวณราคารวม: ' . htmlspecialchars($e->getMessage())));
+    exit;
+}
+
 ob_end_flush();
 ?>
 
@@ -355,17 +398,19 @@ ob_end_flush();
     <div class="container mx-auto px-4 py-8">
         <!-- Header Section -->
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-indigo-900">รายการรับสินค้า<?php echo $lot_id ? " - Lot: " . htmlspecialchars($lot_name) : ""; ?></h1>
-            <p class="text-gray-600">ข้อมูลการรับสินค้าทั้งหมดใน Lot <?php echo htmlspecialchars($lot_name); ?></p>
+            <h1 class="text-3xl font-bold text-indigo-900">รายการรับสินค้า<?php echo $lot_id ? " : " . htmlspecialchars($lot_name) : ""; ?></h1>
+            <p class="text-gray-600">ข้อมูลการรับสินค้าทั้งหมด</p>
         </div>
 
         <!-- Header and Search Section -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
             <div class="flex flex-col w-full md:flex-row md:w-auto items-center space-y-2 md:space-y-0 md:space-x-4">
-                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
+                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold  md:justify-start">
                     <i class="fas fa-boxes mr-2"></i> <?php echo number_format($total_records); ?> รายการ
                 </span>
-
+                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold  md:justify-start">
+                    <i class="fa-solid fa-money-check-dollar mr-2"></i> ราคารวม: <?php echo number_format($total_price, 2); ?> บาท
+                </span>
             </div>
             <form action="" method="GET" class="w-full md:w-auto">
                 <input type="hidden" name="page" value="lot_productlist">
@@ -405,20 +450,6 @@ ob_end_flush();
             </div>
         </div>
 
-        <!-- Notification
-        <div id="notification"
-            class="fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 transform translate-x-full transition-transform duration-300 z-50 flex items-center">
-            <div id="notification-header" class="flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg">
-                <i id="notificationIcon" class="fas fa-check-circle text-2xl"></i>
-            </div>
-            <div class="flex-1 ml-4 pr-4 py-4">
-                <p id="notificationTitle" class="text-sm font-medium text-gray-900"></p>
-                <p id="notificationMessage" class="mt-1 text-sm text-gray-500"></p>
-            </div>
-            <button onclick="hideNotification()" class="mr-4 text-gray-400 hover:text-gray-500">
-                <i class="fas fa-times"></i>
-            </button>
-        </div> -->
 
         <!-- Table Section -->
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
@@ -513,7 +544,7 @@ ob_end_flush();
                                 <span class="text-gray-700 font-semibold text-sm">วันที่รับสินค้า:</span>
                                 <span class="text-sm"><?php echo htmlspecialchars($lot_product['lot_product_date']); ?></span>
                             </div>
-                            
+
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>

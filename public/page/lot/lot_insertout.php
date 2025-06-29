@@ -160,6 +160,7 @@ ob_end_flush();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ย้ายสินค้า - ระบบจัดการคลังสินค้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../../style/page_insert.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .gradient-bg {
@@ -168,7 +169,7 @@ ob_end_flush();
 
         .glass-effect {
             backdrop-filter: blur(10px);
-            
+
             .glass-effect {
                 background: rgba(255, 255, 255, 0.95);
                 border: 1px solid rgba(255, 255, 255, 0.2);
@@ -183,9 +184,12 @@ ob_end_flush();
             }
 
             @keyframes pulse {
-                0%, 100% {
+
+                0%,
+                100% {
                     opacity: 1;
                 }
+
                 50% {
                     opacity: 0.8;
                 }
@@ -196,9 +200,12 @@ ob_end_flush();
             }
 
             @keyframes float {
-                0%, 100% {
+
+                0%,
+                100% {
                     transform: translateY(0px);
                 }
+
                 50% {
                     transform: translateY(-10px);
                 }
