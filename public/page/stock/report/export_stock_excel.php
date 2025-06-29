@@ -23,11 +23,11 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 $_SESSION['LAST_ACTIVITY'] = time();
 
 // CSRF token validation
-if (!isset($_GET['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
-    header('HTTP/1.1 403 Forbidden');
-    echo 'Invalid CSRF token';
-    exit;
-}
+// if (!isset($_GET['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
+//     header('HTTP/1.1 403 Forbidden');
+//     echo 'Invalid CSRF token';
+//     exit;
+// }
 
 try {
     // Handle search parameters
@@ -41,7 +41,8 @@ try {
             p.product_name,
             sc.stock_check_system,
             sc.stock_check_actual,
-            sc.stock_check_remark,
+            sc.stock_check_remark_id,
+            scr.stock_check_remark_name, 
             w.warehouse_name,
             s.stock_date,
             per.personnel_name
@@ -51,6 +52,7 @@ try {
         LEFT JOIN stock s ON sc.stock_id = s.stock_id
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
+        LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id  -- เพิ่มการ JOIN
         WHERE s.check_status_id = 2
         AND s.stock_date >= :today_start 
         AND s.stock_date <= :today_end";
@@ -171,8 +173,8 @@ try {
         }
 
         // Format remark
-        $remark = !empty($stock['stock_check_remark'])
-            ? substr($stock['stock_check_remark'], 0, 255)
+        $remark = !empty($stock['stock_check_remark_name'])
+            ? substr($stock['stock_check_remark_name'], 0, 255)
             : '-';
 
         // Format difference with sign
@@ -259,11 +261,11 @@ try {
 
         // Summary details
         $summary_items = [
-            'จำนวนรายการทั้งหมด: ' . count($stock_checks) . ' รายการ',
-            'จำนวนจากระบบ: ' . number_format($totals['system']),
-            'จำนวนนับจริง: ' . number_format($totals['actual']),
-            'ส่วนเกินทั้งหมด: ' . ($totals['positive'] > 0 ? '' : '') . number_format($totals['positive']),
-            'ส่วนขาดทั้งหมด: ' . ($totals['negative'] > 0 ? '' : '') . number_format($totals['negative'])
+            'จำนวนรายการสินค้าตรวจสอบทั้งหมด: ' . count($stock_checks) . ' รายการ',
+            'จำนวนสินค้าคงเหลือจากรายการที่ตรวจสอบจากระบบ: ' . number_format($totals['system']) . ' ชิ้น',
+            'จำนวนสินค้าที่นับได้จริงรวมทั้งหมด: ' . number_format($totals['actual']),
+            'จำนวนสินค้าที่เกินรวมทั้งหมด: ' . ($totals['positive'] > 0 ? '' : '') . number_format($totals['positive']),
+            'จำนวนสินค้าที่ขาดรวมทั้งหมด: ' . ($totals['negative'] > 0 ? '' : '') . number_format($totals['negative'])
         ];
 
         foreach ($summary_items as $index => $item) {

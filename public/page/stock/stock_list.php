@@ -1,6 +1,6 @@
 <?php
+ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
-session_start();
 date_default_timezone_set('Asia/Bangkok');
 
 // Create CSRF token
@@ -150,10 +150,12 @@ try {
         $stmt->bindValue($key, $value);
     }
     $stmt->execute();
-    $total_records = (int)$stmt->fetchColumn();
+    $total_record = (int) $stmt->fetchColumn();
+    // error_log("Total records: " . $total_record); // Debug log
+
 } catch (PDOException $e) {
     error_log("Count stock check error: " . $e->getMessage());
-    header('Location: index.php?page=stock_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
+    // header('Location: index.php?page=stock_list&error=' . urlencode('Count error: ' . htmlspecialchars($e->getMessage())));
     exit;
 }
 
@@ -202,17 +204,20 @@ try {
         $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
     }
-    $query .= " ORDER BY s.stock_date DESC LIMIT :offset, :limit";
+    // $query .= " ORDER BY s.stock_date DESC LIMIT :offset, :limit";
     $stmt = $pdo->prepare($query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
     }
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':limit', $records_per_page, PDO::PARAM_INT);
+
+    // $stmt->bindValue(':offset', (int) $offset, PDO::PARAM_INT);
+    // $stmt->bindValue(':limit', (int) $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
     $check_stock = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    header('Location: index.php?page=stock_list&error=' . urlencode($e->getMessage()));
+    error_log("Fetched rows: " . count($check_stock)); // Debug log
+} catch (PDOException $e) {
+    error_log("Query stock check error: " . $e->getMessage());
+    // header('Location: index.php?page=stock_list&error=' . urlencode('Query error: ' . htmlspecialchars($e->getMessage())));
     exit;
 }
 ?>
@@ -236,6 +241,29 @@ try {
             border-color: black;
             border-radius: 3px;
         }
+
+        .flatpickr-input {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em;
+        }
+
+        .flatpickr-calendar {
+            @apply bg-white shadow-lg rounded-lg border border-gray-200;
+        }
+
+        .flatpickr-day.selected {
+            @apply bg-blue-500 border-blue-500 text-white;
+        }
+
+        .flatpickr-day.today {
+            @apply border-blue-400;
+        }
+
+        .flatpickr-day:hover {
+            @apply bg-blue-100;
+        }
     </style>
 </head>
 
@@ -247,8 +275,8 @@ try {
                 <div class="flex space-x-2">
                     <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
                         <i class="fas fa-boxes mr-2"></i>
-                        <?php echo $total_records; ?>
-                        <span>รายการ</span>
+                        <?php echo $total_record; ?>
+                        <span>รายการ (วันที่ <?php echo (date('d/m/Y', strtotime($selected_date))); ?>)</span>
                     </div>
                 </div>
 
@@ -257,9 +285,10 @@ try {
                 <form action="" method="GET" id="searchForm" class="w-full text-end">
                     <input type="hidden" name="page" value="stock_list">
                     <input type="hidden" name="page_num" value="1">
+                    <input type="hidden" name="selected_date" id="hiddenSelectedDate" value="<?php echo ($selected_date); ?>">
                     <div class="relative">
                         <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
-                            value="<?php echo htmlspecialchars($search); ?>"
+                            value="<?php echo ($search); ?>"
                             class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-search"></i>
@@ -334,7 +363,7 @@ try {
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_actual']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark']); ?></td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_remark_name']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -448,7 +477,6 @@ try {
             </div>
         </div>
     </div>
-
     <script>
         function updateClock() {
             const now = new Date();
@@ -565,9 +593,16 @@ try {
             }
 
             searchInput.addEventListener('input', function() {
-                if (this.value.trim() === '') {
-                    this.form.submit();
-                }
+                checkEmptySearch(this);
+            });
+
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const urlParams = new URLSearchParams();
+                urlParams.set('page', 'stock_list');
+                urlParams.set('page_num', 1);
+                if (searchInput.value) urlParams.set('search', searchInput.value);
+                window.location.search = urlParams.toString();
             });
 
             if (urlParams.has('success')) {

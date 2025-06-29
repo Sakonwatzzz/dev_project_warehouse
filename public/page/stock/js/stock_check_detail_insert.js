@@ -144,8 +144,9 @@ $(document).ready(function () {
     $.ajax({
       url: "page/stock/api/stock_list.php",
       type: "GET",
-      data: { status: 1, personnel_id: getValue("personnel_id", "1") },
+      data: { status: 1}, // , personnel_id: getValue("personnel_id", "1") 
       dataType: "json",
+
       success: function (data) {
         console.log("loadStockSessions stock_list.php response:", data); // Debug
         let select = $("#stock_id_select");
@@ -226,7 +227,7 @@ $(document).ready(function () {
       $.ajax({
         url: "page/stock/api/stock_list.php",
         type: "GET",
-        data: { status: 1, personnel_id: getValue("#personnel_id", "1") },
+        data: { status: 1}, //, personnel_id: getValue("#personnel_id", "1") 
         dataType: "json",
         headers: { "X-Requested-With": "XMLHttpRequest" },
         cache: false,
@@ -281,13 +282,13 @@ $(document).ready(function () {
       return;
     }
     const warehouse_id = $("#warehouse_select").val();
-    const personnel_id = getValue("#personnel_id", "1");
+    // const personnel_id = getValue("#personnel_id", "1");
 
-    console.log("DOM state:", { warehouse_id, personnel_id }); // Debug
-    if (!warehouse_id || !personnel_id) {
-      console.error("Missing warehouse_id or personnel_id:", {
+    console.log("DOM state:", { warehouse_id}); // Debug //, personnel_id 
+    if (!warehouse_id ) { //|| !personnel_id
+      console.error("Missing warehouse_id ", { //or personnel_id:
         warehouse_id,
-        personnel_id,
+        //personnel_id,
       });
       Toast.fire({
         icon: "error",
@@ -300,7 +301,7 @@ $(document).ready(function () {
     console.log("Creating new stock session with data:", {
       stockDate,
       warehouse_id,
-      personnel_id,
+     // personnel_id,
     }); // Debug
     $.ajax({
       url: "page/stock/api/insert_new_stock.php",
@@ -308,7 +309,7 @@ $(document).ready(function () {
       data: {
         action: "insert_new_stock",
         stock_date: stockDate,
-        personnel_id: personnel_id,
+      //  personnel_id: personnel_id,
         check_status_id: "1",
         warehouse_id: warehouse_id,
       },
@@ -372,468 +373,7 @@ $(document).ready(function () {
     validateForm();
     console.log("startNewStockCheck: stock_date =", $("#stock_date").val());
   }
-  // function loadStockCheck(resolve, reject) {
-  //   console.log("Loading stock check table for stock_id:", currentStockId);
-  //   let url = "page/stock/api/stock_list.php";
-  //   let data = currentStockId ? { stock_id: currentStockId } : { status: 1 };
-  //   $.ajax({
-  //     url: url,
-  //     type: "GET",
-  //     data: data,
-  //     dataType: "json",
-  //     headers: { "X-Requested-With": "XMLHttpRequest" },
-  //     cache: false,
-  //     success: function (data) {
-  //       console.log("stock_list.php response:", data);
-  //       let tbody = $("#stock_check_table");
-  //       tbody.empty();
-  //       if (!data || data.length === 0) {
-  //         tbody.append(
-  //           '<tr><td colspan="9" class="text-center py-4 text-gray-500">ไม่พบรายการตรวจสอบสต๊อกสินค้า</td></tr>'
-  //         );
-  //         $("#btn-confirm-check").prop("disabled", true);
-  //         if (resolve) resolve();
-  //         return;
-  //       }
-
-  //       let hasPendingStatus = false;
-  //       $.each(data, function (index, item) {
-  //         if (parseInt(item.check_status_id) === 1) hasPendingStatus = true;
-  //         let formattedDate = "-";
-  //         if (item.stock_date) {
-  //           try {
-  //             formattedDate = luxon.DateTime.fromFormat(
-  //               item.stock_date,
-  //               "yyyy-MM-dd HH:mm:ss"
-  //             ).toFormat("dd/MM/yyyy HH:mm:ss");
-  //           } catch (e) {
-  //             console.error(
-  //               "Date format error for stock_date:",
-  //               item.stock_date,
-  //               e
-  //             );
-  //             formattedDate = item.stock_date;
-  //           }
-  //         }
-
-  //         // let remarkDisplay =
-  //         //   item.stock_check_remark_name ||
-  //         //   (item.stock_check_remark_id ? "ไม่พบหมายเหตุ" : "-");
-  //         // if (item.stock_check_comment) {
-  //         //   remarkDisplay += ` (${item.stock_check_comment})`;
-  //         // }
-
-  //         let row = `
-  //                   <tr data-stock-check-id="${item.stock_check_id}">
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${formattedDate}</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-  //                         item.product_id || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-  //                         item.product_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm">${
-  //                         item.stock_check_system || "0"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm stock-check-actual">${
-  //                         item.stock_check_actual || "0"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
-  //                         item.personnel_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
-  //                         item.check_status_name || "-"
-  //                       }</td>
-  //                        <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm stock-check-actual">${
-  //                          item.stock_check_remark_name || "-"
-  //                        }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm stock-check-actual">${
-  //                         item.stock_check_comment || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 text-center text-xs sm:text-sm flex gap-4 actions">
-  //                           ${
-  //                             parseInt(item.check_status_id) === 1
-  //                               ? `
-  //                                   <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //                                       <i class="fas fa-edit mr-1"></i>แก้ไข
-  //                                   </a>
-  //                                   <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${item.stock_check_id}">
-  //                                       <i class="fas fa-trash-alt mr-1"></i>ลบ
-  //                                   </a>`
-  //                               : ""
-  //                           }
-  //                       </td>
-  //                   </tr>`;
-  //         tbody.append(row);
-  //       });
-
-  //       $("#btn-confirm-check").prop("disabled", !hasPendingStatus);
-  //       if (resolve) resolve();
-  //     },
-  //     error: function (xhr, status, error) {
-  //       console.error("stock_list.php error:", xhr.responseText);
-  //       Toast.fire({
-  //         icon: "error",
-  //         title: "ไม่สามารถดึงข้อมูลจาก stock_list.php: " + error,
-  //       });
-  //       $("#btn-confirm-check").prop("disabled", true);
-  //       if (reject) reject(error);
-  //     },
-  //   });
-  // }
-
-  // function loadStockCheck(resolve, reject) {
-  //   console.log("Loading stock check table for stock_id:", currentStockId);
-  //   let url = "page/stock/api/stock_list.php";
-  //   let data = currentStockId ? { stock_id: currentStockId } : { status: 1 };
-  //   $.ajax({
-  //     url: url,
-  //     type: "GET",
-  //     data: data,
-  //     dataType: "json",
-  //     headers: { "X-Requested-With": "XMLHttpRequest" },
-  //     cache: false,
-  //     success: function (data) {
-  //       console.log("stock_list.php response:", data);
-  //       let tbody = $("#stock_check_table");
-  //       tbody.empty();
-  //       if (!data || data.length === 0) {
-  //         tbody.append(
-  //           '<tr><td colspan="10" class="text-center py-4 text-gray-500">ไม่พบรายการตรวจสอบสต๊อกสินค้า</td></tr>'
-  //         );
-  //         $("#btn-confirm-check").prop("disabled", true);
-  //         if (resolve) resolve();
-  //         return;
-  //       }
-
-  //       let hasPendingStatus = false;
-  //       $.each(data, function (index, item) {
-  //         if (parseInt(item.check_status_id) === 1) hasPendingStatus = true;
-  //         let formattedDate = "-";
-  //         if (item.stock_date) {
-  //           try {
-  //             formattedDate = luxon.DateTime.fromFormat(
-  //               item.stock_date,
-  //               "yyyy-MM-dd HH:mm:ss"
-  //             ).toFormat("dd/MM/yyyy HH:mm:ss");
-  //           } catch (e) {
-  //             console.error(
-  //               "Date format error for stock_date:",
-  //               item.stock_date,
-  //               e
-  //             );
-  //             formattedDate = item.stock_date;
-  //           }
-  //         }
-
-  //         let row = `
-  //                   <tr data-stock-check-id="${item.stock_check_id}">
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${formattedDate}</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-  //                         item.product_id || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-  //                         item.product_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm">${
-  //                         item.stock_check_system || "0"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm stock-check-actual">${
-  //                         item.stock_check_actual || "0"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
-  //                         item.personnel_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
-  //                         item.check_status_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock-check-remark">${
-  //                         item.stock_check_remark_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock-check-comment">${
-  //                         item.stock_check_comment || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 text-center text-xs sm:text-sm flex gap-4 actions">
-  //                           ${
-  //                             parseInt(item.check_status_id) === 1
-  //                               ? `
-  //                                   <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //                                       <i class="fas fa-edit mr-1"></i>แก้ไข
-  //                                   </a>
-  //                                   <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${item.stock_check_id}">
-  //                                       <i class="fas fa-trash-alt mr-1"></i>ลบ
-  //                                   </a>`
-  //                               : ""
-  //                           }
-  //                       </td>
-  //                   </tr>`;
-  //         tbody.append(row);
-  //       });
-
-  //       $("#btn-confirm-check").prop("disabled", !hasPendingStatus);
-  //       if (resolve) resolve();
-  //     },
-  //     error: function (xhr, status, error) {
-  //       console.error("stock_list.php error:", xhr.responseText);
-  //       Toast.fire({
-  //         icon: "error",
-  //         title: "ไม่สามารถดึงข้อมูลจาก stock_list.php: " + error,
-  //       });
-  //       $("#btn-confirm-check").prop("disabled", true);
-  //       if (reject) reject(error);
-  //     },
-  //   });
-  // }
-
-  // Event สำหรับปุ่มแก้ไข
-  // $(document).on("click", ".btn-edit-stock", function () {
-  //   const row = $(this).closest("tr");
-  //   const stockCheckId = row.data("stock-check-id");
-  //   const actualCell = row.find(".stock-check-actual");
-  //   const commentCell = row.find(".stock-check-comment");
-  //   const actionsCell = row.find(".actions");
-
-  //   // เก็บข้อมูลเดิม
-  //   const originalActual = actualCell.text().trim();
-  //   const originalComment =
-  //     commentCell.text().trim() === "-" ? "" : commentCell.text().trim();
-
-  //   // เปลี่ยนเป็น input และ textarea
-  //   actualCell.html(`
-  //       <input type="number" class="edit-actual w-full border rounded-sm px-2 py-1" value="${originalActual}" min="0">
-  //   `);
-  //   commentCell.html(`
-  //       <textarea class="edit-comment w-full border rounded-sm px-2 py-1" rows="2">${originalComment}</textarea>
-  //   `);
-
-  //   // เปลี่ยนปุ่มเป็น บันทึก/ยกเลิก
-  //   actionsCell.html(`
-  //       <a class="btn-save-stock bg-green-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-green-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //           <i class="fas fa-save mr-1"></i>บันทึก
-  //       </a>
-  //       <a class="btn-cancel-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //           <i class="fas fa-times mr-1"></i>ยกเลิก
-  //       </a>
-  //   `);
-
-  //   // เก็บข้อมูลเดิมใน data attributes
-  //   row.data("original-actual", originalActual);
-  //   row.data("original-comment", originalComment);
-  //   row.data("stock-check-id", stockCheckId);
-  // });
-
-  // Event สำหรับปุ่มบันทึก
-  // $(document).on("click", ".btn-save-stock", function () {
-  //   const row = $(this).closest("tr");
-  //   const stockCheckId = row.data("stock-check-id");
-  //   const newActual = row.find(".edit-actual").val().trim();
-  //   const newComment = row.find(".edit-comment").val().trim();
-
-  //   if (!/^-?\d+$/.test(newActual)) {
-  //     Toast.fire({
-  //       icon: "warning",
-  //       title: "จำนวนที่นับได้จริงต้องเป็นตัวเลข",
-  //     });
-  //     return;
-  //   }
-
-  //   $.ajax({
-  //     url: "page/stock/api/update_stock.php",
-  //     type: "POST",
-  //     data: {
-  //       action: "update_stock_check",
-  //       stock_check_id: stockCheckId,
-  //       stock_check_actual: newActual,
-  //       stock_check_comment: newComment,
-  //     },
-  //     dataType: "json",
-  //     headers: { "X-Requested-With": "XMLHttpRequest" },
-  //     success: function (response) {
-  //       if (response.status === "success") {
-  //         Toast.fire({ icon: "success", title: response.message });
-  //         // อัปเดต UI โดยดึงข้อมูลล่าสุดจาก stock_list.php
-  //         $.ajax({
-  //           url: "page/stock/api/stock_list.php",
-  //           type: "GET",
-  //           data: { stock_id: currentStockId },
-  //           dataType: "json",
-  //           headers: { "X-Requested-With": "XMLHttpRequest" },
-  //           success: function (data) {
-  //             const updatedItem = data.find(
-  //               (item) => item.stock_check_id == stockCheckId
-  //             );
-  //             if (updatedItem) {
-  //               row
-  //                 .find(".stock-check-actual")
-  //                 .text(updatedItem.stock_check_actual || "0");
-  //               row
-  //                 .find(".stock-check-comment")
-  //                 .text(updatedItem.stock_check_comment || "-");
-  //               row
-  //                 .find(".stock-check-remark")
-  //                 .text(updatedItem.stock_check_remark_name || "-");
-  //               row.find(".actions").html(`
-  //                               <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //                                   <i class="fas fa-edit mr-1"></i>แก้ไข
-  //                               </a>
-  //                               <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${stockCheckId}">
-  //                                   <i class="fas fa-trash-alt mr-1"></i>ลบ
-  //                               </a>
-  //                           `);
-  //             }
-  //           },
-  //           error: function (xhr, status, error) {
-  //             console.error("stock_list.php error:", xhr.responseText);
-  //             Toast.fire({
-  //               icon: "error",
-  //               title: "ไม่สามารถดึงข้อมูลล่าสุด: " + error,
-  //             });
-  //           },
-  //         });
-  //       } else {
-  //         Toast.fire({ icon: "error", title: response.message });
-  //       }
-  //     },
-  //     error: function (xhr, status, error) {
-  //       console.error("update_stock.php error:", xhr.responseText);
-  //       Toast.fire({
-  //         icon: "error",
-  //         title: "เกิดข้อผิดพลาดในการบันทึก: " + error,
-  //       });
-  //     },
-  //   });
-  // });
-
-  // Event สำหรับปุ่มยกเลิก
-  // $(document).on("click", ".btn-cancel-stock", function () {
-  //   const row = $(this).closest("tr");
-  //   const stockCheckId = row.data("stock-check-id");
-  //   const originalActual = row.data("original-actual");
-  //   const originalComment = row.data("original-comment");
-  //   const originalRemark = row.data("original-remark") || "-";
-
-  //   row.find(".stock-check-actual").text(originalActual);
-  //   row.find(".stock-check-comment").text(originalComment || "-");
-  //   row.find(".stock-check-remark").text(originalRemark);
-  //   row.find(".actions").html(`
-  //       <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //           <i class="fas fa-edit mr-1"></i>แก้ไข
-  //       </a>
-  //       <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${stockCheckId}">
-  //           <i class="fas fa-trash-alt mr-1"></i>ลบ
-  //       </a>
-  //   `);
-  // });
-
-  // Event สำหรับปุ่มแก้ไข
-  // $(document).on("click", ".btn-edit-stock", function () {
-  //   const row = $(this).closest("tr");
-  //   const stockCheckId = row.data("stock-check-id");
-  //   const actualCell = row.find(".stock-check-actual");
-  //   const commentCell = row.find(".stock_check_comment");
-  //   const actionsCell = row.find(".actions");
-
-  //   // เก็บข้อมูลเดิม
-  //   const originalActual = actualCell.text().trim();
-  //   const originalComment =
-  //     commentCell.text().trim() === "-" ? "" : commentCell.text().trim();
-
-  //   // เปลี่ยนเป็น input
-  //   actualCell.html(`
-  //           <input type="number" class="edit-actual w-full border rounded-sm px-2 py-1" value="${originalActual}" min="0">
-  //       `);
-  //   commentCell.html(`
-  //           <textarea class="edit-comment w-full border rounded-sm px-2 py-1" rows="2">${originalComment}</textarea>
-  //       `);
-
-  //   // เปลี่ยนปุ่มเป็น บันทึก/ยกเลิก
-  //   actionsCell.html(`
-  //           <a class="btn-save-stock bg-green-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-green-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //               <i class="fas fa-save mr-1"></i>บันทึก
-  //           </a>
-  //           <a class="btn-cancel-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //               <i class="fas fa-times mr-1"></i>ยกเลิก
-  //           </a>
-  //       `);
-
-  //   // เก็บข้อมูลเดิมใน data attributes
-  //   row.data("original-actual", originalActual);
-  //   row.data("original-comment", originalComment);
-  //   row.data("stock-check-id", stockCheckId);
-  // });
-
-  // // Event สำหรับปุ่มบันทึก
-  // $(document).on("click", ".btn-save-stock", function () {
-  //   const row = $(this).closest("tr");
-  //   const stockCheckId = row.data("stock-check-id");
-  //   const newActual = row.find(".edit-actual").val().trim();
-  //   const newComment = row.find(".edit-comment").val().trim();
-
-  //   if (!/^-?\d+$/.test(newActual)) {
-  //     Toast.fire({
-  //       icon: "warning",
-  //       title: "จำนวนที่นับได้จริงต้องเป็นตัวเลข",
-  //     });
-  //     return;
-  //   }
-
-  //   $.ajax({
-  //     url: "page/stock/api/update_stock.php",
-  //     type: "POST",
-  //     data: {
-  //       action: "update_stock_check",
-  //       stock_check_id: stockCheckId,
-  //       stock_check_actual: newActual,
-  //       stock_check_comment: newComment,
-  //     },
-  //     dataType: "json",
-  //     headers: { "X-Requested-With": "XMLHttpRequest" },
-  //     success: function (response) {
-  //       if (response.status === "success") {
-  //         Toast.fire({ icon: "success", title: response.message });
-  //         row.find(".stock-check-actual").text(newActual);
-  //         row.find(".stock_check_comment").text(newComment || "-");
-  //         row.find(".actions").html(`
-  //                       <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //                           <i class="fas fa-edit mr-1"></i>แก้ไข
-  //                       </a>
-  //                       <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${stockCheckId}">
-  //                           <i class="fas fa-trash-alt mr-1"></i>ลบ
-  //                       </a>
-  //                   `);
-  //       } else {
-  //         Toast.fire({ icon: "error", title: response.message });
-  //       }
-  //     },
-  //     error: function (xhr, status, error) {
-  //       console.error("update_stock.php error:", xhr.responseText);
-  //       Toast.fire({
-  //         icon: "error",
-  //         title: "เกิดข้อผิดพลาดในการบันทึก: " + error,
-  //       });
-  //     },
-  //   });
-  // });
-
-  // // Event สำหรับปุ่มยกเลิก
-  // $(document).on("click", ".btn-cancel-stock", function () {
-  //   const row = $(this).closest("tr");
-  //   const stockCheckId = row.data("stock-check-id");
-  //   const originalActual = row.data("original-actual");
-  //   const originalComment = row.data("original-comment");
-
-  //   row.find(".stock-check-actual").text(originalActual);
-  //   row.find(".stock_check_comment").text(originalComment || "-");
-  //   row.find(".actions").html(`
-  //           <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //               <i class="fas fa-edit mr-1"></i>แก้ไข
-  //           </a>
-  //           <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${stockCheckId}">
-  //               <i class="fas fa-trash-alt mr-1"></i>ลบ
-  //           </a>
-  //       `);
-  // });
-
+ 
   $("#btn-add-stock-check").on("click", function () {
     if (isProcessing) return;
     isProcessing = true;
@@ -906,116 +446,6 @@ $(document).ready(function () {
       },
     });
   });
-
-  // function loadStockCheck(resolve, reject) {
-  //   console.log("Loading stock check table for stock_id:", currentStockId);
-  //   let url = "page/stock/api/stock_list.php";
-  //   let data = currentStockId ? { stock_id: currentStockId } : { status: 1 };
-  //   $.ajax({
-  //     url: url,
-  //     type: "GET",
-  //     data: data,
-  //     dataType: "json",
-  //     headers: { "X-Requested-With": "XMLHttpRequest" },
-  //     cache: false,
-  //     success: function (data) {
-  //       console.log("stock_list.php response:", data);
-  //       let tbody = $("#stock_check_table");
-  //       tbody.empty();
-  //       if (!data || data.length === 0) {
-  //         tbody.append(
-  //           '<tr><td colspan="9" class="text-center py-4 text-gray-500">ไม่พบรายการตรวจสอบสต๊อกสินค้า</td></tr>'
-  //         );
-  //         $("#btn-confirm-check").prop("disabled", true);
-  //         if (resolve) resolve();
-  //         return;
-  //       }
-
-  //       let hasPendingStatus = false;
-  //       $.each(data, function (index, item) {
-  //         if (parseInt(item.check_status_id) === 1) hasPendingStatus = true;
-  //         let formattedDate = "-";
-  //         if (item.stock_date) {
-  //           try {
-  //             formattedDate = luxon.DateTime.fromFormat(
-  //               item.stock_date,
-  //               "yyyy-MM-dd HH:mm:ss"
-  //             ).toFormat("dd/MM/yyyy HH:mm:ss");
-  //           } catch (e) {
-  //             console.error(
-  //               "Date format error for stock_date:",
-  //               item.stock_date,
-  //               e
-  //             );
-  //             formattedDate = item.stock_date;
-  //           }
-  //         }
-
-  //         // let remarkDisplay = item.stock_check_remark_name || (item.stock_check_remark_id ? "ไม่พบหมายเหตุ" : "-");
-  //         // if (item.stock_check_comment) {
-  //         //     remarkDisplay += ` (${item.stock_check_comment})`;
-  //         // }
-
-  //         // ใน row ให้เพิ่ม <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock_check_comment">${remarkDisplay}</td>
-
-  //         let row = `
-  //                   <tr data-stock-check-id="${item.stock_check_id}">
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${formattedDate}</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-  //                         item.product_id || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm">${
-  //                         item.product_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm">${
-  //                         item.stock_check_system || "0"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-right text-xs sm:text-sm stock-check-actual">${
-  //                         item.stock_check_actual || "0"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
-  //                         item.personnel_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" hidden>${
-  //                         item.check_status_name || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm ">${
-  //                         item.stock_check_remark_name
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm" >${
-  //                         item.stock_check_comment || "-"
-  //                       }</td>
-  //                       <td class="px-3 sm:px-6 py-2 text-center text-xs sm:text-sm flex gap-4 actions">
-  //                           ${
-  //                             parseInt(item.check_status_id) === 1
-  //                               ? `
-  //                                   <a class="btn-edit-stock bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-yellow-600 transition flex items-center text-xs sm:text-sm cursor-pointer">
-  //                                       <i class="fas fa-edit mr-1"></i>แก้ไข
-  //                                   </a>
-  //                                   <a class="btn-delete-stock bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 transition flex items-center text-xs sm:text-sm cursor-pointer" data-stock-check-id="${item.stock_check_id}">
-  //                                       <i class="fas fa-trash-alt mr-1"></i>ลบ
-  //                                   </a>`
-  //                               : ""
-  //                           }
-  //                       </td>
-  //                   </tr>`;
-  //         tbody.append(row);
-  //       });
-
-  //       $("#btn-confirm-check").prop("disabled", !hasPendingStatus);
-  //       if (resolve) resolve();
-  //     },
-  //     error: function (xhr, status, error) {
-  //       console.error("stock_list.php error:", xhr.responseText);
-  //       Toast.fire({
-  //         icon: "error",
-  //         title: "ไม่สามารถดึงข้อมูลจาก stock_list.php: " + error,
-  //       });
-  //       $("#btn-confirm-check").prop("disabled", true);
-  //       if (reject) reject(error);
-  //     },
-  //   });
-  // }
   function loadStockCheck(resolve, reject) {
     console.log("Loading stock check table for stock_id:", currentStockId);
     let url = "page/stock/api/stock_list.php";
@@ -1356,7 +786,7 @@ $(document).ready(function () {
           stock_check_actual: stock_check_actual_input, // ใช้ค่าจาก input เสมอ
           stock_date: stockDate,
           stock_check_comment: getValue("#stock_check_comment", ""),
-          personnel_id: getValue("#personnel_id", "1"),
+         // personnel_id: getValue("#personnel_id", "1"),
           is_update: data.length > 0 ? true : false, // Flag เพื่อบอกว่าเป็นการอัปเดตหรือ insert
         };
         console.log("formData before sending:", formData); // Debug
