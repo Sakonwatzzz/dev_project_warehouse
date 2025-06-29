@@ -16,7 +16,7 @@ try {
     if (!$stock_date || !DateTime::createFromFormat('Y-m-d H:i:s', $stock_date)) {
         throw new Exception(message: 'Invalid stock date format');
     }
-    $personnel_id = $_POST['personnel_id'] ?? null;
+    $personnel_id = $_POST['personnel_id'] ?? 9;
     $check_status_id = $_POST['check_status_id'] ?? '1';
     $warehouse_id = $_POST['warehouse_id'] ?? null;
 
@@ -76,7 +76,7 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log("insert_new_stock.php error: " . $e->getMessage(), 3, "/var/log/php_errors.log");
+    // error_log("insert_new_stock.php error: " . $e->getMessage(), 3, "/var/log/php_errors.log");
     echo json_encode([
         'status' => 'error',
         'message' => $e->getMessage()

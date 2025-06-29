@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../../../config/database_server.php';
+require_once __DIR__ . '../../../../../config/database_server.php';
 header('Content-Type: application/json');
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -20,10 +20,10 @@ try {
     $stock_check_system = $_POST['stock_check_system'] ?? null;
     $stock_check_remark_id = $_POST['stock_check_remark_id'] ?? null;
     $stock_check_comment = $_POST['stock_check_comment'] ?? '';
-    $personnel_id = $_POST['personnel_id'] ?? null;
+    // $personnel_id = $_POST['personnel_id'] ?? null;
     $is_update = filter_var($_POST['is_update'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-    if (!$stock_id || !$product_id || !$warehouse_id || !$lot_id || !$lot_product_id || $stock_check_actual === null || $stock_check_system === null || !$personnel_id) {
+    if (!$stock_id || !$product_id || !$warehouse_id || !$lot_id || !$lot_product_id || $stock_check_actual === null || $stock_check_system === null ) { //|| !$personnel_id
         throw new Exception('กรุณากรอกข้อมูลให้ครบถ้วน');
     }
 
@@ -39,13 +39,13 @@ try {
     $pdo->beginTransaction();
 
     // ตรวจสอบ stock_id และ personnel_id
-    $query = "SELECT stock_id FROM stock WHERE stock_id = :stock_id AND check_status_id = 1 AND personnel_id = :personnel_id";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([':stock_id' => $stock_id, ':personnel_id' => $personnel_id]);
-    if (!$stmt->fetch()) {
-        $pdo->rollBack();
-        throw new Exception("เซสชันสต๊อก $stock_id ไม่ถูกต้อง, ถูกยืนยันแล้ว, หรือไม่ใช่ของผู้ใช้");
-    }
+    // $query = "SELECT stock_id FROM stock WHERE stock_id = :stock_id AND check_status_id = 1 AND personnel_id = :personnel_id";
+    // $stmt = $pdo->prepare($query);
+    // $stmt->execute([':stock_id' => $stock_id, ':personnel_id' => $personnel_id]);
+    // if (!$stmt->fetch()) {
+    //     $pdo->rollBack();
+    //     throw new Exception("เซสชันสต๊อก $stock_id ไม่ถูกต้อง, ถูกยืนยันแล้ว, หรือไม่ใช่ของผู้ใช้");
+    // }
 
     if ($is_update) {
         // ตรวจสอบว่ามีรายการใน stock_check หรือไม่
@@ -65,13 +65,13 @@ try {
             $query = "UPDATE stock_check 
                       SET stock_check_actual = :stock_check_actual, 
                           stock_check_comment = :stock_check_comment, 
-                          personnel_id = :personnel_id 
+                       
                       WHERE stock_check_id = :stock_check_id";
+                     
             $stmt = $pdo->prepare($query);
             $stmt->execute([
                 ':stock_check_actual' => $new_stock_check_actual,
                 ':stock_check_comment' => $stock_check_comment,
-                ':personnel_id' => $personnel_id,
                 ':stock_check_id' => $existing['stock_check_id']
             ]);
 
@@ -86,8 +86,8 @@ try {
     }
 
     // ถ้าไม่มีรายการหรือไม่ใช่ update, ทำการ INSERT
-    $query = "INSERT INTO stock_check (stock_id, product_id, warehouse_id, lot_id, lot_product_id, stock_check_actual, stock_check_system, stock_check_remark_id ,stock_check_comment, personnel_id)
-              VALUES (:stock_id, :product_id, :warehouse_id, :lot_id, :lot_product_id, :stock_check_actual, :stock_check_system, :stock_check_remark_id, :stock_check_comment, :personnel_id)";
+    $query = "INSERT INTO stock_check (stock_id, product_id, warehouse_id, lot_id, lot_product_id, stock_check_actual, stock_check_system, stock_check_remark_id ,stock_check_comment)
+              VALUES (:stock_id, :product_id, :warehouse_id, :lot_id, :lot_product_id, :stock_check_actual, :stock_check_system, :stock_check_remark_id, :stock_check_comment)";
     $stmt = $pdo->prepare($query);
     $stmt->execute([
         ':stock_id' => $stock_id,
@@ -99,7 +99,6 @@ try {
         ':stock_check_system' => $stock_check_system,
         ':stock_check_comment' => $stock_check_comment,
         ':stock_check_remark_id' => $stock_check_remark_id,
-        ':personnel_id' => $personnel_id
     ]);
 
     $pdo->commit();
@@ -113,7 +112,7 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log("insert_stock.php error: " . $e->getMessage(), 3, "/var/log/php_errors.log");
+    // error_log("insert_stock.php error: " . $e->getMessage(), 3, "/var/log/php_errors.log");
     echo json_encode([
         'status' => 'error',
         'message' => $e->getMessage()
