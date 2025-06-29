@@ -20,7 +20,6 @@ try {
 // ini_set('error_log', __DIR__ . '/logs/php_errors.log');
 
 ob_start();
-session_start();
 
 // Set timezone
 date_default_timezone_set('Asia/Bangkok');
