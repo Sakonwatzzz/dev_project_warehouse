@@ -12,9 +12,8 @@ $(document).ready(function () {
       });
       return;
     }
-    console.log("sending print request for sale_id", sale_id);
     $.ajax({
-      url: "page/sale/api/api_print_receipt.php",
+      url: "page/sale/sale_add.php",
       method: "POST",
       data: {
         action: "print_receipt",
@@ -123,7 +122,6 @@ $(document).ready(function () {
         }
       },
       error: function (xhr) {
-        console.log("Ajax error:", xhr.responseText); // Debug
         Swal.fire({
           icon: "error",
           title: "ข้อผิดพลาด",

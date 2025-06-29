@@ -213,13 +213,10 @@ try {
                     <span><?php echo htmlspecialchars($lot_data['supplier_name']); ?></span>
                 </div>
                 <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">ลงคลัง:</span>
+                    <span class="text-gray-600 font-medium w-40">คลังสินค้า:</span>
                     <span><?php echo htmlspecialchars($lot_data['warehouse_name']); ?></span>
                 </div>
-                <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">นำมาจากคลัง:</span>
-                    <span><?php echo !empty($lot_data['warehouse_from_name']) ? htmlspecialchars($lot_data['warehouse_from_name']) : 'ยังไม่ระบุ'; ?></span>
-                </div>
+
                 <div class="flex items-center">
                     <span class="text-gray-600 font-medium w-40">รับมาจากร้าน:</span>
                     <span><?php echo htmlspecialchars($lot_data['store_name']); ?></span>
@@ -524,7 +521,7 @@ try {
                         }
 
                         // Updated regex to support price/qty*barcode, qty*barcode, -barcode, -qty*barcode, or just barcode
-                        if (!/^(?:-?[\d.]+\/[\d.]+\*\d+|-[\d.]+\*\d+|-\d+|[\d.]+\/[\d.]+\*\d+|[\d.]+\*\d+|\d+)$/.test(barcode)) {
+                        if (!/^(?:-?\d+\.\d*\/\d+\*\d+|-\d+\*\d+|-\d+|\d+\.\d*\/\d+\*\d+|\d+\*\d+|\d+)$/.test(barcode)) {
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'รูปแบบไม่ถูกต้อง',

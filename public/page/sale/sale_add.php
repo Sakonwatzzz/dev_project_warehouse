@@ -52,11 +52,7 @@ if (!isset($_SESSION['active_sales'])) {
 // ถ้าไม่พบ sale_id จริง ๆ : บันทึก error ลง log -> ส่ง HTTP response code 400 (Bad Request) = ส่งข้อความ error เป็น JSON
 
 // Get sale_id from POST, GET, or session
-$sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'];
-if (isset($_GET['sale_id']) && !$_SESSION['current_sale_id']) {
-    $_SESSION['current_sale_id'] = $_GET['sale_id'];
-    $sale_id = $_GET['sale_id'];
-}
+$sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 
 // Create new sale if none exists
 if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
@@ -77,7 +73,6 @@ if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
         $_SESSION['active_sales'][] = $sale_id;
         $_SESSION['current_sale_id'] = $sale_id;
         $pdo->commit();
-        error_log("Created new sale_id: $sale_id");
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -169,6 +164,78 @@ function isAjaxRequest()
 
 
 
+// Handle print receipt via Ajax
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'print_receipt') {
+    header('Content-Type: application/json');
+    ob_clean();
+    try {
+        $sale_id = $_POST['sale_id'] ?? null;
+        if (!$sale_id) {
+            throw new Exception("ไม่พบ sale_id ในคำขอ กรุณาเปิดบิลใหม่และเพิ่มข้อมูลการขาย");
+        }
+
+        // Query sale details
+        $query = "SELECT
+            s.sale_id, s.sale_date, s.member_id, m.member_name, m.member_phone,
+            s.personnel_id, p.personnel_name, s.sale_status_id, ss.sale_status_name
+        FROM sale s
+        LEFT JOIN member m ON s.member_id = m.member_id
+        LEFT JOIN personnel p ON s.personnel_id = p.personnel_id
+        LEFT JOIN sale_status ss ON s.sale_status_id = ss.sale_status_id
+        WHERE s.sale_id = ?";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$sale_id]);
+        $sale_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$sale_data) {
+            throw new Exception("ไม่พบข้อมูลบิล #$sale_id");
+        }
+
+        // Query sale products
+        $product_query = "SELECT
+            sp.sale_product_id, sp.sale_id, sp.product_id,
+            COALESCE(pr.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
+            sp.sale_product_qty, sp.sale_product_price, sp.sale_product_capital
+        FROM sale_product sp
+        LEFT JOIN product pr ON pr.product_id = sp.product_id
+        WHERE sp.sale_id = ?";
+        $stmt = $pdo->prepare($product_query);
+        $stmt->execute([$sale_id]);
+        $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $sale_net_amount = 0;
+        $total_qty = 0;
+        foreach ($sale_products as $product) {
+            $sale_net_amount += $product['sale_product_qty'] * $product['sale_product_price'];
+            $total_qty += $product['sale_product_qty'];
+        }
+        $vat_rate = 7.00;
+        $sale_vat_amount = $sale_net_amount * ($vat_rate / 100);
+        $sale_total_amount = $sale_net_amount + $sale_vat_amount;
+
+        // Prepare receipt data
+        $receipt_data = [
+            'sale_id' => $sale_data['sale_id'],
+            'sale_date' => date("d/m/Y H:i:s", strtotime($sale_data['sale_date'])),
+            'member_name' => $sale_data['member_name'] ?? 'ไม่ระบุ',
+            'personnel_name' => $sale_data['personnel_name'] ?? 'ไม่ระบุ',
+            'products' => $sale_products,
+            'total_qty' => $total_qty,
+            'sale_net_amount' => $sale_net_amount,
+            'sale_vat_amount' => $sale_vat_amount,
+            'sale_total_amount' => $sale_total_amount,
+            'sale_paid_amount' => $_POST['sale_paid_amount'] ?? 0,
+            'sale_change_amount' => $_POST['sale_change_amount'] ?? 0
+        ];
+
+        echo json_encode(['status' => 'success', 'receipt' => $receipt_data]);
+    } catch (Exception $e) {
+        error_log("Error generating receipt: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถสร้างใบเสร็จได้: ' . $e->getMessage()]);
+    }
+    exit();
+}
+
 // Query sale details
 try {
     $query = "SELECT
@@ -226,7 +293,7 @@ try {
 // Fetch members, personnel, and sale status
 $members = $pdo->query("SELECT member_id, member_name FROM member ORDER BY member_name");
 
-$default_id = 9;
+$default_id = 3;
 $stmt = $pdo->prepare("SELECT * FROM personnel WHERE personnel_id = ?");
 $stmt->execute([$default_id]);
 $personnels = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -236,35 +303,31 @@ $sale_status_result = $pdo->query("SELECT sale_status_id, sale_status_name FROM 
 // Validate active sales against database
 $valid_active_sale = [];
 if (!empty($_SESSION['active_sales'])) {
+    $placeholders = implode(',', array_fill(0, count($_SESSION['active_sales']), '?'));
     try {
-        $active_sales_query = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_status_id IN (1, 2)");
-        $active_sales_query->execute();
-        $db_active_sales = $active_sales_query->fetchAll(PDO::FETCH_COLUMN);
-        $_SESSION['active_sales'] = array_unique(array_intersect($_SESSION['active_sales'] ?? [], $db_active_sales));
-        $placeholders = implode(',', array_fill(0, count($_SESSION['active_sales']), '?'));
-        $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders)");
+        // เปลี่ยนจาก sale_status_id = 2 เป็น sale_status_id IN (1, 2) เพื่อให้บิลที่ยืนยันแล้วยังคงอยู่ใน active_sales ชั่วคราว
+        $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders) AND sale_status_id IN (1, 2)");
         $stmt->execute(array_values($_SESSION['active_sales']));
         $valid_sales = $stmt->fetchAll(PDO::FETCH_COLUMN);
         $valid_active_sale = array_intersect($_SESSION['active_sales'], $valid_sales);
-
-        if ($sale_id) {
-            $check_current = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id = ?");
-            $check_current->execute([$sale_id]);
-            if ($check_current->rowCount() > 0 && !in_array($sale_id, $valid_active_sale)) {
-                $valid_active_sale[] = $sale_id;
-            }
-        }
-
         $_SESSION['active_sales'] = $valid_active_sale;
         if (!in_array($_SESSION['current_sale_id'], $valid_active_sale)) {
-            $_SESSION['current_sale_id'] = $sale_id ?: (!empty($valid_active_sale) ? reset($valid_active_sale) : null);
+            $_SESSION['current_sale_id'] = !empty($valid_active_sale) ? reset($valid_active_sale) : null;
+            $sale_id = $_SESSION['current_sale_id'];
         }
         error_log("Validated active_sales: " . json_encode($valid_active_sale));
     } catch (PDOException $e) {
         error_log("Error validating active sales: " . $e->getMessage());
-        $_SESSION['error'] = 'เกิดข้อผิดพลาดในการตรวจสอบบิล';
+        $_SESSION['active_sales'] = [];
+        $_SESSION['current_sale_id'] = null;
+        $sale_id = null;
     }
+} else {
+    $_SESSION['active_sales'] = [];
+    $_SESSION['current_sale_id'] = null;
+    $sale_id = null;
 }
+
 $sale_status_id = $sale_data['sale_status_id'] ?? 2;
 $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย';
 ?>
@@ -289,13 +352,13 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
     sale_id จาก sale_add.php ไปยัง JavaScript ผ่านวิธีอื่น เช่น การกำหนดตัวแปรใน <script> หรือผ่าน attribute ใน HTML. -->
     <script>
         const SALE_ID = '<?php echo htmlspecialchars($sale_id); ?>';
-        // console.log ('SALE_ID :' ,SALE_ID);
     </script>
     <script src="page/sale/js/sale_delete.js"></script>
     <script src="page/sale/js/sale_bill.js"></script>
     <script src="page/sale/js/sale_confirm_btn.js"></script>
     <script src="page/sale/js/sale_modal_edit.js"></script>
-    <script defer src="page/sale/js/sale_payment.js"></script>
+    <script src="page/sale/js/sale_payment.js"></script>
+
     <style>
         #edit-product-modal {
             z-index: 1000;
@@ -367,7 +430,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
         <div class="container mx-auto p-6">
             <div class="flex items-center space-x-2 mb-6 rounded-lg shadow-md py-2 px-2">
                 <button id="new_sale"
-                    class="w-40 px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors flex items-center cursor-pointer">
+                    class="w-40 px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors flex items-center ">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -389,7 +452,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                 </div>
             </div>
             <?php if (isset($_SESSION['success'])): ?>
-                <scrip>
+                <script>
                     Swal.fire({
                         toast: true,
                         position: 'center',
@@ -400,7 +463,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         timerProgressBar: true
                     });
                     <?php unset($_SESSION['success']); ?>
-                </scrip>
+                </script>
             <?php endif; ?>
             <?php if (isset($_SESSION['error'])): ?>
                 <script>
@@ -659,8 +722,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     </div>
                     <div class="space-y-3">
                         <!-- ปุ่มพิมพ์ใบเสร็จ (เริ่มต้นซ่อน) -->
-                        <button id="print_receipt" action="print_receipt"
-                            class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center cursor-pointer <?php echo ($sale_data['sale_status_id'] == 1) ? '' : 'hidden'; ?>">
+                        <button id="print_receipt"
+                            class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center <?php echo ($sale_data['sale_status_id'] == 1) ? '' : 'hidden'; ?>">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -789,8 +852,8 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     $('#form_add_product').find('input, select, button').prop('disabled', true);
                 } else {
                     $("#calculate_change").prop("disabled", false).removeClass("opacity-50 cursor-not-allowed");
+                    $("#print_receipt").addClass("hidden");
                 }
-                refreshBillTabs();
                 const saleNetAmount = parseFloat(<?php echo json_encode((float)$sale_net_amount); ?>) || 0;
                 $(document).trigger("productListUpdated", [saleNetAmount]);
 
@@ -893,22 +956,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                     });
                 }
                 bindEditProductEvents();
-                function refreshBillTabs() {
-                $.ajax({
-                    url: 'page/sale/ajax/ajax_get_active_sale.php',
-                    method: 'GET',
-                    dataType: 'json',
-                    success: function (response) {
-                        if (response.status === 'success') {
-                            $('#billTabs').html(response.html);
-                            updateTabStyles();
-                        }
-                    }
-                });
-            }
-           refreshBillTabs(); 
             });
-            
         </script>
     </div>
 </body>

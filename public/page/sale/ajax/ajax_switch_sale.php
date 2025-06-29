@@ -31,7 +31,7 @@ try {
 
 // Include database configuration
 try {
-    require_once __DIR__ . '../../../../../config/database_server.php';
+    require_once __DIR__ . '/../../../../config/database_server.php';
     error_log("Database configuration included successfully");
 } catch (Exception $e) {
     error_log("Error including database_server.php: " . $e->getMessage());
@@ -49,21 +49,15 @@ error_log("Request data: " . json_encode($_POST));
 // Handle switch sale via Ajax
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'switch_sale') {
     try {
-        $new_sale_id = isset($_POST['sale_id']) ? (int) $_POST['sale_id'] : null;
+        $new_sale_id = isset($_POST['sale_id']) ? (int)$_POST['sale_id'] : null;
         if (!$new_sale_id) {
             throw new Exception("sale_id ไม่ถูกต้องหรือไม่พบ");
         }
-        // ตรวจสอบกับฐานข้อมูล
-        $check_sale = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id = ? AND sale_status_id IN (1, 2)");
-        $check_sale->execute([$new_sale_id]);
-        if ($check_sale->rowCount() === 0) {
-            throw new Exception("บิล #$new_sale_id ไม่พบหรือไม่ใช่บิลที่ใช้งานอยู่");
-        }
-
         if (!isset($_SESSION['active_sales']) || !is_array($_SESSION['active_sales'])) {
-            $_SESSION['active_sales'] = [$new_sale_id]; // เริ่มต้นด้วยบิลใหม่
-        } elseif (!in_array($new_sale_id, $_SESSION['active_sales'])) {
-            $_SESSION['active_sales'][] = $new_sale_id; // เพิ่มบิลใหม่ถ้ายังไม่มี
+            throw new Exception("ไม่มีบิลที่ใช้งานอยู่ในเซสชัน");
+        }
+        if (!in_array($new_sale_id, $_SESSION['active_sales'])) {
+            throw new Exception("บิล #$new_sale_id ไม่พบในบิลที่ใช้งานอยู่");
         }
 
         $_SESSION['current_sale_id'] = $new_sale_id;
@@ -72,8 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         echo json_encode([
             'status' => 'success',
             'sale_id' => $new_sale_id,
-            'message' => 'เปลี่ยนไปใช้บิล #' . $new_sale_id,
-            'redirect' => '?page=sale_add&sale_id=' . $new_sale_id
+            'message' => 'เปลี่ยนไปใช้บิล #' . $new_sale_id
         ]);
     } catch (Exception $e) {
         error_log("Error in switch_sale: " . $e->getMessage());
