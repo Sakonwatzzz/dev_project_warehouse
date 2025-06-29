@@ -164,7 +164,9 @@ try {
 }
 
 // Pagination logic
+
 $records_per_page = 1;
+
 $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_record / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_record / $records_per_page));
