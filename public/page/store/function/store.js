@@ -47,7 +47,7 @@ function hideNotification() {
 
 function updateTable() {
     const urlParams = new URLSearchParams();
-    urlParams.set("page", "store");
+    urlParams.set("page", "store_list");
     urlParams.set("page_num", "1");
 
     const searchInput = document.getElementById("searchInput").value.trim();
@@ -90,7 +90,7 @@ function updateTable() {
 
 function goToPage(pageNum) {
     const urlParams = new URLSearchParams();
-    urlParams.set("page", "store");
+    urlParams.set("page", "store_list");
     urlParams.set("page_num", pageNum);
     const searchInput = document.getElementById("searchInput").value.trim();
     if (searchInput) {

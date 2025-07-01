@@ -94,7 +94,12 @@ try {
                                 </a>
                             </td>
                             <td class="px-3 py-3 text-gray-600"><?php echo htmlspecialchars($person['personnel_username'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="px-3 py-3 text-gray-600"><?php echo htmlspecialchars($person['personnel_address'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="px-3 py-3 text-gray-600">
+                                <?php
+                                $address = mb_substr($person['personnel_address'], 0, 20) . '...';
+                                echo htmlspecialchars($address, ENT_QUOTES, 'UTF-8');
+                                ?>
+                            </td>
                             <td class="px-3 py-3 text-gray-600"><?php echo htmlspecialchars($person['personnel_phone'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td class="px-3 py-3">
                                 <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">

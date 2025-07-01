@@ -85,7 +85,7 @@ try {
                                 </a>
                             </td>
                             <td class="px-3 py-3 text-gray-600">
-                                <?php echo htmlspecialchars(date('Y-m-d', strtotime($store['store_create_date'])), ENT_QUOTES, 'UTF-8'); ?>
+                                <?php echo htmlspecialchars(date('Y-m-d H:i:s', strtotime($store['store_create_date'])), ENT_QUOTES, 'UTF-8'); ?>
                             </td>
                             <td class="px-3 py-3 text-center">
                                 <div class="flex justify-center gap-2">
@@ -111,7 +111,7 @@ try {
                                 <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
                                 <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
                                     <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
-                                        <a href="?page=store" class="text-blue-600 hover:underline">ดูข้อมูลทั้งหมด</a>
+                                        <a href="?page=store_list" class="text-blue-600 hover:underline">ดูข้อมูลทั้งหมด</a>
                                     </p>
                                 <?php else: ?>
                                     <p class="text-gray-500 mt-1">ยังไม่มีข้อมูลร้านค้าในระบบ</p>

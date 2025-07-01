@@ -200,6 +200,22 @@ try {
     header('Location: index.php?page=member_list&error=' . urlencode($e->getMessage()));
     exit;
 }
+
+try {
+    $count_query = "SELECT COUNT(*) as total_count FROM member";
+    $params = [];
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $total_records = (int)$stmt->fetchColumn();
+    error_log("Total Records: $total_records");
+} catch (PDOException $e) {
+    error_log("Count member error: " . $e->getMessage());
+    die("เกิดข้อผิดพลาดในการนับข้อมูล: " . htmlspecialchars($e->getMessage()));
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -222,7 +238,7 @@ try {
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
             <div class="flex flex-col w-full md:flex-row md:w-auto items-center space-y-2 md:space-y-0 md:space-x-4">
                 <span id="totalRecords" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
-                    <i class="fas fa-users mr-2"></i> <span id="recordCount">0</span> รายการ
+                    <i class="fas fa-users mr-2"></i> <?php echo $total_records; ?> รายการ
                 </span>
                 <button onclick="showAddModal()" class="btn-primary text-white py-2 px-4 rounded-lg font-medium hover-lift w-full md:w-auto">
                     <i class="fas fa-plus mr-2"></i> เพิ่มสมาชิก
