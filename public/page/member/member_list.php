@@ -60,7 +60,7 @@ function validateMemberData($name, $address, $phone, $member_type_id, $personnel
 function checkMemberDependencies($pdo, $member_id)
 {
     $dependencies = [];
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE member_id = ?");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM sale WHERE member_id = ?");
     $stmt->execute([$member_id]);
     $count = $stmt->fetchColumn();
     if ($count > 0) {

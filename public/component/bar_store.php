@@ -13,7 +13,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'store_list';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../../output.css" rel="stylesheet">
     <link href="../style/bar_button.css" rel="stylesheet">
-    <title>Supplier Navigation</title>
+    <title>Store Navigation</title>
 
 </head>
 
@@ -25,13 +25,13 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'store_list';
             <div class="button-grid flex flex-wrap gap-2 p-1">
                 <a href="?page=store_list" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'store_list') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="รายการร้านค้า">
-                        <i class="fas fa-users text-xl mb-1"></i>
+                        <i class="fas fa-store text-xl mb-1"></i>
                         <span>รายการร้านค้า</span>
                     </button>
                 </a>
                 <a href="?page=store_insert" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'store_insert') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="เพิ่มร้านค้า">
-                        <i class="fas fa-user-plus text-xl mb-1"></i>
+                        <i class="fas fa-plus text-xl mb-1"></i>
                         <span>เพิ่มร้านค้า</span>
                     </button>
                 </a>
@@ -48,12 +48,12 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'store_list';
             </button>
             <div id="storeDropdown" class="dropdown-content hidden bg-[#f1f9fe] border border-[#a6c4de] rounded-md mt-1 shadow-lg max-h-80 overflow-y-auto z-10">
                 <a href="?page=store_list" class="<?php echo ($current_page == 'store_list') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
-                    <img src="../image/team.png" alt="ไอคอนรายชื่อร้านค้า" class="w-6 h-auto">
-                    <span>รายการร้านค้า</span>
+                    <i class="fas fa-store text-xl mb-1 text-blue-900"></i>
+                    <span class="font-bold">รายการร้านค้า</span>
                 </a>
-                <a href="?page=store_insert" class="<?php echo ($current_page == 'store_insert') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
-                    <img src="../image/add.png" alt="ไอคอนเพิ่มร้านค้า" class="w-6 h-auto">
-                    <span>เพิ่มร้านค้า</span>
+                <a href="?page=store_insrte" class="<?php echo ($current_page == 'store_insrte') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
+                    <i class="fas fa-plus text-xl mb-1 text-blue-900"></i>
+                    <span class="font-bold">เพิ่มร้านค้า</span>
                 </a>
             </div>
         </div>

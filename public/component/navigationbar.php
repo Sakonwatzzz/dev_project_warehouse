@@ -311,6 +311,10 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 'supplier_insert',
                 'supplier_detail',
             ];
+            $store_pages = [
+                'store_list',
+                'store_insert',
+            ];
             $sale_pages = [
                 'sale_add',
                 'sale_list',
@@ -367,7 +371,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             'member' => 'member',
                             'lot' => 'lot',
                             'sale' => 'sale',
-                            'stock' => 'stock'
+                            'stock' => 'stock',
+                            'store' => 'store'
                         ];
 
                         if (isset($folderMapping[$module])) {
@@ -489,18 +494,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         if (isset($_GET['supplier_id'])) {
                             $_REQUEST['supplier_id'] = $_GET['supplier_id'];
                         }
-                    } elseif ($prefix === 'store' && $page === 'store_lot') {
-                        $barfile = __DIR__ . "/bar_product.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $filepath = "$basePath/lot/store_lot.php";
-
-                        if (isset($_GET['store_id'])) {
-                            $_REQUEST['store_id'] = $_GET['store_id'];
-                        }
                     } elseif ($prefix === 'personnel' && $page === 'personnel_lot') {
                         $barfile = __DIR__ . "/bar_product.php";
                         if (file_exists($barfile)) {
@@ -535,6 +528,20 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         }
                         $action = $parts[1] ?? 'list';
                         $filepath = "$basePath/supplier/supplier_{$action}.php";
+
+                        if (isset($_GET['id'])) {
+                            $_REQUEST['id'] = $_GET['id'];
+                        }
+                    }
+                    elseif ($prefix === 'store' && in_array($page, $store_pages)) {
+                        $barfile = __DIR__ . "/bar_store.php";
+                        if (file_exists($barfile)) {
+                            include $barfile;
+                        } else {
+                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                        }
+                        $action = $parts[1] ?? 'list';
+                        $filepath = "$basePath/store/store_{$action}.php";
 
                         if (isset($_GET['id'])) {
                             $_REQUEST['id'] = $_GET['id'];
