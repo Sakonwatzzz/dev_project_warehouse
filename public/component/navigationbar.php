@@ -89,6 +89,11 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     </a>
                 </li>
                 <li>
+                    <a href="?page=bar_store" class="nav-link <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                        <i class="fas fa-truck"></i> ร้านค้า
+                    </a>
+                </li>
+                <li>
                     <a href="?page=bar_sale" class="nav-link <?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
                         <i class="fas fa-cash-register"></i> ขาย
                     </a>
@@ -161,7 +166,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     </div>
                     <div>
                         <div class="font-semibold">สมาชิก</div>
-                        <div class="text-xs text-gray-500">Members</div>
+                        <div class="text-xs text-gray-500">Members Management</div>
                     </div>
                 </a>
 
@@ -173,6 +178,17 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     <div>
                         <div class="font-semibold">Supplier</div>
                         <div class="text-xs text-gray-500">Supplier Management</div>
+                    </div>
+                </a>
+
+                <!-- Store -->
+                <a href="?page=bar_store" class="sidebar-item <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-truck text-blue-600"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold">ร้านค้า</div>
+                        <div class="text-xs text-gray-500">Store Management</div>
                     </div>
                 </a>
 
@@ -225,7 +241,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             <?php
             // Get page parameter and set defaults
             $page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
-            $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale', 'bar_stock'];
+            $allowed_pages = ['bar_index', 'bar_product', 'bar_store', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale', 'bar_stock'];
 
             $dashboard_pages = [
                 'dashboard'
@@ -472,6 +488,18 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 
                         if (isset($_GET['supplier_id'])) {
                             $_REQUEST['supplier_id'] = $_GET['supplier_id'];
+                        }
+                    } elseif ($prefix === 'store' && $page === 'store_lot') {
+                        $barfile = __DIR__ . "/bar_product.php";
+                        if (file_exists($barfile)) {
+                            include $barfile;
+                        } else {
+                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                        }
+                        $filepath = "$basePath/lot/store_lot.php";
+
+                        if (isset($_GET['store_id'])) {
+                            $_REQUEST['store_id'] = $_GET['store_id'];
                         }
                     } elseif ($prefix === 'personnel' && $page === 'personnel_lot') {
                         $barfile = __DIR__ . "/bar_product.php";
