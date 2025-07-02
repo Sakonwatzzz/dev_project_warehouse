@@ -81,7 +81,6 @@ try {
                     <th class="px-3 py-3 text-left font-semibold text-blue-900">ชื่อประเภท</th>
                     <th class="px-3 py-3 text-left font-semibold text-blue-900">วันที่และเวลา</th>
                     <th class="px-3 py-3 text-left font-semibold text-blue-900">จำนวนบุคลากร</th>
-                    <th class="px-3 py-3 text-left font-semibold text-blue-900">จำนวน</th>
                     <th class="px-3 py-3 text-center font-semibold text-blue-900">การจัดการ</th>
                 </tr>
             </thead>
@@ -99,14 +98,6 @@ try {
                                 </a>
                             </td>
                             <td class="px-3 py-3 text-gray-600"><?php echo htmlspecialchars(date('Y-m-d', strtotime($type['personnel_type_date'])), ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td class="px-3 py-3">
-                                <a href="?page=personnel_group&type=<?php echo urlencode($type['personnel_type_name']); ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?><?php echo !empty($start_date) ? '&start_date=' . urlencode($start_date) : ''; ?><?php echo !empty($end_date) ? '&end_date=' . urlencode($end_date) : ''; ?>"
-                                    class="text-gray
-
--900 font-medium hover:underline decoration-blue-200 hover:decoration-blue-400 hover:text-blue-500">
-                                    <?php echo htmlspecialchars($type['personnel_type_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                </a>
-                            </td>
                             <td class="px-3 py-3">
                                 <a href="?page=personnel_group&type=<?php echo urlencode($type['personnel_type_name']); ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?><?php echo !empty($start_date) ? '&start_date=' . urlencode($start_date) : ''; ?><?php echo !empty($end_date) ? '&end_date=' . urlencode($end_date) : ''; ?>"
                                     class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs hover:bg-blue-200">

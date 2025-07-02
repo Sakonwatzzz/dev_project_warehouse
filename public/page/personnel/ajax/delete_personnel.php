@@ -28,13 +28,13 @@ try {
     $pdo->beginTransaction();
 
     // ตรวจสอบการพึ่งพา
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM product_type WHERE personnel_id = ?");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM lot WHERE personnel_id = ?");
     $stmt->execute([$id]);
     $count = $stmt->fetchColumn();
     if ($count > 0) {
         $pdo->rollBack();
         http_response_code(400);
-        echo json_encode(['error' => "ไม่สามารถลบบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: ประเภทสินค้า ($count รายการ)"]);
+        echo json_encode(['error' => "ไม่สามารถลบบุคลากรได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: lot ($count รายการ)"]);
         exit;
     }
 

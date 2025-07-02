@@ -90,7 +90,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 </li>
                 <li>
                     <a href="?page=bar_store" class="nav-link <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-truck"></i> ร้านค้า
+                        <i class="fas fa-store"></i> ร้านค้า
                     </a>
                 </li>
                 <li>
@@ -184,7 +184,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 <!-- Store -->
                 <a href="?page=bar_store" class="sidebar-item <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
                     <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-truck text-blue-600"></i>
+                        <i class="fas fa-store text-blue-600"></i>
                     </div>
                     <div>
                         <div class="font-semibold">ร้านค้า</div>
@@ -276,12 +276,10 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 'lot_productdetail',
                 'lot_listdetail',
                 'lot_listinsertcopy',
-                'warehouse_lot',
-                'warehouse_move',
                 'supplier_lot',
                 'personnel_lot',
                 'lot_insertout',
-                'lot_insertdetailout',
+                'lot_listdetailout',
                 'lot_warehouseinout',
                 'lot_detailmove'
             ];
@@ -503,8 +501,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         }
                         $filepath = "$basePath/lot/personnel_lot.php";
 
-                        if (isset($_GET['supplier_id'])) {
-                            $_REQUEST['supplier_id'] = $_GET['supplier_id'];
+                        if (isset($_GET['personnel_id'])) {
+                            $_REQUEST['personnel_id'] = $_GET['personnel_id'];
                         }
                     } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
                         $barfile = __DIR__ . "/bar_personnel.php";
