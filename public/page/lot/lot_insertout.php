@@ -487,7 +487,7 @@ ob_end_flush();
                                         </span>
                                     </td>
                                     <td class="px-6 py-3 text-center">
-                                        <a href="index.php?page=lot_insertdetailout&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
+                                        <a href="index.php?page=lot_listdetailout&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
                                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 inline-flex items-center">
                                             <i class="fas fa-eye mr-1"></i>ดู
                                         </a>
