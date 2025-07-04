@@ -111,7 +111,6 @@ $_SESSION['LAST_ACTIVITY'] = time();
 
 try {
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
     $query = "
         SELECT 
             sc.stock_check_id,
@@ -132,25 +131,27 @@ try {
         LEFT JOIN stock s ON sc.stock_id = s.stock_id
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
+        LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
         WHERE s.check_status_id = 2
-        AND s.stock_date >= :today_start 
-        AND s.stock_date <= :today_end";
+    ";
+    //AND s.stock_date >= :today_start 
+    //AND s.stock_date <= :today_end
 
-    $params = [
-        ':today_start' => date('Y-m-d 00:00:00'),
-        ':today_end' => date('Y-m-d 23:59:59')
-    ];
+    // $params = [
+    //     ':today_start' => date('Y-m-d 00:00:00'),
+    //     ':today_end' => date('Y-m-d 23:59:59')
+    // ];
 
     if ($search) {
         $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
-        $params[':search'] = "%$search%";
+        // $params[':search'] = "%$search%";
     }
     $query .= " ORDER BY s.stock_date DESC";
 
     $stmt = $pdo->prepare($query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
+    // foreach ($params as $key => $value) {
+    //     $stmt->bindValue($key, $value);
+    // }
     $stmt->execute();
     $stock_checks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -180,8 +181,8 @@ try {
                 $pdf->SetFont('THSarabunNew', '', 10);
             }
 
-            $system_qty = (int)$stock['stock_check_system'];
-            $actual_qty = (int)$stock['stock_check_actual'];
+            $system_qty = (int) $stock['stock_check_system'];
+            $actual_qty = (int) $stock['stock_check_actual'];
             $difference = $actual_qty - $system_qty;
 
             $total_system += $system_qty;
@@ -264,14 +265,14 @@ try {
         $pdf->Cell(95, 6, thai('จำนวนสินค้าคงเหลือจากรายการที่ตรวจสอบจากระบบ: ') . number_format($total_system) . thai(' ชิ้น'), 0, 1, 'L');
 
         $pdf->SetX(10);
-        $pdf->Cell(95, 6, thai('จำนวนสินค้าที่นับได้จริงรวมทั้งหมด: ') . number_format($total_actual) . thai(' ชิ้น'),  0, 1, 'L');
+        $pdf->Cell(95, 6, thai('จำนวนสินค้าที่นับได้จริงรวมทั้งหมด: ') . number_format($total_actual) . thai(' ชิ้น'), 0, 1, 'L');
 
         // คำนวณยอดรวมติดลบ (รายการที่มีส่วนต่างติดลบ)
         $negative_total = 0;
         $positive_total = 0;
         foreach ($stock_checks as $stock) {
-            $system_qty = (int)$stock['stock_check_system'];
-            $actual_qty = (int)$stock['stock_check_actual'];
+            $system_qty = (int) $stock['stock_check_system'];
+            $actual_qty = (int) $stock['stock_check_actual'];
             $difference = $actual_qty - $system_qty;
 
             if ($difference < 0) {
