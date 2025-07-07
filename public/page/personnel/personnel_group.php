@@ -266,6 +266,7 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -276,6 +277,7 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
     <link href="../../output.css" rel="stylesheet">
     <link href="../../style/page_list.css" rel="stylesheet">
 </head>
+
 <body class="bg-gradient-to-br from-blue-50 to-white min-h-screen font-sans text-base">
     <div class="container mx-auto px-4 py-8">
         <!-- Header Section -->
@@ -292,6 +294,9 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
                 </span>
                 <button onclick="showAddModal()" class="btn-primary text-white py-2 px-4 rounded-lg font-medium hover-lift w-full md:w-auto">
                     <i class="fas fa-plus mr-2"></i> เพิ่มบุคลากร
+                </button>
+                <button onclick="viewAllData()" class="bg-gray-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-600 transition hover-lift w-full md:w-auto">
+                    <i class="fas fa-eye mr-2"></i> ดูข้อมูลทั้งหมด
                 </button>
             </div>
             <form id="searchForm" action="" method="GET" class="w-full md:w-auto">
@@ -326,10 +331,16 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
                     </div>
                 </div>
                 <div class="flex flex-col xs:flex-row gap-2">
-                    <button onclick="exportPDF()" class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition hover-lift flex items-center gap-2 standard-button-mobile">
+                    <button id="export-buttons" onclick="exportPDF()"
+                        class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition hover-lift flex items-center gap-2 standard-button-mobile"
+                        data-type="<?php echo htmlspecialchars($type); ?>"
+                        data-token="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <i class="fas fa-file-pdf"></i><span>PDF</span>
                     </button>
-                    <button onclick="exportExcel()" class="bg-emerald-500 text-white py-2 px-4 rounded-lg hover:bg-emerald-600 transition hover-lift flex items-center gap-2 standard-button-mobile">
+                    <button id="export-excel-button" onclick="exportExcel()"
+                        class="bg-emerald-500 text-white py-2 px-4 rounded-lg hover:bg-emerald-600 transition hover-lift flex items-center gap-2 standard-button-mobile"
+                        data-type="<?php echo htmlspecialchars($type); ?>"
+                        data-token="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <i class="fas fa-file-excel"></i><span>Excel</span>
                     </button>
                 </div>
@@ -362,7 +373,7 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
                     <h3 class="text-lg font-bold text-gray-900 flex items-center">
                         <i class="fas fa-plus-circle text-blue-600 mr-2"></i>เพิ่มบุคลากรใหม่
                     </h3>
-                    
+
                     <p class="text-sm text-gray-500">กรุณากรอกข้อมูลบุคลากร</p>
                 </div>
                 <form id="addForm" method="POST" class="space-y-4" autocomplete="off">
@@ -525,4 +536,5 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
 
     <script src="/page/personnel/function/personnel_group.js"></script>
 </body>
+
 </html>

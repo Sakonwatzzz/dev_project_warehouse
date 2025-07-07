@@ -195,7 +195,7 @@ const exportPDF = () => {
 const exportExcel = () => {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
-    const exportBtn = document.getElementById('export-buttons');
+    const exportBtn = document.getElementById('export-excel-button');
     const type = exportBtn.dataset.type;
     const token = exportBtn.dataset.token;
 
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 required: true
             }
         ];
-        if (validateForm('addForm', fields)) {
+        if (validateFormAscForm('addForm', fields)) {
             e.target.submit();
         }
     });
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             { id: 'editPersonnelTypeId', errorId: 'editTypeError', label: 'ประเภทบุคลากร', required: true }
         ];
-        if (validateForm('editForm', fields)) {
+        if (validateFormAscForm('editForm', fields)) {
             e.target.submit();
         }
     });

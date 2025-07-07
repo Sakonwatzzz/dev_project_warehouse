@@ -1,17 +1,16 @@
 version: '3.8'
 
 services:
-  db:
-    image: mysql:8.0
-    container_name: warehouse_ems_db
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: myadmin
     restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: jay&tar_emswarehouse
-      MYSQL_DATABASE: warehouse_db
-      MYSQL_USER: warehouse
-      MYSQL_PASSWORD: jay&tar_emswarehouse
     ports:
-      - "3388:3306"
+      - "8080:80"
+    environment:
+      PMA_HOST: 185.84.160.236
+      PMA_PORT: 3306
+      PMA_USER: jay
+      PMA_PASSWORD: R3I63@kk&PT
+    
 
-volumes:
-  db_data:

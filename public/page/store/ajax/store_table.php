@@ -85,7 +85,10 @@ try {
                                 </a>
                             </td>
                             <td class="px-3 py-3 text-gray-600">
-                                <?php echo htmlspecialchars(date('Y-m-d H:i:s', strtotime($store['store_create_date'])), ENT_QUOTES, 'UTF-8'); ?>
+                                <?php
+                                $createDate = $store['store_create_date'] ?? null;
+                                echo $createDate ? htmlspecialchars(date('Y-m-d H:i:s', strtotime($createDate)), ENT_QUOTES, 'UTF-8') : '-';
+                                ?>
                             </td>
                             <td class="px-3 py-3 text-center">
                                 <div class="flex justify-center gap-2">
