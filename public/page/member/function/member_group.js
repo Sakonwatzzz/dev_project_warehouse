@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 required: true
             }
         ];
-        if (validateForm('addForm', fields)) {
+        if (validateForm('addForm', fields)) {ƒ
             e.target.submit();
         }
     });

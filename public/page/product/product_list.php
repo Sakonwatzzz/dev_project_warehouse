@@ -2,6 +2,7 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 
+
 $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
@@ -172,6 +173,13 @@ try {
                                 </div>
                             </div>
                             <div class="flex flex-col xs:flex-row gap-2">
+                                <!-- Mode Toggle Buttons -->
+                                <button id="showAllBtn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition hover-lift flex items-center gap-2 standard-button-mobile <?php echo !$incomplete_mode ? 'bg-blue-700' : ''; ?>">
+                                    <i class="fas fa-list"></i><span>แสดงทั้งหมด</span>
+                                </button>
+                                <button id="showIncompleteBtn" class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition hover-lift flex items-center gap-2 standard-button-mobile <?php echo $incomplete_mode ? 'bg-red-700' : ''; ?>">
+                                    <i class="fas fa-exclamation-triangle"></i><span>แสดงสินค้าไม่สมบูรณ์</span>
+                                </button>
                                 <button onclick="exportPDF()" class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition hover-lift flex items-center gap-2 standard-button-mobile">
                                     <i class="fas fa-file-pdf"></i><span>PDF</span>
                                 </button>
@@ -191,12 +199,17 @@ try {
     </div>
 
     <script>
+        // Track current mode
+        let currentMode = '<?php echo $incomplete_mode ? 'incomplete' : ''; ?>';
+
         document.addEventListener('DOMContentLoaded', () => {
             const searchForm = document.getElementById('searchForm');
             const searchInput = document.getElementById('searchInput');
             const clearSearch = document.getElementById('clearSearch');
             const toggleFilters = document.getElementById('toggleFilters');
             const filters = document.getElementById('filters');
+            const showAllBtn = document.getElementById('showAllBtn');
+            const showIncompleteBtn = document.getElementById('showIncompleteBtn');
 
             // ป้องกันการ submit ฟอร์ม
             searchForm.addEventListener('submit', (e) => {
@@ -237,6 +250,25 @@ try {
                 input.addEventListener('change', updateFilters);
             });
 
+            // Handle mode toggle buttons
+            showAllBtn.addEventListener('click', () => {
+                currentMode = '';
+                showAllBtn.classList.add('bg-blue-700');
+                showAllBtn.classList.remove('bg-blue-500');
+                showIncompleteBtn.classList.add('bg-red-500');
+                showIncompleteBtn.classList.remove('bg-red-700');
+                updateTable();
+            });
+
+            showIncompleteBtn.addEventListener('click', () => {
+                currentMode = 'incomplete';
+                showIncompleteBtn.classList.add('bg-red-700');
+                showIncompleteBtn.classList.remove('bg-red-500');
+                showAllBtn.classList.add('bg-blue-500');
+                showAllBtn.classList.remove('bg-blue-700');
+                updateTable();
+            });
+
             // อัปเดตตารางเมื่อโหลดหน้า
             updateTable();
 
@@ -265,9 +297,9 @@ try {
             const urlParams = new URLSearchParams();
             urlParams.set('page', 'product_list');
             urlParams.set('page_num', '1');
-            <?php if ($incomplete_mode): ?>
-                urlParams.set('mode', 'incomplete');
-            <?php endif; ?>
+            if (currentMode) {
+                urlParams.set('mode', currentMode);
+            }
             const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
             if (productTypes.length > 0) {
                 urlParams.set('product_type', productTypes.join(','));
@@ -315,9 +347,9 @@ try {
             const urlParams = new URLSearchParams();
             urlParams.set('page', 'product_list');
             urlParams.set('page_num', pageNum);
-            <?php if ($incomplete_mode): ?>
-                urlParams.set('mode', 'incomplete');
-            <?php endif; ?>
+            if (currentMode) {
+                urlParams.set('mode', currentMode);
+            }
             const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
             if (productTypes.length > 0) {
                 urlParams.set('product_type', productTypes.join(','));
@@ -371,7 +403,7 @@ try {
             loadTypesBrands(5, 5); // รีเซ็ตหมวดหมู่/แบรนด์
         }
 
-        function exportPDF() {
+        function exportPDFLibs() {
             const urlParams = new URLSearchParams(window.location.search);
             urlParams.set('export', 'pdf');
             window.open(`/page/product/report/export_product_pdf.php?${urlParams.toString()}`);
@@ -427,7 +459,7 @@ try {
         }
 
         function loadTypesBrands(typeLimit, brandLimit) {
-            const productTypes = Array.from(document.querySelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
+            const productTypes = Array.from(document.queryelectorAll('input[name="product_type[]"]:checked')).map(cb => cb.value);
             const productBrands = Array.from(document.querySelectorAll('input[name="product_brand[]"]:checked')).map(cb => cb.value);
 
             fetch('/page/product/ajax/ajax_types_brands.php', {

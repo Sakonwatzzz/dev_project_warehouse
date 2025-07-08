@@ -1,4 +1,3 @@
-// personnel_group.js
 const showAddModal = () => {
     document.getElementById('addPersonnelName').value = '';
     document.getElementById('addPersonnelUsername').value = '';
@@ -21,9 +20,9 @@ const showEditModal = (id, name, username, typeId, address, phone) => {
     document.getElementById('editPersonnelId').value = id;
     document.getElementById('editPersonnelName').value = name;
     document.getElementById('editPersonnelUsername').value = username;
-    document.getElementById('editPersonnelPassword').value = '';
-    document.getElementById('editPersonnelPhone').value = phone;
     document.getElementById('editPersonnelAddress').value = address;
+    document.getElementById('editPersonnelPhone').value = phone;
+    document.getElementById('editPersonnelPassword').value = '';
     document.getElementById('editPersonnelTypeId').value = typeId;
     document.getElementById('editNameError').classList.add('hidden');
     document.getElementById('editUsernameError').classList.add('hidden');
@@ -94,90 +93,117 @@ const hideNotification = () => {
     document.getElementById('notification').classList.add('translate-x-full');
 };
 
+const viewAllData = () => {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('start_date').value = '';
+    document.getElementById('end_date').value = '';
+    document.getElementById('clearSearch').classList.add('hidden');
+    localStorage.removeItem('searchPreserve');
+    updateTable();
+};
+
 function updateTable() {
-  const urlParams = new URLSearchParams();
-  urlParams.set("page", "personnel_list");
-  urlParams.set("page_num", "1");
+    console.log('updateTable called');
+    const urlParams = new URLSearchParams();
+    urlParams.set("page", "personnel_group");
+    urlParams.set("type", document.querySelector('input[name="type"]')?.value || '<?php echo urlencode($type); ?>');
+    urlParams.set("page_num", "1");
 
-  const searchInput = document.getElementById("searchInput").value.trim();
-  if (searchInput) {
-    urlParams.set("search", searchInput);
-  }
+    const searchInput = document.getElementById("searchInput").value.trim();
+    const startDate = document.getElementById("start_date").value;
+    const endDate = document.getElementById("end_date").value;
 
-  const startDate = document.getElementById("start_date").value;
-  if (startDate) {
-    urlParams.set("start_date", startDate);
-  }
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (end < start) {
+            showNotification("วันที่สิ้นสุดต้องไม่มาก่อนวันที่เริ่มต้น", "bg-red-500");
+            return;
+        }
+    }
 
-  const endDate = document.getElementById("end_date").value;
-  if (endDate) {
-    urlParams.set("end_date", endDate);
-  }
+    if (searchInput) {
+        urlParams.set("search", searchInput);
+    }
+    if (startDate) {
+        urlParams.set("start_date", startDate);
+    }
+    if (endDate) {
+        urlParams.set("end_date", endDate);
+    }
 
-  fetch(`/page/personnel/ajax/personnel_group_table.php?${urlParams.toString()}`)
-    .then((response) => {
-      if (!response.ok) throw new Error("Network error");
-      return response.text();
-    })
-    .then((data) => {
-      try {
-        const json = JSON.parse(data);
-        showNotification(json.error, "error");
-        document.getElementById("personnelTable").innerHTML =
-          '<div class="text-center py-4 text-gray-600">ไม่สามารถโหลดข้อมูลได้</div>';
-      } catch (e) {
-        document.getElementById("personnelTable").innerHTML = data;
-        history.pushState({}, "", `?${urlParams.toString()}`);
-      }
-    })
-    .catch((error) => {
-      console.error("เกิดข้อผิดพลาดขณะโหลดตาราง:", error);
-      document.getElementById("personnelTable").innerHTML =
-        '<div class="text-center py-4 text-gray-600">เกิดข้อผิดพลาด</div>';
-    });
+    fetch(`/page/personnel/ajax/personnel_group_table.php?${urlParams.toString()}`)
+        .then((response) => {
+            if (!response.ok) throw new Error("Network error");
+            return response.text();
+        })
+        .then((data) => {
+            if (data.startsWith('{')) {
+                const json = JSON.parse(data);
+                showNotification(json.error, "bg-red-500");
+                document.getElementById("personnelTable").innerHTML =
+                    '<div class="text-center py-4 text-gray-600">ไม่สามารถโหลดข้อมูลได้</div>';
+            } else {
+                document.getElementById("personnelTable").innerHTML = data;
+                history.pushState({}, "", `?${urlParams.toString()}`);
+            }
+        })
+        .catch((error) => {
+            console.error("เกิดข้อผิดพลาดขณะโหลดตาราง:", error);
+            showNotification("เกิดข้อผิดพลาดขณะโหลดตาราง", "bg-red-500");
+        });
 }
 
 function goToPage(pageNum) {
-  const urlParams = new URLSearchParams();
-  urlParams.set("page", "personnel_list");
-  urlParams.set("page_num", pageNum);
-  const searchInput = document.getElementById("searchInput").value.trim();
-  if (searchInput) {
-    urlParams.set("search", searchInput);
-  }
-  const startDate = document.getElementById("start_date").value;
-  if (startDate) {
-    urlParams.set("start_date", startDate);
-  }
-  const endDate = document.getElementById("end_date").value;
-  if (endDate) {
-    urlParams.set("end_date", endDate);
-  }
+    console.log('goToPage called with page:', pageNum);
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set("page_num", pageNum);
 
-  fetch(`/page/personnel/ajax/personnel_group_table.php?${urlParams.toString()}`)
-    .then((response) => {
-      if (!response.ok) throw new Error("Network error");
-      return response.text();
-    })
-    .then((data) => {
-      try {
-        const json = JSON.parse(data);
-        showNotification(json.error, "error");
-        document.getElementById("personnelTable").innerHTML =
-          '<div class="text-center py-4 text-gray-600">ไม่สามารถโหลดข้อมูลได้</div>';
-      } catch (e) {
-        document.getElementById("personnelTable").innerHTML = data;
-        history.pushState({}, "", `?${urlParams.toString()}`);
-      }
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-      showNotification("เกิดข้อผิดพลาดขณะโหลดตาราง", "error");
-      document.getElementById("personnelTable").innerHTML =
-        '<div class="text-center py-4 text-gray-600">เกิดข้อผิดพลาด</div>';
-    });
+    const startDate = document.getElementById("start_date").value;
+    const endDate = document.getElementById("end_date").value;
+
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (end < start) {
+            showNotification("วันที่สิ้นสุดต้องไม่มาก่อนวันที่เริ่มต้น", "bg-red-500");
+            return;
+        }
+    }
+
+    if (startDate) {
+        urlParams.set("start_date", startDate);
+    } else {
+        urlParams.delete("start_date");
+    }
+
+    if (endDate) {
+        urlParams.set("end_date", endDate);
+    } else {
+        urlParams.delete("end_date");
+    }
+
+    fetch(`/page/personnel/ajax/personnel_group_table.php?${urlParams.toString()}`)
+        .then((response) => {
+            if (!response.ok) throw new Error("Network error");
+            return response.text();
+        })
+        .then((data) => {
+            if (data.startsWith('{')) {
+                const json = JSON.parse(data);
+                showNotification(json.error, "bg-red-500");
+                document.getElementById("personnelTable").innerHTML =
+                    '<div class="text-center py-4 text-gray-600">ไม่สามารถโหลดข้อมูลได้</div>';
+            } else {
+                document.getElementById("personnelTable").innerHTML = data;
+                history.pushState({}, "", `?${urlParams.toString()}`);
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            showNotification("เกิดข้อผิดพลาดขณะโหลดตาราง", "bg-red-500");
+        });
 }
-
 
 const exportPDF = () => {
     const startDate = document.getElementById('start_date').value;
@@ -185,6 +211,11 @@ const exportPDF = () => {
     const exportBtn = document.getElementById('export-buttons');
     const type = exportBtn.dataset.type;
     const token = exportBtn.dataset.token;
+
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+        showNotification("วันที่สิ้นสุดต้องไม่มาก่อนวันที่เริ่มต้น", "bg-red-500");
+        return;
+    }
 
     let url = `/page/personnel/report/export_personnel_group_pdf.php?type=${encodeURIComponent(type)}&csrf_token=${encodeURIComponent(token)}`;
     if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
@@ -199,12 +230,16 @@ const exportExcel = () => {
     const type = exportBtn.dataset.type;
     const token = exportBtn.dataset.token;
 
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+        showNotification("วันที่สิ้นสุดต้องไม่มาก่อนวันที่เริ่มต้น", "bg-red-500");
+        return;
+    }
+
     let url = `/page/personnel/report/export_personnel_group_excel.php?type=${encodeURIComponent(type)}&csrf_token=${encodeURIComponent(token)}`;
     if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
     if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
     window.open(url, '_blank');
 };
-
 
 const loadTable = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -214,10 +249,31 @@ const loadTable = () => {
     const endDate = urlParams.get('end_date') || '';
     const pageNum = urlParams.get('page_num') || '1';
 
-    fetch(`/page/personnel/ajax/personnel_group_table.php?type=${encodeURIComponent(type)}&search=${encodeURIComponent(search)}&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&page_num=${pageNum}`)
-        .then(response => response.text())
+    document.getElementById('searchInput').value = search;
+    document.getElementById('start_date').value = startDate;
+    document.getElementById('end_date').value = endDate;
+
+    const fetchUrl = new URLSearchParams();
+    fetchUrl.set('type', type);
+    fetchUrl.set('search', search);
+    fetchUrl.set('start_date', startDate);
+    fetchUrl.set('end_date', endDate);
+    fetchUrl.set('page_num', pageNum);
+
+    fetch(`/page/personnel/ajax/personnel_group_table.php?${fetchUrl.toString()}`)
+        .then(response => {
+            if (!response.ok) throw new Error("Network error");
+            return response.text();
+        })
         .then(data => {
-            document.getElementById('personnelTable').innerHTML = data;
+            if (data.startsWith('{')) {
+                const json = JSON.parse(data);
+                showNotification(json.error, "bg-red-500");
+                document.getElementById('personnelTable').innerHTML =
+                    '<div class="text-center py-4 text-gray-600">ไม่สามารถโหลดข้อมูลได้</div>';
+            } else {
+                document.getElementById('personnelTable').innerHTML = data;
+            }
         })
         .catch(error => {
             console.error('Error loading table:', error);
@@ -225,22 +281,40 @@ const loadTable = () => {
         });
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadTable();
+// Debounce function to delay table updates
+let debounceTimer;
+function debounceUpdateTable() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(updateTable, 300);
+}
 
+document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
+    const startDate = urlParams.get('start_date') || '';
+    const endDate = urlParams.get('end_date') || '';
     const searchInput = document.getElementById('searchInput');
     const clearSearch = document.getElementById('clearSearch');
+
+    if (startDate) {
+        document.getElementById('start_date').value = startDate;
+    }
+    if (endDate) {
+        document.getElementById('end_date').value = endDate;
+    }
+
+    loadTable();
 
     if (searchInput) {
         searchInput.focus();
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 searchInput.value = '';
-                searchInput.form.submit();
+                clearSearch.classList.add('hidden');
+                updateTable();
             }
             if (e.key === 'Enter') {
                 localStorage.setItem('searchPreserve', searchInput.value);
+                updateTable();
             }
         });
 
@@ -254,14 +328,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         searchInput.addEventListener('input', () => {
             clearSearch.classList.toggle('hidden', !searchInput.value.trim());
-            if (searchInput.value.trim() === '') {
-                searchInput.form.submit();
-            }
+            debounceUpdateTable();
         });
 
         clearSearch.addEventListener('click', () => {
             searchInput.value = '';
-            searchInput.form.submit();
+            clearSearch.classList.add('hidden');
+            updateTable();
         });
     }
 
@@ -271,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
     }
 
-    const validateFormAscForm = (formId, fields) => {
+    const validateForm = (formId, fields) => {
         let hasError = false;
         fields.forEach(({ id, errorId, label, maxLength, required, validate, errorMessage }) => {
             const input = document.getElementById(id);
@@ -318,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 required: true
             }
         ];
-        if (validateFormAscForm('addForm', fields)) {
+        if (validateForm('addForm', fields)) {
             e.target.submit();
         }
     });
@@ -347,9 +420,18 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             { id: 'editPersonnelTypeId', errorId: 'editTypeError', label: 'ประเภทบุคลากร', required: true }
         ];
-        if (validateFormAscForm('editForm', fields)) {
+        if (validateForm('editForm', fields)) {
             e.target.submit();
         }
+    });
+
+    document.getElementById('start_date').addEventListener('change', () => {
+        console.log('start_date changed');
+        updateTable();
+    });
+    document.getElementById('end_date').addEventListener('change', () => {
+        console.log('end_date changed');
+        updateTable();
     });
 
     // Toggle Password Visibility

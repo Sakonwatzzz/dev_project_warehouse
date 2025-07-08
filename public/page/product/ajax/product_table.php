@@ -2,6 +2,7 @@
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 
+
 try {
     $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -182,11 +183,10 @@ try {
                                         class="bg-yellow-500 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-600 transition text-sm hover-lift">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="?page=product_list&id=<?php echo htmlspecialchars($product_list['product_id']); ?><?php echo $incomplete_mode ? '&mode=incomplete' : ''; ?>"
-                                        onclick="return confirm('ยืนยันการลบ?')"
+                                    <button onclick="deleteProduct('<?php echo htmlspecialchars($product_list['product_id']); ?>')"
                                         class="bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition text-sm hover-lift">
                                         <i class="fas fa-trash"></i>
-                                    </a>
+                                    </button>
                                 </div>
                             </td>
                         </tr>

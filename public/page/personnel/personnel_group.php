@@ -241,13 +241,14 @@ try {
         $params[':search'] = "%$search%";
     }
     if ($start_date) {
-        $count_query .= " AND personnel_create_date >= :start_date";
-        $params[':start_date'] = $start_date . ' 00:00:00';
+        $count_query .= " AND DATE(personnel.personnel_create_date) >= :start_date";
+        $params[':start_date'] = $start_date;
     }
     if ($end_date) {
-        $count_query .= " AND personnel_create_date <= :end_date";
-        $params[':end_date'] = $end_date . ' 23:59:59';
+        $count_query .= " AND DATE(personnel.personnel_create_date) <= :end_date";
+        $params[':end_date'] = $end_date;
     }
+
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -373,7 +374,6 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
                     <h3 class="text-lg font-bold text-gray-900 flex items-center">
                         <i class="fas fa-plus-circle text-blue-600 mr-2"></i>เพิ่มบุคลากรใหม่
                     </h3>
-
                     <p class="text-sm text-gray-500">กรุณากรอกข้อมูลบุคลากร</p>
                 </div>
                 <form id="addForm" method="POST" class="space-y-4" autocomplete="off">
@@ -464,7 +464,7 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
                         <label class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้</label>
                         <input type="text" id="editPersonnelUsername" name="update_personnel_username"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required hour-lift aria-describedby="editUsernameError">
+                            required aria-describedby="editUsernameError">
                         <span id="editUsernameError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
@@ -514,27 +514,27 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">บันทึก</button>
                     </div>
                 </form>
+                </div>
             </div>
-        </div>
 
-        <!-- Delete Confirmation Modal -->
-        <div id="deleteModal" class="modal hidden">
-            <div class="modal-content">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
-                <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?</p>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                        ยกเลิก
-                    </button>
-                    <button type="button" id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                        ลบ
-                    </button>
+            <!-- Delete Confirmation Modal -->
+            <div id="deleteModal" class="modal hidden">
+                <div class="modal-content">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
+                    <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?</p>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                            ยกเลิก
+                        </button>
+                        <button type="button" id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            ลบ
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="/page/personnel/function/personnel_group.js"></script>
+        <script src="/page/personnel/function/personnel_group.js"></script>
 </body>
 
 </html>
