@@ -93,10 +93,8 @@ if ($lot_id) {
     }
 }
 
-// Handle search and date parameters
+// Handle search parameter
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
-$end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 
 // Handle POST requests for adding lot_product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
@@ -170,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['lot
         }
 
         $pdo->commit();
-        header("Location: index.php?page=lot_productlist&lot_id=$lot_id&success=ลบรายการรับสินค้าสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+        header("Location: index.php?page=lot_productlist&lot_id=$lot_id&success=ลบรายการรับสินค้าสสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
         exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -195,16 +193,6 @@ try {
         $count_query .= $lot_id ? " AND" : " WHERE";
         $count_query .= " (lot_product_id LIKE :search OR product_id LIKE :search)";
         $params[':search'] = "%$search%";
-    }
-    if ($start_date) {
-        $count_query .= $lot_id || !empty($search) ? " AND" : " WHERE";
-        $count_query .= " lot_product_date >= :start_date";
-        $params[':start_date'] = $start_date . ' 00:00:00';
-    }
-    if ($end_date) {
-        $count_query .= $lot_id || !empty($search) || $start_date ? " AND" : " WHERE";
-        $count_query .= " lot_product_date <= :end_date";
-        $params[':end_date'] = $end_date . ' 23:59:59';
     }
 
     $stmt = $pdo->prepare($count_query);
@@ -258,7 +246,7 @@ try {
         LEFT JOIN product p ON lp.product_id = p.product_id
         LEFT JOIN supplier s ON l.supplier_id = s.supplier_id";
     $params = [];
-    if ($lot_id || !empty($search) || $start_date || $end_date) {
+    if ($lot_id || !empty($search)) {
         $query .= " WHERE";
         $conditions = [];
         if ($lot_id) {
@@ -268,14 +256,6 @@ try {
         if (!empty($search)) {
             $conditions[] = " (lp.lot_product_id LIKE :search OR p.product_name LIKE :search)";
             $params[':search'] = "%$search%";
-        }
-        if ($start_date) {
-            $conditions[] = " lp.lot_product_date >= :start_date";
-            $params[':start_date'] = $start_date . ' 00:00:00';
-        }
-        if ($end_date) {
-            $conditions[] = " lp.lot_product_date <= :end_date";
-            $params[':end_date'] = $end_date . ' 23:59:59';
         }
         $query .= " " . implode(" AND ", $conditions);
     }
@@ -293,7 +273,7 @@ try {
     exit;
 }
 
-// คำนวณราคารวมสำหรับเรคคอร์ดที่แสดง
+// Calculate total price for displayed records
 try {
     $total_price_query = "
         SELECT SUM(lp.lot_product_qty * lp.lot_product_capital) as total_price
@@ -302,7 +282,7 @@ try {
         LEFT JOIN product p ON lp.product_id = p.product_id
         LEFT JOIN supplier s ON l.supplier_id = s.supplier_id";
     $total_price_params = [];
-    if ($lot_id || !empty($search) || $start_date || $end_date) {
+    if ($lot_id || !empty($search)) {
         $total_price_query .= " WHERE";
         $conditions = [];
         if ($lot_id) {
@@ -312,14 +292,6 @@ try {
         if (!empty($search)) {
             $conditions[] = " (lp.lot_product_id LIKE :search OR p.product_name LIKE :search)";
             $total_price_params[':search'] = "%$search%";
-        }
-        if ($start_date) {
-            $conditions[] = " lp.lot_product_date >= :start_date";
-            $total_price_params[':start_date'] = $start_date . ' 00:00:00';
-        }
-        if ($end_date) {
-            $conditions[] = " lp.lot_product_date <= :end_date";
-            $total_price_params[':end_date'] = $end_date . ' 23:59:59';
         }
         $total_price_query .= " " . implode(" AND ", $conditions);
     }
@@ -405,51 +377,48 @@ ob_end_flush();
         <!-- Header and Search Section -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
             <div class="flex flex-col w-full md:flex-row md:w-auto items-center space-y-2 md:space-y-0 md:space-x-4">
-                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold  md:justify-start">
+                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold md:justify-start">
                     <i class="fas fa-boxes mr-2"></i> <?php echo number_format($total_records); ?> รายการ
                 </span>
-                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold  md:justify-start">
+                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold md:justify-start">
                     <i class="fa-solid fa-money-check-dollar mr-2"></i> ราคารวม: <?php echo number_format($total_price, 2); ?> บาท
                 </span>
             </div>
-            <form action="" method="GET" class="w-full md:w-auto">
-                <input type="hidden" name="page" value="lot_productlist">
-                <input type="hidden" name="lot_id" value="<?php echo htmlspecialchars($lot_id); ?>">
-                <input type="hidden" name="page_num" value="1">
-                <div class="relative">
-                    <input type="text" name="search" id="searchInput" placeholder="ค้นหารายการรับสินค้า..." value="<?php echo htmlspecialchars($search); ?>"
-                        class="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </form>
+
         </div>
 
-        <!-- Date Filter and Export Buttons -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label for="start_date" class="block text-sm font-medium text-gray-700">เริ่มจาก</label>
-                    <input type="date" id="start_date" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>"
-                        class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label for="end_date" class="block text-sm font-medium text-gray-700">ถึงวันที่</label>
-                    <input type="date" id="end_date" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>"
-                        class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="flex items-end space-x-2">
-                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <!-- ฟอร์มค้นหา: ชิดซ้าย -->
+                <form id="searchForm" action="" method="GET" class="w-full md:w-auto">
+                    <input type="hidden" name="page" value="lot_productlist">
+                    <input type="hidden" name="lot_id" value="<?php echo htmlspecialchars($lot_id); ?>">
+                    <input type="hidden" name="page_num" value="1">
+                    <div class="relative w-full md:w-80">
+                        <input type="text" name="search" id="searchInput" placeholder="ค้นหารายการรับสินค้า..."
+                            value="<?php echo htmlspecialchars($search); ?>"
+                            class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <button type="button" id="clearSearch" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-500 <?php echo $search ? '' : 'hidden'; ?>">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- ปุ่มออกรายงาน: ชิดขวา -->
+                <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto justify-end">
+                    <button onclick="exportPDF()"
+                        class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
                         <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
                     </button>
-                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                    <button onclick="exportExcel()"
+                        class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
                         <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
                     </button>
                 </div>
             </div>
         </div>
-
+        โ
 
         <!-- Table Section -->
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
@@ -485,7 +454,7 @@ ob_end_flush();
                                     <div class="flex flex-col items-center justify-center py-6">
                                         <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
                                         <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
-                                        <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
+                                        <?php if (!empty($search)): ?>
                                             <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
                                                 <a href="?page=lot_productlist&lot_id=<?php echo urlencode($lot_id); ?>" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
                                             </p>
@@ -544,7 +513,6 @@ ob_end_flush();
                                 <span class="text-gray-700 font-semibold text-sm">วันที่รับสินค้า:</span>
                                 <span class="text-sm"><?php echo htmlspecialchars($lot_product['lot_product_date']); ?></span>
                             </div>
-
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -552,7 +520,7 @@ ob_end_flush();
                         <div class="flex flex-col items-center justify-center py-6">
                             <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
                             <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
-                            <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
+                            <?php if (!empty($search)): ?>
                                 <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
                                     <a href="?page=lot_productlist&lot_id=<?php echo urlencode($lot_id); ?>" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
                                 </p>
@@ -569,119 +537,174 @@ ob_end_flush();
         <div class="flex justify-center mt-6 space-x-2">
             <?php if ($total_pages > 1): ?>
                 <?php if ($page > 1): ?>
-                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">« ก่อนหน้า</a>
                 <?php endif; ?>
                 <?php
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">1</a>
                     <?php if ($start_page > 2): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 rounded-md transition <?= $i == $page ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>"><?= $i ?></a>
                 <?php endfor; ?>
                 <?php if ($end_page < $total_pages): ?>
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition"><?= $total_pages ?></a>
                 <?php endif; ?>
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
+                    <a href="?page=lot_productlist&lot_id=<?= urlencode($lot_id) ?>&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">ถัดไป »</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-
-        <!-- Navigation Links -->
-        <!-- <div class="flex justify-center space-x-4 mt-6">
-            <a href="/?page=lot_list" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
-                <i class="fas fa-arrow-left mr-2"></i> กลับไปหน้ารายการ Lot
-            </a>
-        </div> -->
-
-
-
     </div>
 
     <script>
-        // const showNotification = (message, headerClass) => {
-        //     const notification = document.getElementById('notification');
-        //     const header = document.getElementById('notification-header');
-        //     const title = document.getElementById('notificationTitle');
-        //     const body = document.getElementById('notificationMessage');
-        //     const icon = document.getElementById('notificationIcon');
-
-        //     header.className = `flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg ${headerClass}`;
-        //     title.textContent = 'แจ้งเตือน';
-        //     body.textContent = message;
-        //     icon.className = `fas ${headerClass.includes('bg-green') ? 'fa-check-circle' : 'fa-exclamation-circle'} text-2xl`;
-        //     notification.classList.remove('translate-x-full');
-
-        //     setTimeout(() => {
-        //         hideNotification();
-        //     }, 5000);
-        // };
-
-        // const hideNotification = () => {
-        //     document.getElementById('notification').classList.add('translate-x-full');
-        // };
-
         const exportPDF = () => {
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
             let url = '/page/lot/ajax/report/lot_product_pdf.php?lot_id=<?php echo urlencode($lot_id); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>';
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
             window.open(url, '_blank');
         };
 
         const exportExcel = () => {
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
             let url = '/page/lot/ajax/report/lot_product_excel.php?lot_id=<?php echo urlencode($lot_id); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>';
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
             window.open(url, '_blank');
         };
 
+        // lot_product.js
         document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
+            const searchForm = document.getElementById('searchForm');
             const searchInput = document.getElementById('searchInput');
+            const clearSearch = document.getElementById('clearSearch');
 
+            // ป้องกันการ submit ฟอร์มโดยอัตโนมัติ
+            if (searchForm) {
+                searchForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    updateTable();
+                });
+            }
+
+            // การจัดการช่องค้นหา
             if (searchInput) {
-                searchInput.focus();
+                searchInput.addEventListener('input', () => {
+                    clearSearch.style.display = searchInput.value.trim().length > 0 ? 'block' : 'none';
+                    debounceUpdateTable();
+                });
+
                 searchInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
                         searchInput.value = '';
-                        searchInput.form.submit();
+                        clearSearch.style.display = 'none';
+                        updateTable();
                     }
                     if (e.key === 'Enter') {
                         localStorage.setItem('searchPreserve', searchInput.value);
-                    }
-                });
-
-                const preserved = localStorage.getItem('searchPreserve');
-                if (preserved) {
-                    searchInput.value = preserved;
-                    searchInput.focus();
-                    searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
-                    localStorage.removeItem('searchPreserve');
-                }
-
-                searchInput.addEventListener('input', () => {
-                    if (searchInput.value.trim() === '') {
-                        searchInput.form.submit();
+                        updateTable();
                     }
                 });
             }
+
+            // การจัดการปุ่มล้างการค้นหา
+            if (clearSearch) {
+                clearSearch.addEventListener('click', () => {
+                    searchInput.value = '';
+                    clearSearch.style.display = 'none';
+                    updateTable();
+                });
+            }
+
+            // ฟังก์ชันอัปเดตตารางด้วย AJAX
+            function updateTable() {
+                const urlParams = new URLSearchParams();
+                urlParams.set('page', 'lot_productlist');
+                urlParams.set('lot_id', '<?php echo urlencode($lot_id); ?>');
+                urlParams.set('page_num', '1');
+
+                const searchValue = searchInput.value.trim();
+                if (searchValue) {
+                    urlParams.set('search', searchValue);
+                }
+
+                fetch(`/page/lot/ajax/lot_productlist_table.php?${urlParams.toString()}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network error');
+                        return response.text();
+                    })
+                    .then(data => {
+                        try {
+                            const json = JSON.parse(data);
+                            showNotification(json.error, 'bg-red-500');
+                        } catch (e) {
+                            document.querySelector('.bg-white.rounded-lg.shadow-md.overflow-hidden').innerHTML = data;
+                            history.pushState({}, '', `?${urlParams.toString()}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showNotification('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'bg-red-500');
+                    });
+            }
+
+            // Debounce สำหรับลดการเรียก updateTable
+            let debounceTimer;
+
+            function debounceUpdateTable() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(updateTable, 300);
+            }
+
+            // ฟังก์ชันแจ้งเตือน
+            function showNotification(message, bgColor) {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 ${bgColor} transform translate-x-full transition-transform duration-300 z-50 flex items-center`;
+                notification.innerHTML = `
+            <div class="flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg">
+                <i class="fas ${bgColor.includes('green') ? 'fa-check-circle' : 'fa-exclamation-circle'} text-2xl"></i>
+            </div>
+            <div class="flex-1 ml-4 pr-4 py-4">
+                <p class="text-sm font-medium text-gray-900">แจ้งเตือน</p>
+                <p class="mt-1 text-sm text-gray-500">${message}</p>
+            </div>
+            <button onclick="this.parentElement.classList.add('translate-x-full')" class="mr-4 text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.classList.remove('translate-x-full'), 100);
+                setTimeout(() => notification.classList.add('translate-x-full'), 5000);
+                setTimeout(() => notification.remove(), 5500);
+            }
+
+            // แสดงการแจ้งเตือนเมื่อโหลดหน้า
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('success')) {
+                showNotification(decodeURIComponent(urlParams.get('success')), 'bg-green-500');
+            } else if (urlParams.has('error')) {
+                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
+            }
+
+            // อัปเดตตารางเมื่อโหลดหน้า
+            updateTable();
+        });
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
 
             if (urlParams.has('success')) {
                 showNotification(decodeURIComponent(urlParams.get('success')), 'bg-green-500');
@@ -715,110 +738,6 @@ ob_end_flush();
                 });
                 return !hasError;
             };
-
-            document.getElementById('addForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const fields = [{
-                        id: 'addLotId',
-                        errorId: 'addLotError',
-                        label: 'Lot',
-                        required: true
-                    },
-                    {
-                        id: 'addProductId',
-                        errorId: 'addProductError',
-                        label: 'สินค้า',
-                        required: true
-                    },
-                    {
-                        id: 'addLotProductQty',
-                        errorId: 'addQtyError',
-                        label: 'จำนวนสินค้าเข้า',
-                        required: true,
-                        validate: (value) => !isNaN(value) && value > 0,
-                        errorMessage: 'จำนวนสินค้าต้องมากกว่า 0'
-                    },
-                    {
-                        id: 'addLotProductCapital',
-                        errorId: 'addCapitalError',
-                        label: 'ราคาต้นทุน',
-                        required: true,
-                        validate: (value) => !isNaN(value) && value >= 0,
-                        errorMessage: 'ราคาต้นทุนต้องไม่ติดลบ'
-                    },
-                    {
-                        id: 'addLotProductDate',
-                        errorId: 'addDateError',
-                        label: 'วันที่รับสินค้า',
-                        required: true,
-                        validate: (value) => /^\d{4}-\d{2}-\d{2}$/.test(value),
-                        errorMessage: 'วันที่ต้องอยู่ในรูปแบบ YYYY-MM-DD'
-                    }
-                ];
-                if (validateForm('addForm', fields)) {
-                    e.target.submit();
-                }
-            });
-
-            document.getElementById('editForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const fields = [{
-                        id: 'editLotId',
-                        errorId: 'editLotError',
-                        label: 'Lot',
-                        required: true
-                    },
-                    {
-                        id: 'editProductId',
-                        errorId: 'editProductError',
-                        label: 'สินค้า',
-                        required: true
-                    },
-                    {
-                        id: 'editLotProductQty',
-                        errorId: 'editQtyError',
-                        label: 'จำนวนสินค้าเข้า',
-                        required: true,
-                        validate: (value) => !isNaN(value) && value > 0,
-                        errorMessage: 'จำนวนสินค้าต้องมากกว่า 0'
-                    },
-                    {
-                        id: 'editLotProductCapital',
-                        errorId: 'editCapitalError',
-                        label: 'ราคาต้นทุน',
-                        required: true,
-                        validate: (value) => !isNaN(value) && value >= 0,
-                        errorMessage: 'ราคาต้นทุนต้องไม่ติดลบ'
-                    },
-                    {
-                        id: 'editLotProductDate',
-                        errorId: 'editDateError',
-                        label: 'วันที่รับสินค้า',
-                        required: true,
-                        validate: (value) => /^\d{4}-\d{2}-\d{2}$/.test(value),
-                        errorMessage: 'วันที่ต้องอยู่ในรูปแบบ YYYY-MM-DD'
-                    }
-                ];
-                if (validateForm('editForm', fields)) {
-                    e.target.submit();
-                }
-            });
-
-            document.getElementById('start_date').addEventListener('change', updateDateFilter);
-            document.getElementById('end_date').addEventListener('change', updateDateFilter);
-
-            function updateDateFilter() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
-                const urlParams = new URLSearchParams(window.location.search);
-                urlParams.set('page', 'lot_productlist');
-                urlParams.set('lot_id', '<?php echo urlencode($lot_id); ?>');
-                if (startDate) urlParams.set('start_date', startDate);
-                else urlParams.delete('start_date');
-                if (endDate) urlParams.set('end_date', endDate);
-                else urlParams.delete('end_date');
-                window.location.search = urlParams.toString();
-            }
         });
     </script>
 </body>

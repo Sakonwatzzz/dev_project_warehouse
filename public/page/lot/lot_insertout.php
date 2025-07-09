@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
 
             // Redirect to lot details page
-            header("Location: index.php?page=lot_insertdetailout&tabel=lot&id=" . urlencode($lot_id) . "&success=1");
+            header("Location: index.php?page=lot_listdetailout&tabel=lot&id=" . urlencode($lot_id) . "&success=1");
             exit;
         } catch (Exception $e) {
             $pdo->rollBack();
@@ -591,7 +591,7 @@ ob_end_flush();
                             <div class="grid grid-cols-1 gap-4">
                                 <?php foreach ($warehouse_lot as $lot): ?>
                                     <div class="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer hover:bg-blue-50"
-                                        onclick="window.location.href='?page=lot_insertdetailout&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
+                                        onclick="window.location.href='?page=lot_listdetailout&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
                                         <div class="flex justify-between items-center">
                                             <h3 class="text-base font-medium text-blue-600"><?= htmlspecialchars($lot['lot_name']) ?></h3>
                                             <span class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>

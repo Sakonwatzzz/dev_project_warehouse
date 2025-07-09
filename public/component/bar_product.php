@@ -131,7 +131,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'product_list';
                     <i class="fas fa-warehouse text-xl mb-1"></i>
                     <span>คลัง</span>
                 </a>
-                <a href="?page=lot_listinsert" class="<?php echo ($current_page == 'lot_listinsert') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
+                <a href="?page=lot_insert" class="<?php echo ($current_page == 'lot_insert') ? 'active' : ''; ?> flex items-center gap-2 p-3 text-gray-800 border-b border-[#d5e1f1] hover:bg-[#d0f0ff] focus:bg-[#d0f0ff] text-sm last:border-b-0">
                     <i class="fas fa-truck-loading text-xl mb-1"></i>
                     <span>รับสินค้าใหม่</span>
                 </a>
