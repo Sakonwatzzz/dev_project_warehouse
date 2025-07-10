@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
-
+$pdo = Database::getInstance()->getConnection(); 
 header('Content-Type: application/json');
 
 if (!isset($_SESSION)) {

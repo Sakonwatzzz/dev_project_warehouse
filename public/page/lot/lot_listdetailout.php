@@ -3,6 +3,8 @@ require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 ob_start();
 
+$pdo = Database::getInstance()->getConnection(); 
+
 // รับค่า lot_id และ warehouse_id จาก URL
 $lot_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;

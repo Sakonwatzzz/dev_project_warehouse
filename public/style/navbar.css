@@ -107,7 +107,6 @@ body {
   backdrop-filter: blur(20px);
   transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   transform: translateX(-100%);
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.3);
 }
 
 .sidebar.active {
@@ -160,67 +159,6 @@ body {
   animation: slideInUp 0.9s ease-out;
 }
 
-.dashboard-card-1 {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
-}
-
-.dashboard-card-2 {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
-}
-
-.dashboard-card-3 {
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-  box-shadow: 0 10px 30px rgba(96, 165, 250, 0.3);
-}
-
-.dashboard-card-4 {
-  background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%);
-  box-shadow: 0 10px 30px rgba(147, 197, 253, 0.3);
-}
-
-.dashboard-card {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.dashboard-card::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.1) 0%,
-    transparent 70%
-  );
-  transition: all 0.3s ease;
-}
-
-.dashboard-card:hover {
-  transform: translateY(-5px) scale(1.02);
-}
-
-.dashboard-card:hover::before {
-  top: -10%;
-  right: -10%;
-}
-
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 .loading {
   display: inline-block;

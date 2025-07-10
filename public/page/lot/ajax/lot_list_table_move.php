@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
+$pdo = Database::getInstance()->getConnection(); 
 
 try {
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -120,7 +121,7 @@ try {
                                 </span>
                             </td>
                             <td class="px-3 py-3">
-                                <a href="?page=lot_productlist&lot_id=<?php echo htmlspecialchars($lot['lot_id'], ENT_QUOTES, 'UTF-8'); ?>"
+                                <a href="?page=lot_productlistmove&lot_id=<?php echo htmlspecialchars($lot['lot_id'], ENT_QUOTES, 'UTF-8'); ?>"
                                     class="text-blue-600 hover:underline focus:outline-none"><?php echo number_format($lot['product_count']); ?> รายการ</a>
                             </td>
                             <td class="px-3 py-3 text-center">

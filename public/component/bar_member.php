@@ -1,6 +1,8 @@
 <?php
 ob_start();
 require_once __DIR__ . '../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
+
 
 $current_page = isset($_GET['page']) ? $_GET['page'] : 'member_list';
 ?>

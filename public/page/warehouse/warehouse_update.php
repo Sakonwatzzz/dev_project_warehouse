@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../config/database_server.php';
-
+$pdo = Database::getInstance()->getConnection(); 
 $warehouse_update = fetchAll($pdo, table: 'warehouse');
 
 

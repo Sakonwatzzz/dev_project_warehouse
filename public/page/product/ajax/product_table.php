@@ -2,6 +2,7 @@
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 
+$pdo = Database::getInstance()->getConnection(); 
 
 try {
     $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';

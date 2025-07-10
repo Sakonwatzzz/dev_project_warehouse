@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
+$pdo = Database::getInstance()->getConnection();
 
 try {
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';

@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
+
 function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = false)
 {
     $remainingToProcess = $qty;

@@ -2,6 +2,7 @@
 ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
+$pdo = Database::getInstance()->getConnection();
 
 // Create CSRF token
 if (empty($_SESSION['csrf_token'])) {

@@ -2,6 +2,8 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
+$pdo = Database::getInstance()->getConnection(); 
+
 try {
     // ดึงรหัสล็อตสินค้าล่าสุด
     $stmt = $pdo->query("SELECT lot_id FROM lot ORDER BY lot_id DESC LIMIT 1");

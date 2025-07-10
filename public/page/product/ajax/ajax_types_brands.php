@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 header('Content-Type: text/html; charset=UTF-8');
+$pdo = Database::getInstance()->getConnection(); 
 
 try {
     $typeLimit = isset($_POST['type_limit']) ? max(5, (int)$_POST['type_limit']) : 5;

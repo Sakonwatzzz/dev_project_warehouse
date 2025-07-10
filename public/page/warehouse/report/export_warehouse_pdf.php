@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 require_once __DIR__ . '../../../../fpdf186/fpdf.php';
+$pdo = Database::getInstance()->getConnection(); 
 
 function thai($text)
 {

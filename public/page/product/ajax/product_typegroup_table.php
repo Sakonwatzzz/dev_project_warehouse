@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
+$pdo = Database::getInstance()->getConnection(); 
 
 try {
     $productTypeId = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : '';
@@ -104,39 +105,39 @@ try {
 
     ob_start();
 ?>
-    <table class="min-w-full bg-white">
+    <table class="w-full text-sm">
         <thead>
-            <tr class="bg-gray-100">
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รหัสสินค้า</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อสินค้า</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ประเภท</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ราคาขาย 1</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ราคาขาย 2</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ราคาขาย 3</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ราคาขาย 4</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ราคาทุน</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่นำเข้า</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">การจัดการ</th>
+            <tr class="bg-blue-50 border-b border-blue-100">
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">รหัสสินค้า</th>
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">ชื่อสินค้า</th>
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">ประเภท</th>
+                <th class="px-3 py-3 text-right font-semibold text-blue-900">ราคาขาย 1</th>
+                <th class="px-3 py-3 text-right font-semibold text-blue-900">ราคาขาย 2</th>
+                <th class="px-3 py-3 text-right font-semibold text-blue-900">ราคาขาย 3</th>
+                <th class="px-3 py-3 text-right font-semibold text-blue-900">ราคาขาย 4</th>
+                <th class="px-3 py-3 text-right font-semibold text-blue-900">ราคาทุน</th>
+                <th class="px-3 py-3 text-center font-semibold text-blue-900">วันที่นำเข้า</th>
+                <th class="px-3 py-3 text-center font-semibold text-blue-900">การจัดการ</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
             <?php if (count($products) > 0): ?>
                 <?php foreach ($products as $product): ?>
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($product['product_id']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 py-4 whitespace-nowrap"><?php echo htmlspecialchars($product['product_id']); ?></td>
+                        <td class="px-3 py-4 whitespace-nowrap">
                             <a href="?page=product_detail&tabel=product&id=<?php echo htmlspecialchars($product['product_id']); ?>"
                                class="text-blue-600 hover:underline cursor-pointer">
                                 <?php echo htmlspecialchars($product['product_name']); ?>
                             </a>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($product['product_type_name']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo number_format($product['product_price1'], 2); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo number_format($product['product_price2'], 2); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo number_format($product['product_price3'], 2); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo number_format($product['product_price4'], 2); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo number_format($product['product_capital'], 2); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo !empty($product['lot_product_date']) ? htmlspecialchars(date('Y-m-d', strtotime($product['lot_product_date']))) : '-'; ?></td>
+                        <td class="px-3 py-4 whitespace-nowrap"><?php echo htmlspecialchars($product['product_type_name']); ?></td>
+                        <td class="px-3 py-4 text-right whitespace-nowrap"><?php echo number_format($product['product_price1'], 2); ?></td>
+                        <td class="px-3 py-4 text-right whitespace-nowrap"><?php echo number_format($product['product_price2'], 2); ?></td>
+                        <td class="px-3 py-4 text-right whitespace-nowrap"><?php echo number_format($product['product_price3'], 2); ?></td>
+                        <td class="px-3 py-4 text-right whitespace-nowrap"><?php echo number_format($product['product_price4'], 2); ?></td>
+                        <td class="px-3 py-4 text-right whitespace-nowrap"><?php echo number_format($product['product_capital'], 2); ?></td>
+                        <td class="px-3 py-4 text-center whitespace-nowrap"><?php echo !empty($product['lot_product_date']) ? htmlspecialchars(date('Y-m-d', strtotime($product['lot_product_date']))) : '-'; ?></td>
                         <td class="px-3 py-3 text-center">
                             <div class="flex justify-center gap-2">
                                 <button onclick="showEditModal(

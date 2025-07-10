@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
+$pdo = Database::getInstance()->getConnection(); 
 
 // Session Management
 if (!isset($_SESSION)) {
@@ -124,12 +125,9 @@ ob_end_flush();
     <div class="container mx-auto px-4 py-8">
         <header class="flex justify-between items-center mb-8">
             <div class="flex items-center">
-                <a href="index.php?page=warehouse_list" class="text-blue-600 hover:text-blue-800 mr-4">
-                    <i class="fas fa-arrow-left text-xl"></i>
-                </a>
                 <h1 class="text-3xl font-bold text-gray-800">
                     <?php if (!$error && $warehouse_data): ?>
-                        <i class="fas fa-warehouse mr-2"></i>รายละเอียดคลัง: <?= htmlspecialchars($warehouse_data['warehouse_id']) ?> : <?= htmlspecialchars($warehouse_data['warehouse_name']) ?>
+                        <i class="fas fa-warehouse mr-2"></i>รายละเอียดคลัง : <?= htmlspecialchars($warehouse_data['warehouse_name']) ?>
                     <?php else: ?>
                         <i class="fas fa-warehouse mr-2"></i>รายละเอียดคลังสินค้า
                     <?php endif; ?>
@@ -164,7 +162,7 @@ ob_end_flush();
                 <div class="bg-white rounded-lg shadow-md mb-8">
                     <div class="p-6">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="bg-violet-50 p-4 rounded-lg shadow-sm">
+                            <!-- <div class="bg-violet-50 p-4 rounded-lg shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <p class="text-gray-600 mb-1 text-xl">สถานะ:</p>
                                     <img src="../../image/signal.png" alt="check-icon" class="w-[35px]">
@@ -176,7 +174,7 @@ ob_end_flush();
                                         <span class="text-red-600"><i class="fas fa-times-circle mr-1"></i><?= htmlspecialchars($warehouse_data['warehouse_status']) ?></span>
                                     <?php endif; ?>
                                 </p>
-                            </div>
+                            </div> -->
                             <div class="bg-blue-50 p-4 rounded-lg shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <p class="text-gray-600 mb-1 text-xl">จำนวนรายการสินค้า:</p>
@@ -242,15 +240,6 @@ ob_end_flush();
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="flex justify-between">
-                    <a href="index.php?page=warehouse_list" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
-                        <i class="fas fa-arrow-left mr-2"></i>กลับ
-                    </a>
-                    <a href="index.php?page=report_warehouse&warehouse_id=<?= htmlspecialchars($warehouse_id) ?>&csrf_token=<?= htmlspecialchars($_SESSION['csrf_token']) ?>" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
-                        <i class="fas fa-file-alt mr-2"></i>รายงานสรุป
-                    </a>
-                </div>
             </div>
         <?php endif; ?>
     </div>

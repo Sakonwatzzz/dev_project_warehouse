@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
+$pdo = Database::getInstance()->getConnection(); 
 
 try {
     $type = trim($_GET['type'] ?? '');
@@ -101,16 +102,16 @@ try {
 
     ob_start();
 ?>
-    <table class="min-w-full bg-white">
+    <table class="w-full text-sm">
         <thead>
-            <tr class="bg-gray-100">
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รหัสบุคลากร</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ-นามสกุล</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อผู้ใช้</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ที่อยู่</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เบอร์โทรศัพท์</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่สมัคร</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">การจัดการ</th>
+            <tr class="bg-blue-50 border-b border-blue-100">
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">รหัสบุคลากร</th>
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">ชื่อ-นามสกุล</th>
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">ชื่อผู้ใช้</th>
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">ที่อยู่</th>
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">เบอร์โทรศัพท์</th>
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">วันที่สมัคร</th>
+                <th class="px-3 py-3 text-right font-semibold text-blue-900">การจัดการ</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">

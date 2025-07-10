@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
-
+$pdo = Database::getInstance()->getConnection(); 
 try {
     $type = trim($_GET['type'] ?? '');
     $search = trim($_GET['search'] ?? '');
@@ -99,14 +99,14 @@ try {
 
     ob_start();
 ?>
-    <table class="min-w-full bg-white">
+    <table class="w-full text-sm">
         <thead>
-            <tr class="bg-gray-100">
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รหัสสมาชิก</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ-นามสกุล</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เบอร์โทรศัพท์</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่สมัคร</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">การจัดการ</th>
+            <tr class="bg-blue-50 border-b border-blue-100">
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">รหัสสมาชิก</th>
+                <th class="px-3 py-3 text-left font-semibold text-blue-900">ชื่อ-นามสกุล</th>
+                <th class="px-3 py-3 text-center font-semibold text-blue-900">เบอร์โทรศัพท์</th>
+                <th class="px-3 py-3 text-center font-semibold text-blue-900">วันที่สมัคร</th>
+                <th class="px-3 py-3 text-center font-semibold text-blue-900">การจัดการ</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
@@ -114,9 +114,9 @@ try {
                 <?php foreach ($members as $member): ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($member['member_id']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($member['member_name']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($member['member_phone']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars(date('Y-m-d', strtotime($member['member_register_date']))); ?></td>
+                        <td class="px-6 py-3 whitespace-nowrap"><?php echo htmlspecialchars($member['member_name']); ?></td>
+                        <td class="px-6 py-4 text-center whitespace-nowrap"><?php echo htmlspecialchars($member['member_phone']); ?></td>
+                        <td class="px-6 py-4 text-center whitespace-nowrap"><?php echo htmlspecialchars(date('Y-m-d', strtotime($member['member_register_date']))); ?></td>
                         <td class="px-3 py-3 text-center">
                             <div class="flex justify-center gap-2">
                                 <button onclick="showEditModal(

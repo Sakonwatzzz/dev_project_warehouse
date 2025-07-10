@@ -2,6 +2,8 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 
+$pdo = Database::getInstance()->getConnection(); 
+
 // รับค่า lot_id จาก URL
 $lot_id = $_GET['id'] ?? null;
 

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
-
+$pdo = Database::getInstance()->getConnection(); 
 // Session Management
 if (!isset($_SESSION)) {
     session_start();
@@ -233,7 +233,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             <div class="modal-content">
                 <div class="mb-5">
                     <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                        <i.NET
                         <i class="fas fa-plus-circle text-blue-600 mr-2"></i>เพิ่มผู้ส่งมอบใหม่
                     </h3>
                     <p class="text-sm text-gray-500">กรุณากรอกข้อมูลผู้ส่งมอบ</p>

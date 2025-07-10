@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;

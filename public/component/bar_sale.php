@@ -1,6 +1,7 @@
 <?php
 ob_start();
 require_once __DIR__ . '../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
 
 // Get the current page from URL
 $current_page = isset($_GET['page']) ? $_GET['page'] : 'sale_add';

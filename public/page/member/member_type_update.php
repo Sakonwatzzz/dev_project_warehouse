@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
 
 $query = "SELECT member_type_id, member_type_name FROM member_type";
 $results = $pdo->query($query);

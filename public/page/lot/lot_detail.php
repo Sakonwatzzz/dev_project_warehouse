@@ -1,6 +1,7 @@
 <?php
 // เรียกไฟล์ที่ใช้ในการเชื่อมต่อฐานข้อมูล
 require_once __DIR__ . "../../../../config/database_server.php";
+$pdo = Database::getInstance()->getConnection(); 
 date_default_timezone_set('Asia/Bangkok');
 
 // Session Management

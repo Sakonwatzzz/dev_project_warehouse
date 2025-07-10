@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-
+$pdo = Database::getInstance()->getConnection(); 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $transport_name = $_POST['transport_name'];

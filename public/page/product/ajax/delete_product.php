@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../../../config/database_server.php';
 header('Content-Type: application/json');
+$pdo = Database::getInstance()->getConnection(); 
 
 try {
     if (isset($_POST['id']) && filter_var($_POST['id'], FILTER_VALIDATE_INT)) {

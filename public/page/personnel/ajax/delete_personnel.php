@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 session_start();
-
+$pdo = Database::getInstance()->getConnection(); 
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

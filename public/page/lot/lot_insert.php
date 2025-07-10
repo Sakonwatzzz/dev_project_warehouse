@@ -2,6 +2,8 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
+$pdo = Database::getInstance()->getConnection(); 
+
 // Initialize variables
 $error = null;
 $selected_status_id = '';
