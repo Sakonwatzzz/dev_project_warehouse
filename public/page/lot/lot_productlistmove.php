@@ -222,14 +222,14 @@ $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($tota
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_records / $records_per_page));
 
-// Fetch lot, product, and supplier options
+// Fetch lot, product, and personnel options
 try {
     $lot_query = "SELECT lot_id, lot_name FROM lot ORDER BY lot_name";
     $lots = fetchData($pdo, $lot_query)->fetchAll(PDO::FETCH_ASSOC);
     $product_query = "SELECT product_id, product_name FROM product ORDER BY product_name";
     $products = fetchData($pdo, $product_query)->fetchAll(PDO::FETCH_ASSOC);
-    $supplier_query = "SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name";
-    $suppliers = fetchData($pdo, $supplier_query)->fetchAll(PDO::FETCH_ASSOC);
+    $personnel_query = "SELECT personnel_id, personnel_name FROM personnel ORDER BY personnel_name";
+    $personnels = fetchData($pdo, $personnel_query)->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     header("Location: index.php?page=lot_productlistmove&lot_id=$lot_id&error=" . urlencode($e->getMessage()));
     exit;
@@ -378,7 +378,7 @@ ob_end_flush();
         </div>
     </div>
 
-    <script src="/page/lot/function/lot_productlist.js"></script>
+    <script src="/page/lot/function/lot_productlist_move.js"></script>
 </body>
 
 </html>
