@@ -53,31 +53,32 @@ try {
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
         LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id  -- เพิ่มการ JOIN
-        WHERE s.check_status_id = 2
-        AND s.stock_date >= :today_start 
-        AND s.stock_date <= :today_end";
+        WHERE s.check_status_id = 2";
+    //         AND s.stock_date >= :today_start 
+    //         AND s.stock_date <= :today_end
+
 
     // Set date parameters
-    $params = [
-        ':today_start' => date('Y-m-d 00:00:00'),
-        ':today_end' => date('Y-m-d 23:59:59')
-    ];
+    // $params = [
+    //     ':today_start' => date('Y-m-d 00:00:00'),
+    //     ':today_end' => date('Y-m-d 23:59:59')
+    // ];
 
     // Add search filter if provided
     if ($search) {
         $query .= " AND (sc.stock_check_id LIKE :search 
                     OR p.product_name LIKE :search 
                     OR w.warehouse_name LIKE :search)";
-        $params[':search'] = "%$search%";
+        // $params[':search'] = "%$search%";
     }
 
     $query .= " ORDER BY s.stock_date DESC";
 
     // Execute query
     $stmt = $pdo->prepare($query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
+    // foreach ($params as $key => $value) {
+    //     $stmt->bindValue($key, $value);
+    // }
     $stmt->execute();
     $stock_checks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -153,8 +154,8 @@ try {
     ];
 
     foreach ($stock_checks as $index => $stock) {
-        $system_qty = (int)$stock['stock_check_system'];
-        $actual_qty = (int)$stock['stock_check_actual'];
+        $system_qty = (int) $stock['stock_check_system'];
+        $actual_qty = (int) $stock['stock_check_actual'];
         $difference = $actual_qty - $system_qty;
 
         // Update totals
