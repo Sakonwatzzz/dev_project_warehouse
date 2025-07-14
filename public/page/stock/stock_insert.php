@@ -180,7 +180,7 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="500" min="0" value="1">
                         </div>
-                        <div class="col-span-full">
+                        <div class="col-span-full hidden">
                             <label for="stock-check-comment"
                                 class="block text-sm font-medium text-gray-700 mb-1">ข้อความเพิ่มเติม</label>
                             <textarea id="stock-check-comment" name="stock_check_comment" rows="3"
@@ -237,7 +237,7 @@ $personnel_name = $stmt->fetchColumn() ?: 'Unknown';
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase" hidden>สถานะ
                                 </th>
                                 <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">หมายเหตุ</th>
-                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase">
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase hidden">
                                     ข้อความเพิ่มเติม</th>
                                 <th class="px-6 py-3 text-center text-sm font-bold text-gray-900 uppercase">การจัดการ
                                 </th>

@@ -3,18 +3,18 @@ ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 
-// ตรวจสอบ session
+// ตรวจสอบ session (คงเดิม)
 // if (!isset($_SESSION['personnel_id']) || !is_numeric($_SESSION['personnel_id'])) {
 //     header("Location: login.php?error=กรุณาเข้าสู่ระบบ");
 //     exit;
 // }
 
-// Create CSRF token
+// Create CSRF token (คงเดิม)
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Check session timeout
+// Check session timeout (คงเดิม)
 // if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
 //     session_unset();
 //     session_destroy();
@@ -24,13 +24,15 @@ if (empty($_SESSION['csrf_token'])) {
 // }
 // $_SESSION['LAST_ACTIVITY'] = time();
 
-// Function to fetch data
+// Function to fetch data (แก้ไข: ระบุประเภทพารามิเตอร์อย่างชัดเจน)
 function fetchData($pdo, $query, $params = [])
 {
     try {
         $stmt = $pdo->prepare($query);
         foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+            // ใช้ PDO::PARAM_INT สำหรับ :offset และ :limit, อื่น ๆ ใช้ PDO::PARAM_STR
+            $paramType = ($key === ':offset' || $key === ':limit') ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($key, $value, $paramType);
         }
         $stmt->execute();
         return $stmt;
@@ -40,13 +42,13 @@ function fetchData($pdo, $query, $params = [])
     }
 }
 
-// Verify CSRF token
+// Verify CSRF token (คงเดิม)
 function verifyCsrfToken($token)
 {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-// Validate stock check data
+// Validate stock check data (คงเดิม)
 function validateStockCheckData($stock_check_actual, $stock_check_remark_id)
 {
     $errors = [];
@@ -59,14 +61,10 @@ function validateStockCheckData($stock_check_actual, $stock_check_remark_id)
     return $errors;
 }
 
-// Handle search and date parameters
+// Handle search parameters (คงเดิม)
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$selected_date = isset($_GET['selected_date']) ? trim($_GET['selected_date']) : date('Y-m-d');
-if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selected_date)) {
-    $selected_date = date('Y-m-d');
-}
 
-// Handle POST requests for updating stock check
+// Handle POST requests for updating stock check (คงเดิม)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
         header('Location: index.php?page=stock_list&error=Invalid CSRF token');
@@ -97,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             exit;
         }
         $pdo->commit();
-        header('Location: index.php?page=stock_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : '') . '&selected_date=' . urlencode($selected_date));
+        header('Location: index.php?page=stock_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
         exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -106,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Handle DELETE request
+// Handle DELETE request (คงเดิม)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['stock_check_id'], $_POST['csrf_token']) && $_POST['action'] === 'delete') {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
         header('Location: index.php?page=stock_list&error=Invalid CSRF token');
@@ -129,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['sto
             exit;
         }
         $pdo->commit();
-        header("Location: index.php?page=stock_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : '') . '&selected_date=' . urlencode($selected_date));
+        header("Location: index.php?page=stock_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
         exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -138,20 +136,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['sto
     }
 }
 
-// Count total records for pagination
+// Count total records for pagination (คงเดิม)
 try {
     $count_query = "SELECT COUNT(*) as total_count 
                     FROM stock_check sc
                     LEFT JOIN product p ON sc.product_id = p.product_id
                     LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
                     LEFT JOIN stock s ON sc.stock_id = s.stock_id
-                    WHERE s.check_status_id = 2 
-                    AND s.stock_date >= :today_start 
-                    AND s.stock_date <= :today_end";
-    $params = [
-        ':today_start' => $selected_date . ' 00:00:00',
-        ':today_end' => $selected_date . ' 23:59:59'
-    ];
+                    WHERE s.check_status_id = 2";
+    $params = [];
     if (!empty($search)) {
         $count_query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
         $params[':search'] = "%$search%";
@@ -163,15 +156,13 @@ try {
     exit;
 }
 
-// Pagination logic
-
-$records_per_page = 1;
-
-$page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_record / $records_per_page))) : 1;
+// Pagination logic (คงเดิม)
+$records_per_page = 10;
+$page = isset($_GET['page_num']) ? max(1, min((int) $_GET['page_num'], ceil($total_record / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_record / $records_per_page));
 
-// Fetch stock check data
+// Fetch stock check data (คงเดิม)
 try {
     $query = "
         SELECT 
@@ -201,25 +192,17 @@ try {
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
         LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
-        WHERE s.check_status_id = 2
-        AND s.stock_date >= :today_start 
-        AND s.stock_date <= :today_end";
+        WHERE s.check_status_id = 2";
+    $params = [];
     if (!empty($search)) {
         $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
+        $params[':search'] = "%$search%";
     }
     $query .= " ORDER BY s.stock_date DESC LIMIT :offset, :limit";
-    $stmt = $pdo->prepare($query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
-    $stmt->bindValue(':offset', (int) $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':limit', (int) $records_per_page, PDO::PARAM_INT);
-    $stmt->execute();
+    $params[':offset'] = (int) $offset;
+    $params[':limit'] = (int) $records_per_page;
+    $stmt = fetchData($pdo, $query, $params);
     $check_stock = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    if (empty($check_stock) && $page === 1) {
-        header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกสำหรับวันที่เลือก&selected_date=' . urlencode($selected_date));
-        exit;
-    }
 } catch (Exception $e) {
     header('Location: index.php?page=stock_list&error=' . urlencode($e->getMessage()));
     exit;
@@ -228,51 +211,23 @@ try {
 
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ประวัติรายการเช็คสต๊อกสินค้า</title>
     <link rel="stylesheet" href="../../output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         body {
             font-family: 'Sarabun', sans-serif;
             background-color: #f8f9fa;
         }
-
         .input-update {
             border-color: black;
             border-radius: 3px;
         }
-
-        .flatpickr-input {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 1.5em;
-        }
-
-        .flatpickr-calendar {
-            @apply bg-white shadow-lg rounded-lg border border-gray-200;
-        }
-
-        .flatpickr-day.selected {
-            @apply bg-blue-500 border-blue-500 text-white;
-        }
-
-        .flatpickr-day.today {
-            @apply border-blue-400;
-        }
-
-        .flatpickr-day:hover {
-            @apply bg-blue-100;
-        }
     </style>
 </head>
-
 <body class="bg-gray-50">
     <div class="mx-auto px-4 py-8">
         <!-- Header and Search Section -->
@@ -282,16 +237,13 @@ try {
                     <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
                         <i class="fas fa-boxes mr-2"></i>
                         <?php echo $total_record; ?>
-                        <span>รายการ (วันที่ <?php echo date('d/m/Y', strtotime($selected_date)); ?>)</span>
                     </div>
-                    <input type="text" id="datePicker" class="flatpickr-input w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 hidden" value="<?php echo htmlspecialchars($selected_date); ?>">
                 </div>
             </div>
             <div class="flex items-center">
                 <form action="" method="GET" id="searchForm" class="w-full text-end">
                     <input type="hidden" name="page" value="stock_list">
                     <input type="hidden" name="page_num" value="1">
-                    <input type="hidden" name="selected_date" id="hiddenSelectedDate" value="<?php echo htmlspecialchars($selected_date); ?>">
                     <div class="relative">
                         <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
                             value="<?php echo htmlspecialchars($search); ?>"
@@ -305,12 +257,10 @@ try {
             <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
                 <!-- Export Buttons -->
                 <div class="grid grid-cols-2 gap-4 pt-2 md:grid md:grid-cols-2 md:gap-4">
-                    <button onclick="exportPDF()"
-                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
+                    <button id="exportPDFBtn" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
                         <i class="fas fa-file-pdf"></i> ส่งออก PDF
                     </button>
-                    <button onclick="exportExcel()"
-                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
+                    <button id="exportExcelBtn" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
                         <i class="fas fa-file-excel"></i> ส่งออก Excel
                     </button>
                 </div>
@@ -404,7 +354,7 @@ try {
             <?php if ($total_pages > 1): ?>
                 <!-- Previous Button -->
                 <?php if ($page > 1): ?>
-                    <a href="?page=stock_list&page_num=<?= $page - 1 ?>&selected_date=<?= urlencode($selected_date) ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         « ก่อนหน้า
                     </a>
@@ -414,7 +364,7 @@ try {
                 $start_page = max(1, $page - 2);
                 $end_page = min($total_pages, $page + 2);
                 if ($start_page > 1): ?>
-                    <a href="?page=stock_list&page_num=1&selected_date=<?= urlencode($selected_date) ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         1
                     </a>
@@ -423,7 +373,7 @@ try {
                     <?php endif; ?>
                 <?php endif; ?>
                 <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=stock_list&page_num=<?= $i ?>&selected_date=<?= urlencode($selected_date) ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 rounded transition <?= $i == $page ? 'bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>">
                         <?= $i ?>
                     </a>
@@ -432,14 +382,14 @@ try {
                     <?php if ($end_page < $total_pages - 1): ?>
                         <span class="px-4 py-2 text-gray-500">...</span>
                     <?php endif; ?>
-                    <a href="?page=stock_list&page_num=<?= $total_pages ?>&selected_date=<?= urlencode($selected_date) ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         <?= $total_pages ?>
                     </a>
                 <?php endif; ?>
                 <!-- Next Button -->
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=stock_list&page_num=<?= $page + 1 ?>&selected_date=<?= urlencode($selected_date) ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
+                    <a href="?page=stock_list&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>"
                         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition">
                         ถัดไป »
                     </a>
@@ -473,8 +423,7 @@ try {
                         <span id="editRemarkError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeEditModal()"
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                        <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
                             ยกเลิก
                         </button>
                         <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
@@ -491,12 +440,10 @@ try {
                 <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
                 <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?</p>
                 <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeDeleteModal()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                    <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
                         ยกเลิก
                     </button>
-                    <button type="button" id="confirmDeleteBtn"
-                        class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    <button type="button" id="confirmDeleteBtn" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
                         ลบ
                     </button>
                 </div>
@@ -507,23 +454,11 @@ try {
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
-            const datePicker = document.getElementById('datePicker');
-            const hiddenSelectedDate = document.getElementById('hiddenSelectedDate');
-
-            if (datePicker) {
-                flatpickr(datePicker, {
-                    dateFormat: "Y-m-d",
-                    onChange: function(selectedDates, dateStr) {
-                        hiddenSelectedDate.value = dateStr;
-                        document.getElementById('searchForm').submit();
-                    }
-                });
-            }
 
             if (searchInput) {
                 searchInput.focus();
 
-                searchInput.addEventListener('keydown', function(e) {
+                searchInput.addEventListener('keydown', function (e) {
                     if (e.key === 'Escape') {
                         this.value = '';
                         this.form.submit();
@@ -541,11 +476,10 @@ try {
                     localStorage.removeItem('searchPreserve');
                 }
 
-                searchInput.addEventListener('input', function() {
+                searchInput.addEventListener('input', function () {
                     if (this.value.trim() === '') {
                         const urlParams = new URLSearchParams(window.location.search);
                         urlParams.set('page', 'stock_list');
-                        urlParams.set('selected_date', hiddenSelectedDate.value);
                         urlParams.delete('search');
                         window.location.search = urlParams.toString();
                     }
@@ -556,7 +490,6 @@ try {
                     const urlParams = new URLSearchParams();
                     urlParams.set('page', 'stock_list');
                     urlParams.set('page_num', 1);
-                    urlParams.set('selected_date', hiddenSelectedDate.value);
                     if (searchInput.value) urlParams.set('search', searchInput.value);
                     window.location.search = urlParams.toString();
                 });
@@ -588,7 +521,7 @@ try {
                 return !hasError;
             }
 
-            document.getElementById('editForm').addEventListener('submit', function(e) {
+            document.getElementById('editForm').addEventListener('submit', function (e) {
                 e.preventDefault();
                 const fields = [{
                     id: 'editStockCheckActual',
@@ -643,17 +576,36 @@ try {
                 }, 5000);
             }
 
-            function exportPDF() {
-                const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
-                let url = '/page/stock/report/export_stock_pdf.php?csrf_token=' + encodeURIComponent(csrfToken) + '&selected_date=' + encodeURIComponent(hiddenSelectedDate.value);
-                window.open(url, '_blank');
-            }
+            // Export buttons
+            document.getElementById('exportPDFBtn').addEventListener('click', () => {
+                document.getElementById('exportPDFBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่งออก...';
+                try {
+                    const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
+                    let url = '<?php echo dirname($_SERVER['PHP_SELF'], 3); ?>/page/stock/report/export_stock_pdf.php?csrf_token=' + encodeURIComponent(csrfToken);
+                    if (searchInput.value) url += '&search=' + encodeURIComponent(searchInput.value);
+                    window.open(url, '_blank');
+                } catch (error) {
+                    console.error('Error exporting PDF:', error);
+                    showNotification('เกิดข้อผิดพลาดในการส่งออก PDF', 'bg-red-500');
+                } finally {
+                    document.getElementById('exportPDFBtn').innerHTML = '<i class="fas fa-file-pdf"></i> ส่งออก PDF';
+                }
+            });
 
-            function exportExcel() {
-                const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
-                let url = '/page/stock/report/export_stock_excel.php?csrf_token=' + encodeURIComponent(csrfToken) + '&selected_date=' + encodeURIComponent(hiddenSelectedDate.value);
-                window.open(url, '_blank');
-            }
+            document.getElementById('exportExcelBtn').addEventListener('click', () => {
+                document.getElementById('exportExcelBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่งออก...';
+                try {
+                    const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
+                    let url = '<?php echo dirname($_SERVER['PHP_SELF'], 3); ?>/page/stock/report/export_stock_excel.php?csrf_token=' + encodeURIComponent(csrfToken);
+                    if (searchInput.value) url += '&search=' + encodeURIComponent(searchInput.value);
+                    window.open(url, '_blank');
+                } catch (error) {
+                    console.error('Error exporting Excel:', error);
+                    showNotification('เกิดข้อผิดพลาดในการส่งออก Excel', 'bg-red-500');
+                } finally {
+                    document.getElementById('exportExcelBtn').innerHTML = '<i class="fas fa-file-excel"></i> ส่งออก Excel';
+                }
+            });
 
             function updateClock() {
                 const now = new Date();
@@ -671,5 +623,4 @@ try {
         });
     </script>
 </body>
-
 </html>

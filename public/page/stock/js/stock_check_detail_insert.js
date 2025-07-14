@@ -514,7 +514,7 @@ $(document).ready(function () {
                         <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock-check-remark">${
                           item.stock_check_remark_name || "-"
                         }</td>
-                        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock-check-comment">${
+                        <td class="px-3 sm:px-6 py-2 border text-left text-xs sm:text-sm stock-check-comment hidden">${
                           item.stock_check_comment || "-"
                         }</td>
                         <td class="px-3 sm:px-6 py-2 text-center text-xs sm:text-sm flex gap-4 actions">
