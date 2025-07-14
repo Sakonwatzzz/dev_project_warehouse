@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+$pdo = Database::getInstance()->getConnection(); 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lot_product_id = $_POST['lot_product_id'] ?? '';
     $lot_id = $_POST['lot_id'] ?? '';

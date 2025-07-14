@@ -37,7 +37,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="../../output.css" rel="stylesheet">
     <link href="../style/navbar.css" rel="stylesheet">
     <title>Admin System</title>
 
@@ -47,7 +47,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
     <!-- Header -->
     <div class="glass-header top-0 z-50 px-4 py-4 shadow-lg">
         <div class="flex items-center justify-between">
-            <h1 class="text-white text-xl lg:text-2xl font-semibold tracking-wide drop-shadow-md">
+            <h1 class="text-white text-xl lg:text-[24px] font-semibold tracking-wide drop-shadow-md">
                 Admin Management System
             </h1>
 
@@ -86,6 +86,11 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 <li>
                     <a href="?page=bar_supplier" class="nav-link <?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
                         <i class="fas fa-truck"></i> Supplier
+                    </a>
+                </li>
+                <li>
+                    <a href="?page=bar_store" class="nav-link <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                        <i class="fas fa-store"></i> ร้านค้า
                     </a>
                 </li>
                 <li>
@@ -161,7 +166,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     </div>
                     <div>
                         <div class="font-semibold">สมาชิก</div>
-                        <div class="text-xs text-gray-500">Members</div>
+                        <div class="text-xs text-gray-500">Members Management</div>
                     </div>
                 </a>
 
@@ -173,6 +178,17 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     <div>
                         <div class="font-semibold">Supplier</div>
                         <div class="text-xs text-gray-500">Supplier Management</div>
+                    </div>
+                </a>
+
+                <!-- Store -->
+                <a href="?page=bar_store" class="sidebar-item <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-store text-blue-600"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold">ร้านค้า</div>
+                        <div class="text-xs text-gray-500">Store Management</div>
                     </div>
                 </a>
 
@@ -225,7 +241,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             <?php
             // Get page parameter and set defaults
             $page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
-            $allowed_pages = ['bar_index', 'bar_product', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale', 'bar_stock'];
+            $allowed_pages = ['bar_index', 'bar_product', 'bar_store', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale', 'bar_stock'];
 
             $dashboard_pages = [
                 'dashboard'
@@ -248,7 +264,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 'warehouse_update'
             ];
             $lot_pages = [
-                'lot_listinsert',
+                'lot_insert',
                 'lot_list',
                 'lot_insert',
                 'lot_productlist',
@@ -260,12 +276,10 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 'lot_productdetail',
                 'lot_listdetail',
                 'lot_listinsertcopy',
-                'warehouse_lot',
-                'warehouse_move',
                 'supplier_lot',
                 'personnel_lot',
                 'lot_insertout',
-                'lot_insertdetailout',
+                'lot_listdetailout',
                 'lot_warehouseinout',
                 'lot_detailmove'
             ];
@@ -294,6 +308,10 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 'supplier_update',
                 'supplier_insert',
                 'supplier_detail',
+            ];
+            $store_pages = [
+                'store_list',
+                'store_insert',
             ];
             $sale_pages = [
                 'sale_add',
@@ -351,7 +369,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             'member' => 'member',
                             'lot' => 'lot',
                             'sale' => 'sale',
-                            'stock' => 'stock'
+                            'stock' => 'stock',
+                            'store' => 'store'
                         ];
 
                         if (isset($folderMapping[$module])) {
@@ -482,8 +501,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         }
                         $filepath = "$basePath/lot/personnel_lot.php";
 
-                        if (isset($_GET['supplier_id'])) {
-                            $_REQUEST['supplier_id'] = $_GET['supplier_id'];
+                        if (isset($_GET['personnel_id'])) {
+                            $_REQUEST['personnel_id'] = $_GET['personnel_id'];
                         }
                     } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
                         $barfile = __DIR__ . "/bar_personnel.php";
@@ -507,6 +526,20 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         }
                         $action = $parts[1] ?? 'list';
                         $filepath = "$basePath/supplier/supplier_{$action}.php";
+
+                        if (isset($_GET['id'])) {
+                            $_REQUEST['id'] = $_GET['id'];
+                        }
+                    }
+                    elseif ($prefix === 'store' && in_array($page, $store_pages)) {
+                        $barfile = __DIR__ . "/bar_store.php";
+                        if (file_exists($barfile)) {
+                            include $barfile;
+                        } else {
+                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                        }
+                        $action = $parts[1] ?? 'list';
+                        $filepath = "$basePath/store/store_{$action}.php";
 
                         if (isset($_GET['id'])) {
                             $_REQUEST['id'] = $_GET['id'];

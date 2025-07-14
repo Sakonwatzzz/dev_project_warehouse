@@ -1,0 +1,172 @@
+/* Glassmorphism effect with Navy Blue base */
+.glass-morphism {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Card hover effects */
+.card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Gradient backgrounds using Navy Blue, Yellow, and Red */
+.gradient-bg {
+    background: linear-gradient(135deg, #1e3a8a 0%, #b91c1c 100%); /* Navy Blue to Red */
+}
+
+.gradient-bg-alt {
+    background: linear-gradient(135deg, #eab308 0%, #1e3a8a 100%); /* Yellow to Navy Blue */
+}
+
+/* Search input glow effect */
+.search-glow:focus {
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.2); /* Navy Blue shadow */
+    border-color: blue; /* Yellow border */
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    backdrop-filter: blur(6px);
+    background: rgba(0, 0, 0, 0.4);
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+    opacity 0.4s ease;
+}
+
+
+/* Floating action button */
+.floating-action {
+    position: fixed;
+    bottom: 2.5rem;
+    right: 2.5rem;
+    z-index: 1000;
+    background: linear-gradient(45deg, #eab308, #b91c1c); /* Yellow to Red */
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.floating-action:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+/* Notification animation */
+.notification-slide-in {
+    animation: slideIn 0.4s ease-out forwards;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* Stats card styling */
+.stats-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f3f4f6 100%); /* White to Light Gray */
+    border: 1px solid #d1d5db;
+    border-radius: 1rem;
+}
+
+/* Warehouse card styling */
+.warehouse-card {
+    background: #ffffff; /* White background */
+    border: 1px solid #d1d5db;
+    border-radius: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.warehouse-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+   
+}
+
+/* Action buttons */
+.action-btn {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    font-weight: 500;
+}
+
+.action-btn.add {
+    background: linear-gradient(90deg, #eab308, #b91c1c); /* Yellow to Red */
+}
+
+.action-btn.edit {
+    background: linear-gradient(90deg, #1e3a8a, #eab308); /* Navy Blue to Yellow */
+}
+
+.action-btn.delete {
+    background: linear-gradient(90deg, #b91c1c, #991b1b); /* Red shades */
+}
+
+.action-btn.view {
+    background: linear-gradient(90deg, #1e3a8a, #3b82f6); /* Navy Blue to Blue */
+}
+
+.action-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.4s, height 0.4s;
+}
+
+.action-btn:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+/* Search container */
+.search-container {
+    position: relative;
+}
+
+.search-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #086eea, transparent); 
+    transform: scaleX(0);
+    transition: transform 0.4s;
+}
+
+.search-container:focus-within::after {
+    transform: scaleX(1);
+}
+
+/* Input and select styling */
+input, select {
+    background: #f8fafc;
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    transition: all 0.3s;
+}
+
+input:focus, select:focus {
+    border-color: rgb(8, 234, 211); /* Yellow border */
+    box-shadow: 0 0 0 3px rgba(8, 140, 234, 0.2);
+}

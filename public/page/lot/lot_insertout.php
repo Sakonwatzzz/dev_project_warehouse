@@ -2,6 +2,8 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
+$pdo = Database::getInstance()->getConnection(); 
+
 // Initialize variables
 $error = null;
 $selected_status_id = '';
@@ -137,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
 
             // Redirect to lot details page
-            header("Location: index.php?page=lot_insertdetailout&tabel=lot&id=" . urlencode($lot_id) . "&success=1");
+            header("Location: index.php?page=lot_listdetailout&tabel=lot&id=" . urlencode($lot_id) . "&success=1");
             exit;
         } catch (Exception $e) {
             $pdo->rollBack();
@@ -160,6 +162,7 @@ ob_end_flush();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ย้ายสินค้า - ระบบจัดการคลังสินค้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../../style/page_insert.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .gradient-bg {
@@ -168,40 +171,43 @@ ob_end_flush();
 
         .glass-effect {
             backdrop-filter: blur(10px);
-            
-            .glass-effect {
-                background: rgba(255, 255, 255, 0.95);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .status-badge {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
             }
 
-            .form-input:focus {
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        .floating-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
             }
 
-            .status-badge {
-                animation: pulse 2s infinite;
-            }
-
-            @keyframes pulse {
-                0%, 100% {
-                    opacity: 1;
-                }
-                50% {
-                    opacity: 0.8;
-                }
-            }
-
-            .floating-animation {
-                animation: float 6s ease-in-out infinite;
-            }
-
-            @keyframes float {
-                0%, 100% {
-                    transform: translateY(0px);
-                }
-                50% {
-                    transform: translateY(-10px);
-                }
+            50% {
+                transform: translateY(-10px);
             }
         }
     </style>
@@ -480,7 +486,7 @@ ob_end_flush();
                                         </span>
                                     </td>
                                     <td class="px-6 py-3 text-center">
-                                        <a href="index.php?page=lot_insertdetailout&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
+                                        <a href="index.php?page=lot_listdetailout&tabel=lot&id=<?= urlencode($lot['lot_id']) ?>"
                                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 inline-flex items-center">
                                             <i class="fas fa-eye mr-1"></i>ดู
                                         </a>
@@ -587,7 +593,7 @@ ob_end_flush();
                             <div class="grid grid-cols-1 gap-4">
                                 <?php foreach ($warehouse_lot as $lot): ?>
                                     <div class="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer hover:bg-blue-50"
-                                        onclick="window.location.href='?page=lot_insertdetailout&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
+                                        onclick="window.location.href='?page=lot_listdetailout&tabel=lot&id=<?= htmlspecialchars($lot['lot_id']) ?>'">
                                         <div class="flex justify-between items-center">
                                             <h3 class="text-base font-medium text-blue-600"><?= htmlspecialchars($lot['lot_name']) ?></h3>
                                             <span class="text-sm text-gray-500"><?= date('d/m/Y H:i', strtotime($lot['lot_date'])) ?></span>

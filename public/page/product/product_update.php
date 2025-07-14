@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
-
+$pdo = Database::getInstance()->getConnection(); 
 // Set timezone
 date_default_timezone_set('Asia/Bangkok');
 

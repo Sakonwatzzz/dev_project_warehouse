@@ -1,6 +1,7 @@
 <?php
 ob_start();
 require_once __DIR__ . '../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
 
 // Get the current page from URL
 $current_page = isset($_GET['page']) ? $_GET['page'] : 'sale_add';
@@ -22,7 +23,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 'sale_add';
     <div class="button-bb hidden lg:flex flex-wrap gap-2 p-2 px-4" role="navigation">
         <!-- Sales Section -->
         <div class="section-container border border-gray-300 rounded-md shadow-md">
-            <div class="button-grid flex flex-wrap gap-2 p-2">
+            <div class="button-grid flex flex-wrap gap-2 p-1">
                 <a href="?page=sale_add" class="button-link w-24 lg:w-28">
                     <button class="<?php echo ($current_page == 'sale_add') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="หน้าการขายสินค้า">
                         <i class="fas fa-shopping-cart text-xl mb-1"></i>

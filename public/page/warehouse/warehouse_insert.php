@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
-
+$pdo = Database::getInstance()->getConnection(); 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $warehouse_name = $_POST['warehouse_name'];
@@ -28,6 +28,7 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>หน้าบุคลากร</title>
+    <link rel="stylesheet" href="../../output.css">
     <link rel="stylesheet" href="../../style/personnel_insert.css">
 
     <style>

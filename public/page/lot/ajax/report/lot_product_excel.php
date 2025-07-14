@@ -4,6 +4,8 @@ require_once __DIR__ . '../../../../../../vendor/autoload.php';
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
+$pdo = Database::getInstance()->getConnection(); 
+
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -35,14 +37,18 @@ try {
     // Get lot ID and validate
     $lot_id = isset($_GET['lot_id']) ? (int)$_GET['lot_id'] : 0;
     $lot_name = "";
+    $supplier_name = "";
     if ($lot_id) {
-        $stmt = $pdo->prepare("SELECT lot_name FROM lot WHERE lot_id = ?");
+        $stmt = $pdo->prepare("SELECT lot_name, supplier_name FROM lot l LEFT JOIN supplier s ON l.supplier_id = s.supplier_id WHERE l.lot_id = ?");
         $stmt->execute([$lot_id]);
         $lot = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$lot) {
             throw new Exception('ไม่พบข้อมูลล็อต');
         }
         $lot_name = $lot['lot_name'];
+        $supplier_name = $lot['supplier_name'] ?: 'ไม่ระบุผู่ส่งมอบ';
+    } else {
+        $supplier_name = 'ทุกผู้ส่งมอบ';
     }
 
     // Handle search and date parameters
@@ -106,16 +112,21 @@ try {
 
     // Report title
     $sheet->setCellValue('A1', 'รายงานรายการรับสินค้า' . ($lot_id ? ' - Lot: ' . htmlspecialchars($lot_name) : ''));
-    $sheet->mergeCells('A1:I1');
+    $sheet->mergeCells('A1:G1');
     $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle('A1')->getFont()->setBold(true);
     $sheet->getRowDimension(1)->setRowHeight(25);
 
     // Report date
     $sheet->setCellValue('A2', 'วันที่ออกรายงาน: ' . date('d/m/Y H:i:s'));
-    $sheet->mergeCells('A2:I2');
+    $sheet->mergeCells('A2:G2');
     $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getRowDimension(2)->setRowHeight(20);
+
+    $sheet->setCellValue('A3', 'ผู้ส่งมอบ: ' . htmlspecialchars($supplier_name));
+    $sheet->mergeCells('A3:G3');
+    $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getRowDimension(3)->setRowHeight(20);
 
     // Date range and search
     $filters = [];
@@ -128,9 +139,9 @@ try {
         $filters[] = "ถึงวันที่: $end_date";
     }
     $filter_text = !empty($filters) ? implode(', ', $filters) : '';
-    $sheet->setCellValue('A3', $filter_text);
-    $sheet->mergeCells('A3:I3');
-    $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->setCellValue('A4', $filter_text);
+    $sheet->mergeCells('A4:G4');
+    $sheet->getStyle('A4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getRowDimension(3)->setRowHeight(20);
 
     // Empty row
@@ -145,9 +156,7 @@ try {
     $sheet->setCellValue('D' . $row, 'ราคาต้นทุน');
     $sheet->setCellValue('E' . $row, 'จำนวนสินค้าเข้า');
     $sheet->setCellValue('F' . $row, 'จำนวนสินค้าคงเหลือ');
-    $sheet->setCellValue('G' . $row, 'สถานะ');
-    $sheet->setCellValue('H' . $row, 'ผู้ส่งมอบ');
-    $sheet->setCellValue('I' . $row, 'วันที่รับสินค้า');
+    $sheet->setCellValue('G' . $row, 'วันที่รับสินค้า');
 
     // Header styling
     $headerStyle = [
@@ -163,7 +172,7 @@ try {
             'vertical' => Alignment::VERTICAL_CENTER,
         ],
     ];
-    $sheet->getStyle('A' . $row . ':I' . $row)->applyFromArray($headerStyle);
+    $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($headerStyle);
     $sheet->getRowDimension($row)->setRowHeight(20);
 
     // Data rows
@@ -178,9 +187,7 @@ try {
             $sheet->setCellValue('D' . $row, $lot_product['lot_product_capital']);
             $sheet->setCellValue('E' . $row, $lot_product['lot_product_qty']);
             $sheet->setCellValue('F' . $row, $lot_product['lot_product_remain']);
-            $sheet->setCellValue('G' . $row, $lot_product['lot_product_status']);
-            $sheet->setCellValue('H' . $row, $lot_product['supplier_name']);
-            $sheet->setCellValue('I' . $row, $lot_product['lot_product_date']);
+            $sheet->setCellValue('G' . $row, $lot_product['lot_product_date']);
             $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             $sheet->getStyle('E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             $sheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
@@ -189,18 +196,39 @@ try {
     } else {
         $row++;
         $sheet->setCellValue('A' . $row, 'ไม่พบข้อมูลรายการรับสินค้า');
-        $sheet->mergeCells('A' . $row . ':I' . $row);
+        $sheet->mergeCells('A' . $row . ':G' . $row);
         $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getRowDimension($row)->setRowHeight(20);
+    }
+
+    // Calculate totals
+    $total_qty = 0;
+    $total_remain = 0;
+    $total_capital = 0;
+    $total_cost = 0;
+
+    if (count($lot_products) > 0) {
+        foreach ($lot_products as $lot_product) {
+            $total_qty += (int)$lot_product['lot_product_qty'];
+            $total_remain += (int)$lot_product['lot_product_remain'];
+            $total_capital += (float)$lot_product['lot_product_capital'];
+            $total_cost += (float)($lot_product['lot_product_qty'] * $lot_product['lot_product_capital']);
+        }
     }
 
     // Summary row
     $row++;
     $sheet->setCellValue('A' . $row, 'รวมทั้งหมด');
-    $sheet->mergeCells('A' . $row . ':H' . $row);
-    $sheet->setCellValue('I' . $row, count($lot_products) . ' รายการ');
-    $sheet->getStyle('A' . $row . ':I' . $row)->getFont()->setBold(true);
-    $sheet->getStyle('I' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->setCellValue('D' . $row, number_format($total_cost, 2)); // Total cost (qty * capital)
+    $sheet->setCellValue('E' . $row, $total_qty); // Total quantity
+    $sheet->setCellValue('F' . $row, $total_remain); // Total remaining
+    $sheet->setCellValue('G' . $row, count($lot_products) . ' รายการ'); // Total items
+    $sheet->mergeCells('A' . $row . ':C' . $row); // Merge A to C
+    $sheet->getStyle('A' . $row . ':G' . $row)->getFont()->setBold(true);
+    $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle('E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle('G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
     $sheet->getRowDimension($row)->setRowHeight(20);
 
     // Apply borders to data and summary
@@ -212,18 +240,16 @@ try {
             ],
         ],
     ];
-    $sheet->getStyle('A' . $dataStartRow . ':I' . $row)->applyFromArray($styleArray);
+    $sheet->getStyle('A' . $dataStartRow . ':G' . $row)->applyFromArray($styleArray);
 
     // Set column widths
     $sheet->getColumnDimension('A')->setWidth(15);
     $sheet->getColumnDimension('B')->setWidth(25);
     $sheet->getColumnDimension('C')->setWidth(25);
     $sheet->getColumnDimension('D')->setWidth(15);
-    $sheet->getColumnDimension('E')->setWidth(15);
-    $sheet->getColumnDimension('F')->setWidth(15);
-    $sheet->getColumnDimension('G')->setWidth(15);
-    $sheet->getColumnDimension('H')->setWidth(25);
-    $sheet->getColumnDimension('I')->setWidth(20);
+    $sheet->getColumnDimension('E')->setWidth(25);
+    $sheet->getColumnDimension('F')->setWidth(25);
+    $sheet->getColumnDimension('G')->setWidth(20);
 
     // Set headers for download
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -238,7 +264,7 @@ try {
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setCellValue('A1', 'เกิดข้อผิดพลาด: ' . htmlspecialchars($e->getMessage()));
-    $sheet->mergeCells('A1:I1');
+    $sheet->mergeCells('A1:G1');
     $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle('A1')->getFont()->setBold(true);
     $sheet->getRowDimension(1)->setRowHeight(25);

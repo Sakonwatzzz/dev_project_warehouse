@@ -4,6 +4,8 @@ require_once __DIR__ . '../../../../../fpdf186/fpdf.php';
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
+$pdo = Database::getInstance()->getConnection(); 
+
 // Session timeout check
 if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
     session_unset();
@@ -244,16 +246,6 @@ try {
         $pdf->SetX(10);
         $pdf->Cell(95, 6, thai('จำนวนคงเหลือ: ') . number_format($total_remain), 0, 1, 'L');
 
-        // // Right column - Signature
-        // $pdf->SetXY(110, $currentY + 10);
-        // $pdf->SetFont('THSarabunNew', '', 11);
-        // $pdf->Cell(80, 8, thai('ลงชื่อ........................................................'), 0, 1, 'C');
-        // $pdf->SetX(120);
-        // $pdf->Cell(60, 6, thai('ผู้ตรวจสอบสินค้า'), 0, 1, 'C');
-        // $pdf->SetX(110);
-        // $pdf->Cell(80, 8, thai('(........................................................)'), 0, 1, 'C');
-        // $pdf->SetX(110);
-        // $pdf->Cell(80, 8, thai('วันที่ (................./.................../..................)'), 0, 1, 'C');
     } else {
         $pdf->Cell(195, 8, thai('ไม่พบข้อมูลรายการรับสินค้า'), 1, 1, 'C');
     }

@@ -3,6 +3,7 @@ require_once __DIR__ . '../../../../../config/database_server.php';
 require_once __DIR__ . '../../../../fpdf186/fpdf.php';
 session_start();
 date_default_timezone_set('Asia/Bangkok');
+$pdo = Database::getInstance()->getConnection(); 
 
 // Session timeout handling
 if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {

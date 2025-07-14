@@ -5,6 +5,8 @@ ob_start();
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
+$pdo = Database::getInstance()->getConnection(); 
+
 // Create CSRF token if not exists
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

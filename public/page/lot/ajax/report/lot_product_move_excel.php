@@ -10,6 +10,8 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
+$pdo = Database::getInstance()->getConnection(); 
+
 // Check session timeout
 if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
     session_unset();
@@ -20,6 +22,7 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
+// Verify CSRF token
 function verifyCsrfToken($token)
 {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
@@ -34,14 +37,18 @@ try {
     // Get lot ID and validate
     $lot_id = isset($_GET['lot_id']) ? (int)$_GET['lot_id'] : 0;
     $lot_name = "";
+    $personnel_name = "";
     if ($lot_id) {
-        $stmt = $pdo->prepare("SELECT lot_name FROM lot WHERE lot_id = ?");
+        $stmt = $pdo->prepare("SELECT lot_name, personnel_name FROM lot l LEFT JOIN personnel pn ON l.personnel_id = pn.personnel_id WHERE l.lot_id = ?");
         $stmt->execute([$lot_id]);
         $lot = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$lot) {
             throw new Exception('ไม่พบข้อมูลล็อต');
         }
         $lot_name = $lot['lot_name'];
+        $personnel_name = $lot['personnel_name'] ?: 'ไม่ระบุพนักงาน';
+    } else {
+        $personnel_name = 'ทุกพนักงาน';
     }
 
     // Handle search and date parameters
@@ -49,7 +56,7 @@ try {
     $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
     $end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 
-    // Build query to match main script
+    // Build query
     $query = "
         SELECT
             lp.lot_product_id,
@@ -59,14 +66,10 @@ try {
             lp.lot_product_remain,
             lp.lot_product_capital,
             lp.lot_product_date,
-            lp.lot_product_status,
-            s.supplier_name,
-            pn.personnel_name
+            lp.lot_product_status
         FROM lot_product lp
         LEFT JOIN lot l ON lp.lot_id = l.lot_id
-        LEFT JOIN product p ON lp.product_id = p.product_id
-        LEFT JOIN supplier s ON l.supplier_id = s.supplier_id
-        LEFT JOIN personnel pn ON l.personnel_id = pn.personnel_id";
+        LEFT JOIN product p ON lp.product_id = p.product_id";
     $params = [];
     if ($lot_id || !empty($search) || $start_date || $end_date) {
         $query .= " WHERE";
@@ -107,18 +110,24 @@ try {
 
     // Report title
     $sheet->setCellValue('A1', 'รายงานรายการย้ายสินค้า' . ($lot_id ? ' - Lot: ' . htmlspecialchars($lot_name) : ''));
-    $sheet->mergeCells('A1:I1');
+    $sheet->mergeCells('A1:G1');
     $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-    $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+    $sheet->getStyle('A1')->getFont()->setBold(true);
     $sheet->getRowDimension(1)->setRowHeight(25);
 
     // Report date
     $sheet->setCellValue('A2', 'วันที่ออกรายงาน: ' . date('d/m/Y H:i:s'));
-    $sheet->mergeCells('A2:I2');
+    $sheet->mergeCells('A2:G2');
     $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getRowDimension(2)->setRowHeight(20);
 
-    // Filters
+    // Personnel name
+    $sheet->setCellValue('A3', 'พนักงาน: ' . htmlspecialchars($personnel_name));
+    $sheet->mergeCells('A3:G3');
+    $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getRowDimension(3)->setRowHeight(20);
+
+    // Date range and search
     $filters = [];
     if ($search) $filters[] = "ค้นหา: $search";
     if ($start_date && $end_date) {
@@ -129,30 +138,28 @@ try {
         $filters[] = "ถึงวันที่: $end_date";
     }
     $filter_text = !empty($filters) ? implode(', ', $filters) : '';
-    $sheet->setCellValue('A3', $filter_text);
-    $sheet->mergeCells('A3:I3');
-    $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-    $sheet->getRowDimension(3)->setRowHeight(20);
+    $sheet->setCellValue('A4', $filter_text);
+    $sheet->mergeCells('A4:G4');
+    $sheet->getStyle('A4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getRowDimension(4)->setRowHeight(20);
 
     // Empty row
-    $row = 4;
+    $row = 5;
     $sheet->getRowDimension($row)->setRowHeight(15);
 
     // Table headers
     $row++;
-    $sheet->setCellValueExplicit('A' . $row, 'รหัส', DataType::TYPE_STRING);
-    $sheet->setCellValue('B' . $row, 'ชื่อล็อต');
+    $sheet->setCellValue('A' . $row, 'ชื่อล็อตสินค้า');
+    $sheet->setCellValueExplicit('B' . $row, 'รหัสสินค้า', DataType::TYPE_STRING);
     $sheet->setCellValue('C' . $row, 'ชื่อสินค้า');
     $sheet->setCellValue('D' . $row, 'ราคาต้นทุน');
-    $sheet->setCellValue('E' . $row, 'จำนวนเข้า');
-    $sheet->setCellValue('F' . $row, 'คงเหลือ');
-    $sheet->setCellValue('G' . $row, 'สถานะ');
-    $sheet->setCellValue('H' . $row, 'พนักงาน');
-    $sheet->setCellValue('I' . $row, 'วันที่');
+    $sheet->setCellValue('E' . $row, 'จำนวนสินค้าเข้า');
+    $sheet->setCellValue('F' . $row, 'จำนวนสินค้าคงเหลือ');
+    $sheet->setCellValue('G' . $row, 'วันที่ย้ายสินค้า');
 
     // Header styling
     $headerStyle = [
-        'font' => ['bold' => true, 'size' => 12],
+        'font' => ['bold' => true],
         'borders' => [
             'allBorders' => [
                 'borderStyle' => Border::BORDER_THIN,
@@ -163,12 +170,8 @@ try {
             'horizontal' => Alignment::HORIZONTAL_CENTER,
             'vertical' => Alignment::VERTICAL_CENTER,
         ],
-        'fill' => [
-            'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-            'color' => ['argb' => 'FFD7E1EC'],
-        ],
     ];
-    $sheet->getStyle('A' . $row . ':I' . $row)->applyFromArray($headerStyle);
+    $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($headerStyle);
     $sheet->getRowDimension($row)->setRowHeight(20);
 
     // Data rows
@@ -177,15 +180,13 @@ try {
     if (count($lot_products) > 0) {
         foreach ($lot_products as $lot_product) {
             $row++;
-            $sheet->setCellValueExplicit('A' . $row, $lot_product['lot_product_id'], DataType::TYPE_STRING);
-            $sheet->setCellValue('B' . $row, $lot_product['lot_name']);
+            $sheet->setCellValue('A' . $row, $lot_product['lot_name']);
+            $sheet->setCellValueExplicit('B' . $row, $lot_product['lot_product_id'], DataType::TYPE_STRING);
             $sheet->setCellValue('C' . $row, $lot_product['product_name']);
             $sheet->setCellValue('D' . $row, number_format($lot_product['lot_product_capital'], 2));
             $sheet->setCellValue('E' . $row, $lot_product['lot_product_qty']);
             $sheet->setCellValue('F' . $row, $lot_product['lot_product_remain']);
-            $sheet->setCellValue('G' . $row, $lot_product['lot_product_status']);
-            $sheet->setCellValue('H' . $row, $lot_product['personnel_name']);
-            $sheet->setCellValue('I' . $row, $lot_product['lot_product_date']);
+            $sheet->setCellValue('G' . $row, $lot_product['lot_product_date']);
             $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             $sheet->getStyle('E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             $sheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
@@ -193,19 +194,38 @@ try {
         }
     } else {
         $row++;
-        $sheet->setCellValue('A' . $row, 'ไม่พบข้อมูลรายการรับสินค้า');
-        $sheet->mergeCells('A' . $row . ':I' . $row);
+        $sheet->setCellValue('A' . $row, 'ไม่พบข้อมูลรายการย้ายสินค้า');
+        $sheet->mergeCells('A' . $row . ':G' . $row);
         $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getRowDimension($row)->setRowHeight(20);
+    }
+
+    // Calculate totals
+    $total_qty = 0;
+    $total_remain = 0;
+    $total_cost = 0;
+
+    if (count($lot_products) > 0) {
+        foreach ($lot_products as $lot_product) {
+            $total_qty += (int)$lot_product['lot_product_qty'];
+            $total_remain += (int)$lot_product['lot_product_remain'];
+            $total_cost += (float)($lot_product['lot_product_qty'] * $lot_product['lot_product_capital']);
+        }
     }
 
     // Summary row
     $row++;
     $sheet->setCellValue('A' . $row, 'รวมทั้งหมด');
-    $sheet->mergeCells('A' . $row . ':H' . $row);
-    $sheet->setCellValue('I' . $row, count($lot_products) . ' รายการ');
-    $sheet->getStyle('A' . $row . ':I' . $row)->getFont()->setBold(true);
-    $sheet->getStyle('I' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->setCellValue('D' . $row, number_format($total_cost, 2));
+    $sheet->setCellValue('E' . $row, $total_qty);
+    $sheet->setCellValue('F' . $row, $total_remain);
+    $sheet->setCellValue('G' . $row, count($lot_products) . ' รายการ');
+    $sheet->mergeCells('A' . $row . ':C' . $row);
+    $sheet->getStyle('A' . $row . ':G' . $row)->getFont()->setBold(true);
+    $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle('E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle('G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
     $sheet->getRowDimension($row)->setRowHeight(20);
 
     // Apply borders to data and summary
@@ -217,33 +237,31 @@ try {
             ],
         ],
     ];
-    $sheet->getStyle('A' . $dataStartRow . ':I' . $row)->applyFromArray($styleArray);
+    $sheet->getStyle('A' . $dataStartRow . ':G' . $row)->applyFromArray($styleArray);
 
     // Set column widths
-    $sheet->getColumnDimension('A')->setWidth(15);
-    $sheet->getColumnDimension('B')->setWidth(25);
+    $sheet->getColumnDimension('A')->setWidth(25);
+    $sheet->getColumnDimension('B')->setWidth(15);
     $sheet->getColumnDimension('C')->setWidth(25);
     $sheet->getColumnDimension('D')->setWidth(15);
-    $sheet->getColumnDimension('E')->setWidth(15);
-    $sheet->getColumnDimension('F')->setWidth(15);
-    $sheet->getColumnDimension('G')->setWidth(15);
-    $sheet->getColumnDimension('H')->setWidth(25);
-    $sheet->getColumnDimension('I')->setWidth(20);
+    $sheet->getColumnDimension('E')->setWidth(25);
+    $sheet->getColumnDimension('F')->setWidth(25);
+    $sheet->getColumnDimension('G')->setWidth(20);
 
     // Set headers for download
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="LotProductReport_' . htmlspecialchars($lot_name ?: 'All') . '_' . date('Ymd_His') . '.xlsx"');
+    header('Content-Disposition: attachment;filename="ProductMovementReport_' . htmlspecialchars($lot_name ?: 'All') . '_' . date('Ymd_His') . '.xlsx"');
     header('Cache-Control: max-age=0');
 
     $writer = new Xlsx($spreadsheet);
-    ob_end_clean();
     $writer->save('php://output');
     exit;
 } catch (Exception $e) {
+    // Create error spreadsheet
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setCellValue('A1', 'เกิดข้อผิดพลาด: ' . htmlspecialchars($e->getMessage()));
-    $sheet->mergeCells('A1:I1');
+    $sheet->mergeCells('A1:G1');
     $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle('A1')->getFont()->setBold(true);
     $sheet->getRowDimension(1)->setRowHeight(25);
@@ -253,7 +271,7 @@ try {
     header('Cache-Control: max-age=0');
 
     $writer = new Xlsx($spreadsheet);
-    ob_end_clean();
     $writer->save('php://output');
     exit;
 }
+?>

@@ -1,12 +1,12 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
+$pdo = Database::getInstance()->getConnection(); 
 
 // Session Management
 if (!isset($_SESSION)) {
     session_start();
 }
-
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -19,7 +19,7 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
-// Function to fetch data
+// Database Functions
 function fetchData($pdo, $query, $params = [])
 {
     try {
@@ -35,13 +35,11 @@ function fetchData($pdo, $query, $params = [])
     }
 }
 
-// Verify CSRF token
 function verifyCsrfToken($token)
 {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-// Validate member data
 function validateMemberData($name, $phone, $type_id, $pdo, $exclude_id = null)
 {
     $errors = [];
@@ -71,142 +69,138 @@ function validateMemberData($name, $phone, $type_id, $pdo, $exclude_id = null)
     return $errors;
 }
 
-// Check member dependencies
 function checkMemberDependencies($pdo, $member_id)
 {
     $dependencies = [];
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM member WHERE member_id = ?");
+    // เพิ่มการตรวจสอบการพึ่งพาข้อมูลตามโครงสร้างฐานข้อมูลของคุณ
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM sale WHERE member_id = ?");
     $stmt->execute([$member_id]);
     $count = $stmt->fetchColumn();
     if ($count > 0) {
-        $dependencies[] = "ประเภทสมาชิก ({$count} รายการ)";
+        $dependencies[] = "คำสั่งซื้อ ({$count} รายการ)";
     }
     return $dependencies;
 }
 
-// Handle search, date, and type parameters
+// Handle Requests
 $type = isset($_GET['type']) ? urldecode(trim($_GET['type'])) : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
 $end_date = isset($_GET['end_date']) ? trim($_GET['end_date']) : '';
 
-// Handle POST requests for adding member
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!verifyCsrfToken($_POST['csrf_token'])) {
         header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=Invalid CSRF token');
         exit;
     }
 
-    $name = trim($_POST['add_member_name']);
-    $phone = trim($_POST['add_member_phone']);
-    $type_id = filter_var($_POST['member_type_id'], FILTER_VALIDATE_INT);
+    if ($_POST['action'] === 'add') {
+        $name = trim($_POST['add_member_name']);
+        $phone = trim($_POST['add_member_phone']);
+        $type_id = filter_var($_POST['member_type_id'], FILTER_VALIDATE_INT);
 
-    $errors = validateMemberData($name, $phone, $type_id, $pdo);
+        $errors = validateMemberData($name, $phone, $type_id, $pdo);
+        if (!empty($errors)) {
+            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode(implode(', ', $errors)));
+            exit;
+        }
 
-    if (!empty($errors)) {
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode(implode(', ', $errors)));
-        exit;
+        try {
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("INSERT INTO member (member_name, member_phone, member_type_id, member_register_date) VALUES (?, ?, ?, NOW())");
+            $stmt->execute([$name, $phone, $type_id]);
+            $pdo->commit();
+            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            exit;
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            error_log("Add member error: " . $e->getMessage());
+            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())));
+            exit;
+        }
     }
 
-    try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("INSERT INTO member (member_name, member_phone, member_type_id, member_register_date) VALUES (?, ?, ?, NOW())");
-        $stmt->execute([$name, $phone, $type_id]);
-        $pdo->commit();
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&success=เพิ่มข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Add member error: " . $e->getMessage());
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())));
-        exit;
+    if ($_POST['action'] === 'edit') {
+        $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+        $name = trim($_POST['update_member_name']);
+        $phone = trim($_POST['update_member_phone']);
+        $type_id = filter_var($_POST['update_member_type_id'], FILTER_VALIDATE_INT);
+
+        $errors = validateMemberData($name, $phone, $type_id, $pdo, $id);
+        if (!$id) {
+            $errors[] = 'รหัสสมาชิกไม่ถูกต้อง';
+        }
+
+        if (!empty($errors)) {
+            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode(implode(', ', $errors)));
+            exit;
+        }
+
+        try {
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("UPDATE member SET member_name = ?, member_phone = ?, member_type_id = ? WHERE member_id = ?");
+            $stmt->execute([$name, $phone, $type_id, $id]);
+            if ($stmt->rowCount() === 0) {
+                $pdo->rollBack();
+                header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=ไม่พบข้อมูลสมาชิกที่ต้องการแก้ไข');
+                exit;
+            }
+            $pdo->commit();
+            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            exit;
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            error_log("Update member error: " . $e->getMessage());
+            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())));
+            exit;
+        }
+    }
+
+    if ($_POST['action'] === 'delete') {
+        $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+        if (!$id) {
+            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=รหัสสมาชิกไม่ถูกต้อง');
+            exit;
+        }
+
+        try {
+            $pdo->beginTransaction();
+            $dependencies = checkMemberDependencies($pdo, $id);
+            if (!empty($dependencies)) {
+                $pdo->rollBack();
+                $dependency_list = implode(', ', $dependencies);
+                header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode("ไม่สามารถลบสมาชิกได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: {$dependency_list}"));
+                exit;
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
+            $stmt->execute([$id]);
+            if ($stmt->rowCount() === 0) {
+                $pdo->rollBack();
+                header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=ไม่พบข้อมูลสมาชิกที่ต้องการลบ');
+                exit;
+            }
+            $pdo->commit();
+            header("Location: index.php?page=member_group&type=" . urlencode($type) . "&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
+            exit;
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            error_log("Delete member error: ID=$id, Error=" . $e->getMessage());
+            $error_message = strpos($e->getMessage(), '1451') !== false
+                ? 'ไม่สามารถลบสมาชิกได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่ในระบบ'
+                : 'เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage());
+            header("Location: index.php?page=member_group&type=" . urlencode($type) . "&error=" . urlencode($error_message));
+            exit;
+        }
     }
 }
 
-// Handle POST requests for updating member
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit') {
-    if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=Invalid CSRF token');
-        exit;
-    }
-
-    $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
-    $name = trim($_POST['update_member_name']);
-    $phone = trim($_POST['update_member_phone']);
-    $type_id = filter_var($_POST['update_member_type_id'], FILTER_VALIDATE_INT);
-
-    $errors = validateMemberData($name, $phone, $type_id, $pdo, $id);
-    if (!$id) {
-        $errors[] = 'รหัสสมาชิกไม่ถูกต้อง';
-    }
-
-    if (!empty($errors)) {
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode(implode(', ', $errors)));
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE member SET member_name = ?, member_phone = ?, member_type_id = ? WHERE member_id = ?");
-        $stmt->execute([$name, $phone, $type_id, $id]);
-        if ($stmt->rowCount() === 0) {
-            $pdo->rollBack();
-            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=ไม่พบข้อมูลสมาชิกที่ต้องการแก้ไข');
-            exit;
-        }
-        $pdo->commit();
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Update member error: " . $e->getMessage());
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode('เกิดข้อผิดพลาดในฐานข้อมูล: ' . htmlspecialchars($e->getMessage())));
-        exit;
-    }
-}
-
-// Handle DELETE request
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id']) && $_POST['action'] === 'delete') {
-    if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=Invalid CSRF token');
-        exit;
-    }
-
-    $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
-    if (!$id) {
-        header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=รหัสสมาชิกไม่ถูกต้อง');
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-        $dependencies = checkMemberDependencies($pdo, $id);
-        if (!empty($dependencies)) {
-            $pdo->rollBack();
-            $dependency_list = implode(', ', $dependencies);
-            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode("ไม่สามารถลบสมาชิกได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่: {$dependency_list}"));
-            exit;
-        }
-
-        $stmt = $pdo->prepare("DELETE FROM member WHERE member_id = ?");
-        $stmt->execute([$id]);
-        if ($stmt->rowCount() === 0) {
-            $pdo->rollBack();
-            header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=ไม่พบข้อมูลสมาชิกที่ต้องการลบ');
-            exit;
-        }
-        $pdo->commit();
-        header("Location: index.php?page=member_group&type=" . urlencode($type) . "&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Delete member error: ID=$id, Error=" . $e->getMessage());
-        $error_message = strpos($e->getMessage(), '1451') !== false
-            ? 'ไม่สามารถลบสมาชิกได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่ในระบบ'
-            : 'เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage());
-        header("Location: index.php?page=member_group&type=" . urlencode($type) . "&error=" . urlencode($error_message));
-        exit;
-    }
+// Fetch member types for dropdown
+try {
+    $member_types = fetchData($pdo, "SELECT member_type_id, member_type_name FROM member_type ORDER BY member_type_name")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode($e->getMessage()));
+    exit;
 }
 
 // Count total records for pagination
@@ -222,13 +216,14 @@ try {
         $params[':search'] = "%$search%";
     }
     if ($start_date) {
-        $count_query .= " AND member_register_date >= :start_date";
-        $params[':start_date'] = $start_date . ' 00:00:00';
+        $count_query .= " AND DATE(member.member_register_date) >= :start_date";
+        $params[':start_date'] = $start_date;
     }
     if ($end_date) {
-        $count_query .= " AND member_register_date <= :end_date";
-        $params[':end_date'] = $end_date . ' 23:59:59';
+        $count_query .= " AND DATE(member.member_register_date) <= :end_date";
+        $params[':end_date'] = $end_date;
     }
+
     $stmt = $pdo->prepare($count_query);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -241,60 +236,8 @@ try {
     exit;
 }
 
-// Pagination logic
 $records_per_page = 5;
 $page = isset($_GET['page_num']) ? max(1, min((int)$_GET['page_num'], ceil($total_records / $records_per_page))) : 1;
-$offset = ($page - 1) * $records_per_page;
-$total_pages = max(1, ceil($total_records / $records_per_page));
-
-// Fetch member types for dropdown
-try {
-    $member_type_query = "SELECT member_type_id, member_type_name FROM member_type ORDER BY member_type_name";
-    $member_types = fetchData($pdo, $member_type_query)->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode($e->getMessage()));
-    exit;
-}
-
-// Fetch member data
-try {
-    $query = "
-        SELECT 
-            m.member_id,
-            m.member_name,
-            m.member_phone,
-            m.member_register_date,
-            m.member_type_id,
-            mt.member_type_name
-        FROM member m
-        INNER JOIN member_type mt ON m.member_type_id = mt.member_type_id
-        WHERE mt.member_type_name = :type";
-    $params = [':type' => $type];
-    if (!empty($search)) {
-        $query .= " AND (m.member_id LIKE :search OR m.member_name LIKE :search OR m.member_phone LIKE :search)";
-        $params[':search'] = "%$search%";
-    }
-    if ($start_date) {
-        $query .= " AND m.member_register_date >= :start_date";
-        $params[':start_date'] = $start_date . ' 00:00:00';
-    }
-    if ($end_date) {
-        $query .= " AND m.member_register_date <= :end_date";
-        $params[':end_date'] = $end_date . ' 23:59:59';
-    }
-    $query .= " ORDER BY m.member_id DESC LIMIT :offset, :records_per_page";
-    $stmt = $pdo->prepare($query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-    $stmt->execute();
-    $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    header('Location: index.php?page=member_group&type=' . urlencode($type) . '&error=' . urlencode($e->getMessage()));
-    exit;
-}
 ?>
 
 <!DOCTYPE html>
@@ -304,90 +247,84 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>กลุ่มสมาชิก: <?php echo htmlspecialchars($type); ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../../style/page_list.css">
-    <style>
-        @media (max-width: 768px) {
-            .table-responsive {
-                display: none;
-            }
-
-            .card-responsive {
-                display: block;
-            }
-        }
-
-        @media (min-width: 769px) {
-            .table-responsive {
-                display: block;
-            }
-
-            .card-responsive {
-                display: none;
-            }
-        }
-    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <link href="../../output.css" rel="stylesheet">
+    <link href="../../style/page_list.css" rel="stylesheet">
 </head>
 
-<body class="bg-gray-100 font-sans">
+<body class="bg-gradient-to-br from-blue-50 to-white min-h-screen font-sans text-base">
     <div class="container mx-auto px-4 py-8">
         <!-- Header Section -->
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-indigo-900">กลุ่มสมาชิก: <?php echo htmlspecialchars($type); ?></h1>
             <p class="text-gray-600">ข้อมูลสมาชิกทั้งหมดในประเภท <?php echo htmlspecialchars($type); ?></p>
         </div>
+
         <!-- Header and Search Section -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
             <div class="flex flex-col w-full md:flex-row md:w-auto items-center space-y-2 md:space-y-0 md:space-x-4">
-                <span class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
+                <span id="totalRecords" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
                     <i class="fas fa-users mr-2"></i> <?php echo number_format($total_records); ?> รายการ
                 </span>
-                <button onclick="showAddModal()" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition justify-center md:justify-start">
+                <button onclick="showAddModal()" class="btn-primary text-white py-2 px-4 rounded-lg font-medium hover-lift w-full md:w-auto">
                     <i class="fas fa-plus mr-2"></i> เพิ่มสมาชิก
                 </button>
+                <button onclick="viewAllData()" class="bg-gray-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-600 transition hover-lift w-full md:w-auto">
+                    <i class="fas fa-eye mr-2"></i> ดูข้อมูลทั้งหมด
+                </button>
             </div>
-            <form action="" method="GET" class="w-full md:w-auto">
+            <form id="searchForm" action="" method="GET" class="w-full md:w-auto">
                 <input type="hidden" name="page" value="member_group">
                 <input type="hidden" name="type" value="<?php echo htmlspecialchars($type); ?>">
                 <input type="hidden" name="page_num" value="1">
                 <div class="relative">
                     <input type="text" name="search" id="searchInput" placeholder="ค้นหาสมาชิก..." value="<?php echo htmlspecialchars($search); ?>"
-                        class="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        <i class="fas fa-search"></i>
+                        class="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg pl-12 pr-12 bg-white/70 backdrop-blur-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all duration-200">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-base md:text-lg"></i>
+                    <button type="button" id="clearSearch" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-500 transition <?php echo $search ? '' : 'hidden'; ?>">
+                        <i class="fas fa-times-circle text-base md:text-lg"></i>
                     </button>
                 </div>
             </form>
         </div>
 
         <!-- Date Filter and Export Buttons -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label for="start_date" class="block text-sm font-medium text-gray-700">เริ่มจาก</label>
-                    <input type="date" id="start_date" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>"
-                        class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="glass-effect rounded-xl p-4 mb-6 card-shadow">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-calendar-alt text-blue-500"></i>กรองตามวันที่
+                    </h3>
+                    <div class="flex flex-col xs:flex-row gap-2">
+                        <input type="date" id="start_date" name="start_date"
+                            class="border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 standard-input-mobile"
+                            value="<?php echo htmlspecialchars($start_date); ?>">
+                        <input type="date" id="end_date" name="end_date"
+                            class="border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 standard-input-mobile"
+                            value="<?php echo htmlspecialchars($end_date); ?>">
+                    </div>
                 </div>
-                <div>
-                    <label for="end_date" class="block text-sm font-medium text-gray-700">ถึงวันที่</label>
-                    <input type="date" id="end_date" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>"
-                        class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="flex items-end space-x-2">
-                    <button onclick="exportPDF()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
-                        <i class="fas fa-file-pdf mr-2"></i> ส่งออก PDF
+                <div class="flex flex-col xs:flex-row gap-2">
+                    <button id="export-buttons" onclick="exportPDF()"
+                        class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition hover-lift flex items-center gap-2 standard-button-mobile"
+                        data-type="<?php echo htmlspecialchars($type); ?>"
+                        data-token="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <i class="fas fa-file-pdf"></i><span>PDF</span>
                     </button>
-                    <button onclick="exportExcel()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-                        <i class="fas fa-file-excel mr-2"></i> ส่งออก Excel
+                    <button id="export-excel-button" onclick="exportExcel()"
+                        class="bg-emerald-500 text-white py-2 px-4 rounded-lg hover:bg-emerald-600 transition hover-lift flex items-center gap-2 standard-button-mobile"
+                        data-type="<?php echo htmlspecialchars($type); ?>"
+                        data-token="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <i class="fas fa-file-excel"></i><span>Excel</span>
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Notification -->
-        <div id="notification"
-            class="fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 transform translate-x-full transition-transform duration-300 z-50 flex items-center">
+        <div id="notification" class="fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 transform translate-x-full transition-transform duration-300 z-50 flex items-center">
             <div id="notification-header" class="flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg">
                 <i id="notificationIcon" class="fas fa-check-circle text-2xl"></i>
             </div>
@@ -400,186 +337,9 @@ try {
             </button>
         </div>
 
-        <!-- Table Section -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="overflow-x-auto table-responsive">
-                <table class="w-full table-auto">
-                    <thead>
-                        <tr class="bg-gray-50 text-gray-700 text-sm">
-                            <th class="px-6 py-3 text-left font-semibold">รหัสสมาชิก</th>
-                            <th class="px-6 py-3 text-left font-semibold">ชื่อ-นามสกุล</th>
-                            <th class="px-6 py-3 text-left font-semibold">ประเภท</th>
-                            <th class="px-6 py-3 text-left font-semibold">เบอร์โทรศัพท์</th>
-                            <th class="px-6 py-3 text-left font-semibold">วันที่และเวลา</th>
-                            <th class="px-6 py-3 text-center font-semibold">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <?php if (count($members) > 0): ?>
-                            <?php foreach ($members as $member): ?>
-                                <tr class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-3 border-t"><?php echo htmlspecialchars($member['member_id']); ?></td>
-                                    <td class="px-6 py-3 border-t">
-                                        <a href="?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>"
-                                            class="text-blue-600 hover:underline cursor-pointer">
-                                            <?php echo htmlspecialchars($member['member_name']); ?>
-                                        </a>
-                                    </td>
-                                    <td class="px-6 py-3 border-t"><?php echo htmlspecialchars($member['member_type_name']); ?></td>
-                                    <td class="px-6 py-3 border-t"><?php echo htmlspecialchars($member['member_phone']); ?></td>
-                                    <td class="px-6 py-3 border-t"><?php echo htmlspecialchars($member['member_register_date']); ?></td>
-                                    <td class="px-6 py-3 border-t text-center">
-                                        <div class="flex justify-center space-x-2">
-                                            <button onclick="showEditModal('<?php echo htmlspecialchars($member['member_id']); ?>', '<?php echo htmlspecialchars(addslashes($member['member_name'])); ?>', '<?php echo htmlspecialchars($member['member_phone']); ?>', '<?php echo htmlspecialchars($member['member_type_id']); ?>')"
-                                                class="flex items-center justify-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition">
-                                                <div class="hidden md:flex">
-                                                    <i class="fas fa-edit mr-1"></i>
-                                                </div>
-                                                <p>แก้ไข</p>
-                                            </button>
-                                            <form action="" method="POST" class="delete-form inline-flex">
-                                                <input type="hidden" name="id" value="<?php echo htmlspecialchars($member['member_id']); ?>">
-                                                <input type="hidden" name="action" value="delete">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                <button type="button" onclick="confirmDelete(this.parentElement)"
-                                                    class="flex items-center justify-center px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
-                                                    <div class="hidden md:flex">
-                                                        <i class="fas fa-trash-alt mr-1"></i>
-                                                    </div>
-                                                    <p>ลบ</p>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                                    <div class="flex flex-col items-center justify-center py-6">
-                                        <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
-                                        <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
-                                        <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
-                                            <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
-                                                <a href="?page=member_group&type=<?php echo urlencode($type); ?>" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
-                                            </p>
-                                        <?php else: ?>
-                                            <p class="text-gray-500 mt-1">ยังไม่มีข้อมูลสมาชิกในกลุ่มนี้</p>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Card View (Mobile) -->
-            <div class="card-responsive p-6">
-                <?php if (count($members) > 0): ?>
-                    <?php foreach ($members as $member): ?>
-                        <div class="bg-white p-4 mb-4 rounded-lg shadow" data-id="<?php echo htmlspecialchars($member['member_id']); ?>">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-700 font-semibold text-sm">รหัสสมาชิก:</span>
-                                <span class="text-sm"><?php echo htmlspecialchars($member['member_id']); ?></span>
-                            </div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-700 font-semibold text-sm">ชื่อ-นามสกุล:</span>
-                                <a href="?page=member_detail&tabel=member&id=<?php echo htmlspecialchars($member['member_id']); ?>"
-                                    class="text-blue-600 hover:underline text-sm">
-                                    <?php echo htmlspecialchars($member['member_name']); ?>
-                                </a>
-                            </div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-700 font-semibold text-sm">ประเภท:</span>
-                                <span class="text-sm"><?php echo htmlspecialchars($member['member_type_name']); ?></span>
-                            </div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-700 font-semibold text-sm">เบอร์โทรศัพท์:</span>
-                                <span class="text-sm"><?php echo htmlspecialchars($member['member_phone']); ?></span>
-                            </div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-700 font-semibold text-sm">วันที่และเวลา:</span>
-                                <span class="text-sm"><?php echo htmlspecialchars($member['member_register_date']); ?></span>
-                            </div>
-                            <div class="flex justify-center space-x-2 mt-4">
-                                <button onclick="showEditModal('<?php echo htmlspecialchars($member['member_id']); ?>', '<?php echo htmlspecialchars(addslashes($member['member_name'])); ?>', '<?php echo htmlspecialchars($member['member_phone']); ?>', '<?php echo htmlspecialchars($member['member_type_id']); ?>')"
-                                    class="flex items-center justify-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition">
-                                    <i class="fas fa-edit mr-1"></i> แก้ไข
-                                </button>
-                                <form action="" method="POST" class="delete-form inline-flex">
-                                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($member['member_id']); ?>">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                    <button type="button" onclick="confirmDelete(this.parentElement)"
-                                        class="flex items-center justify-center px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
-                                        <i class="fas fa-trash-alt mr-1"></i> ลบ
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="text-center py-4 text-gray-600 text-sm">
-                        <div class="flex flex-col items-center justify-center py-6">
-                            <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
-                            <p class="text-lg font-medium">ไม่พบข้อมูลที่ค้นหา</p>
-                            <?php if (!empty($search) || !empty($start_date) || !empty($end_date)): ?>
-                                <p class="text-gray-500 mt-1">ลองค้นหาด้วยคำค้นหาอื่น หรือ
-                                    <a href="?page=member_group&type=<?php echo urlencode($type); ?>" class="text-indigo-600 hover:underline">ดูข้อมูลทั้งหมด</a>
-                                </p>
-                            <?php else: ?>
-                                <p class="text-gray-500 mt-1">ยังไม่มีข้อมูลสมาชิกในกลุ่มนี้</p>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Pagination -->
-        <div class="flex justify-center mt-6 space-x-2">
-            <?php if ($total_pages > 1): ?>
-                <?php if ($page > 1): ?>
-                    <a href="?page=member_group&type=<?= urlencode($type) ?>&page_num=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">« ก่อนหน้า</a>
-                <?php endif; ?>
-                <?php
-                $start_page = max(1, $page - 2);
-                $end_page = min($total_pages, $page + 2);
-                if ($start_page > 1): ?>
-                    <a href="?page=member_group&type=<?= urlencode($type) ?>&page_num=1<?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">1</a>
-                    <?php if ($start_page > 2): ?>
-                        <span class="px-4 py-2 text-gray-500">...</span>
-                    <?php endif; ?>
-                <?php endif; ?>
-                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=member_group&type=<?= urlencode($type) ?>&page_num=<?= $i ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 rounded-md transition <?= $i == $page ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300' ?>"><?= $i ?></a>
-                <?php endfor; ?>
-                <?php if ($end_page < $total_pages): ?>
-                    <?php if ($end_page < $total_pages - 1): ?>
-                        <span class="px-4 py-2 text-gray-500">...</span>
-                    <?php endif; ?>
-                    <a href="?page=member_group&type=<?= urlencode($type) ?>&page_num=<?= $total_pages ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition"><?= $total_pages ?></a>
-                <?php endif; ?>
-                <?php if ($page < $total_pages): ?>
-                    <a href="?page=member_group&type=<?= urlencode($type) ?>&page_num=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?><?= !empty($start_date) ? '&start_date=' . urlencode($start_date) : '' ?><?= !empty($end_date) ? '&end_date=' . urlencode($end_date) : '' ?>"
-                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition">ถัดไป »</a>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-
-        <!-- Navigation Links -->
-        <div class="flex justify-center space-x-4 mt-6">
-            <a href="?page=member_list" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
-                <i class="fas fa-list mr-2"></i> หน้ารายการ
-            </a>
-            <a href="?page=member_type" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition">
-                <i class="fas fa-tags mr-2"></i> หน้าประเภท
-            </a>
+        <!-- Table -->
+        <div id="memberTable" class="glass-effect rounded-xl p-6 card-shadow animate-fade-in">
+            <!-- ตารางจะถูกโหลดผ่าน AJAX -->
         </div>
 
         <!-- Add Modal -->
@@ -591,7 +351,7 @@ try {
                     </h3>
                     <p class="text-sm text-gray-500">กรุณากรอกข้อมูลสมาชิก</p>
                 </div>
-                <form id="addForm" method="POST" class="space-y-4">
+                <form id="addForm" method="POST" class="space-y-4" autocomplete="off">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="member_type_id" id="addMemberTypeId"
@@ -605,14 +365,14 @@ try {
                         <label class="block text-sm font-medium text-gray-700">ชื่อ-นามสกุล</label>
                         <input type="text" id="addMemberName" name="add_member_name"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addNameError">
+                            required aria-describedby="addNameError" autocomplete="off">
                         <span id="addNameError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
-                        <input type="text" id="addMemberPhone" name="add_member_phone"
+                        <input type="text" id="addMemberPhone" name="add_member_phone" maxlength="10"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required aria-describedby="addPhoneError">
+                            required aria-describedby="addPhoneError" autocomplete="off">
                         <span id="addPhoneError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
@@ -651,7 +411,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
-                        <input type="text" id="editMemberPhone" name="update_member_phone"
+                        <input type="text" id="editMemberPhone" name="update_member_phone" maxlength="10"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required aria-describedby="editPhoneError">
                         <span id="editPhoneError" class="text-red-500 text-xs mt-1 hidden"></span>
@@ -695,227 +455,11 @@ try {
                 </div>
             </div>
         </div>
+
+
     </div>
 
-    <script>
-        const showAddModal = () => {
-            document.getElementById('addMemberName').value = '';
-            document.getElementById('addMemberPhone').value = '';
-            document.getElementById('addNameError').classList.add('hidden');
-            document.getElementById('addPhoneError').classList.add('hidden');
-            document.getElementById('addModal').classList.remove('hidden');
-        };
-
-        const closeAddModal = () => {
-            document.getElementById('addModal').classList.add('hidden');
-        };
-
-        const showEditModal = (id, name, phone, typeId) => {
-            document.getElementById('editMemberId').value = id;
-            document.getElementById('editMemberName').value = name;
-            document.getElementById('editMemberPhone').value = phone;
-            document.getElementById('editMemberTypeId').value = typeId;
-            document.getElementById('editNameError').classList.add('hidden');
-            document.getElementById('editPhoneError').classList.add('hidden');
-            document.getElementById('editTypeError').classList.add('hidden');
-            document.getElementById('editModal').classList.remove('hidden');
-        };
-
-        const closeEditModal = () => {
-            document.getElementById('editModal').classList.add('hidden');
-        };
-
-        const showDeleteModal = () => {
-            document.getElementById('deleteModal').classList.remove('hidden');
-        };
-
-        const closeDeleteModal = () => {
-            document.getElementById('deleteModal').classList.add('hidden');
-        };
-
-        const confirmDelete = (form) => {
-            showDeleteModal();
-            document.getElementById('confirmDeleteBtn').onclick = () => form.submit();
-        };
-
-        const showNotification = (message, headerClass) => {
-            const notification = document.getElementById('notification');
-            const header = document.getElementById('notification-header');
-            const title = document.getElementById('notificationTitle');
-            const body = document.getElementById('notificationMessage');
-            const icon = document.getElementById('notificationIcon');
-
-            header.className = `flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg ${headerClass}`;
-            title.textContent = 'แจ้งเตือน';
-            body.textContent = message;
-            icon.className = `fas ${headerClass.includes('bg-green') ? 'fa-check-circle' : 'fa-exclamation-circle'} text-2xl`;
-            notification.classList.remove('translate-x-full');
-
-            setTimeout(() => {
-                hideNotification();
-            }, 5000);
-        };
-
-        const hideNotification = () => {
-            document.getElementById('notification').classList.add('translate-x-full');
-        };
-
-        const exportPDF = () => {
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
-            let url = '/page/member/report/export_member_group_pdf.php?type=<?php echo urlencode($type); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>';
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
-            window.open(url, '_blank');
-        };
-
-        const exportExcel = () => {
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
-            let url = '/page/member/report/export_member_group_excel.php?type=<?php echo urlencode($type); ?>&csrf_token=<?php echo urlencode($_SESSION['csrf_token']); ?>';
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
-            window.open(url, '_blank');
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchInput = document.getElementById('searchInput');
-
-            if (searchInput) {
-                searchInput.focus();
-                searchInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') {
-                        searchInput.value = '';
-                        searchInput.form.submit();
-                    }
-                    if (e.key === 'Enter') {
-                        localStorage.setItem('searchPreserve', searchInput.value);
-                    }
-                });
-
-                const preserved = localStorage.getItem('searchPreserve');
-                if (preserved) {
-                    searchInput.value = preserved;
-                    searchInput.focus();
-                    searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
-                    localStorage.removeItem('searchPreserve');
-                }
-
-                searchInput.addEventListener('input', () => {
-                    if (searchInput.value.trim() === '') {
-                        searchInput.form.submit();
-                    }
-                });
-            }
-
-            if (urlParams.has('success')) {
-                showNotification(decodeURIComponent(urlParams.get('success')), 'bg-green-500');
-            } else if (urlParams.has('error')) {
-                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
-            }
-
-            const validateForm = (formId, fields) => {
-                let hasError = false;
-                fields.forEach(({
-                    id,
-                    errorId,
-                    label,
-                    maxLength,
-                    required,
-                    validate,
-                    errorMessage
-                }) => {
-                    const input = document.getElementById(id);
-                    const error = document.getElementById(errorId);
-                    if (required && !input.value.trim()) {
-                        error.textContent = `กรุณากรอก${label}`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (maxLength && input.value.length > maxLength) {
-                        error.textContent = `${label}ยาวเกิน ${maxLength} ตัวอักษร`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (validate && !validate(input.value)) {
-                        error.textContent = errorMessage;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else {
-                        error.classList.add('hidden');
-                    }
-                });
-                return !hasError;
-            };
-
-            document.getElementById('addForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const fields = [{
-                        id: 'addMemberName',
-                        errorId: 'addNameError',
-                        label: 'ชื่อ-นามสกุล',
-                        maxLength: 255,
-                        required: true
-                    },
-                    {
-                        id: 'addMemberPhone',
-                        errorId: 'addPhoneError',
-                        label: 'เบอร์โทรศัพท์',
-                        validate: (value) => !value || /^[0-9]{10}$/.test(value),
-                        errorMessage: 'ต้องเป็นตัวเลข 10 หลัก',
-                        required: true
-                    }
-                ];
-                if (validateForm('addForm', fields)) {
-                    e.target.submit();
-                }
-            });
-
-            document.getElementById('editForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const fields = [{
-                        id: 'editMemberName',
-                        errorId: 'editNameError',
-                        label: 'ชื่อ-นามสกุล',
-                        maxLength: 255,
-                        required: true
-                    },
-                    {
-                        id: 'editMemberPhone',
-                        errorId: 'editPhoneError',
-                        label: 'เบอร์โทรศัพท์',
-                        validate: (value) => !value || /^[0-9]{10}$/.test(value),
-                        errorMessage: 'ต้องเป็นตัวเลข 10 หลัก',
-                        required: true
-                    },
-                    {
-                        id: 'editMemberTypeId',
-                        errorId: 'editTypeError',
-                        label: 'ประเภทสมาชิก',
-                        required: true
-                    }
-                ];
-                if (validateForm('editForm', fields)) {
-                    e.target.submit();
-                }
-            });
-
-            document.getElementById('start_date').addEventListener('change', updateDateFilter);
-            document.getElementById('end_date').addEventListener('change', updateDateFilter);
-
-            function updateDateFilter() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
-                const urlParams = new URLSearchParams(window.location.search);
-                urlParams.set('page', 'member_group');
-                urlParams.set('type', '<?php echo urlencode($type); ?>');
-                if (startDate) urlParams.set('start_date', startDate);
-                else urlParams.delete('start_date');
-                if (endDate) urlParams.set('end_date', endDate);
-                else urlParams.delete('end_date');
-                window.location.search = urlParams.toString();
-            }
-        });
-    </script>
+    <script src="/page/member/function/member_group.js"></script>
 </body>
 
 </html>

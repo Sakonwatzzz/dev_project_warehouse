@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
-
+$pdo = Database::getInstance()->getConnection(); 
 // Set timezone
 date_default_timezone_set('Asia/Bangkok');
 
@@ -204,7 +204,8 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/output.css" rel="stylesheet">
+    <link href="../../output.css" rel="stylesheet">
+    <link href="../../style/page_insert.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <title>เพิ่มสินค้า | ระบบจัดการข้อมูล</title>
     <style>
@@ -283,7 +284,7 @@ ob_end_flush();
 </head>
 
 <body class="font-sans bg-gray-50 text-gray-800">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ">
         <!-- Header Section -->
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-indigo-900">เพิ่มสินค้า</h1>
@@ -291,7 +292,7 @@ ob_end_flush();
         </div>
 
         <!-- Form Section -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-lg shadow-lg border border-gray-100 p-6">
             <form id="productForm" class="space-y-4" action="" method="POST">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 

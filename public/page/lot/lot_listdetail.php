@@ -2,6 +2,8 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 
+$pdo = Database::getInstance()->getConnection(); 
+
 // รับค่า lot_id จาก URL
 $lot_id = $_GET['id'] ?? null;
 
@@ -196,36 +198,35 @@ try {
                 </span>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">รหัส Lot สินค้า:</span>
-                    <span><?php echo htmlspecialchars($lot_data['lot_id']); ?></span>
+                <div class="flex flex-wrap items-center">
+                    <span class="text-gray-600 font-medium w-32 md:w-40 min-w-[8rem]">รหัส Lot สินค้า:</span>
+                    <span class="break-words"><?php echo htmlspecialchars($lot_data['lot_id']); ?></span>
                 </div>
-                <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">ชื่อ Lot สินค้า:</span>
-                    <span><?php echo htmlspecialchars($lot_data['lot_name']); ?></span>
+                <div class="flex flex-wrap items-center">
+                    <span class="text-gray-600 font-medium w-32 md:w-40 min-w-[8rem]">ชื่อ Lot สินค้า:</span>
+                    <span class="break-words"><?php echo htmlspecialchars($lot_data['lot_name']); ?></span>
                 </div>
-                <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">วันที่รับสินค้า:</span>
+                <div class="flex flex-wrap items-center">
+                    <span class="text-gray-600 font-medium w-32 md:w-40 min-w-[8rem]">วันที่รับสินค้า:</span>
                     <span><?php echo htmlspecialchars($lot_data['lot_date']); ?></span>
                 </div>
-                <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">รับมาจากผู้ส่งมอบ:</span>
-                    <span><?php echo htmlspecialchars($lot_data['supplier_name']); ?></span>
+                <div class="flex flex-wrap items-center">
+                    <span class="text-gray-600 font-medium w-32 md:w-40 min-w-[8rem]">รับมาจากผู้ส่งมอบ:</span>
+                    <span class="break-words"><?php echo htmlspecialchars($lot_data['supplier_name']); ?></span>
                 </div>
-                <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">คลังสินค้า:</span>
+                <div class="flex flex-wrap items-center">
+                    <span class="text-gray-600 font-medium w-32 md:w-40 min-w-[8rem]">คลังสินค้า:</span>
                     <span><?php echo htmlspecialchars($lot_data['warehouse_name']); ?></span>
                 </div>
-
-                <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">รับมาจากร้าน:</span>
-                    <span><?php echo htmlspecialchars($lot_data['store_name']); ?></span>
+                <div class="flex flex-wrap items-center">
+                    <span class="text-gray-600 font-medium w-32 md:w-40 min-w-[8rem]">รับมาจากร้าน:</span>
+                    <span class="break-words"><?php echo htmlspecialchars($lot_data['store_name']); ?></span>
                 </div>
-                <div class="flex items-center">
-                    <span class="text-gray-600 font-medium w-40">พนักงาน:</span>
-                    <span><?php echo htmlspecialchars($lot_data['personnel_name']); ?></span>
+                <div class="flex flex-wrap items-center">
+                    <span class="text-gray-600 font-medium w-32 md:w-40 min-w-[8rem]">พนักงาน:</span>
+                    <span class="break-words"><?php echo htmlspecialchars($lot_data['personnel_name']); ?></span>
                 </div>
-                <div class="flex items-center">
+                <div class="flex flex-wrap items-center">
                     <?php
                     if (!empty($lot_data['warehouse_inout'])) {
                         echo $lot_data['warehouse_inout'] == 1 ?
@@ -239,6 +240,7 @@ try {
             </div>
         </div>
 
+
         <!-- Barcode Scanner Section -->
         <?php if ($lot_data['lot_status_id'] != 2): ?>
             <div class="card mb-6">
@@ -250,7 +252,7 @@ try {
                             <input type="text" id="barcode" name="barcode"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                 placeholder="เช่น 12354685 หรือ 50*12354685 หรือ 120/50*12354685 หรือ -12354685 หรือ -50*12354685"
-                                pattern="[0-9*/\-\.]*"
+                                pattern="[-0-9*/.]*"
                                 autocomplete="off"
                                 autofocus>
                         </div>
@@ -306,7 +308,7 @@ try {
 
         <!-- Action Buttons -->
         <div class="flex justify-between mt-6">
-            <a href="?page=lot_listinsert" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
+            <a href="?page=lot_insert" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
                 <i class="fas fa-arrow-left mr-2"></i>กลับ
             </a>
         </div>
@@ -520,8 +522,7 @@ try {
                             return;
                         }
 
-                        // Updated regex to support price/qty*barcode, qty*barcode, -barcode, -qty*barcode, or just barcode
-                        if (!/^(?:-?\d+\.\d*\/\d+\*\d+|-\d+\*\d+|-\d+|\d+\.\d*\/\d+\*\d+|\d+\*\d+|\d+)$/.test(barcode)) {
+                        if (!/^(?:-?\d+(?:\.\d+)?\/\d+\*\d+|-\d+\*\d+|-\d+|\d+(?:\.\d+)?\/\d+\*\d+|\d+\*\d+|\d+)$/.test(barcode)) {
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'รูปแบบไม่ถูกต้อง',
@@ -635,7 +636,7 @@ try {
                                                 showConfirmButton: false,
                                                 timer: 1500
                                             }).then(() => {
-                                                window.location.href = 'index.php?page=lot_listinsert';
+                                                window.location.href = 'index.php?page=lot_insert';
                                             });
                                         } else {
                                             Swal.fire({

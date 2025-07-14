@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
+
 
 // รับค่า lot_id จาก request
 $lot_id = isset($_GET['lot_id']) ? (int)$_GET['lot_id'] : 0;
