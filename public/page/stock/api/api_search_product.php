@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
-
+$pdo = Database::getInstance()->getConnection(); 
 $query = isset($_GET['query']) ? trim($_GET['query']) : '';
 $warehouse_id = isset($_GET['warehouse_id']) ? trim($_GET['warehouse_id']) : '';
 $products = [];

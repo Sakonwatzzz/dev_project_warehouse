@@ -13,7 +13,7 @@ try {
     ]);
     exit();
 }
-
+$pdo = Database::getInstance()->getConnection(); 
 try {
     require_once __DIR__ . '/../../../../functions/adjustLotRemain.php';
     error_log("adjustLotRemain function included successfully");

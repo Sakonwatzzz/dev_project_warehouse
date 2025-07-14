@@ -4,7 +4,7 @@ session_start();
 require_once __DIR__ . '../../../../../config/database_server.php';
 require_once __DIR__ . '../../../../../functions/adjustLotRemain.php';
 header('Content-Type: application/json');
-
+$pdo = Database::getInstance()->getConnection(); 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     ob_clean();
     try {

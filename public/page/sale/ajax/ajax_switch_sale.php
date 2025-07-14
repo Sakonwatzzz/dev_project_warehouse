@@ -42,7 +42,7 @@ try {
     ob_end_flush();
     exit();
 }
-
+$pdo = Database::getInstance()->getConnection(); 
 // Log request data
 error_log("Request data: " . json_encode($_POST));
 

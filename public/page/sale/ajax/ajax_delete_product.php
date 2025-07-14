@@ -2,7 +2,7 @@
 ob_start();
 require_once __DIR__ . '/../../../../config/database_server.php';
 require_once __DIR__ . '/../../../../functions/adjustLotRemain.php';
-
+$pdo = Database::getInstance()->getConnection(); 
 function isAjaxRequest() {
     $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
         strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';

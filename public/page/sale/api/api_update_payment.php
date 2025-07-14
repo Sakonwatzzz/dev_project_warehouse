@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '../../../../../config/database_server.php';
 header('Content-Type: application/json');
+$pdo = Database::getInstance()->getConnection(); 
 
 try {
     // $csrf_token = $_POST['csrf_token'] ?? '';

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
 session_start();
 header('Content-Type: application/json');
 

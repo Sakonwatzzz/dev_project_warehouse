@@ -2,7 +2,7 @@
 ob_start();
 
 require_once __DIR__ . '../../../../../config/database_server.php';
-
+$pdo = Database::getInstance()->getConnection(); 
 header('Content-Type: application/json; charset=utf-8');
 
 try {

@@ -2,6 +2,7 @@
 ob_start();
 session_start();
 require_once __DIR__ . '../../../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
 $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'close_tab') {

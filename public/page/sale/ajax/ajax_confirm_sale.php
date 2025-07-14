@@ -13,7 +13,7 @@ try {
     ob_end_flush();
     exit();
 }
-
+$pdo = Database::getInstance()->getConnection(); 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_sale') {
     header('Content-Type: application/json');
     ob_clean();

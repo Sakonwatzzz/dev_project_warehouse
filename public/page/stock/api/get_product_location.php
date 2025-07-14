@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
+$pdo = Database::getInstance()->getConnection(); 
 header('Content-Type: application/json');
 try {
     $product_id = isset($_GET['product_id']) ? trim($_GET['product_id']) : '';

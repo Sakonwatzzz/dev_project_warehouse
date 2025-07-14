@@ -43,7 +43,7 @@ try {
     ob_end_flush();
     exit();
 }
-
+$pdo = Database::getInstance()->getConnection(); 
 
 $sale_id = $_POST['sale_id'] ?? null;
 if (empty($sale_id)) {

@@ -27,6 +27,7 @@ try {
     ob_end_flush();
     exit();
 }
+$pdo = Database::getInstance()->getConnection(); 
 
 if (isset($_SESSION['current_stock_id']) && (int)$_SESSION['current_stock_id'] > 0) {
     $stock_id = (int)$_SESSION['current_stock_id'];

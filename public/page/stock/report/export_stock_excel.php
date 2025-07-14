@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 require_once __DIR__ . '../../../../../vendor/autoload.php';
-
+$pdo = Database::getInstance()->getConnection(); 
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
