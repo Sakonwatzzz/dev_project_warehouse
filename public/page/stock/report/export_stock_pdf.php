@@ -4,6 +4,12 @@ require_once __DIR__ . '../../../../fpdf186/fpdf.php';
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 $pdo = Database::getInstance()->getConnection(); 
+
+
+// if (!isset($_GET['csrf_token']) || !verifyCsrfToken($_GET['csrf_token'])) {
+//     header('HTTP/1.1 403 Forbidden');
+//     exit('Invalid CSRF token');
+// }
 // Function to convert text to TIS-620
 function thai($text)
 {

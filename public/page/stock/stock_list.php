@@ -1,21 +1,21 @@
 <?php
 ob_start();
 require_once __DIR__ . '../../../../config/database_server.php';
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 date_default_timezone_set('Asia/Bangkok');
 
-// ตรวจสอบ session (คงเดิม)
+// ตรวจสอบ session ()
 // if (!isset($_SESSION['personnel_id']) || !is_numeric($_SESSION['personnel_id'])) {
 //     header("Location: login.php?error=กรุณาเข้าสู่ระบบ");
 //     exit;
 // }
 
-// Create CSRF token (คงเดิม)
+// Create CSRF token ()
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Check session timeout (คงเดิม)
+// Check session timeout ()
 // if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
 //     session_unset();
 //     session_destroy();
@@ -25,7 +25,7 @@ if (empty($_SESSION['csrf_token'])) {
 // }
 // $_SESSION['LAST_ACTIVITY'] = time();
 
-// Function to fetch data (แก้ไข: ระบุประเภทพารามิเตอร์อย่างชัดเจน)
+// Function to fetch data ()
 function fetchData($pdo, $query, $params = [])
 {
     try {
@@ -43,13 +43,18 @@ function fetchData($pdo, $query, $params = [])
     }
 }
 
-// Verify CSRF token (คงเดิม)
+// Verify CSRF token ()
 function verifyCsrfToken($token)
 {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
+    // if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
+    //     error_log("CSRF Validation Failed: Session Token: " . ($_SESSION['csrf_token'] ?? 'unset') . ", GET Token: " . ($_GET['csrf_token'] ?? 'unset'));
+    //     header('HTTP/1.1 403 Forbidden');
+    //     exit('Invalid CSRF token');
+    // }
 
-// Validate stock check data (คงเดิม)
+// Validate stock check data ()
 function validateStockCheckData($stock_check_actual, $stock_check_remark_id)
 {
     $errors = [];
@@ -62,108 +67,65 @@ function validateStockCheckData($stock_check_actual, $stock_check_remark_id)
     return $errors;
 }
 
-// Handle search parameters (คงเดิม)
+// Handle search parameters ()
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
-// Handle POST requests for updating stock check (คงเดิม)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
-    if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=stock_list&error=Invalid CSRF token');
-        exit;
-    }
-
-    $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
-    $stock_check_actual = trim($_POST['stock_check_actual']);
-    $stock_check_remark_id = trim($_POST['stock_check_remark_id']);
-
-    $errors = validateStockCheckData($stock_check_actual, $stock_check_remark_id);
-    if (!$stock_check_id) {
-        $errors[] = 'รหัสการเช็คสต๊อกไม่ถูกต้อง';
-    }
-
-    if (!empty($errors)) {
-        header('Location: index.php?page=stock_list&error=' . urlencode(implode(', ', $errors)));
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("UPDATE stock_check SET stock_check_actual = ?, stock_check_remark_id = ? WHERE stock_check_id = ?");
-        $stmt->execute([$stock_check_actual, $stock_check_remark_id, $stock_check_id]);
-        if ($stmt->rowCount() === 0) {
-            $pdo->rollBack();
-            header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการแก้ไข');
-            exit;
-        }
-        $pdo->commit();
-        header('Location: index.php?page=stock_list&success=แก้ไขข้อมูลสำเร็จ' . (!empty($search) ? '&search=' . urlencode($search) : ''));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        header('Location: index.php?page=stock_list&error=' . urlencode('Database error: ' . htmlspecialchars($e->getMessage())));
-        exit;
-    }
+$start_date = isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : '';
+$end_date = isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : '';
+$date_range = isset($_GET['date_range']) ? htmlspecialchars($_GET['date_range']) : 'this_year';
+if ($date_range === 'custom' && empty($start_date)) {
+    $start_date = date('Y-m-d');
+}
+if ($date_range === 'custom' && empty($end_date)) {
+    $end_date = date('Y-m-d');
 }
 
-// Handle DELETE request (คงเดิม)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['stock_check_id'], $_POST['csrf_token']) && $_POST['action'] === 'delete') {
-    if (!verifyCsrfToken($_POST['csrf_token'])) {
-        header('Location: index.php?page=stock_list&error=Invalid CSRF token');
-        exit;
-    }
+// สร้างเงื่อนไข WHERE และพารามิเตอร์
+$where_conditions = [];
+$params = [];
 
-    $stock_check_id = filter_var($_POST['stock_check_id'], FILTER_VALIDATE_INT);
-    if (!$stock_check_id) {
-        header('Location: index.php?page=stock_list&error=Invalid stock check ID');
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("DELETE FROM stock_check WHERE stock_check_id = ?");
-        $stmt->execute([$stock_check_id]);
-        if ($stmt->rowCount() === 0) {
-            $pdo->rollBack();
-            header('Location: index.php?page=stock_list&error=ไม่พบข้อมูลการเช็คสต๊อกที่ต้องการลบ');
-            exit;
-        }
-        $pdo->commit();
-        header("Location: index.php?page=stock_list&success=ลบข้อมูลสำเร็จ" . (!empty($search) ? '&search=' . urlencode($search) : ''));
-        exit;
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        header("Location: index.php?page=stock_list&error=" . urlencode('เกิดข้อผิดพลาดในการลบ: ' . htmlspecialchars($e->getMessage())));
-        exit;
-    }
+if ($search) {
+    $where_conditions[] = "(sc.stock_id LIKE ? OR member.member_name LIKE ? OR personnel.personnel_name LIKE ? OR product.product_id LIKE ? OR warehouse.warehouse_id LIKE ?)";
+    $search_term = "%$search%";
+    $params[] = $search_term;
+    $params[] = $search_term;
+    $params[] = $search_term;
 }
 
-// Count total records for pagination (คงเดิม)
+if ($date_range === 'today') {
+    $where_conditions[] = "DATE(s.stock_date) = CURDATE()";
+} elseif ($date_range === 'this_month') {
+    $where_conditions[] = "YEAR(s.stock_date) = YEAR(CURDATE()) AND MONTH(s.stock_date) = MONTH(CURDATE())";
+} elseif ($date_range === 'this_year') {
+    $where_conditions[] = "YEAR(s.stock_date) = YEAR(CURDATE())";
+} elseif ($date_range === 'custom' && $start_date) {
+    $where_conditions[] = "DATE(s.stock_date) >= ?";
+    $params[] = $start_date;
+}
+
+$where_clause = !empty($where_conditions) ? 'WHERE s.check_status_id = 2 AND ' . implode(' AND ', $where_conditions) : 'WHERE s.check_status_id = 2';
+// Count total records for pagination ()
 try {
     $count_query = "SELECT COUNT(*) as total_count 
                     FROM stock_check sc
                     LEFT JOIN product p ON sc.product_id = p.product_id
                     LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
                     LEFT JOIN stock s ON sc.stock_id = s.stock_id
-                    WHERE s.check_status_id = 2";
-    $params = [];
-    if (!empty($search)) {
-        $count_query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
-        $params[':search'] = "%$search%";
-    }
+                    $where_clause";
     $stmt = fetchData($pdo, $count_query, $params);
     $total_record = (int) $stmt->fetchColumn();
 } catch (Exception $e) {
-    header('Location: index.php?page=stock_list&error=' . urlencode($e->getMessage()));
+    error_log("Database error in stock_list.php: " . $e->getMessage());
+    header('Location: index.php?page=stock_list&error=' . urlencode('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล กรุณาลองใหม่'));
     exit;
 }
 
-// Pagination logic (คงเดิม)
+// Pagination logic ()
 $records_per_page = 10;
 $page = isset($_GET['page_num']) ? max(1, min((int) $_GET['page_num'], ceil($total_record / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_record / $records_per_page));
 
-// Fetch stock check data (คงเดิม)
+// Fetch stock check data ()
 try {
     $query = "
         SELECT 
@@ -193,10 +155,9 @@ try {
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
         LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
-        WHERE s.check_status_id = 2";
-    $params = [];
+        $where_clause";
     if (!empty($search)) {
-        $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search)";
+        $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search OR p.product_id LIKE :search)";
         $params[':search'] = "%$search%";
     }
     $query .= " ORDER BY s.stock_date DESC LIMIT :offset, :limit";
@@ -212,6 +173,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -223,55 +185,114 @@ try {
             font-family: 'Sarabun', sans-serif;
             background-color: #f8f9fa;
         }
-        .input-update {
-            border-color: black;
-            border-radius: 3px;
+
+        /* สไตล์สำหรับ Flatpickr */
+        .flatpickr-input {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em;
+        }
+
+        /* ปรับแต่ง Flatpickr Calendar */
+        .flatpickr-calendar {
+            @apply bg-white shadow-lg rounded-lg border border-gray-200;
+        }
+
+        .flatpickr-day.selected {
+            @apply bg-blue-500 border-blue-500 text-white;
+        }
+
+        .flatpickr-day.today {
+            @apply border-blue-400;
+        }
+
+        .flatpickr-day:hover {
+            @apply bg-blue-100;
+        }
+
+        .flatpickr-monthDropdown-month,
+        .flatpickr-current-month .numInput {
+            @apply text-gray-700;
+        }
+
+        .flatpickr-prev-month,
+        .flatpickr-next-month {
+            @apply text-blue-500 hover:text-blue-700;
         }
     </style>
 </head>
+
 <body class="bg-gray-50">
+
     <div class="mx-auto px-4 py-8">
         <!-- Header and Search Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-4 mb-6">
             <div class="flex flex-col gap-2 md:flex-row md:space-x-2 md:items-center">
                 <div class="flex space-x-2">
-                    <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800">
+                    <div class="w-auto px-4 py-2 bg-blue-200 border rounded font-bold text-blue-800 flex gap-2">
                         <i class="fas fa-boxes mr-2"></i>
-                        <?php echo $total_record; ?>
+                        จำนวนรายการเช็คสต๊อก <P class=""> <?php echo $total_record; ?> </P> รายการ
                     </div>
                 </div>
             </div>
-            <div class="flex items-center">
-                <form action="" method="GET" id="searchForm" class="w-full text-end">
-                    <input type="hidden" name="page" value="stock_list">
-                    <input type="hidden" name="page_num" value="1">
-                    <div class="relative">
-                        <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
-                            value="<?php echo htmlspecialchars($search); ?>"
-                            class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </form>
+            <div class="flex gap-4
+      ">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-gray-700 font-medium">ช่วงวันที่</h2>
+                    <select id="dateRangeSelect" name="date_range"
+                        class="custom-select border border-gray-200 rounded-md px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition duration-200 hover:bg-blue-50 w-40">
+                        <option value="today" <?php echo $date_range === 'today' ? 'selected' : ''; ?>>วันนี้</option>
+                        <option value="this_month" <?php echo $date_range === 'this_month' ? 'selected' : ''; ?>>เดือนนี้
+                        </option>
+                        <option value="this_year" <?php echo $date_range === 'this_year' ? 'selected' : ''; ?>>ปีนี้
+                        </option>
+                        <option value="custom" <?php echo $date_range === 'custom' ? 'selected' : ''; ?>>กำหนดเอง</option>
+                    </select>
+                </div>
+                <div id="customDateRange"
+                    class="flex items-center space-x-2 transition-all duration-300 transform <?php echo $date_range !== 'custom' ? 'opacity-0 scale-95 hidden' : 'opacity-100 scale-100'; ?>">
+                    <input type="text" id="startDate"
+                        class="flatpickr-input border border-gray-200 rounded-md px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition duration-200 hover:bg-gray-50 w-36"
+                        value="<?php echo htmlspecialchars($start_date ? date('d/m/Y', strtotime($start_date)) : date('d/m/Y')); ?>">
+                    <span class="text-gray-600 bg-gray-100 px-3 py-1 rounded-full font-medium">ถึง</span>
+                    <input type="text" id="endDate"
+                        class="flatpickr-input border border-gray-200 rounded-md px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition duration-200 hover:bg-gray-50 w-36"
+                        value="<?php echo htmlspecialchars($end_date ? date('d/m/Y', strtotime($end_date)) : date('d/m/Y')); ?>">
+                </div>
+                <div class="flex items-center">
+                    <form action="" method="GET" id="searchForm" class="w-full text-end">
+                        <input type="hidden" name="page" value="stock_list">
+                        <input type="hidden" name="page_num" value="1">
+                        <div class="relative">
+                            <input type="text" name="search" id="searchInput" placeholder="ค้นหาการเช็คสต๊อก..."
+                                value="<?php echo htmlspecialchars($search); ?>"
+                                class="w-full md:w-[350px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button type="submit"
+                                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <button id="resetFilter"
+                    class="py-2 p-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white shadow-sm transition duration-200 hover:bg-purple-600">รีเซ็ตการกรอง</button>
+
             </div>
-            <div class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
+            <div
+                class="bg-white shadow-md rounded-xl p-4 space-y-4 border border-gray-200 md:flex md:gap-4 md:bg-transparent md:shadow-none md:border-none md:p-0 md:w-auto">
                 <!-- Export Buttons -->
                 <div class="grid grid-cols-2 gap-4 pt-2 md:grid md:grid-cols-2 md:gap-4">
-                    <button id="exportPDFBtn" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
+                    <button id="exportPDFBtn"
+                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition duration-200 shadow-md md:auto">
                         <i class="fas fa-file-pdf"></i> ส่งออก PDF
                     </button>
-                    <button id="exportExcelBtn" class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
+                    <button id="exportExcelBtn"
+                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm sm:text-base hover:bg-emerald-600 transition duration-200 shadow-md md:auto">
                         <i class="fas fa-file-excel"></i> ส่งออก Excel
                     </button>
                 </div>
             </div>
-        </div>
-
-        <!-- Notification -->
-        <div id="notification" class="fixed top-5 right-5 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden hidden">
-            <div id="notification-header" class="px-4 py-2 font-bold text-white"></div>
-            <div class="px-4 py-3" id="notification-message"></div>
         </div>
 
         <!-- Table -->
@@ -292,7 +313,8 @@ try {
                     <table class="w-full border-collapse">
                         <thead>
                             <tr class="bg-gray-50">
-                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสรายการเช็คสต๊อก</th>
+                                <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>
+                                    รหัสรายการเช็คสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold" hidden>รหัสสต๊อก</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">วันที่</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">คลังสินค้า</th>
@@ -303,36 +325,57 @@ try {
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">พนักงาน</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">สถานะ</th>
                                 <th class="px-6 py-3 border text-left text-gray-700 font-semibold">หมายเหตุ</th>
-                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold hidden">การจัดการ</th>
+                                <th class="px-6 py-3 border text-center text-gray-700 font-semibold hidden">การจัดการ
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (count($check_stock) > 0): ?>
                                 <?php foreach ($check_stock as $stock): ?>
                                     <tr class="hover:bg-gray-100">
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_check_id']); ?></td>
-                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_id']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars(date('Y-m-d H:i:s', strtotime($stock['stock_date']))); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['warehouse_name']); ?></td>
+                                        <td class="px-6 py-2 border" hidden>
+                                            <?php echo htmlspecialchars($stock['stock_check_id']); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border" hidden><?php echo htmlspecialchars($stock['stock_id']); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border">
+                                            <?php echo htmlspecialchars(date('Y-m-d H:i:s', strtotime($stock['stock_date']))); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['warehouse_name']); ?>
+                                        </td>
                                         <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_id']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_system']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['stock_check_actual']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?></td>
-                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['check_status_name']); ?></td>
-                                        <td class="px-6 py-2 border <?php echo ($stock['stock_check_remark_id'] == 2) ? 'text-red-600 font-bold' : ''; ?>">
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['product_name']); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border">
+                                            <?php echo htmlspecialchars($stock['stock_check_system']); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border">
+                                            <?php echo htmlspecialchars($stock['stock_check_actual']); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border"><?php echo htmlspecialchars($stock['personnel_name']); ?>
+                                        </td>
+                                        <td class="px-6 py-2 border">
+                                            <?php echo htmlspecialchars($stock['check_status_name']); ?>
+                                        </td>
+                                        <td
+                                            class="px-6 py-2 border <?php echo ($stock['stock_check_remark_id'] == 2) ? 'text-red-600 font-bold' : ''; ?>">
                                             <?php echo htmlspecialchars($stock['stock_check_remark_name'] ?? '-'); ?>
                                         </td>
                                         <td class="px-6 py-2 border text-center hidden">
-                                            <button onclick="showEditModal(<?php echo $stock['stock_check_id']; ?>, '<?php echo $stock['stock_check_actual']; ?>', '<?php echo $stock['stock_check_remark_id']; ?>')"
+                                            <button
+                                                onclick="showEditModal(<?php echo $stock['stock_check_id']; ?>, '<?php echo $stock['stock_check_actual']; ?>', '<?php echo $stock['stock_check_remark_id']; ?>')"
                                                 class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
                                                 แก้ไข
                                             </button>
-                                            <form method="POST" style="display:inline;" onsubmit="confirmDelete(this); return false;">
+                                            <form method="POST" style="display:inline;"
+                                                onsubmit="confirmDelete(this); return false;">
                                                 <input type="hidden" name="action" value="delete">
-                                                <input type="hidden" name="stock_check_id" value="<?php echo $stock['stock_check_id']; ?>">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                <button type="submit" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">
+                                                <input type="hidden" name="stock_check_id"
+                                                    value="<?php echo $stock['stock_check_id']; ?>">
+                                                <input type="hidden" name="csrf_token"
+                                                    value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                <button type="submit"
+                                                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">
                                                     ลบ
                                                 </button>
                                             </form>
@@ -399,24 +442,26 @@ try {
         </div>
 
         <!-- Edit Modal -->
-        <div id="editModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
+        <div id="editModal"
+            class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
             <div class="bg-white rounded-lg w-full max-w-md p-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขข้อมูลการเช็คสต๊อก</h3>
                 <form id="editForm" method="POST" class="space-y-4">
                     <input type="hidden" id="editStockCheckId" name="stock_check_id">
                     <input type="hidden" name="action" value="update">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <input type="hidden" name="csrf_token"
+                        value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">จำนวนที่นับได้</label>
                         <input type="number" step="0.01" id="editStockCheckActual" name="stock_check_actual"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required>
                         <span id="editActualError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">หมายเหตุ</label>
                         <select id="editStockCheckRemark" name="stock_check_remark_id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 input-update">
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">เลือกหมายเหตุ</option>
                             <option value="1">ปกติ</option>
                             <option value="2">ขาดหาย</option>
@@ -424,7 +469,8 @@ try {
                         <span id="editRemarkError" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
                     <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                        <button type="button" onclick="closeEditModal()"
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
                             ยกเลิก
                         </button>
                         <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
@@ -436,145 +482,36 @@ try {
         </div>
 
         <!-- Delete Confirmation Modal -->
-        <div id="deleteModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
+        <div id="deleteModal"
+            class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 invisible opacity-0 transition-all duration-300">
             <div class="bg-white rounded-lg w-full max-w-md p-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
                 <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?</p>
                 <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                    <button type="button" onclick="closeDeleteModal()"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
                         ยกเลิก
                     </button>
-                    <button type="button" id="confirmDeleteBtn" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    <button type="button" id="confirmDeleteBtn"
+                        class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
                         ลบ
                     </button>
                 </div>
             </div>
         </div>
     </div>
+    <script src="page/stock/js/stock_list_search.js" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const searchInput = document.getElementById('searchInput');
 
-            if (searchInput) {
-                searchInput.focus();
-
-                searchInput.addEventListener('keydown', function (e) {
-                    if (e.key === 'Escape') {
-                        this.value = '';
-                        this.form.submit();
-                    }
-                    if (e.key === 'Enter') {
-                        localStorage.setItem('searchPreserve', this.value);
-                    }
-                });
-
-                const preserved = localStorage.getItem('searchPreserve');
-                if (preserved) {
-                    searchInput.value = preserved;
-                    searchInput.focus();
-                    searchInput.selectionStart = searchInput.selectionEnd = preserved.length;
-                    localStorage.removeItem('searchPreserve');
-                }
-
-                searchInput.addEventListener('input', function () {
-                    if (this.value.trim() === '') {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        urlParams.set('page', 'stock_list');
-                        urlParams.delete('search');
-                        window.location.search = urlParams.toString();
-                    }
-                });
-
-                document.getElementById('searchForm').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const urlParams = new URLSearchParams();
-                    urlParams.set('page', 'stock_list');
-                    urlParams.set('page_num', 1);
-                    if (searchInput.value) urlParams.set('search', searchInput.value);
-                    window.location.search = urlParams.toString();
-                });
-            }
-
-            if (urlParams.has('success')) {
-                showNotification(urlParams.get('success'), 'bg-green-500');
-            } else if (urlParams.has('error')) {
-                showNotification(decodeURIComponent(urlParams.get('error')), 'bg-red-500');
-            }
-
-            function validateForm(formId, fields) {
-                let hasError = false;
-                fields.forEach(field => {
-                    const input = document.getElementById(field.id);
-                    const error = document.getElementById(field.errorId);
-                    if (field.required && !input.value.trim()) {
-                        error.textContent = `กรุณากรอก${field.label}`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else if (field.type === 'number' && (isNaN(input.value) || input.value < 0)) {
-                        error.textContent = `${field.label}ต้องเป็นตัวเลขที่ไม่ติดลบ`;
-                        error.classList.remove('hidden');
-                        hasError = true;
-                    } else {
-                        error.classList.add('hidden');
-                    }
-                });
-                return !hasError;
-            }
-
-            document.getElementById('editForm').addEventListener('submit', function (e) {
-                e.preventDefault();
-                const fields = [{
-                    id: 'editStockCheckActual',
-                    errorId: 'editActualError',
-                    label: 'จำนวนที่นับได้',
-                    type: 'number',
-                    required: true
-                }];
-                if (validateForm('editForm', fields)) {
-                    this.submit();
-                }
-            });
-
-            function showEditModal(id, actual, remark_id) {
-                document.getElementById('editStockCheckId').value = id;
-                document.getElementById('editStockCheckActual').value = actual;
-                document.getElementById('editStockCheckRemark').value = remark_id || '';
-                document.getElementById('editActualError').classList.add('hidden');
-                document.getElementById('editRemarkError').classList.add('hidden');
-                document.getElementById('editModal').classList.remove('invisible', 'opacity-0');
-            }
-
-            function closeEditModal() {
-                document.getElementById('editModal').classList.add('invisible', 'opacity-0');
-            }
-
-            function showDeleteModal() {
-                document.getElementById('deleteModal').classList.remove('invisible', 'opacity-0');
-            }
-
-            function closeDeleteModal() {
-                document.getElementById('deleteModal').classList.add('invisible', 'opacity-0');
-            }
-
-            function confirmDelete(form) {
-                showDeleteModal();
-                document.getElementById('confirmDeleteBtn').onclick = () => {
-                    form.submit();
-                };
-            }
-
-            function showNotification(message, className) {
-                const notification = document.getElementById('notification');
-                const header = document.getElementById('notification-header');
-                const messageDiv = document.getElementById('notification-message');
-                header.className = `px-4 py-2 font-bold text-white ${className}`;
-                header.textContent = 'การแจ้งเตือน';
-                messageDiv.textContent = message;
-                notification.classList.remove('hidden');
-                setTimeout(() => {
-                    notification.classList.add('hidden');
-                }, 5000);
+            function showNotification(message, bgClass) {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg text-white ${bgClass}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 5000);
             }
 
             // Export buttons
@@ -607,7 +544,6 @@ try {
                     document.getElementById('exportExcelBtn').innerHTML = '<i class="fas fa-file-excel"></i> ส่งออก Excel';
                 }
             });
-
             function updateClock() {
                 const now = new Date();
                 const day = String(now.getDate()).padStart(2, '0');
@@ -624,4 +560,5 @@ try {
         });
     </script>
 </body>
+
 </html>

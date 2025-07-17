@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 require_once __DIR__ . '../../../../../vendor/autoload.php';
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
@@ -22,11 +22,9 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
-// CSRF token validation
-// if (!isset($_GET['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
+// if (!isset($_GET['csrf_token']) || !verifyCsrfToken($_GET['csrf_token'])) {
 //     header('HTTP/1.1 403 Forbidden');
-//     echo 'Invalid CSRF token';
-//     exit;
+//     exit('Invalid CSRF token');
 // }
 
 try {
