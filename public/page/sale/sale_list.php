@@ -245,9 +245,9 @@ $sale_statusQuery = $pdo->query("SELECT sale_status_id, sale_status_name FROM sa
                     </div>
                 </div>
                 <div class="flex flex-row xs:flex-col gap-2">
-                    <button id="resetFilter" class="py-2 px-4 rounded-lg bg-purple-500 hover:bg-purple-600 text-white shadow-sm transition duration-200 standard-button-mobile">
+                    <!-- <button id="resetFilter" class="py-2 px-4 rounded-lg bg-purple-500 hover:bg-purple-600 text-white shadow-sm transition duration-200 standard-button-mobile">
                         <i class="fas fa-times mr-1"></i>รีเซ็ตการกรอง
-                    </button>
+                    </button> -->
                     <button onclick="exportPDF()" class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition flex items-center gap-2 standard-button-mobile">
                         <i class="fas fa-file-pdf"></i><span>PDF</span>
                     </button>
@@ -370,7 +370,7 @@ $sale_statusQuery = $pdo->query("SELECT sale_status_id, sale_status_name FROM sa
             const startDateInput = document.getElementById('startDate');
             const endDateInput = document.getElementById('endDate');
             const saleStatusSelect = document.getElementById('saleStatusSelect');
-            const resetFilter = document.getElementById('resetFilter');
+            // const resetFilter = document.getElementById('resetFilter');
 
             // Initialize Flatpickr
             flatpickr('#startDate, #endDate', {
@@ -447,16 +447,16 @@ $sale_statusQuery = $pdo->query("SELECT sale_status_id, sale_status_name FROM sa
             endDateInput.addEventListener('change', updateTable);
             saleStatusSelect.addEventListener('change', updateTable);
 
-            resetFilter.addEventListener('click', () => {
-                searchInput.value = '';
-                dateRangeSelect.value = 'this_year';
-                saleStatusSelect.value = '1';
-                startDateInput.value = '';
-                endDateInput.value = '';
-                customDateRange.classList.add('opacity-0', 'scale-95', 'hidden');
-                customDateRange.classList.remove('opacity-100', 'scale-100');
-                updateTable();
-            });
+            // resetFilter.addEventListener('click', () => {
+            //     searchInput.value = '';
+            //     dateRangeSelect.value = 'this_year';
+            //     saleStatusSelect.value = '1';
+            //     startDateInput.value = '';
+            //     endDateInput.value = '';
+            //     customDateRange.classList.add('opacity-0', 'scale-95', 'hidden');
+            //     customDateRange.classList.remove('opacity-100', 'scale-100');
+            //     updateTable();
+            // });
 
             // Show notification if any
             const urlParams = new URLSearchParams(window.location.search);

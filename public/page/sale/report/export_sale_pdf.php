@@ -46,20 +46,18 @@ class THPDF extends FPDF
             $this->Cell(0, 8, thai('ข้อมูลทั้งหมด'), 0, 1, 'C');
         }
 
-        $this->SetFont('THSarabunNew', 'B', 12);
-        $this->Cell(0, 8, thai('พนักงาน: ' . $this->personnel_name), 0, 1, 'L');
-        $this->Ln(2);
 
         $this->Line(10, $this->GetY(), 200, $this->GetY());
         $this->Ln(5);
 
         $this->SetFont('THSarabunNew', 'B', 11);
         $this->SetFillColor(200, 216, 237);
-        $this->Cell(30, 8, thai('รหัสการขาย'), 1, 0, 'C', true);
-        $this->Cell(35, 8, thai('วันที่ขาย'), 1, 0, 'C', true);
-        $this->Cell(50, 8, thai('ชื่อสมาชิก'), 1, 0, 'C', true);
-        $this->Cell(40, 8, thai('เบอร์โทร'), 1, 0, 'C', true);
-        $this->Cell(35, 8, thai('ยอดรวม'), 1, 1, 'C', true);
+        $this->Cell(25, 8, thai('รหัสการขาย'), 1, 0, 'C', true);
+        $this->Cell(30, 8, thai('วันที่ขาย'), 1, 0, 'C', true);
+        $this->Cell(40, 8, thai('ชื่อสมาชิก'), 1, 0, 'C', true);
+        $this->Cell(35, 8, thai('เบอร์โทร'), 1, 0, 'C', true);
+        $this->Cell(35, 8, thai('ชื่อพนักงาน'), 1, 0, 'C', true); // New column for personnel name
+        $this->Cell(25, 8, thai('ยอดรวม'), 1, 1, 'C', true);
     }
 
     function Footer()
@@ -182,7 +180,6 @@ try {
     $stmt->execute();
     $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // ดึงชื่อพนักงานจากแถวแรก (ถ้ามี) หรือใช้ค่าเริ่มต้น
     $personnel_name = !empty($sales) ? $sales[0]['personnel_name'] : 'ไม่มีข้อมูล';
     $pdf = new THPDF($start_date, $end_date, $status, $personnel_name);
     $pdf->SetMargins(10, 10);
@@ -196,11 +193,12 @@ try {
     if ($total_sales > 0) {
         foreach ($sales as $sale) {
             $total_amount += $sale['total_price'];
-            $nb_sale_id = $pdf->NbLines(30, thai($sale['sale_id']));
-            $nb_date = $pdf->NbLines(35, thai($sale['sale_date']));
-            $nb_member = $pdf->NbLines(50, thai($sale['member_name']));
-            $nb_phone = $pdf->NbLines(40, thai($sale['member_phone']));
-            $max_nb = max($nb_sale_id, $nb_date, $nb_member, $nb_phone);
+            $nb_sale_id = $pdf->NbLines(25, thai($sale['sale_id']));
+            $nb_date = $pdf->NbLines(30, thai($sale['sale_date']));
+            $nb_member = $pdf->NbLines(40, thai($sale['member_name']));
+            $nb_phone = $pdf->NbLines(35, thai($sale['member_phone']));
+            $nb_personnel = $pdf->NbLines(35, thai($sale['personnel_name'])); // New calculation for personnel name
+            $max_nb = max($nb_sale_id, $nb_date, $nb_member, $nb_phone, $nb_personnel);
             $row_height = 8 * $max_nb;
 
             if ($pdf->GetY() + $row_height > 270) {
@@ -208,17 +206,20 @@ try {
             }
 
             $y_start = $pdf->GetY();
-            $pdf->Cell(30, $row_height, thai($sale['sale_id']), 1, 0, 'C');
+            $pdf->Cell(25, $row_height, thai($sale['sale_id']), 1, 0, 'C');
             $x = $pdf->GetX();
-            $pdf->MultiCell(35, 8, thai($sale['sale_date']), 1, 'L');
+            $pdf->MultiCell(30, 8, thai($sale['sale_date']), 1, 'L');
+            $pdf->SetXY($x + 30, $y_start);
+            $x = $pdf->GetX();
+            $pdf->MultiCell(40, 8, thai($sale['member_name']), 1, 'L');
+            $pdf->SetXY($x + 40, $y_start);
+            $x = $pdf->GetX();
+            $pdf->MultiCell(35, 8, thai($sale['member_phone']), 1, 'L');
             $pdf->SetXY($x + 35, $y_start);
             $x = $pdf->GetX();
-            $pdf->MultiCell(50, 8, thai($sale['member_name']), 1, 'L');
-            $pdf->SetXY($x + 50, $y_start);
-            $x = $pdf->GetX();
-            $pdf->MultiCell(40, 8, thai($sale['member_phone']), 1, 'L');
-            $pdf->SetXY($x + 40, $y_start);
-            $pdf->Cell(35, $row_height, number_format($sale['total_price'], 2), 1, 1, 'C');
+            $pdf->MultiCell(35, 8, thai($sale['personnel_name']), 1, 'L'); // New column for personnel name
+            $pdf->SetXY($x + 35, $y_start);
+            $pdf->Cell(25, $row_height, number_format($sale['total_price'], 2), 1, 1, 'C');
         }
     } else {
         $pdf->SetFont('THSarabunNew', 'B', 12);
@@ -226,8 +227,8 @@ try {
     }
 
     $pdf->SetFont('THSarabunNew', 'B', 11);
-    $pdf->Cell(155, 8, thai('รวมทั้งหมด'), 1, 0, 'R');
-    $pdf->Cell(35, 8, number_format($total_sales) . thai(' รายการ'), 1, 1, 'C');
+    $pdf->Cell(165, 8, thai('รวมทั้งหมด'), 1, 0, 'R'); // Adjusted width to accommodate new column
+    $pdf->Cell(25, 8, number_format($total_sales) . thai(' รายการ'), 1, 1, 'C');
 
     $pdf->Ln(10);
     $pdf->Cell(0, 8, thai('สรุปรายงาน'), 0, 1);
