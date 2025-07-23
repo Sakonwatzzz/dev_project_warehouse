@@ -1,3 +1,17 @@
+<?php 
+
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 

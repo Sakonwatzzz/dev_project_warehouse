@@ -5,6 +5,17 @@ ob_start();
 
 $pdo = Database::getInstance()->getConnection(); 
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 // รับค่า lot_id และ warehouse_id จาก URL
 $lot_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;

@@ -4,6 +4,17 @@ require_once __DIR__ . '../../../../config/database_server.php';
 $pdo = Database::getInstance()->getConnection(); 
 date_default_timezone_set('Asia/Bangkok');
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 // ตรวจสอบ session (คงเดิม)
 // if (!isset($_SESSION['personnel_id']) || !is_numeric($_SESSION['personnel_id'])) {
 //     header("Location: login.php?error=กรุณาเข้าสู่ระบบ");

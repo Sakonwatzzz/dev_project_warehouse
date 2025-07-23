@@ -2,6 +2,7 @@
 // ดึงข้อมูลประเภท
 include_once("../../../config/database_server.php");
 $pdo = Database::getInstance()->getConnection(); 
+
 // Query ที่แก้ไขแล้ว
 $query = "SELECT product_type.product_type_name, product_brand.product_brand_name 
           FROM product_type 

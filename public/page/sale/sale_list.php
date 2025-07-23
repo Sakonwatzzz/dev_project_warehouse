@@ -1,6 +1,17 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 // อ่านค่าจาก URL สำหรับการกรอง
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
 $start_date = isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : '';

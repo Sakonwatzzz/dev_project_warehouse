@@ -1,8 +1,19 @@
 <?php
 require_once __DIR__ . '/../../../config/database_server.php';
 $pdo = Database::getInstance()->getConnection(); 
-$warehouse_update = fetchAll($pdo, table: 'warehouse');
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
+$warehouse_update = fetchAll($pdo, table: 'warehouse');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $warehouse_id = $_POST['warehouse_id'];

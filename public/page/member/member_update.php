@@ -2,6 +2,17 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 $pdo = Database::getInstance()->getConnection(); 
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 // Validate required GET parameter
 if (!isset($_GET['id'])) {
     die("ระบุ ID ไม่ถูกต้อง");

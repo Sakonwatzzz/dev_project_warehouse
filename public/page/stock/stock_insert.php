@@ -1,6 +1,18 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 $pdo = Database::getInstance()->getConnection(); 
+
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 // Query เพื่อดึงข้อมูลคลัง
 try {
     $query = "SELECT warehouse_id, warehouse_name FROM warehouse";

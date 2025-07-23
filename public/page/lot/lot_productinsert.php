@@ -4,6 +4,17 @@ ob_start();
 
 $pdo = Database::getInstance()->getConnection(); 
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 try {
     // ดึงรหัสล็อตสินค้าล่าสุด
     $stmt = $pdo->query("SELECT lot_id FROM lot ORDER BY lot_id DESC LIMIT 1");

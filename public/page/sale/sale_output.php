@@ -9,6 +9,17 @@ ini_set('error_log', __DIR__ . '/logs/php_errors.log');
 date_default_timezone_set('Asia/Bangkok');
 $displayDateTime = date("d/m/Y H:i:s");
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 // Get sale_id from GET or session
 $sale_id = $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 

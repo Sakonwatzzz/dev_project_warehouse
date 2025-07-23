@@ -4,6 +4,17 @@ date_default_timezone_set('Asia/Bangkok');
 
 $pdo = Database::getInstance()->getConnection();
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
