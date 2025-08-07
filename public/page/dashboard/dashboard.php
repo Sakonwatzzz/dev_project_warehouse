@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 $accessToken = getToken('access_token');
 if (!$accessToken || !validateToken($accessToken)) {
@@ -264,7 +264,7 @@ if (!$accessToken || !validateToken($accessToken)) {
                         <i class="fas fa-box"></i>
                     </div>
                 </div>
-                <div class="stat-value">245</div>
+                <div class="stat-value" id="totalCountDisplay">-</div>
                 <div class="stat-description">เพิ่มขึ้น 15% จากเดือนที่แล้ว</div>
             </div>
 
@@ -275,7 +275,7 @@ if (!$accessToken || !validateToken($accessToken)) {
                         <i class="fas fa-layer-group"></i>
                     </div>
                 </div>
-                <div class="stat-value">52</div>
+                <div class="stat-value" id="totalCountLotDisplay">-</div>
                 <div class="stat-description">มี 12 ลอตที่กำลังจะหมดอายุ</div>
             </div>
 
@@ -286,7 +286,7 @@ if (!$accessToken || !validateToken($accessToken)) {
                         <i class="fas fa-users"></i>
                     </div>
                 </div>
-                <div class="stat-value">1,284</div>
+                <div class="stat-value" id="totalCountMemberDisplay">-</div>
                 <div class="stat-description">เพิ่มขึ้น 5% จากเดือนที่แล้ว</div>
             </div>
 
@@ -298,7 +298,7 @@ if (!$accessToken || !validateToken($accessToken)) {
                     </div>
                 </div>
                 <div class="stat-value">฿15,230</div>
-                <div class="stat-description">จากการขาย 48 รายการ</div>
+                <div class="stat-description">จากการขาย <span id="totalCountSaleDisplay"></span> รายการ</div>
             </div>
         </div>
 
@@ -524,6 +524,12 @@ if (!$accessToken || !validateToken($accessToken)) {
             }
         });
     </script>
+
+    <script src="/page/dashboard/function/product.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadCounts);
+    </script>
+
 </body>
 
 </html>
