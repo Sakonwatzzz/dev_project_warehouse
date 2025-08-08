@@ -19,24 +19,26 @@ function setAuthTokens($accessToken, $refreshToken) {
         'expires' => time() + 86400, // 1 วัน
         'path' => '/',
         'httponly' => true,
-        'secure' => $secure, //เปิดเป็น true ถ้าต้องการใช้ https
-        'samesite' => 'Strict'
+        'secure' => $secure,
+        'samesite' => 'Lax' // เปลี่ยนจาก Strict เป็น Lax
     ]);
 
     setcookie('refresh_token', $refreshToken, [
         'expires' => time() + (86400 * 7), // 7 วัน
         'path' => '/',
         'httponly' => true,
-        'secure' => $secure, //เปิดเป็น true ถ้าต้องการใช้ https
-        'samesite' => 'Strict'
+        'secure' => $secure,
+        'samesite' => 'Lax'
     ]);
 }
 
-function getToken($tokenName) {
+function getToken($tokenName)
+{
     return $_COOKIE[$tokenName] ?? null;
 }
 
-function validateToken($token) {
+function validateToken($token)
+{
     global $secretKey;
     try {
         $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
@@ -46,11 +48,13 @@ function validateToken($token) {
     }
 }
 
-function isTokenExpired($decoded) {
+function isTokenExpired($decoded)
+{
     return isset($decoded->exp) && $decoded->exp < time();
 }
 
-function createTokens($username, $role) {
+function createTokens($username, $role)
+{
     global $secretKey;
     $issuedAt = time();
 
@@ -76,55 +80,88 @@ function createTokens($username, $role) {
     return $accessToken;
 }
 
-function refreshToken($refreshToken) {
+function refreshToken($refreshToken)
+{
     global $secretKey;
     try {
         $decoded = JWT::decode($refreshToken, new Key($secretKey, 'HS256'));
-        if (($decoded->type ?? '') === 'refresh' && $decoded->exp > time()) {
-            // ถ้าต้องการ role ใหม่ ให้ map จาก DB ได้ตรงนี้
-            $username = $decoded->username;
-            $role = getUserRole($username); // สมมุติว่าฟังก์ชันนี้มี
-            return createTokens($username, $role);
+        if (($decoded->type ?? '') !== 'refresh') {
+            error_log("refreshToken: Invalid token type");
+            return null;
         }
+        if ($decoded->exp < time()) {
+            error_log("refreshToken: Refresh token expired for user {$decoded->username}");
+            return null;
+        }
+        $username = $decoded->username;
+        $role = getUserRole($username);
+        if (!$role || $role === 'user') {
+            error_log("refreshToken: Invalid role for username $username");
+            return null;
+        }
+        return createTokens($username, $role);
     } catch (Exception $e) {
+        error_log("refreshToken error: " . $e->getMessage());
         return null;
     }
-    return null;
 }
 
-function checkRole($requiredRole) {
+function checkRole($requiredRole)
+{
+    global $secretKey;
     $accessToken = getToken('access_token');
-
     if (!$accessToken || !validateToken($accessToken)) {
         $refreshToken = getToken('refresh_token');
         if ($refreshToken && validateToken($refreshToken)) {
             $accessToken = refreshToken($refreshToken);
             if (!$accessToken) {
+                error_log("checkRole: Failed to refresh access token");
                 redirectToLogin();
             }
         } else {
+            error_log("checkRole: Invalid or missing refresh token");
             redirectToLogin();
         }
     }
-
     try {
-        global $secretKey;
         $decoded = JWT::decode($accessToken, new Key($secretKey, 'HS256'));
-        return ($decoded->role ?? '') === $requiredRole;
+        $role = $decoded->role ?? 'user';
+        if ($role !== $requiredRole) {
+            error_log("checkRole: Role mismatch, expected $requiredRole, got $role");
+        }
+        return $role === $requiredRole;
     } catch (Exception $e) {
+        error_log("checkRole error: " . $e->getMessage());
         return false;
     }
 }
 
-function redirectToLogin() {
+function redirectToLogin()
+{
     header('Location: login.php');
     exit();
 }
 
-// ตัวอย่างจำลองการดึง role จากฐานข้อมูล
-function getUserRole($username) {
-    // TODO: ดึงจาก DB จริง
-    if ($username === 'admin123') return 'admin';
-    if ($username === 'dee123') return 'manager';
-    return 'user';
+function getUserRole($username)
+{
+    try {
+        $db = Database::getInstance();
+        $conn = $db->getConnection();
+        $stmt = $conn->prepare("
+            SELECT pt.personnel_type_name AS role 
+            FROM personnel p 
+            LEFT JOIN personnel_type pt ON p.personnel_type_id = pt.personnel_type_id 
+            WHERE p.personnel_username = :username
+        ");
+        $stmt->execute([':username' => $username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $role = $user['role'] ?? 'user';
+        if ($role === 'user') {
+            error_log("getUserRole: Default role 'user' assigned for username $username");
+        }
+        return $role;
+    } catch (Exception $e) {
+        error_log("getUserRole error: " . $e->getMessage());
+        return 'user';
+    }
 }

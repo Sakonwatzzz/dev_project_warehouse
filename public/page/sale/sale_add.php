@@ -5,8 +5,6 @@ try {
 } catch (Exception $e) {
     error_log("Database failed included database_server.php : " . $e->getMessage());
 }
-
-
 // if (empty($_SESSION['csrf_token'])) {
 //     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 //     error_log("CSRF token generated: " . $_SESSION['csrf_token']);
@@ -31,17 +29,6 @@ $displayDateTime = date("d/m/Y H:i:s");
 // Initialize active sales if not set
 if (!isset($_SESSION['active_sales'])) {
     $_SESSION['active_sales'] = [];
-}
-
-$accessToken = getToken('access_token');
-if (!$accessToken || !validateToken($accessToken)) {
-    $refreshToken = getToken('refresh_token');
-    if ($refreshToken && validateToken($refreshToken)) {
-        $accessToken = refreshToken($refreshToken);
-    } else {
-        header('Location: login.php');
-        exit();
-    }
 }
 
 // กรณีที่ต้องการให้สร้างบิลอัตโนมัติ ให้ใช้โค้ด หรือ logic ดังนี้ 
@@ -352,539 +339,625 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
     <title>ระบบบริหารจัดการการขาย</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="page/sale/js/sale_print_receipt.js"></script>
+    <script src="page/sale/js/sale_new_sale.js"></script>
+    <script src="page/sale/js/sale_switch.js"></script>
+    <script src="page/sale/js/sale_insert.js"></script>
+    <!-- <script src="page/sale/js/sale_modal.js"> </script> -->
+
+    <!-- ตรวจสอบว่า sale_delete.js ถูกโหลดใน sale_add.php อย่างไร. หากเป็นไฟล์ .js แยก, ต้องส่ง 
+    sale_id จาก sale_add.php ไปยัง JavaScript ผ่านวิธีอื่น เช่น การกำหนดตัวแปรใน <script> หรือผ่าน attribute ใน HTML. -->
+    <script>
+        const SALE_ID = '<?php echo htmlspecialchars($sale_id); ?>';
+    </script>
+    <script src="page/sale/js/sale_delete.js"></script>
+    <script src="page/sale/js/sale_bill.js"></script>
+    <script src="page/sale/js/sale_confirm_btn.js"></script>
+    <script src="page/sale/js/sale_modal_edit.js"></script>
+    <script src="page/sale/js/sale_payment.js"></script>
 
     <style>
-        /* Custom gradient backgrounds */
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .glass-effect {
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        #edit-product-modal {
+            z-index: 1000;
         }
 
-        /* Animated elements */
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
+        .main-body[aria-hidden="true"] input:not(.modal-active),
+        .main-body[aria-hidden="true"] select:not(.modal-active),
+        .main-body[aria-hidden="true"] button:not(.modal-active) {
+            pointer-events: none;
+            visibility: hidden;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .modal-active {
+            pointer-events: auto !important;
+            visibility: visible !important;
         }
-
-        .pulse-slow {
-            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        /* Modern card styles */
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        /* Button hover effects */
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981, #047857);
-            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
-        }
-
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 40px rgba(239, 68, 68, 0.4);
-        }
-
-        /* Input focus effects */
-        .form-input {
-            transition: all 0.3s ease;
-            border-radius: 12px;
-        }
-
-        .form-input:focus {
-            transform: scale(1.02);
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
-
-        /* Tab styles */
+    </style>
+    <!-- CSS for billTabs -->
+    <style>
         .tab-active {
-            background: linear-gradient(135deg, #ffffff, #f8fafc);
-            color: #1e293b;
-            border-bottom: 3px solid #3b82f6;
+            background-color: rgb(255, 255, 255);
+            color: black;
         }
 
         .tab-inactive {
-            background: rgba(255, 255, 255, 0.7);
-            color: #64748b;
+            background-color: #e5e7eb;
+            color: black;
         }
 
-        /* Table styles */
-        .modern-table {
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-        }
-
-        .table-row:hover {
-            background: linear-gradient(90deg, rgba(59, 130, 246, 0.05), rgba(147, 197, 253, 0.05));
-            transform: scale(1.01);
-            transition: all 0.2s ease;
-        }
-
-        /* Scrollbar styles */
         #billTabs::-webkit-scrollbar {
-            height: 8px;
+            height: 10px;
         }
 
         #billTabs::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
+            background: #f1f1f1;
+            border-radius: 4px;
         }
 
         #billTabs::-webkit-scrollbar-thumb {
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-            border-radius: 20px;
+            background: rgb(121, 120, 120);
+            border-radius: 4px;
         }
 
-        /* Status indicator */
-        .status-indicator {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .status-indicator::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #10b981;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
-        }
-
-        /* Modal improvements */
-        .modal-backdrop {
-            backdrop-filter: blur(8px);
-            background: rgba(0, 0, 0, 0.4);
-        }
-
-        .modal-content {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-
-        /* Loading spinner */
-        .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #ffffff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Floating action button */
-        .fab {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            color: white;
-            border: none;
-            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.4);
-            transition: all 0.3s ease;
-            z-index: 50;
-        }
-
-        .fab:hover {
-            transform: scale(1.1) rotate(90deg);
-            box-shadow: 0 12px 48px rgba(59, 130, 246, 0.6);
+        #billTabs::-webkit-scrollbar-thumb:hover {
+            background: rgb(65, 65, 65);
         }
     </style>
+
 </head>
 
-<body class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+<body class="bg-gray-100 font-sans">
     <div class="main-body">
-        <!-- Header with gradient and glass effect -->
-        <header class="gradient-bg text-white shadow-2xl relative overflow-hidden">
-            <div class="absolute inset-0 bg-white/10"></div>
-            <div class=" mx-auto py-6 px-6 flex justify-between items-center relative z-10">
+        <header class="bg-gradient-to-r from-blue-600 to-indigo-800 text-white shadow-lg">
+            <div class="container mx-auto py-4 px-6 flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Your Store or Company name POS
+                </h1>
                 <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                        <i class="fas fa-store text-2xl"></i>
+                    <p id="sale-status" class="text-yellow-400 font-bold"> <?php echo htmlspecialchars($sale_status_name); ?></p>
+                    <label class="text-base font-medium">พนักงานขาย:</label>
+                    <div class="text-xll font-bold">
+                        <input class="bg-transparent " type="text" name="personnel_id"
+                            value="<?php echo $personnels['personnel_id']; ?>" readonly hidden>
+                        <?php echo htmlspecialchars($personnels['personnel_name'] ?? 'ไม่พบชื่อ'); ?>
                     </div>
-                    <h1 class="text-3xl font-bold tracking-wider">Your Store POS</h1>
-                </div>
-                <div class="flex items-center space-x-6">
-                    <div class="status-indicator">
-                        <span class="text-yellow-300 font-bold">ระบบพร้อมใช้งาน</span>
-                    </div>
-                    <div class="glass-effect rounded-xl px-4 py-2">
-                        <label class="text-sm opacity-80">พนักงานขาย:</label>
-                        <div class="font-bold">จอห์น โด</div>
-                    </div>
-                    <div class="glass-effect rounded-xl px-4 py-2">
-                        <i class="fas fa-calendar-alt mr-2"></i>
-                        <span class="text-sm">22 ก.ค. 2568</span>
-                    </div>
+                    <span class="text-sm">วันที่: <?php echo $displayDateTime; ?></span>
                 </div>
             </div>
         </header>
-
-        <div class="container mx-auto p-6 space-y-6">
-            <!-- Bill tabs and new sale button -->
-            <div class="card p-4 fade-in">
-                <div class="flex items-center space-x-4">
-                    <button id="new_sale" class="btn-primary text-white px-6 py-3 rounded-xl font-medium flex items-center space-x-2 transition-all duration-300">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>เปิดบิลใหม่</span>
-                    </button>
-                    
-                    <div id="billTabs" class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full pb-2">
-                        <div class="px-6 py-3 rounded-xl tab-active cursor-pointer whitespace-nowrap transition-all duration-300 hover:shadow-lg">
-                            <i class="fas fa-receipt mr-2"></i>บิล #001
+        <div class="container mx-auto p-6">
+            <div class="flex items-center space-x-2 mb-6 rounded-lg shadow-md py-2 px-2">
+                <button id="new_sale"
+                    class="w-40 px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors flex items-center ">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    เปิดบิลใหม่
+                </button>
+                <div id="billTabs"
+                    class="flex space-x-2 overflow-x-auto flex-nowrap max-w-full pb-2 shadow-md p-2 py-2">
+                    <?php foreach ($valid_active_sale as $active_sale_id): ?>
+                        <div id="tab_<?php echo $active_sale_id; ?>"
+                            class="px-4 py-1 rounded-md hover:bg-gray-300 transition-colors shadow-lg <?php echo $active_sale_id == $sale_id ? 'tab-active' : 'tab-inactive'; ?> cursor-pointer whitespace-nowrap"
+                            onclick="switchBill(<?php echo $active_sale_id; ?>)">
+                            บิล #<?php echo $active_sale_id; ?>
                         </div>
-                        <div class="px-6 py-3 rounded-xl tab-inactive cursor-pointer whitespace-nowrap transition-all duration-300 hover:shadow-lg">
-                            <i class="fas fa-receipt mr-2"></i>บิล #002
-                        </div>
-                        <div class="px-6 py-3 rounded-xl tab-inactive cursor-pointer whitespace-nowrap transition-all duration-300 hover:shadow-lg">
-                            <i class="fas fa-receipt mr-2"></i>บิล #003
-                        </div>
-                    </div>
+                        <button id="close_tab_<?php echo $active_sale_id; ?>" type="button"
+                            class="text-red-500 text-xl font-bold pl-3">×</button>
+                    <?php endforeach; ?>
                 </div>
             </div>
-
+            <?php if (isset($_SESSION['success'])): ?>
+                <script>
+                    Swal.fire({
+                        toast: true,
+                        position: 'center',
+                        icon: 'success',
+                        title: '<?php echo $_SESSION['success']; ?>',
+                        showConfirmButton: false,
+                        timer: 1500,
+                        timerProgressBar: true
+                    });
+                    <?php unset($_SESSION['success']); ?>
+                </script>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['error'])): ?>
+                <script>
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ข้อผิดพลาด',
+                        text: '<?php echo $_SESSION['error']; ?>',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    <?php unset($_SESSION['error']); ?>
+                </script>
+            <?php endif; ?>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Left side - Product entry and list -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- Product search section -->
-                    <div class="card p-6 fade-in">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-barcode text-blue-600 mr-3"></i>
-                            เพิ่มสินค้า
-                        </h2>
-                        <div class="flex space-x-4 items-end">
+                    <form action="" method="POST" id="form_add_product" class="space-y-4" novalidate
+                        onsubmit="return false;">
+                        <div class="flex flex-wrap space-x-4 mb-4 items-center">
+                            <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
+                            <input type="hidden" name="action" value="add_product">
                             <div class="flex-1">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">รหัสสินค้า</label>
-                                <input type="text" id="barcode_input" 
-                                       class="form-input w-full p-4 border-2 border-gray-200 focus:border-blue-500 focus:ring-0" 
-                                       placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off">
-                                <div id="barcode_suggestions" class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-xl hidden mt-1"></div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า</label>
+                                <input type="text" name="barcode" id="barcode_input"
+                                    class="p-3 w-full h-8 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    placeholder="ป้อนหรือสแกนรหัสสินค้า" autocomplete="off" autofocus
+                                    <?php echo ($sale_status_id === 1) ? 'disable' : ''; ?>>
+                                <div id="barcode_suggestions"
+                                    class="z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">จำนวน</label>
-                                <input type="number" id="qty_input" value="1" min="1" 
-                                       class="form-input w-20 p-4 border-2 border-gray-200 focus:border-blue-500 focus:ring-0 text-center">
-                            </div>
-                            <button class="btn-primary px-6 py-4 rounded-xl text-white font-medium">
-                                <i class="fas fa-plus mr-2"></i>เพิ่ม
-                            </button>
-                        </div>
-                    </div>
 
-                    <!-- Product list -->
-                    <div class="card p-6 fade-in">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                                <i class="fas fa-shopping-cart text-blue-600 mr-3"></i>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
+                                <input type="number" name="qty" value="1" min="1" id="barcode-qty"
+                                    class="p-2 w-12 h-8 border border-gray-300 rounded-sm"
+                                    <?php echo ($sale_status_id === 1) ? 'disable' : ''; ?>>
+                            </div>
+                            <div hidden>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
+                                <select name="price_type" class="p-2 w-32 border border-gray-300 rounded-sm">
+                                    <option value="price4">ราคาขายจริง</option>
+                                    <option value="price1">ราคา 1</option>
+                                    <option value="price2">ราคา 2</option>
+                                    <option value="price3">ราคา 3</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="product_info" class="text-sm text-gray-600 hidden"></div>
+                    </form>
+                    <!-- Payment Section -->
+                    <!-- <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                    </div> -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                </svg>
                                 รายการสินค้า
                             </h2>
-                            <div class="text-sm text-gray-500">
-                                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">3 รายการ</span>
-                            </div>
                         </div>
-                        
-                        <div class="modern-table">
-                            <table class="w-full">
+                        <div class="overflow-x-auto rounded-lg border border-gray-200">
+                            <table class="w-full border-collapse">
                                 <thead>
-                                    <tr class="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700">
-                                        <th class="py-4 px-4 text-left font-semibold">รหัส</th>
-                                        <th class="py-4 px-4 text-left font-semibold">ชื่อสินค้า</th>
-                                        <th class="py-4 px-4 text-center font-semibold">จำนวน</th>
-                                        <th class="py-4 px-4 text-right font-semibold">ราคา</th>
-                                        <th class="py-4 px-4 text-right font-semibold">รวม</th>
-                                        <th class="py-4 px-4 text-center font-semibold">จัดการ</th>
+                                    <tr class="bg-gray-50 text-gray-700">
+                                        <th class="py-3 px-4 text-left font-medium text-sm">รหัสสินค้า</th>
+                                        <th class="py-3 px-4 text-left font-medium text-sm">ชื่อสินค้า</th>
+                                        <th class="py-3 px-4 text-center font-medium text-sm">จำนวน</th>
+                                        <th class="py-3 px-4 text-right font-medium text-sm">ราคาขาย</th>
+                                        <th class="py-3 px-4 text-right font-medium text-sm">ยอดรวม</th>
+                                        <th class="py-3 px-4 text-center font-medium text-sm">การจัดการ</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr class="table-row border-t border-gray-100">
-                                        <td class="py-4 px-4 text-sm font-medium">P001</td>
-                                        <td class="py-4 px-4 text-sm">น้ำดื่มตราเพชร 600ml</td>
-                                        <td class="py-4 px-4 text-center text-sm">
-                                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">2</span>
-                                        </td>
-                                        <td class="py-4 px-4 text-right text-sm">15.00</td>
-                                        <td class="py-4 px-4 text-right font-bold text-blue-600">30.00</td>
-                                        <td class="py-4 px-4 text-center">
-                                            <div class="flex justify-center space-x-2">
-                                                <button class="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="table-row border-t border-gray-100">
-                                        <td class="py-4 px-4 text-sm font-medium">P002</td>
-                                        <td class="py-4 px-4 text-sm">ขนมปังโฮลวีท</td>
-                                        <td class="py-4 px-4 text-center text-sm">
-                                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">1</span>
-                                        </td>
-                                        <td class="py-4 px-4 text-right text-sm">45.00</td>
-                                        <td class="py-4 px-4 text-right font-bold text-blue-600">45.00</td>
-                                        <td class="py-4 px-4 text-center">
-                                            <div class="flex justify-center space-x-2">
-                                                <button class="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                <tbody id="product_table_body">
+                                    <?php if (empty($sale_products)): ?>
+                                        <tr>
+                                            <td colspan="6" class="text-center py-8 text-gray-500">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24"
+                                                    stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                                </svg>
+                                                <p class="mt-2">ไม่พบสินค้าในการขายนี้</p>
+                                                <p class="text-sm">กรุณาเพิ่มสินค้า</p>
+                                            </td>
+                                        </tr>
+                                    <?php else: ?>
+                                        <?php foreach ($sale_products as $product): ?>
+                                            <tr class="border-t border-gray-200 hover:bg-gray-50">
+                                                <td class="py-3 px-4 text-sm">
+                                                    <?php echo htmlspecialchars($product['product_id']); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-sm">
+                                                    <?php echo htmlspecialchars($product['product_name']); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-center text-sm">
+                                                    <?php echo htmlspecialchars($product['sale_product_qty']); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-right text-sm">
+                                                    <?php echo number_format($product['sale_product_price'], 2); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-right font-medium text-sm">
+                                                    <?php echo number_format($product['sale_product_qty'] * $product['sale_product_price'], 2); ?>
+                                                </td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <?php if ($sale_data['sale_status_id'] != 1): ?>
+                                                        <div class="flex justify-center space-x-2">
+                                                            <button class="edit-product p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors shadow-md"
+                                                                data-id="<?php echo htmlspecialchars($product['sale_product_id']); ?>"
+                                                                data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
+                                                                data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
+                                                                data-qty="<?php echo htmlspecialchars($product['sale_product_qty']); ?>"
+                                                                data-price="<?php echo htmlspecialchars($product['sale_product_price']); ?>"
+                                                                data-capital="<?php echo htmlspecialchars($product['sale_product_capital']); ?>">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                                </svg>
+                                                            </button>
+                                                            <button type="button" class="delete-product p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors shadow-md"
+                                                                data-barcode="<?php echo htmlspecialchars($product['product_id']); ?>"
+                                                                data-qty="1">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-
-                <!-- Right side - Payment and summary -->
                 <div class="space-y-6">
-                    <!-- Customer section -->
-                    <div class="card p-6 fade-in">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-user text-blue-600 mr-3"></i>
-                            ข้อมูลลูกค้า
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            ข้อมูลการขาย
                         </h2>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">สมาชิก</label>
-                            <input type="text" class="form-input w-full p-3 border-2 border-gray-200 focus:border-blue-500 focus:ring-0" 
-                                   placeholder="ค้นหาสมาชิก">
-                        </div>
+                        <form method="POST" action="" id="confirm-sale-form" novalidate onsubmit="return false;">
+                            <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
+                            <input type="hidden" name="action" value="confirm_sale">
+                            <div class="space-y-4">
+                                <div class="space-y-3">
+                                    <button id="cancel_sale" type="button"
+                                        class="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        ยกเลิกการขาย
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 gap-2" hidden>
+                                    <label class="text-base font-medium text-gray-700" hidden>วันที่ทำการขาย:</label>
+                                    <input name="sale_date" value="<?php echo $displayDateTime; ?>" readonly hidden
+                                        class="p-2 bg-gray-50 border border-gray-300 rounded text-gray-500 text-sm">
+                                </div>
+                                <div class="grid grid-cols-1 gap-2" hidden>
+                                    <label class="text-base font-medium text-gray-700" hidden>สถานะการขาย:</label>
+                                    <select name="sale_status_id"
+                                        class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        hidden>
+                                        <?php while ($sale_status = $sale_status_result->fetch(PDO::FETCH_ASSOC)): ?>
+                                            <option value="<?php echo $sale_status['sale_status_id']; ?>" <?php echo ($sale_status_id == $sale_status['sale_status_id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($sale_status['sale_status_name']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-1 gap-2 pb-4">
+                                        <label class="text-base font-medium text-gray-700">สมาชิก:</label>
+                                        <input type="text" id="member_search"
+                                            class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="ค้นหาสมาชิก"
+                                            <?php echo ($sale_data['sale_status_id'] == 1) ? 'disabled' : ''; ?>>
+                                        <input type="hidden" name="member_id" id="member_id"
+                                            <?php echo ($sale_data['sale_status_id'] == 1) ? 'disabled' : ''; ?>>
+                                        <div id="member_suggestions"
+                                            class="absolute z-10 w-auto bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                     </div>
-
-                    <!-- Summary section -->
-                    <div class="card p-6 fade-in">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-calculator text-blue-600 mr-3"></i>
-                            สรุปการขาย
-                        </h2>
-                        <div class="space-y-3 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">จำนวนรายการ:</span>
-                                <span class="font-medium">3 รายการ</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">จำนวนชิ้น:</span>
-                                <span class="font-medium">3 ชิ้น</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">ยอดสุทธิ:</span>
-                                <span class="font-medium">75.00 บาท</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">VAT (7%):</span>
-                                <span class="font-medium">5.25 บาท</span>
-                            </div>
-                            <hr class="border-gray-200">
-                            <div class="flex justify-between text-lg font-bold">
-                                <span>ยอดรวม:</span>
-                                <span class="text-blue-600">80.25 บาท</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payment section -->
-                    <div class="card p-6 fade-in">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-credit-card text-blue-600 mr-3"></i>
+                    <div class="mb-4 p-3 bg-gray-50 rounded-lg shadow-lg">
+                        <h2 class="text-lg font-semibold mb-3 text-gray-800 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                             การชำระเงิน
                         </h2>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">เงินที่รับ</label>
-                                <input type="number" class="form-input w-full p-3 border-2 border-gray-200 focus:border-blue-500 focus:ring-0" 
-                                       placeholder="0.00" step="0.01">
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">จำนวนรายการ:</span>
+                            <span class="total-items text-sm"><?php echo $total_items; ?> รายการ</span>
+                        </div>
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">จำนวนชิ้น:</span>
+                            <span class="total-qty text-sm"><?php echo $total_qty; ?> ชิ้น</span>
+                        </div>
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">ยอดสุทธิ (ไม่รวม VAT):</span>
+                            <span class="text-sm sale-net-amount"><?php echo number_format($sale_net_amount, 2); ?> บาท</span>
+                        </div>
+                        <div class="flex justify-between text-gray-800 pb-2">
+                            <span class="font-medium text-sm">VAT (7%):</span>
+                            <span class="text-sm sale-vat-amount"><?php echo number_format($sale_vat_amount, 2); ?> บาท</span>
+                        </div>
+                        <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
+                            <span>ยอดรวมสุทธิ:</span>
+                            <span type="number" id="sale_total_amount" class="text-blue-700 total-amount"><?php echo number_format($sale_total_amount, 2); ?>
+                                บาท</span>
+                        </div>
+
+                        <div class="flex flex-row space-x-4 items-end pb-6">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ
+                                    (บาท):</label>
+                                <input type="number" id="sale_paid_amount" value="" min="1"
+                                    class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    step="0.01" placeholder="ป้อนจำนวนเงิน">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
+                                <input type="text" id="sale_change_amount"
+                                    class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
+                                    readonly>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">เงินทอน</label>
-                                <input type="text" class="form-input w-full p-3 border-2 border-gray-200 bg-gray-50" 
-                                       placeholder="0.00" readonly>
+                                <button id="calculate_change"
+                                    class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                    </svg>
+                                    คำนวณ
+                                </button>
                             </div>
-                            <button class="btn-primary w-full py-3 rounded-xl text-white font-medium">
-                                <i class="fas fa-calculator mr-2"></i>คำนวณเงินทอน
-                            </button>
                         </div>
                     </div>
+                    <div class="space-y-3">
+                        <!-- ปุ่มพิมพ์ใบเสร็จ (เริ่มต้นซ่อน) -->
+                        <button id="print_receipt"
+                            class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center <?php echo ($sale_data['sale_status_id'] == 1) ? '' : 'hidden'; ?>">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            พิมพ์ใบเสร็จ
+                        </button>
 
-                    <!-- Action buttons -->
-                    <div class="space-y-3 fade-in">
-                        <button class="btn-success w-full py-4 rounded-xl text-white font-bold text-lg transition-all duration-300">
-                            <i class="fas fa-check-circle mr-2"></i>ยืนยันการขาย
-                        </button>
-                        <button class="btn-danger w-full py-3 rounded-xl text-white font-medium transition-all duration-300">
-                            <i class="fas fa-times-circle mr-2"></i>ยกเลิกการขาย
-                        </button>
-                        <button class="w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300">
-                            <i class="fas fa-print mr-2"></i>พิมพ์ใบเสร็จ
+                        <!-- ปุ่มยืนยันรายการขาย -->
+                        <button type="submit" form="confirm-sale-form" id="confirm-sale-btn"
+                            class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
+                            <span class="loading-spinner hidden">กำลังประมวลผล...</span>
+                            <span class="btn-text">
+                                ยืนยันรายการขาย
+                            </span>
                         </button>
                     </div>
+                    </form>
+
                 </div>
             </div>
         </div>
 
-        <!-- Floating Action Button -->
-        <button class="fab">
-            <i class="fas fa-question text-xl"></i>
-        </button>
-    </div>
+        <!-- Modal -->
+        <div id="edit-product-modal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">แก้ไขสินค้า</h3>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <form id="edit-product-form" method="POST" action="" onsubmit="return false;">
+                    <input type="hidden" name="sale_id" value="<?php echo htmlspecialchars($sale_id); ?>">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" id="edit-barcode" name="barcode">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า</label>
+                            <input type="text" id="edit-barcode-display"
+                                class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อสินค้า</label>
+                            <input type="text" id="edit-product-name"
+                                class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
+                            <input type="number" id="edit-qty" name="qty"
+                                class="w-full p-2 border border-gray-300 rounded modal-active" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ราคาขาย</label>
+                            <input type="number" id="edit-price" name="price"
+                                class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" step="0.01"
+                                readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ต้นทุน</label>
+                            <input type="number" id="edit-capital" name="capital"
+                                class="w-full p-2 border border-gray-300 rounded modal-active bg-gray-200" step="0.01"
+                                readonly>
+                        </div>
 
-    <!-- Scripts -->
-    <script>
-        $(document).ready(function() {
-            // Add fade-in animation on load
-            $('.fade-in').each(function(i) {
-                $(this).delay(i * 100).queue(function(next) {
-                    $(this).addClass('opacity-100').dequeue();
-                });
-            });
+                    </div>
+                    <div class="mt-6 flex space-x-3">
+                        <button type="submit"
+                            class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors modal-active">บันทึกการแก้ไข</button>
+                        <button type="button" id="cancel-edit"
+                            class="flex-1 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors modal-active">ยกเลิก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-            // Auto-focus on barcode input
-            $('#barcode_input').focus();
+        <!-- เพิ่ม CSRF token -->
+        <!-- <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>"> -->
 
-            // Add smooth scroll behavior
-            $('html').css('scroll-behavior', 'smooth');
+        <script>
+            $(document).ready(function() {
+                $('#print_receipt').addClass('hidden');
 
-            // Add ripple effect to buttons
-            $('.btn-primary, .btn-success, .btn-danger').on('click', function(e) {
-                let ripple = $('<span class="ripple"></span>');
-                $(this).append(ripple);
-                
-                setTimeout(() => {
-                    ripple.remove();
-                }, 600);
-            });
-
-            // Tab switching animation
-            $('#billTabs > div').on('click', function() {
-                $('#billTabs > div').removeClass('tab-active').addClass('tab-inactive');
-                $(this).removeClass('tab-inactive').addClass('tab-active');
-            });
-
-            // Quantity input enhancement
-            $('#qty_input').on('wheel', function(e) {
-                e.preventDefault();
-                let currentVal = parseInt($(this).val());
-                if (e.originalEvent.deltaY < 0) {
-                    $(this).val(currentVal + 1);
-                } else if (currentVal > 1) {
-                    $(this).val(currentVal - 1);
+                if (typeof $ === 'undefined') {
+                    console.error('jQuery not loaded');
+                    alert('ไม่สามารถโหลด jQuery ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
+                    return;
                 }
-            });
 
-            // Add loading state to buttons
-            $('.btn-success').on('click', function() {
-                let $btn = $(this);
-                let originalText = $btn.html();
-                $btn.html('<span class="loading-spinner mr-2"></span>กำลังดำเนินการ...');
-                $btn.prop('disabled', true);
-                
-                setTimeout(() => {
-                    $btn.html(originalText);
-                    $btn.prop('disabled', false);
-                }, 2000);
-            });
+                if (typeof Swal === 'undefined') {
+                    console.error('SweetAlert2 not loaded');
+                    alert('ไม่สามารถโหลด SweetAlert2 ได้ กรุณาตรวจสอบการเชื่อมต่อหรือรีเฟรชหน้า');
+                    return;
+                }
 
-            // Enhanced barcode input with suggestion dropdown
-            $('#barcode_input').on('input', function() {
-                let value = $(this).val();
-                if (value.length > 2) {
-                    // Simulate product suggestions
-                    let suggestions = [
-                        { code: 'P001', name: 'น้ำดื่มตราเพชร 600ml', price: 15.00 },
-                        { code: 'P002', name: 'ขนมปังโฮลวีท', price: 45.00 },
-                        { code: 'P003', name: 'นมสดตราดาว 250ml', price: 12.50 }
-                    ];
-                    
-                    let filteredSuggestions = suggestions.filter(item => 
-                        item.code.toLowerCase().includes(value.toLowerCase()) || 
-                        item.name.toLowerCase().includes(value.toLowerCase())
-                    );
-                    
-                    if (filteredSuggestions.length > 0) {
-                        let html = '';
-                        filteredSuggestions.forEach(item => {
-                            html += `<div class="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-b-0" data-code="${item.code}">
-                                <div class="font-medium">${item.code} - ${item.name}</div>
-                                <div class="text-sm text-gray-500">฿${item.price.toFixed(2)}</div>
-                            </div>`;
-                        });
-                        $('#barcode_suggestions').html(html).removeClass('hidden');
-                    } else {
-                        $('#barcode_suggestions').addClass('hidden');
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                        $('.main-body').removeAttr('aria-hidden');
+                    },
+                    didClose: () => {
+                        if (!$('#edit-product-modal').is(':visible')) {
+                            $('#barcode_input').focus();
+                        }
                     }
+                });
+
+                const saleStatusId = <?php echo json_encode(isset($sale_data['sale_status_id']) ? $sale_data['sale_status_id'] : 2); ?>;
+                if (saleStatusId === 1) {
+                    $('#print_receipt').removeClass('hidden');
+                    $('.edit-product').addClass('hidden');
+                    $('.delete-product').addClass('hidden');
+                    $('#member_search, #member_id, select[name="personnel_id"]').prop('disabled', true);
+                    $('#confirm-sale-btn').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+                    $('#barcode_input, #barcode-qty').prop('disabled', true);
+                    $('#form_add_product').find('input, select, button').prop('disabled', true);
                 } else {
-                    $('#barcode_suggestions').addClass('hidden');
+                    $("#calculate_change").prop("disabled", false).removeClass("opacity-50 cursor-not-allowed");
+                    $("#print_receipt").addClass("hidden");
                 }
-            });
+                const saleNetAmount = parseFloat(<?php echo json_encode((float)$sale_net_amount); ?>) || 0;
+                $(document).trigger("productListUpdated", [saleNetAmount]);
 
-            // Handle suggestion selection
-            $(document).on('click', '#barcode_suggestions > div', function() {
-                let code = $(this).data('code');
-                $('#barcode_input').val(code);
-                $('#barcode_suggestions').addClass('hidden');
-                $('#qty_input').focus();
-            });
+                $('#member_search').on('input', function() {
+                    const query = $(this).val();
+                    if (query.length < 2) {
+                        $('#member_suggestions').addClass('hidden').empty();
+                        return;
+                    }
+                    $.ajax({
+                        url: 'page/sale/ajax/ajax_search_member.php',
+                        method: 'GET',
+                        data: {
+                            query: query
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            const members = response;
+                            const suggestions = $('#member_suggestions').removeClass('hidden').empty();
+                            if (members.length === 0) {
+                                suggestions.append('<div class="p-2 text-gray-500">ไม่พบสมาชิก</div>');
+                                return;
+                            }
+                            members.forEach(member => {
+                                suggestions.append(`
+                                    <div class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${member.member_id}">
+                                        ${member.member_name}
+                                    </div>
+                                `);
+                            });
+                            suggestions.find('div').on('click', function() {
+                                const memberId = $(this).data('id');
+                                const memberName = $(this).text();
+                                $('#member_search').val(memberName);
+                                $('#member_id').val(memberId);
+                                suggestions.addClass('hidden').empty();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถค้นหาสมาชิกได้'
+                            });
+                        }
+                    });
+                });
 
-            // Hide suggestions when clicking outside
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('#barcode_input, #barcode_suggestions').length) {
-                    $('#barcode_suggestions').addClass('hidden');
+                $(document).on('productListUpdated', function(e, sale_net_amount) {
+                    const netAmount = parseFloat(sale_net_amount);
+                    if (isNaN(netAmount)) {
+                        console.warn("Invalid sale_net_amount:", sale_net_amount);
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ข้อผิดพลาด',
+                            text: 'ยอดสุทธิไม่ถูกต้อง กรุณาตรวจสอบข้อมูล',
+                        });
+                        return;
+                    }
+                    const vat_rate = 0.07;
+                    const sale_vat_amount = netAmount * vat_rate;
+                    const sale_total_amount = netAmount + sale_vat_amount;
+                    $('.sale-net-amount').text(netAmount.toFixed(2) + ' บาท');
+                    $('.sale-vat-amount').text(sale_vat_amount.toFixed(2) + ' บาท');
+                    $('.total-amount').text(sale_total_amount.toFixed(2) + ' บาท');
+                });
+
+                let bills = <?php echo json_encode($valid_active_sale); ?>;
+                let currentSaleId = <?php echo json_encode($sale_id); ?>;
+
+                function updateTabStyles() {
+                    $('#billTabs > div').each(function() {
+                        const tabId = $(this).attr('id').replace('tab_', '');
+                        if (tabId == currentSaleId) {
+                            $(this).removeClass('tab-inactive').addClass('tab-active');
+                        } else {
+                            $(this).removeClass('tab-active').addClass('tab-inactive');
+                        }
+                    });
                 }
+
+                function bindEditProductEvents() {
+                    $(".edit-product").off("click").on("click", function(e) {
+                        e.preventDefault();
+                        const barcode = $(this).data("barcode");
+                        const name = $(this).data("name");
+                        const qty = $(this).data("qty");
+                        const price = $(this).data("price");
+                        const capital = $(this).data("capital");
+                        const reference = $(this).data("reference") || "";
+                        $("#edit-barcode").val(barcode);
+                        $("#edit-barcode-display").val(barcode);
+                        $("#edit-product-name").val(name);
+                        $("#edit-qty").val(qty);
+                        $("#edit-price").val(parseFloat(price).toFixed(2));
+                        $("#edit-capital").val(parseFloat(capital).toFixed(2));
+                        $("#edit-reference").val(reference);
+                        $(".main-body").attr("aria-hidden", "true");
+                        $("#edit-product-modal").removeClass("hidden");
+                    });
+                }
+                bindEditProductEvents();
             });
-        });
-    </script>
+        </script>
+    </div>
 </body>
 
 </html>
