@@ -585,7 +585,7 @@ class Theme extends WriterPart
         $objWriter->writeAttribute('l', '50000');
         $objWriter->writeAttribute('t', '-80000');
         $objWriter->writeAttribute('r', '50000');
-        $objWriter->writeAttribute('b', '180000');
+        $objWriter->writeAttribute('b', '8640000');
         $objWriter->endElement();
 
         $objWriter->endElement();

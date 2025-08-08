@@ -6,7 +6,7 @@ date_default_timezone_set('Asia/Bangkok');
 $pdo = Database::getInstance()->getConnection(); 
 
 // Session timeout handling
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 86400)) {
     session_unset();
     session_destroy();
     $query_params = http_build_query([

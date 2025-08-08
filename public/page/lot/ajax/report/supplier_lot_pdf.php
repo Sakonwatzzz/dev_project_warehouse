@@ -13,7 +13,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // Check session timeout
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 86400)) {
     session_unset();
     session_destroy();
     $query_params = http_build_query(['timeout' => 1, 'page' => 'supplier_lot', 'supplier_id' => $_GET['supplier_id'] ?? 0]);

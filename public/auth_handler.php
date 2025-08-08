@@ -16,7 +16,7 @@ function setAuthTokens($accessToken, $refreshToken) {
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
     
     setcookie('access_token', $accessToken, [
-        'expires' => time() + 600, // 10 นาที
+        'expires' => time() + 86400, // 1 วัน
         'path' => '/',
         'httponly' => true,
         'secure' => $secure, //เปิดเป็น true ถ้าต้องการใช้ https
