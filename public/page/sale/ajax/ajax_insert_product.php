@@ -43,7 +43,7 @@ try {
     ob_end_flush();
     exit();
 }
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 
 $sale_id = $_POST['sale_id'] ?? null;
 if (empty($sale_id)) {
@@ -119,13 +119,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $barcode = trim($_POST['barcode']);
         $qty = is_numeric($_POST['qty'] ?? null) ? (int) $_POST['qty'] : 1;
         $price = is_numeric($_POST['price'] ?? null) ? (float) $_POST['price'] : 0;
-        $price_type = $_POST['price_type'] ?? 'price4';
 
         if (empty($barcode)) {
             throw new Exception("กรุณาป้อนรหัสสินค้า");
         }
         if ($qty <= 0) {
             throw new Exception("จำนวนต้องมากกว่า 0");
+        }
+        if ($price <= 0) {
+            throw new Exception("ราคาขายต้องมากกว่า 0 บาท");
         }
 
         $pdo->beginTransaction();
@@ -141,6 +143,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (!$prod) {
             throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
         }
+        
+        $valid_price = [
+            (float)$prod['product_price1'],
+            (float)$prod['product_price2'],
+            (float)$prod['product_price3'],
+            (float)$prod['product_price4'],
+        ];
 
         // เลือกราคา
         $unitPrice = $price > 0 ? $price : $prod['product_' . $price_type];

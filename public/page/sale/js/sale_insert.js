@@ -42,18 +42,81 @@ $(document).ready(function () {
           info.html(
             '<span class="text-red-500">ไม่พบสินค้าหรือสต็อกไม่เพียงพอ</span>'
           );
+          $("#selected_price").val("");
           return;
         }
+        const prices = [
+          parseFloat(product.product_price1) || 0,
+          parseFloat(product.product_price2) || 0,
+          parseFloat(product.product_price3) || 0,
+          parseFloat(product.product_price4) || 0,
+        ];
+        // dropdown สำหรับเลือกราคา
+        if (prices.every((p) => p <= 0)) {
+          info.html(
+            '<span class="text-red-500">สินค้านี้ไม่มีราคาขายที่ถูกต้อง</span>'
+          );
+          $("#selected_price").val("");
+          Swal.fire({
+            icon: "error",
+            title: "ข้อผิดพลาด",
+            text: "ไม่มีราคาขายที่มากกว่า 0 บาท กรุณาตรวจสอบข้อมูลสินค้า",
+          });
+          return;
+        }
+        // สร้าง option เฉพาะราคา > 0
+        let options = "";
+        if (prices[0] > 0)
+          options += `<option value="${prices[0].toFixed(
+            2
+          )}">ราคาขาย 1: ${prices[0].toFixed(2)} บาท</option>`;
+        if (prices[1] > 0)
+          options += `<option value="${prices[1].toFixed(
+            2
+          )}">ราคาขาย 2: ${prices[1].toFixed(2)} บาท</option>`;
+        if (prices[2] > 0)
+          options += `<option value="${prices[2].toFixed(
+            2
+          )}">ราคาขาย 3: ${prices[2].toFixed(2)} บาท</option>`;
+        if (prices[3] > 0)
+          options += `<option value="${prices[3].toFixed(
+            2
+          )}" selected>ราคาขาย 4: ${prices[3].toFixed(2)} บาท</option>`;
         info.html(`
            <div class="bg-white rounded-b-lg p-2">
             <p class="text-xl"><strong>ชื่อสินค้า:</strong> ${product.product_name}</p>
-            <p class="text-xl"><strong>ราคาขาย:</strong> ${product.product_price4} บาท</p>
+            <p class="text-xl"><strong>เลือกราคาขาย:</strong>
+            <select id="price_select" class="border-2 border-solid cursor-pointer bg-white hover:bg-gray-200">
+              ${options}
+            </select>
+            </p>
             <p class="text-xl"><strong>สต็อกคงเหลือ:</strong> ${product.total_stock} ชิ้น</p>
            </div>
         `);
+        // เปลี่ยน dropdown อัีพเดท input
+        $("#price_select").on("change", function () {
+          const val = parseFloat($(this).val());
+          if (val > 0) {
+            $("#selected_price").val(val.toFixed(2));
+          } else {
+            $("#selected_price").val("");
+            Swal.fire({
+              icon: "warning",
+              title: "แจ้งเตือน",
+              text: "ราคาที่เลือกต้องมากกว่า 0 บาท",
+            });
+          }
+        });
+        // ค่าเริ่มต้นเป็นราคาที่มากกว่า 0 แรก (default price4 ถ้ามี)
+        const defaultPrice =
+          prices[3] > 0
+            ? prices[3].toFixed(2)
+            : prices.find((p) => p > 0)?.toFixed(2) || "";
+        $("#selected_price").val(defaultPrice);
       },
       error: function (xhr) {
         $("#product_info").addClass("hidden").empty();
+        $("#selected_price").val("");
         Swal.fire({
           icon: "error",
           title: "ข้อผิดพลาด",
@@ -72,6 +135,7 @@ $(document).ready(function () {
     if (query.length < 2) {
       $("#barcode_suggestions").addClass("hidden").empty();
       $("#product_info").addClass("hidden").empty();
+      $("#selected_price").val("");
       return;
     }
     $.ajax({
@@ -125,7 +189,8 @@ $(document).ready(function () {
       e.stopPropagation();
       const barcode = $("#barcode_input").val();
       const qty = parseInt($('input[name="qty"]').val()) || 0;
-      console.log("Adding product:", { sale_id, barcode, qty }); // Debug
+      const selectedPrice = parseFloat($("#selected_price").val()) || 0;
+      // console.log("Adding product:", { sale_id, barcode, qty }); // Debug
       if (!barcode) {
         Swal.fire({
           icon: "warning",
@@ -139,6 +204,14 @@ $(document).ready(function () {
           icon: "warning",
           title: "แจ้งเตือน",
           text: "จำนวนต้องมากกว่า 0",
+        });
+        return;
+      }
+      if (selectedPrice <= 0) {
+        Swal.fire({
+          icon: "warning",
+          title: "แจ้งเตือน",
+          text: "กรุณาเลือกราคาขายที่มากกว่า 0 บาท",
         });
         return;
       }
@@ -162,6 +235,7 @@ $(document).ready(function () {
             updateProductTable();
             $("#form_add_product")[0].reset();
             $("#product_info").addClass("hidden").empty();
+            $("#selected_price").val("");
           } else {
             Swal.fire({
               icon: "warning",
@@ -228,14 +302,14 @@ $(document).ready(function () {
             .prop("disabled", !hasProducts)
             .toggleClass("opacity-50 cursor-not-allowed", !hasProducts);
           const saleNetAmount = parseFloat(response.sale_net_amount) || 0;
+          const roundedNet = parseFloat(saleNetAmount.toFixed(2));
           if (isNaN(saleNetAmount)) {
             console.warn(
               "Invalid sale_net_amount from response:",
               response.sale_net_amount
             );
           }
-          $(document).trigger("productListUpdated", [saleNetAmount]);
-          // bindEditProductEvents();
+          $(document).trigger("productListUpdated", [roundedNet]); // bindEditProductEvents();
           $(".main-body").removeAttr("aria-hidden");
         } else {
           Swal.fire({

@@ -98,6 +98,26 @@ $(document).ready(function () {
       dataType: "json",
       success: function (response) {
         console.log("Payment details updated:", response);
+        if (response.status === "success") {
+          if (
+            response.updated_total &&
+            response.updated_total !== dynamicTotalAmount
+          ) {
+            dynamicTotalAmount = parseFloat(response.updated_total);
+            $(".total-amount").text(dynamicTotalAmount.toFixed(2) + " บาท");
+            calculateChange(); // Recalculate ถ้ามี override
+            Toast.fire({
+              icon: "info",
+              title: "ยอดรวมถูกปรับให้ตรงกับฐานข้อมูล",
+            });
+          }
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "ข้อผิดพลาด",
+            text: response.message,
+          });
+        }
       },
       error: function (xhr, status, error) {
         console.error(
@@ -107,11 +127,12 @@ $(document).ready(function () {
         );
         Swal.fire({
           icon: "error",
-          title: "ข้อผิดพลาด", // แก้ typo จาก ข้อผิดลาด
+          title: "ข้อผิดพลาด",
           text: `ไม่สามารถอัปเดตข้อมูลการชำระเงินได้: ${xhr.status} ${
             xhr.responseText || error
           }`,
         });
+        setTimeout(calculateChange, 1000);
       },
     });
   }
@@ -140,9 +161,11 @@ $(document).ready(function () {
     }
 
     // อัปเดตตัวแปร global จาก saleNetAmount ที่ได้รับ
-    dynamicNetAmount = netAmount;
-    dynamicVatAmount = dynamicNetAmount * 0.07;
-    dynamicTotalAmount = dynamicNetAmount + dynamicVatAmount;
+    dynamicNetAmount = parseFloat(netAmount.toFixed(2));
+    dynamicVatAmount = parseFloat((dynamicNetAmount * 0.07).toFixed(2));
+    dynamicTotalAmount = parseFloat(
+      (dynamicNetAmount + dynamicVatAmount).toFixed(2)
+    );
 
     // อัปเดต DOM
     $(".sale-net-amount").text(dynamicNetAmount.toFixed(2) + " บาท");

@@ -10,9 +10,9 @@ try {
 //     error_log("CSRF token generated: " . $_SESSION['csrf_token']);
 // }
 // คำนวณ VAT สำหรับการแสดงผลเริ่มต้น
-// $sale_net_amount = $sale_total_amount;
-// $sale_vat_amount = $sale_net_amount * 0.07;
-// $sale_total_amount = $sale_net_amount + $sale_vat_amount;
+$sale_net_amount = $sale_total_amount;
+$sale_vat_amount = $sale_net_amount * 0.07;
+$sale_total_amount = $sale_net_amount + $sale_vat_amount;
 
 // เพิ่มการแสดงผลข้อผิดพลาดสำหรับการดีบักชั่วคราวตั้งค่า display_errors เป็น 1 ในไฟล์เพื่อดูข้อผิดพลาดโดยตรง
 // ini_set('display_errors', 1);
@@ -62,11 +62,11 @@ if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
             $currentDateTime, // sale_date
             null,             // member_id
             null,             // personnel_id
-            0,                // sale_net_amount
-            0.00,             // sale_vat_amount
-            0.00,             // sale_paid_amount
-            0.00,             // sale_change_amount
-            0.00              // sale_total_amount
+            null,             // sale_net_amount
+            null,             // sale_vat_amount
+            null,             // sale_paid_amount
+            null,             // sale_change_amount
+            null              // sale_total_amount
         ]);
         $sale_id = $pdo->lastInsertId();
         $_SESSION['active_sales'][] = $sale_id;
@@ -492,7 +492,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                     class="z-10 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg hidden">
                                 </div>
                             </div>
-
+                            <input type="hidden" id="selected_price" name="price" value="">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
                                 <input type="number" name="qty" value="1" min="1" id="barcode-qty"
@@ -912,10 +912,12 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         });
                         return;
                     }
+                    // เพิ่ม precision handling โดย multiply 100 แล้ว round (best practice สำหรับ money)
+                    const roundedNet = Math.round(netAmount * 100) / 100;
                     const vat_rate = 0.07;
-                    const sale_vat_amount = netAmount * vat_rate;
-                    const sale_total_amount = netAmount + sale_vat_amount;
-                    $('.sale-net-amount').text(netAmount.toFixed(2) + ' บาท');
+                    const sale_vat_amount = Math.round(roundedNet * vat_rate * 100) / 100;
+                    const sale_total_amount = Math.round((roundedNet + sale_vat_amount) * 100) / 100;
+                    $('.sale-net-amount').text(roundedNet.toFixed(2) + ' บาท');
                     $('.sale-vat-amount').text(sale_vat_amount.toFixed(2) + ' บาท');
                     $('.total-amount').text(sale_total_amount.toFixed(2) + ' บาท');
                 });

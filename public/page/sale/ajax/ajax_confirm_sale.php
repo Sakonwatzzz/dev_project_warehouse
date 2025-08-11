@@ -29,11 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // รับข้อมูล
         $sale_id = $_POST['sale_id'] ?? null;
         $member_id = $_POST['member_id'] ?? null;
-        $sale_net_amount = isset($_POST['sale_net_amount']) ? (float)$_POST['sale_net_amount'] : 0;
-        $sale_vat_amount = isset($_POST['sale_vat_amount']) ? (float)$_POST['sale_vat_amount'] : 0;
-        $sale_total_amount = isset($_POST['sale_total_amount']) ? (float)$_POST['sale_total_amount'] : 0;
-        $sale_paid_amount = isset($_POST['sale_paid_amount']) ? (float)$_POST['sale_paid_amount'] : 0;
-        $sale_change_amount = isset($_POST['sale_change_amount']) ? (float)$_POST['sale_change_amount'] : 0;
+        $sale_net_amount = isset($_POST['sale_net_amount']) ? (float)$_POST['sale_net_amount'] :
+        $sale_vat_amount = isset($_POST['sale_vat_amount']) ? (float)$_POST['sale_vat_amount'] :
+        $sale_total_amount = isset($_POST['sale_total_amount']) ? (float)$_POST['sale_total_amount'] :
+        $sale_paid_amount = isset($_POST['sale_paid_amount']) ? (float)$_POST['sale_paid_amount'] :
+        $sale_change_amount = isset($_POST['sale_change_amount']) ? (float)$_POST['sale_change_amount'] : 
 
         error_log("Confirm sale: sale_id = " . ($sale_id ?? 'null'));
 
