@@ -5,6 +5,13 @@ require_once __DIR__ . '/auth_handler.php';
 session_start();
 $pdo = Database::getInstance()->getConnection();
 
+
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
+
+
 // ตรวจสอบ session ถ้าล็อกอินแล้วให้เปลี่ยนเส้นทางไปหน้าที่เหมาะสม
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     if ($_SESSION['role'] === 'sale') {

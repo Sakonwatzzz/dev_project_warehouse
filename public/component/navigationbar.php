@@ -1,6 +1,15 @@
 <?php
 ob_start();
-include 'auth_handler.php'; // รวมไฟล์จัดการโทเคน
+
+// ตั้งค่าเซสชันก่อนเริ่มเซสชัน
+ini_set('session.gc_maxlifetime', 86400);
+session_set_cookie_params(86400);
+
+// เริ่มเซสชัน
+session_start();
+
+require_once __DIR__ . '../../auth_handler.php';
+require_once __DIR__ . '../../../config/database_server.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -11,33 +20,47 @@ header('Cache-Control: post-check=0, pre-check=0', false);
 header('Pragma: no-cache');
 header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
 
+// ตรวจสอบโทเคนและเซสชัน
 $accessToken = getToken('access_token');
+$username = 'Unknown';
+$role = 'user';
+
 if (!$accessToken || !validateToken($accessToken)) {
     $refreshToken = getToken('refresh_token');
     if ($refreshToken && validateToken($refreshToken)) {
         $accessToken = refreshToken($refreshToken);
+        if (!$accessToken) {
+            error_log("navigationbar.php: Failed to refresh token for user $username at " . date('Y-m-d H:i:s'));
+            header('Location: login.php');
+            exit();
+        }
     } else {
+        error_log("navigationbar.php: Invalid or missing tokens for user $username at " . date('Y-m-d H:i:s'));
         header('Location: login.php');
         exit();
     }
 }
 
-
-// ตรวจสอบโทเคน
-$accessToken = getToken('access_token');
-$username = '';
-$role = '';
-if ($accessToken && validateToken($accessToken)) {
-    try {
-        $decoded = JWT::decode($accessToken, new Key($secretKey, 'HS256'));
-        $username = $decoded->username ?? 'Unknown';
-        $role = $decoded->role ?? 'Unknown';
-    } catch (Exception $e) {
-        $username = 'Unknown';
-        $role = 'Unknown';
-    }
+// Decode โทเคนเพื่อดึงข้อมูล
+try {
+    $decoded = JWT::decode($accessToken, new Key($secretKey, 'HS256'));
+    $username = $decoded->username ?? 'Unknown';
+    $role = $decoded->role ?? 'user';
+    $_SESSION['logged_in'] = true;
+    $_SESSION['username'] = $username;
+    $_SESSION['role'] = $role;
+} catch (Exception $e) {
+    error_log("navigationbar.php: Token decode error for user $username: " . $e->getMessage());
+    header('Location: login.php');
+    exit();
 }
 
+// ตรวจสอบบทบาท
+if ($role === 'user' || $role === 'Unknown') {
+    error_log("navigationbar.php: Invalid role detected ($role) for user $username at " . date('Y-m-d H:i:s'));
+    header('Location: login.php');
+    exit();
+}
 
 // Add to top of file to get current page and its parts
 $current_page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
@@ -68,6 +91,11 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 </head>
 
 <body class="min-h-screen font-sans text-gray-800">
+    <!-- Session Expired Alert -->
+    <div id="session-expired" class="hidden bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4 mx-4">
+        เซสชันของคุณหมดอายุ กรุณาล็อกอินใหม่
+    </div>
+
     <!-- Header -->
     <div class="glass-header top-0 z-50 px-4 py-4 shadow-lg">
         <div class="flex items-center justify-between">
@@ -75,12 +103,12 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 Admin Management System
             </h1>
 
-            <div class=" hidden md:flex text-white">
+            <div class="hidden md:flex text-white">
                 <div class="flex items-center gap-3 px-4">
                     <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                         <i class="fas fa-user text-white"></i>
                     </div>
-                    <div class=" text-right">
+                    <div class="text-right">
                         <div class="font-semibold text-gray-100"><?php echo htmlspecialchars($username); ?></div>
                         <div class="text-xs text-gray-100"><?php echo htmlspecialchars($role); ?></div>
                     </div>
@@ -176,8 +204,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             </ul>
         </nav>
     </div>
-
-
 
     <!-- Enhanced Sidebar for Mobile -->
     <div class="sidebar fixed top-0 left-0 w-80 h-full z-50 overflow-y-auto" id="sidebar">
@@ -314,7 +340,7 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 </div>
                 <div class="mt-4 px-4 w-full">
                     <form action="../logout.php" method="POST">
-                        <button type="submit" class=" w-full block text-center bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-300">
+                        <button type="submit" class="w-full block text-center bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-300">
                             ออกจากระบบ
                         </button>
                     </form>
@@ -322,8 +348,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             </div>
         </div>
     </div>
-
-
 
     <!-- Overlay -->
     <div class="overlay fixed inset-0 bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300 z-40"
@@ -354,13 +378,44 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 $prefix = $parts[0] ?? null;
                 $module = $parts[1] ?? null;
 
-                // ตรวจสอบบทบาทก่อนโหลดหน้า
-                if ($module === 'product' && !checkRole('admin') && !checkRole('manager')) {
-                    echo "<div class='text-red-600'>ไม่มีสิทธิ์เข้าถึงหน้านี้</div>";
-                } elseif ($module === 'sale' && !checkRole('sale') && !checkRole('admin') && !checkRole('manager')) {
-                    echo "<div class='text-red-600'>ไม่มีสิทธิ์เข้าถึงหน้านี้</div>";
-                } elseif ($module === 'stock' && !checkRole('warehouse') && !checkRole('admin') && !checkRole('manager')) {
-                    echo "<div class='text-red-600'>ไม่มีสิทธิ์เข้าถึงหน้านี้</div>";
+                // Normalize module group
+                $module_group = '';
+                if ($page === 'dashboard' || $page === 'bar_index') {
+                    $module_group = 'dashboard';
+                } elseif ($prefix === 'bar') {
+                    $module_group = $module;
+                } else {
+                    $module_group = $prefix;
+                }
+
+                // Map to effective group (e.g., lot and warehouse are part of product)
+                $effective_group = $module_group;
+                if (in_array($module_group, ['product', 'lot', 'warehouse'])) {
+                    $effective_group = 'product';
+                }
+
+                // Check role based on effective group
+                $no_access = true;
+                if ($effective_group === 'dashboard') {
+                    $no_access = false;
+                } elseif ($effective_group === 'product' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'personnel' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'member' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'supplier' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'store' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'sale' && (checkRole('admin') || checkRole('manager') || checkRole('sale'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'stock' && (checkRole('admin') || checkRole('manager') || checkRole('warehouse'))) {
+                    $no_access = false;
+                }
+
+                if ($no_access) {
+                    echo "<div class='text-red-600 mx-4'>ไม่มีสิทธิ์เข้าถึงหน้านี้</div>";
                 } else {
                     // If dashboard or bar_index, show dashboard UI
                     if ($page == 'dashboard' || $page == 'bar_index') {
@@ -368,13 +423,15 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         if (file_exists($barfile)) {
                             include $barfile;
                         } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            error_log("navigationbar.php: File not found: $barfile");
+                            echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                         }
                         $filepath = __DIR__ . "/../page/dashboard/dashboard.php";
                         if (file_exists($filepath)) {
                             include $filepath;
                         } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</div>";
+                            error_log("navigationbar.php: File not found: $filepath");
+                            echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</div>";
                         }
                     } else {
                         if (in_array($page, $allowed_pages)) {
@@ -382,7 +439,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($basefile)) {
                                 include $basefile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($basefile) . "</div>";
+                                error_log("navigationbar.php: File not found: $basefile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($basefile) . "</div>";
                             }
                         }
 
@@ -421,7 +479,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? '';
                             $filepath = "$basePath/dashboard/dashboard.php";
@@ -433,7 +492,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'list';
                             $filepath = "$basePath/member/member_{$action}.php";
@@ -445,7 +505,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'list';
                             if ($action) {
@@ -459,7 +520,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'list';
                             $filepath = "$basePath/warehouse/warehouse_{$action}.php";
@@ -471,7 +533,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'list';
                             $filepath = "$basePath/lot/lot_{$action}.php";
@@ -483,7 +546,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $filepath = "$basePath/lot/warehouse_lot.php";
                             if (isset($_GET['warehouse_id'])) {
@@ -494,7 +558,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $filepath = "$basePath/lot/warehouse_move.php";
                             if (isset($_GET['warehouse_id'])) {
@@ -505,7 +570,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $filepath = "$basePath/lot/supplier_lot.php";
                             if (isset($_GET['supplier_id'])) {
@@ -516,7 +582,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $filepath = "$basePath/lot/personnel_lot.php";
                             if (isset($_GET['personnel_id'])) {
@@ -527,7 +594,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'list';
                             $filepath = "$basePath/personnel/personnel_{$action}.php";
@@ -539,7 +607,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'list';
                             $filepath = "$basePath/supplier/supplier_{$action}.php";
@@ -551,7 +620,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'list';
                             $filepath = "$basePath/store/store_{$action}.php";
@@ -563,7 +633,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'add';
                             $filepath = "$basePath/sale/sale_{$action}.php";
@@ -575,7 +646,8 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                             if (file_exists($barfile)) {
                                 include $barfile;
                             } else {
-                                echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                             }
                             $action = $parts[1] ?? 'insert';
                             $filepath = "$basePath/stock/stock_{$action}.php";
@@ -586,12 +658,14 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         if (isset($filepath) && file_exists($filepath)) {
                             include $filepath;
                         } else if (isset($filepath)) {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</div>";
+                            error_log("navigationbar.php: File not found: $filepath");
+                            echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</div>";
                         }
                     }
                 }
             } else {
-                echo "<div class='text-red-600'>ไม่พบเพจที่คุณต้องการ</div>";
+                error_log("navigationbar.php: Invalid page requested: $page");
+                echo "<div class='text-red-600 mx-4'>ไม่พบเพจที่คุณต้องการ</div>";
             }
             ob_end_flush();
             ?>
@@ -600,31 +674,35 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 
     <!-- Enhanced JavaScript -->
     <script>
+        // document.addEventListener('DOMContentLoaded', () => {
+        //     console.log('Navbar and Sidebar initialized');
+        //     const navItems = document.querySelectorAll('.nav-link');
+        //     const sidebarItems = document.querySelectorAll('.sidebar-item');
+        //     console.log(`Found ${navItems.length} nav items and ${sidebarItems.length} sidebar items`);
+        //     sidebarItems.forEach(item => {
+        //         console.log(`Sidebar item: ${item.querySelector('.font-semibold').textContent}`);
+        //     });
+        // });
+
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay');
             const hamburger = document.querySelector('button[aria-controls="sidebar"]');
-
             const isOpen = sidebar.classList.contains('active');
 
+            console.log(`Toggling sidebar: ${isOpen ? 'closing' : 'opening'}`);
             if (isOpen) {
                 sidebar.classList.remove('active');
                 overlay.classList.remove('opacity-100', 'visible');
                 overlay.classList.add('opacity-0', 'invisible');
                 hamburger.setAttribute('aria-expanded', 'false');
-                hamburger.innerHTML = '<div class="loading"></div>';
-                setTimeout(() => {
-                    hamburger.innerHTML = '<i class="fas fa-bars text-lg"></i>';
-                }, 300);
+                hamburger.innerHTML = '<i class="fas fa-bars text-lg"></i>';
             } else {
                 sidebar.classList.add('active');
                 overlay.classList.remove('opacity-0', 'invisible');
                 overlay.classList.add('opacity-100', 'visible');
                 hamburger.setAttribute('aria-expanded', 'true');
-                hamburger.innerHTML = '<div class="loading"></div>';
-                setTimeout(() => {
-                    hamburger.innerHTML = '<i class="fas fa-times text-lg"></i>';
-                }, 300);
+                hamburger.innerHTML = '<i class="fas fa-times text-lg"></i>';
             }
         }
 
@@ -679,6 +757,12 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 }
             });
         });
+
+        // แสดงแจ้งเตือนเมื่อเซสชันหมดอายุ
+        if (<?php echo json_encode($role === 'Unknown' || !$accessToken || $role === 'user'); ?>) {
+            document.getElementById('session-expired').classList.remove('hidden');
+            setTimeout(() => window.location.href = 'login.php', 3000);
+        }
     </script>
 </body>
 

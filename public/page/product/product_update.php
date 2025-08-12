@@ -22,7 +22,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // Session timeout (30 minutes)
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 86400)) {
     session_unset();
     session_destroy();
     header('Location: login.php?timeout=1');

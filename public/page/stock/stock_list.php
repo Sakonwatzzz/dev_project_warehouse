@@ -27,7 +27,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // Check session timeout (คงเดิม)
-// if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+// if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 86400)) {
 //     session_unset();
 //     session_destroy();
 //     $query_params = http_build_query(['timeout' => 1, 'page' => 'stock_list'] + ($_GET ?? []));

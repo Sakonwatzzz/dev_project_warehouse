@@ -1,7 +1,7 @@
 <?php
 // เรียกไฟล์ที่ใช้ในการเชื่อมต่อฐานข้อมูล
 require_once __DIR__ . "../../../../config/database_server.php";
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 date_default_timezone_set('Asia/Bangkok');
 
 $accessToken = getToken('access_token');
@@ -22,7 +22,7 @@ if (!isset($_SESSION)) {
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 86400)) {
     session_unset();
     session_destroy();
     $query_params = http_build_query(['timeout' => 1, 'page' => 'lot_detail', 'tabel' => 'lot', 'id' => $_GET['id'] ?? ''] + ($_GET ?? []));
