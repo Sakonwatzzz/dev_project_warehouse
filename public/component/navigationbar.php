@@ -378,12 +378,43 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                 $prefix = $parts[0] ?? null;
                 $module = $parts[1] ?? null;
 
-                // ตรวจสอบบทบาทก่อนโหลดหน้า
-                if ($module === 'product' && !checkRole('admin') && !checkRole('manager')) {
-                    echo "<div class='text-red-600 mx-4'>ไม่มีสิทธิ์เข้าถึงหน้านี้</div>";
-                } elseif ($module === 'sale' && !checkRole('sale') && !checkRole('admin') && !checkRole('manager')) {
-                    echo "<div class='text-red-600 mx-4'>ไม่มีสิทธิ์เข้าถึงหน้านี้</div>";
-                } elseif ($module === 'stock' && !checkRole('warehouse') && !checkRole('admin') && !checkRole('manager')) {
+                // Normalize module group
+                $module_group = '';
+                if ($page === 'dashboard' || $page === 'bar_index') {
+                    $module_group = 'dashboard';
+                } elseif ($prefix === 'bar') {
+                    $module_group = $module;
+                } else {
+                    $module_group = $prefix;
+                }
+
+                // Map to effective group (e.g., lot and warehouse are part of product)
+                $effective_group = $module_group;
+                if (in_array($module_group, ['product', 'lot', 'warehouse'])) {
+                    $effective_group = 'product';
+                }
+
+                // Check role based on effective group
+                $no_access = true;
+                if ($effective_group === 'dashboard') {
+                    $no_access = false;
+                } elseif ($effective_group === 'product' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'personnel' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'member' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'supplier' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'store' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'sale' && (checkRole('admin') || checkRole('manager') || checkRole('sale'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'stock' && (checkRole('admin') || checkRole('manager') || checkRole('warehouse'))) {
+                    $no_access = false;
+                }
+
+                if ($no_access) {
                     echo "<div class='text-red-600 mx-4'>ไม่มีสิทธิ์เข้าถึงหน้านี้</div>";
                 } else {
                     // If dashboard or bar_index, show dashboard UI
@@ -643,15 +674,15 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 
     <!-- Enhanced JavaScript -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Navbar and Sidebar initialized');
-            const navItems = document.querySelectorAll('.nav-link');
-            const sidebarItems = document.querySelectorAll('.sidebar-item');
-            console.log(`Found ${navItems.length} nav items and ${sidebarItems.length} sidebar items`);
-            sidebarItems.forEach(item => {
-                console.log(`Sidebar item: ${item.querySelector('.font-semibold').textContent}`);
-            });
-        });
+        // document.addEventListener('DOMContentLoaded', () => {
+        //     console.log('Navbar and Sidebar initialized');
+        //     const navItems = document.querySelectorAll('.nav-link');
+        //     const sidebarItems = document.querySelectorAll('.sidebar-item');
+        //     console.log(`Found ${navItems.length} nav items and ${sidebarItems.length} sidebar items`);
+        //     sidebarItems.forEach(item => {
+        //         console.log(`Sidebar item: ${item.querySelector('.font-semibold').textContent}`);
+        //     });
+        // });
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');

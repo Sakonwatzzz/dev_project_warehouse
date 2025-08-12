@@ -128,17 +128,36 @@ body {
     background-color: #e0e0e0;
 }
 
+.chart-button.active {
+    background-color: #1890ff;
+    color: #fff;
+}
+
 .chart-content {
-    height: 250px;
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative;
+    min-height: 300px;
+}
+
+/* สไตล์สำหรับกราฟสินค้าขายดี */
+.chart-content canvas#topProductsChart {
+    max-width: 350px;
+    max-height: 350px;
+    margin: 0 auto;
+}
+
+.chart-card:has(#topProductsChart) .chart-content {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .recent-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); /* ลดขนาดขั้นต่ำเพื่อความยืดหยุ่น */
     gap: 20px;
 }
 
@@ -168,22 +187,89 @@ body {
     text-decoration: none;
 }
 
+.recent-content {
+    width: 100%;
+    overflow: hidden; /* ป้องกันเนื้อหาล้น */
+}
+
+/* สไตล์สำหรับตาราง */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto; /* เพิ่มการเลื่อนในแนวนอน */
+    -webkit-overflow-scrolling: touch; /* ปรับปรุงการเลื่อนบนมือถือ */
+}
+
 .recent-content table {
     width: 100%;
+    min-width: 600px; /* กำหนดความกว้างขั้นต่ำเพื่อให้เลื่อนได้ */
     border-collapse: collapse;
+    font-size: 14px;
+}
+
+.recent-content th,
+.recent-content td {
+    padding: 10px 12px; /* ลด padding เพื่อประหยัดพื้นที่ */
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    white-space: nowrap; /* ป้องกันข้อความตัดคำ */
 }
 
 .recent-content th {
-    text-align: left;
-    padding: 12px 10px;
-    border-bottom: 1px solid #eee;
     color: #666;
-    font-weight: normal;
+    font-weight: 600;
+    background-color: #f8f9fa;
 }
 
 .recent-content td {
-    padding: 12px 10px;
-    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.recent-content tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* กำหนดความกว้างคอลัมน์สำหรับตารางการขายล่าสุด */
+#LatestSalesTable th:nth-child(1),
+#LatestSalesTable td:nth-child(1) {
+    width: 15%; /* เลขที่ */
+}
+#LatestSalesTable th:nth-child(2),
+#LatestSalesTable td:nth-child(2) {
+    width: 30%; /* ลูกค้า */
+}
+#LatestSalesTable th:nth-child(3),
+#LatestSalesTable td:nth-child(3) {
+    width: 20%; /* วันที่ */
+}
+#LatestSalesTable th:nth-child(4),
+#LatestSalesTable td:nth-child(4) {
+    width: 20%; /* ยอดรวม */
+}
+#LatestSalesTable th:nth-child(5),
+#LatestSalesTable td:nth-child(5) {
+    width: 15%; /* สถานะ */
+}
+
+/* กำหนดความกว้างคอลัมน์สำหรับตารางสินค้าใกล้หมด */
+#lowStockProductsTable th:nth-child(1),
+#lowStockProductsTable td:nth-child(1) {
+    width: 15%; /* รหัสสินค้า */
+}
+#lowStockProductsTable th:nth-child(2),
+#lowStockProductsTable td:nth-child(2) {
+    width: 30%; /* ชื่อสินค้า */
+}
+#lowStockProductsTable th:nth-child(3),
+#lowStockProductsTable td:nth-child(3) {
+    width: 15%; /* คงเหลือ */
+}
+#lowStockProductsTable th:nth-child(4),
+#lowStockProductsTable td:nth-child(4) {
+    width: 25%; /* คลัง */
+}
+#lowStockProductsTable th:nth-child(5),
+#lowStockProductsTable td:nth-child(5) {
+    width: 15%; /* สถานะ */
 }
 
 .status {
@@ -193,9 +279,9 @@ body {
     font-size: 12px;
 }
 
-.status.completed {
-    background-color: #e6f7ff;
-    color: #1890ff;
+.status.success {
+    background-color: #e8ffe6;
+    color: #04a632;
 }
 
 .status.pending {
@@ -219,5 +305,43 @@ body {
 
     .recent-section {
         grid-template-columns: 1fr;
+    }
+
+    .recent-content table {
+        font-size: 12px; /* ลดขนาดตัวอักษรสำหรับมือถือ */
+        min-width: 500px; /* ลดความกว้างขั้นต่ำ */
+    }
+
+    .recent-content th,
+    .recent-content td {
+        padding: 8px 10px; /* ลด padding เพิ่มเติม */
+    }
+
+    .chart-content canvas#topProductsChart {
+        max-width: 250px;
+        max-height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .recent-content table {
+        font-size: 11px; /* ลดขนาดตัวอักษรเพิ่มสำหรับหน้าจอเล็กมาก */
+    }
+
+    .recent-content th,
+    .recent-content td {
+        padding: 6px 8px;
+    }
+
+    .dashboard-title {
+        font-size: 20px; /* ลดขนาดหัวข้อสำหรับมือถือ */
+    }
+
+    .recent-title {
+        font-size: 16px;
+    }
+
+    .see-all {
+        font-size: 12px;
     }
 }
