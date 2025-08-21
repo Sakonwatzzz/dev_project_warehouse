@@ -1,8 +1,8 @@
 $(document).ready(function () {
   // Print receipt
   $("#print_receipt").on("click", function () {
-    const paid = parseFloat($("#sale_paid_amount").val()) || 0;
-    const change = parseFloat($("#sale_change_amount").val()) || 0;
+    // const paid = parseFloat($("#sale_paid_amount").val()) || 0;
+    // const change = parseFloat($("#sale_change_amount").val()) || 0;
     const sale_id = $('#confirm-sale-form input[name="sale_id"]').val(); // ดึง sale_id จากฟอร์ม
     if (!sale_id) {
       Swal.fire({
@@ -13,13 +13,13 @@ $(document).ready(function () {
       return;
     }
     $.ajax({
-      url: "page/sale/sale_add.php",
+      url: "page/sale/ajax/sale_print_receipt.php",
       method: "POST",
       data: {
         action: "print_receipt",
         sale_id: sale_id,
-        sale_paid_amount: paid,
-        sale_change_amount: change,
+        // sale_paid_amount: paid,
+        // sale_change_amount: change,
       },
       dataType: "json",
       success: function (response) {
@@ -125,7 +125,7 @@ $(document).ready(function () {
         Swal.fire({
           icon: "error",
           title: "ข้อผิดพลาด",
-          text: xhr.responseText || "ไม่สามารถสร้างใบเสร็จได้",
+          text: xhr.responseText || "asdasdasd",
         });
       },
     });

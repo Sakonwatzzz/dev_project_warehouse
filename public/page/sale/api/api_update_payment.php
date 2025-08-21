@@ -36,7 +36,8 @@ try {
     $calculated_net = (float)($stmt->fetchColumn() ?: 0);
 
     // ใช้ BCMath สำหรับ precision (ถ้าไม่มี extension ใช้ round แต่ multiply 100)
-    $calculated_net_rounded = round($calculated_net * 100) / 100; // หรือ bcadd('0', $calculated_net, 2) ถ้ามี BCMath
+    // $calculated_net_rounded = round($calculated_net * 100) / 100; // หรือ bcadd('0', $calculated_net, 2) ถ้ามี BCMath
+    $calculated_net_rounded = round($calculated_net, 2);
     $calculated_vat = round($calculated_net_rounded * 0.07, 2);
     $calculated_total = round($calculated_net_rounded + $calculated_vat, 2);
 

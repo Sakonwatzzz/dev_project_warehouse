@@ -13,7 +13,7 @@ try {
     ob_end_flush();
     exit();
 }
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'confirm_sale') {
     header('Content-Type: application/json');
     ob_clean();
@@ -29,13 +29,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // รับข้อมูล
         $sale_id = $_POST['sale_id'] ?? null;
         $member_id = $_POST['member_id'] ?? null;
-        $sale_net_amount = isset($_POST['sale_net_amount']) ? (float)$_POST['sale_net_amount'] :
-        $sale_vat_amount = isset($_POST['sale_vat_amount']) ? (float)$_POST['sale_vat_amount'] :
-        $sale_total_amount = isset($_POST['sale_total_amount']) ? (float)$_POST['sale_total_amount'] :
-        $sale_paid_amount = isset($_POST['sale_paid_amount']) ? (float)$_POST['sale_paid_amount'] :
-        $sale_change_amount = isset($_POST['sale_change_amount']) ? (float)$_POST['sale_change_amount'] : 
+        if ($member_id === '' || $member_id === null) {
+            $member_id = null;
+        }
+        $sale_net_amount = isset($_POST['sale_net_amount']) ? (float) $_POST['sale_net_amount'] :
+        $sale_vat_amount = isset($_POST['sale_vat_amount']) ? (float) $_POST['sale_vat_amount'] :
+        $sale_total_amount = isset($_POST['sale_total_amount']) ? (float) $_POST['sale_total_amount'] :
+        $sale_paid_amount = isset($_POST['sale_paid_amount']) ? (float) $_POST['sale_paid_amount'] :
+        $sale_change_amount = isset($_POST['sale_change_amount']) ? (float) $_POST['sale_change_amount'] :
 
-        error_log("Confirm sale: sale_id = " . ($sale_id ?? 'null'));
+            error_log("Confirm sale: sale_id = " . ($sale_id ?? 'null'));
 
         if (empty($sale_id)) {
             throw new Exception("ไม่พบ sale_id ในคำขอ กรุณาเปิดบิลและเพิ่มข้อมูลการขาย");

@@ -71,10 +71,10 @@ $(document).ready(function () {
     if (change < 0) {
       $("#sale_change_amount").val("เงินไม่พอ");
       $("#print_receipt").prop("disabled", true);
-      Toast.fire({
-        icon: "warning",
-        title: "จำนวนเงินไม่เพียงพอ",
-      });
+      // Toast.fire({
+      //   icon: "warning",
+      //   title: "จำนวนเงินไม่เพียงพอ",
+      // });
       return;
     } else {
       $("#sale_change_amount").val(change.toFixed(2));

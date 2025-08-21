@@ -226,7 +226,7 @@ $(document).ready(function () {
           $('input[name="qty"]').prop("disabled", true);
         },
         success: function (response) {
-          console.log("Insert product response:", response); // Debug
+          //console.log("Insert product response:", response); // Debug
           if (response.status === "success") {
             Toast.fire({
               icon: "success",
@@ -254,7 +254,7 @@ $(document).ready(function () {
           }
         },
         error: function (xhr) {
-          console.error("Insert product error:", xhr.responseText); // Debug
+        //  console.error("Insert product error:", xhr.responseText); // Debug
           Swal.fire({
             icon: "error",
             title: "ข้อผิดพลาด",
@@ -289,7 +289,7 @@ $(document).ready(function () {
       data: { sale_id: current_sale_id },
       dataType: "json",
       success: function (response) {
-        console.log("Update product table response:", response); // Debug
+        //console.log("Update product table response:", response); // Debug
         if (response.status === "success") {
           $("#product_table_body").html(response.html);
           $(".sale-net-amount").text(response.sale_net_amount + " บาท");
