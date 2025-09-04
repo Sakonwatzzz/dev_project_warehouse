@@ -48,11 +48,11 @@ function verifyCsrfToken($token)
 {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
-    // if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
-    //     error_log("CSRF Validation Failed: Session Token: " . ($_SESSION['csrf_token'] ?? 'unset') . ", GET Token: " . ($_GET['csrf_token'] ?? 'unset'));
-    //     header('HTTP/1.1 403 Forbidden');
-    //     exit('Invalid CSRF token');
-    // }
+// if (!isset($_SESSION['csrf_token']) || !isset($_GET['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
+//     error_log("CSRF Validation Failed: Session Token: " . ($_SESSION['csrf_token'] ?? 'unset') . ", GET Token: " . ($_GET['csrf_token'] ?? 'unset'));
+//     header('HTTP/1.1 403 Forbidden');
+//     exit('Invalid CSRF token');
+// }
 
 // Validate stock check data ()
 function validateStockCheckData($stock_check_actual, $stock_check_remark_id)
@@ -78,38 +78,34 @@ if ($date_range === 'custom' && empty($start_date)) {
 if ($date_range === 'custom' && empty($end_date)) {
     $end_date = date('Y-m-d');
 }
-
 // สร้างเงื่อนไข WHERE และพารามิเตอร์
 $where_conditions = [];
 $params = [];
 
 if ($search) {
-    $where_conditions[] = "(sc.stock_id LIKE ? OR member.member_name LIKE ? OR personnel.personnel_name LIKE ? OR product.product_id LIKE ? OR warehouse.warehouse_id LIKE ?)";
-    $search_term = "%$search%";
-    $params[] = $search_term;
-    $params[] = $search_term;
-    $params[] = $search_term;
+    $where_conditions[] = "(sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search OR p.product_id LIKE :search OR per.personnel_name LIKE :search)";
+    $params[':search'] = "%$search%";
 }
-
 if ($date_range === 'today') {
     $where_conditions[] = "DATE(s.stock_date) = CURDATE()";
 } elseif ($date_range === 'this_month') {
     $where_conditions[] = "YEAR(s.stock_date) = YEAR(CURDATE()) AND MONTH(s.stock_date) = MONTH(CURDATE())";
 } elseif ($date_range === 'this_year') {
     $where_conditions[] = "YEAR(s.stock_date) = YEAR(CURDATE())";
-} elseif ($date_range === 'custom' && $start_date) {
-    $where_conditions[] = "DATE(s.stock_date) >= ?";
-    $params[] = $start_date;
+} elseif ($date_range === 'custom' && $start_date && $end_date) {
+    $where_conditions[] = "DATE(s.stock_date) BETWEEN :start_date AND :end_date";
+    $params[':start_date'] = $start_date;
+    $params[':end_date'] = $end_date;
 }
-
 $where_clause = !empty($where_conditions) ? 'WHERE s.check_status_id = 2 AND ' . implode(' AND ', $where_conditions) : 'WHERE s.check_status_id = 2';
-// Count total records for pagination ()
+// Count total records for pagination
 try {
     $count_query = "SELECT COUNT(*) as total_count 
                     FROM stock_check sc
                     LEFT JOIN product p ON sc.product_id = p.product_id
                     LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
                     LEFT JOIN stock s ON sc.stock_id = s.stock_id
+                    LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
                     $where_clause";
     $stmt = fetchData($pdo, $count_query, $params);
     $total_record = (int) $stmt->fetchColumn();
@@ -118,14 +114,13 @@ try {
     header('Location: index.php?page=stock_list&error=' . urlencode('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล กรุณาลองใหม่'));
     exit;
 }
-
-// Pagination logic ()
+// Pagination logic
 $records_per_page = 10;
 $page = isset($_GET['page_num']) ? max(1, min((int) $_GET['page_num'], ceil($total_record / $records_per_page))) : 1;
 $offset = ($page - 1) * $records_per_page;
 $total_pages = max(1, ceil($total_record / $records_per_page));
 
-// Fetch stock check data ()
+// Fetch stock check data
 try {
     $query = "
         SELECT 
@@ -155,12 +150,8 @@ try {
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
         LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
-        $where_clause";
-    if (!empty($search)) {
-        $query .= " AND (sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search OR p.product_id LIKE :search)";
-        $params[':search'] = "%$search%";
-    }
-    $query .= " ORDER BY s.stock_date DESC LIMIT :offset, :limit";
+        $where_clause
+        ORDER BY s.stock_date DESC LIMIT :offset, :limit";
     $params[':offset'] = (int) $offset;
     $params[':limit'] = (int) $records_per_page;
     $stmt = fetchData($pdo, $query, $params);
@@ -514,36 +505,76 @@ try {
                 setTimeout(() => notification.remove(), 5000);
             }
 
-            // Export buttons
+            // Export PDF
             document.getElementById('exportPDFBtn').addEventListener('click', () => {
                 document.getElementById('exportPDFBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่งออก...';
-                try {
-                    const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
-                    let url = '<?php echo dirname($_SERVER['PHP_SELF'], 3); ?>/page/stock/report/export_stock_pdf.php?csrf_token=' + encodeURIComponent(csrfToken);
-                    if (searchInput.value) url += '&search=' + encodeURIComponent(searchInput.value);
-                    window.open(url, '_blank');
-                } catch (error) {
-                    console.error('Error exporting PDF:', error);
-                    showNotification('เกิดข้อผิดพลาดในการส่งออก PDF', 'bg-red-500');
-                } finally {
-                    document.getElementById('exportPDFBtn').innerHTML = '<i class="fas fa-file-pdf"></i> ส่งออก PDF';
-                }
+                const data = {
+                    csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>',
+                    search: searchInput.value,
+                    date_range: document.getElementById('dateRangeSelect').value,
+                    start_date: document.getElementById('startDate').value ? document.getElementById('startDate').value.split('/').reverse().join('-') : '',
+                    end_date: document.getElementById('endDate').value ? document.getElementById('endDate').value.split('/').reverse().join('-') : ''
+                };
+                fetch('<?php echo dirname($_SERVER['PHP_SELF'], 3); ?>/page/stock/report/export_stock_pdf.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'stock_report.pdf';
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                    })
+                    .catch(error => {
+                        console.error('Error exporting PDF:', error);
+                        showNotification('เกิดข้อผิดพลาดในการส่งออก PDF', 'bg-red-500');
+                    })
+                    .finally(() => {
+                        document.getElementById('exportPDFBtn').innerHTML = '<i class="fas fa-file-pdf"></i> ส่งออก PDF';
+                    });
             });
 
+            // Export Excel
             document.getElementById('exportExcelBtn').addEventListener('click', () => {
                 document.getElementById('exportExcelBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่งออก...';
-                try {
-                    const csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>';
-                    let url = '<?php echo dirname($_SERVER['PHP_SELF'], 3); ?>/page/stock/report/export_stock_excel.php?csrf_token=' + encodeURIComponent(csrfToken);
-                    if (searchInput.value) url += '&search=' + encodeURIComponent(searchInput.value);
-                    window.open(url, '_blank');
-                } catch (error) {
-                    console.error('Error exporting Excel:', error);
-                    showNotification('เกิดข้อผิดพลาดในการส่งออก Excel', 'bg-red-500');
-                } finally {
-                    document.getElementById('exportExcelBtn').innerHTML = '<i class="fas fa-file-excel"></i> ส่งออก Excel';
-                }
+                const data = {
+                    csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>',
+                    search: searchInput.value,
+                    date_range: document.getElementById('dateRangeSelect').value,
+                    start_date: document.getElementById('startDate').value ? document.getElementById('startDate').value.split('/').reverse().join('-') : '',
+                    end_date: document.getElementById('endDate').value ? document.getElementById('endDate').value.split('/').reverse().join('-') : ''
+                };
+                fetch('<?php echo dirname($_SERVER['PHP_SELF'], 3); ?>/page/stock/report/export_stock_excel.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'stock_report.xlsx';
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                    })
+                    .catch(error => {
+                        console.error('Error exporting Excel:', error);
+                        showNotification('เกิดข้อผิดพลาดในการส่งออก Excel', 'bg-red-500');
+                    })
+                    .finally(() => {
+                        document.getElementById('exportExcelBtn').innerHTML = '<i class="fas fa-file-excel"></i> ส่งออก Excel';
+                    });
             });
+
             function updateClock() {
                 const now = new Date();
                 const day = String(now.getDate()).padStart(2, '0');
