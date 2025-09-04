@@ -66,7 +66,7 @@ function adjustLotRemain(PDO $pdo, string $productId, int $qty, bool $addMode = 
             $lot = $stmtLot->fetch(PDO::FETCH_ASSOC);
 
             if (!$lot) {
-                throw new Exception("สต็อกล็อตไม่เพียงพอสำหรับสินค้า $productId");
+                throw new Exception("จำนวนสินค้าในสต๊อกของ $productId มีไม่เพียงพอสำหรับการขาย");
             }
 
             $current = (int) $lot['lot_product_remain'];
@@ -143,12 +143,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (!$prod) {
             throw new Exception("รหัสสินค้า $barcode ไม่พบในระบบ");
         }
-        
+
         $valid_price = [
-            (float)$prod['product_price1'],
-            (float)$prod['product_price2'],
-            (float)$prod['product_price3'],
-            (float)$prod['product_price4'],
+            (float) $prod['product_price1'],
+            (float) $prod['product_price2'],
+            (float) $prod['product_price3'],
+            (float) $prod['product_price4'],
         ];
 
         // เลือกราคา
@@ -188,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         try {
             $lot_ids = adjustLotRemain($pdo, $barcode, $qty, false);
         } catch (Exception $e) {
-            throw new Exception("ไม่สามารถตัดสต็อกได้: " . $e->getMessage());
+            throw new Exception("ไม่สามารถนำสินค้าชิ้นนี้มาขายได้เนื่องจาก: " . $e->getMessage());
         }
 
         $pdo->commit();
@@ -200,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 ");
         $stmt->execute([$sale_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $sale_net_amount = (float)($result['sale_net_amount'] ?? 0);
+        $sale_net_amount = (float) ($result['sale_net_amount'] ?? 0);
 
         echo json_encode(['status' => 'success', 'message' => 'เพิ่มสินค้าสำเร็จ', 'sale_net_amount' => $sale_net_amount]);
     } catch (Exception $e) {

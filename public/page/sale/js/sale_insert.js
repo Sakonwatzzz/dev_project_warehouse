@@ -239,7 +239,7 @@ $(document).ready(function () {
           } else {
             Swal.fire({
               icon: "warning",
-              title: "ข้อผิดพลาด",
+              title: "แจ้งเตือน",
               text: response.message,
             });
           }

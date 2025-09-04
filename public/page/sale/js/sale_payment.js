@@ -194,7 +194,43 @@ $(document).ready(function () {
     }
   });
 
-  $(document).on("billSwitched", resetPaymentValues);
+  // $(document).on("billSwitched", resetPaymentValues);
+  $(document).on("billSwitched", function () {
+    resetPaymentValues();
+    $.ajax({
+      url: "page/sale/api/api_get_sale.php",
+      method: "GET",
+      data: { sale_id: $('input[name="sale_id"]').val() },
+      dataType: "json",
+      success: function (response) {
+        if (response.status === "success") {
+          dynamicNetAmount = parseFloat(response.sale_net_amount) || 0;
+          dynamicVatAmount = parseFloat(response.sale_vat_amount) || 0;
+          dynamicTotalAmount = parseFloat(response.sale_total_amount) || 0;
+          $(".sale-net-amount").text(dynamicNetAmount.toFixed(2) + " บาท");
+          $(".sale-vat-amount").text(dynamicVatAmount.toFixed(2) + " บาท");
+          $(".total-amount").text(dynamicTotalAmount.toFixed(2) + " บาท");
+          $("#sale_paid_amount").val(response.sale_paid_amount || "");
+          $("#sale_change_amount").val(response.sale_change_amount || "");
+          calculateChange();
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "ข้อผิดพลาด",
+            text: response.message,
+          });
+        }
+      },
+      error: function (xhr) {
+        Swal.fire({
+          icon: "error",
+          title: "ข้อผิดพลาด",
+          text:
+            "ไม่สามารถโหลดข้อมูลบิล: " + (xhr.responseText || "เกิดข้อผิดพลาด"),
+        });
+      },
+    });
+  });
 
   // Initial check
   resetPaymentValues();

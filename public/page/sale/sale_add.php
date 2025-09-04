@@ -54,36 +54,58 @@ if (!isset($_SESSION['active_sales'])) {
 $sale_id = $_POST['sale_id'] ?? $_GET['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 
 // Create new sale if none exists
+// if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
+//     try {
+//         $pdo->beginTransaction();
+//         $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id, sale_net_amount, sale_vat_amount, sale_paid_amount, sale_change_amount, sale_total_amount) VALUES (?, 2, ?, ?, ?, ?, ?, ?, ?)");
+//         $insertSale->execute([
+//             $currentDateTime, // sale_date
+//             null,             // member_id
+//             null,             // personnel_id
+//             null,             // sale_net_amount
+//             null,             // sale_vat_amount
+//             null,             // sale_paid_amount
+//             null,             // sale_change_amount
+//             null              // sale_total_amount
+//         ]);
+//         $sale_id = $pdo->lastInsertId();
+//         $_SESSION['active_sales'][] = $sale_id;
+//         $_SESSION['current_sale_id'] = $sale_id;
+//         $pdo->commit();
+//     } catch (Exception $e) {
+//         if ($pdo->inTransaction()) {
+//             $pdo->rollBack();
+//         }
+//         error_log("Error initializing sale: " . $e->getMessage());
+//         die("Error initializing sale: " . $e->getMessage());
+//     }
+// }
+// if (!$sale_id) {
+//     die("Error: sale_id is required.");
+// }
 if (!$sale_id && (!isset($_GET['page']) || $_GET['page'] !== 'sale_list')) {
     try {
         $pdo->beginTransaction();
-        $insertSale = $pdo->prepare("INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id, sale_net_amount, sale_vat_amount, sale_paid_amount, sale_change_amount, sale_total_amount) VALUES (?, 2, ?, ?, ?, ?, ?, ?, ?)");
-        $insertSale->execute([
-            $currentDateTime, // sale_date
-            null,             // member_id
-            null,             // personnel_id
-            null,             // sale_net_amount
-            null,             // sale_vat_amount
-            null,             // sale_paid_amount
-            null,             // sale_change_amount
-            null              // sale_total_amount
-        ]);
+        $insertSale = $pdo->prepare("
+            INSERT INTO sale (sale_date, sale_status_id, member_id, personnel_id, sale_net_amount, sale_vat_amount, sale_paid_amount, sale_change_amount, sale_total_amount)
+            VALUES (?, 2, ?, ?, 0, 0, 0, 0, 0)
+        ");
+        $insertSale->execute([date("Y-m-d H:i:s"), null, null]);
         $sale_id = $pdo->lastInsertId();
-        $_SESSION['active_sales'][] = $sale_id;
+        // ล้าง payment_details สำหรับบิลใหม่
+        if (isset($_SESSION['payment_details'][$sale_id])) {
+            unset($_SESSION['payment_details'][$sale_id]);
+        }
+        $_SESSION['active_sales'] = array_unique(array_merge($_SESSION['active_sales'] ?? [], [$sale_id]));
         $_SESSION['current_sale_id'] = $sale_id;
         $pdo->commit();
+        error_log("Created new sale: sale_id=$sale_id");
     } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
+        $pdo->rollBack();
         error_log("Error initializing sale: " . $e->getMessage());
         die("Error initializing sale: " . $e->getMessage());
     }
 }
-if (!$sale_id) {
-    die("Error: sale_id is required.");
-}
-
 
 
 if (!$sale_id) {
@@ -161,78 +183,6 @@ function isAjaxRequest()
     return $isAjax;
 }
 
-// Handle print receipt via Ajax
-// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'print_receipt') {
-//     header('Content-Type: application/json');
-//     ob_clean();
-//     try {
-//         $sale_id = $_POST['sale_id'] ?? null;
-//         if (!$sale_id) {
-//             throw new Exception("ไม่พบ sale_id ในคำขอ กรุณาเปิดบิลใหม่และเพิ่มข้อมูลการขาย");
-//         }
-
-//         // Query sale details
-//         $query = "SELECT
-//             s.sale_id, s.sale_date, s.member_id, m.member_name, m.member_phone,
-//             s.personnel_id, p.personnel_name, s.sale_status_id, ss.sale_status_name
-//         FROM sale s
-//         LEFT JOIN member m ON s.member_id = m.member_id
-//         LEFT JOIN personnel p ON s.personnel_id = p.personnel_id
-//         LEFT JOIN sale_status ss ON s.sale_status_id = ss.sale_status_id
-//         WHERE s.sale_id = ?";
-//         $stmt = $pdo->prepare($query);
-//         $stmt->execute([$sale_id]);
-//         $sale_data = $stmt->fetch(PDO::FETCH_ASSOC);
-
-//         if (!$sale_data) {
-//             throw new Exception("ไม่พบข้อมูลบิล #$sale_id");
-//         }
-
-//         // Query sale products
-//         $product_query = "SELECT
-//             sp.sale_product_id, sp.sale_id, sp.product_id,
-//             COALESCE(pr.product_name, 'ไม่มีสินค้าในระบบ') as product_name,
-//             sp.sale_product_qty, sp.sale_product_price, sp.sale_product_capital
-//         FROM sale_product sp
-//         LEFT JOIN product pr ON pr.product_id = sp.product_id
-//         WHERE sp.sale_id = ?";
-//         $stmt = $pdo->prepare($product_query);
-//         $stmt->execute([$sale_id]);
-//         $sale_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-//         $sale_net_amount = 0;
-//         $total_qty = 0;
-//         foreach ($sale_products as $product) {
-//             $sale_net_amount += $product['sale_product_qty'] * $product['sale_product_price'];
-//             $total_qty += $product['sale_product_qty'];
-//         }
-//         $vat_rate = 7.00;
-//         $sale_vat_amount = $sale_net_amount * ($vat_rate / 100);
-//         $sale_total_amount = $sale_net_amount + $sale_vat_amount;
-
-//         // Prepare receipt data
-//         $receipt_data = [
-//             'sale_id' => $sale_data['sale_id'],
-//             'sale_date' => date("d/m/Y H:i:s", strtotime($sale_data['sale_date'])),
-//             'member_name' => $sale_data['member_name'] ?? 'ไม่ระบุ',
-//             'personnel_name' => $sale_data['personnel_name'] ?? 'ไม่ระบุ',
-//             'products' => $sale_products,
-//             'total_qty' => $total_qty,
-//             'sale_net_amount' => $sale_net_amount,
-//             'sale_vat_amount' => $sale_vat_amount,
-//             'sale_total_amount' => $sale_total_amount,
-//             'sale_paid_amount' => $_POST['sale_paid_amount'] ?? 0,
-//             'sale_change_amount' => $_POST['sale_change_amount'] ?? 0
-//         ];
-
-//         echo json_encode(['status' => 'success', 'receipt' => $receipt_data]);
-//     } catch (Exception $e) {
-//         error_log("Error generating receipt: " . $e->getMessage());
-//         echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถสร้างใบเสร็จได้: ' . $e->getMessage()]);
-//     }
-//     exit();
-// }
-
 // Query sale details
 try {
     $query = "SELECT
@@ -304,14 +254,18 @@ $valid_active_sale = [];
 if (!empty($_SESSION['active_sales'])) {
     $placeholders = implode(',', array_fill(0, count($_SESSION['active_sales']), '?'));
     try {
-        // เปลี่ยนจาก sale_status_id = 2 เป็น sale_status_id IN (1, 2) เพื่อให้บิลที่ยืนยันแล้วยังคงอยู่ใน active_sales ชั่วคราว
+        // ใช้ sale_status_id IN (1, 2) เพื่อรวมบิล confirmed และกำลังขาย
         $stmt = $pdo->prepare("SELECT sale_id FROM sale WHERE sale_id IN ($placeholders) AND sale_status_id IN (1, 2)");
         $stmt->execute(array_values($_SESSION['active_sales']));
         $valid_sales = $stmt->fetchAll(PDO::FETCH_COLUMN);
         $valid_active_sale = array_intersect($_SESSION['active_sales'], $valid_sales);
         $_SESSION['active_sales'] = $valid_active_sale;
+        // ตรวจสอบ current_sale_id และตั้งค่าใหม่ถ้าไม่ valid
         if (!in_array($_SESSION['current_sale_id'], $valid_active_sale)) {
             $_SESSION['current_sale_id'] = !empty($valid_active_sale) ? reset($valid_active_sale) : null;
+        }
+        // อัปเดต $sale_id เฉพาะเมื่อจำเป็น
+        if (!$sale_id || !in_array($sale_id, $valid_active_sale)) {
             $sale_id = $_SESSION['current_sale_id'];
         }
         error_log("Validated active_sales: " . json_encode($valid_active_sale));
@@ -327,6 +281,18 @@ if (!empty($_SESSION['active_sales'])) {
     $sale_id = null;
 }
 
+// ถ้า payment_details มี sale_id ที่ไม่ valid ล้างเฉพาะรายการนั้น
+if (isset($_SESSION['payment_details'])) {
+    foreach ($_SESSION['payment_details'] as $sid => $data) {
+        if (!in_array($sid, $_SESSION['active_sales'])) {
+            unset($_SESSION['payment_details'][$sid]);
+            error_log("Removed payment_details for invalid sale_id: $sid");
+        }
+    }
+    if (empty($_SESSION['payment_details'])) {
+        unset($_SESSION['payment_details']);
+    }
+}
 $sale_status_id = $sale_data['sale_status_id'] ?? 2;
 $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย';
 ?>
@@ -696,7 +662,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                             <div class="flex-1">
                                 <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ
                                     (บาท):</label>
-                                <input type="number" id="sale_paid_amount" value="<?php echo htmlspecialchars($sale_data['sale_paid_amount'] ?? ''); ?>" min="1"
+                                <input type="number" id="sale_paid_amount" value="<?php echo htmlspecialchars($sale_data['sale_paid_amount'] ?? ''); ?>" 
                                     class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     step="0.01" placeholder="ป้อนจำนวนเงิน">
                             </div>
