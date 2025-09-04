@@ -4,23 +4,34 @@ function updateSearch() {
   let endDate = document.getElementById("endDate").value;
   const dateRange = document.getElementById("dateRangeSelect").value;
 
-  // แปลง DD/MM/YYYY เป็น YYYY-MM-DD สำหรับ URL
+  // ตรวจสอบและแปลงวันที่ DD/MM/YYYY เป็น YYYY-MM-DD
   if (startDate) {
     const [day, month, year] = startDate.split("/");
-    startDate = `${year}-${month}-${day}`;
+    if (day && month && year && !isNaN(new Date(`${year}-${month}-${day}`))) {
+      startDate = `${year}-${month}-${day}`;
+    } else {
+      startDate = "";
+    }
   }
   if (endDate) {
     const [day, month, year] = endDate.split("/");
-    endDate = `${year}-${month}-${day}`;
+    if (day && month && year && !isNaN(new Date(`${year}-${month}-${day}`))) {
+      endDate = `${year}-${month}-${day}`;
+    } else {
+      endDate = "";
+    }
   }
 
   // อัปเดต URL
-  const params = new URLSearchParams(window.location.search);
-  params.set("search", input);
-  params.set("start_date", dateRange === "custom" ? startDate : "");
-  params.set("end_date", dateRange === "custom" ? endDate : "");
+  const params = new URLSearchParams();
+  params.set("page", "stock_list");
+  params.set("page_num", 1);
+  if (input) params.set("search", input);
+  if (dateRange === "custom" && startDate && endDate) {
+    params.set("start_date", startDate);
+    params.set("end_date", endDate);
+  }
   params.set("date_range", dateRange);
-  params.set("page_num", 1); // รีเซ็ตเป็นหน้าแรกเมื่อเปลี่ยนการกรอง
   window.location.href = `${window.location.pathname}?${params.toString()}`;
 }
 
@@ -42,7 +53,6 @@ function toggleCustomDateRange() {
   if (dateRange === "custom") {
     customDateRange.classList.remove("hidden", "opacity-0", "scale-95");
     customDateRange.classList.add("opacity-100", "scale-100");
-    // ตั้งค่าวันที่ปัจจุบันถ้าไม่มีค่าเดิม
     if (!startDateInput.value) {
       startDateInput.value = new Date().toLocaleDateString("th-TH", {
         day: "2-digit",
@@ -73,7 +83,7 @@ document.getElementById("searchInput").addEventListener("keyup", () => {
   timeout = setTimeout(updateSearch, 300);
 });
 
-// อัปเดตเมื่อเปลี่ยนวันที่, สถานะ, หรือช่วงวันที่
+// อัปเดตเมื่อเปลี่ยนวันที่หรือช่วงวันที่
 document.getElementById("startDate").addEventListener("change", updateSearch);
 document.getElementById("endDate").addEventListener("change", updateSearch);
 document

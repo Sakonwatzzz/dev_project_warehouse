@@ -99,6 +99,6 @@ try {
     error_log("Error cancelling sale $cancel_sale_id: " . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถยกเลิกบิลได้: ' . $e->getMessage()]);
 }
-
+unset($_SESSION['payment_details'][$cancel_sale_id]);
 ob_end_flush();
 exit();
