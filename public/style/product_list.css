@@ -1,7 +1,92 @@
+/* Modern Color Palette */
+:root {
+  --primary: #2563eb; /* Blue */
+  --secondary: #10b981; /* Green */
+  --danger: #ef4444; /* Red */
+  --warning: #f59e0b; /* Yellow */
+  --background: #f8fafc; /* Light gray */
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --border: #e2e8f0;
+}
+
 body {
   background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 50%, #ffffff 100%);
   min-height: 100vh;
   font-size: 1rem;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.modal:not(.hidden) {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  border-radius: 12px;
+  max-width: 90%;
+  width: 520px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  transform: translateY(-50px);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+    opacity 0.4s ease;
+}
+
+.modal:not(.hidden) .modal-content {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Notification Styles */
+.notification {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 340px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  opacity: 0;
+  transform: scale(0.9) translateX(50px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.notification:not(.hidden) {
+  opacity: 1;
+  transform: scale(1) translateX(0);
+}
+
+.notification-header {
+  padding: 12px 16px;
+  font-weight: 600;
+  color: white;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  background: linear-gradient(135deg, var(--primary) 0%, #60a5fa 100%);
+}
+
+.notification-message {
+  padding: 16px;
+  color: #1f2937;
+  font-size: 0.9rem;
 }
 
 .glass-effect {
@@ -24,6 +109,11 @@ body {
 }
 
 @media (max-width: 640px) {
+  .modal-content {
+    width: 95%;
+    padding: 16px;
+  }
+
   .table-responsive {
     display: block;
     width: 100%;
@@ -179,4 +269,19 @@ td {
     width: auto;
     flex: none;
   }
+}
+
+
+
+.swal2-confirm.standard-button,
+.swal2-cancel.standard-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.swal2-confirm.standard-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }

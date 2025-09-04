@@ -140,12 +140,10 @@ try {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
         }
 
         .btn:hover {
             opacity: 0.9;
-            transform: translateY(-1px);
         }
 
         .modal {
@@ -315,13 +313,6 @@ try {
                     </button>
                 </div>
             <?php endif; ?>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex justify-between mt-6">
-            <a href="?page=lot_insert" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
-                <i class="fas fa-arrow-left mr-2"></i>กลับ
-            </a>
         </div>
 
         <!-- Edit Modal -->
