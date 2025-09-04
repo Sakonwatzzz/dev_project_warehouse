@@ -6,6 +6,7 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/logs/php_errors.log');
 
+
 // Set timezone
 date_default_timezone_set('Asia/Bangkok');
 $currentDateTime = date("Y-m-d H:i:s");
@@ -14,6 +15,17 @@ $displayDateTime = date("d/m/Y H:i:s");
 // Initialize active sales if not set
 if (!isset($_SESSION['active_sales'])) {
     $_SESSION['active_sales'] = [];
+}
+
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
 }
 
 // Get sale_id from POST, GET, or session

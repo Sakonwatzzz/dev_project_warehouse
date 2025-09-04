@@ -1,6 +1,17 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 $sale_id = $_GET['sale_id'] ?? $_POST['sale_id'] ?? $_SESSION['current_sale_id'] ?? null;
 if (!$sale_id) {
     $error_message = "ไม่พบรหัสการขาย: ค่า sale_id ว่าง";

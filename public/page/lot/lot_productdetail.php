@@ -2,6 +2,18 @@
 // เรียกไฟล์ที่ใช้ในการเชื่อมต่อฐานข้อมูล
 require_once __DIR__ . "../../../../config/database_server.php";
 $pdo = Database::getInstance()->getConnection(); 
+
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 // ตรวจสอบว่ามีการระบุประเภท (tabel) และ ID (id) มาหรือไม่ ถ้าไม่เจอให้หยุดการทำงาน
 if (!isset($_GET['tabel']) || !isset($_GET['id'])) {
     die("ระบุประเภทหรือ ID ไม่ถูกต้อง");

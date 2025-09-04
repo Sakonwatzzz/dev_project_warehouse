@@ -3,6 +3,17 @@ require_once __DIR__ . '../../../../config/database_server.php';
 
 $pdo = Database::getInstance()->getConnection(); 
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lot_product_id = $_POST['lot_product_id'] ?? '';
     $lot_id = $_POST['lot_id'] ?? '';

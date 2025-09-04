@@ -4,6 +4,17 @@ date_default_timezone_set('Asia/Bangkok');
 
 $pdo = Database::getInstance()->getConnection();
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $start_date = isset($_GET['start_date']) ? trim($_GET['start_date']) : '';
@@ -41,10 +52,27 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายการสินค้า</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <link href="../../output.css" rel="stylesheet">
     <link href="../../style/product_list.css" rel="stylesheet">
 </head>
 
 <body class="bg-gradient-to-br from-blue-50 to-white min-h-screen font-sans text-base">
+    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+            <!-- Notification -->
+        <div id="notification" class="fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 transform translate-x-full transition-transform duration-300 z-50 flex items-center">
+            <div id="notification-header" class="flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg">
+                <i id="notificationIcon" class="fas fa-check-circle text-2xl"></i>
+            </div>
+            <div class="flex-1 ml-4 pr-4 py-4">
+                <p id="notificationTitle" class="text-sm font-medium text-gray-900"></p>
+                <p id="notificationMessage" class="mt-1 text-sm text-gray-500"></p>
+            </div>
+            <button onclick="hideNotification()" class="mr-4 text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
     <div class="mx-auto px-4 py-6">
         <div class="flex flex-col lg:flex-row gap-6">
             <!-- Filters Sidebar -->
@@ -190,14 +218,35 @@ try {
                             </div>
                         </div>
                     </div>
+
                     <!-- Table -->
                     <div id="productTable" class="animate-fade-in">
                         <!-- ตารางจะถูกโหลดผ่าน AJAX -->
                     </div>
+
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteModal" class="modal hidden">
+            <div class="modal-content">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">ยืนยันการลบ</h3>
+                <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?</p>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                        ยกเลิก
+                    </button>
+                    <button type="button" id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                        ลบ
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+
+
 
     <script>
         // Track current mode
@@ -404,7 +453,7 @@ try {
             loadTypesBrands(5, 5); // รีเซ็ตหมวดหมู่/แบรนด์
         }
 
-        function exportPDFLibs() {
+        function exportPDF() {
             const urlParams = new URLSearchParams(window.location.search);
             urlParams.set('export', 'pdf');
             window.open(`/page/product/report/export_product_pdf.php?${urlParams.toString()}`);
@@ -417,38 +466,75 @@ try {
         }
 
         function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} animate-fade-in`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
+            const notification = document.getElementById("notification");
+            const header = document.getElementById("notification-header");
+            const title = document.getElementById("notificationTitle");
+            const body = document.getElementById("notificationMessage");
+            const icon = document.getElementById("notificationIcon");
+
+            header.className = `flex-shrink-0 flex items-center justify-center w-16 h-16 text-white rounded-l-lg ${
+                type === "success" ? "bg-green-500" : "bg-red-500"
+            }`;
+            title.textContent = "แจ้งเตือน";
+            body.textContent = message;
+            icon.className = `fas ${
+                type === "success" ? "fa-check-circle" : "fa-exclamation-circle"
+            } text-2xl`;
+            notification.classList.remove("translate-x-full");
+
             setTimeout(() => {
-                notification.remove();
-            }, 3000);
+                hideNotification();
+            }, 5000);
         }
 
-        function deleteProduct(id) {
-            if (!confirm('ยืนยันการลบ?')) return;
+        function hideNotification() {
+            document.getElementById("notification").classList.add("translate-x-full");
+        }
 
-            fetch('/page/product/ajax/delete_product.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `id=${encodeURIComponent(id)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification(data.message, 'success');
-                        updateTable();
-                    } else {
-                        showNotification(data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('เกิดข้อผิดพลาดขณะลบสินค้า', 'error');
-                });
+        function showDeleteModal() {
+            document.getElementById("deleteModal").classList.remove("hidden");
+        }
+
+        function closeDeleteModal() {
+            document.getElementById("deleteModal").classList.add("hidden");
+        }
+
+        function confirmDelete(id) {
+            showDeleteModal();
+            const confirmBtn = document.getElementById("confirmDeleteBtn");
+            if (confirmBtn) {
+                confirmBtn.onclick = () => {
+                    const formData = new FormData();
+                    formData.append("id", id);
+                    formData.append(
+                        "csrf_token",
+                        document.querySelector('input[name="csrf_token"]').value
+                    );
+
+                    fetch("/page/product/ajax/delete_product.php", {
+                            method: "POST",
+                            body: formData,
+                        })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data.success) {
+                                showNotification(data.success, "success");
+                                updateTable();
+                            } else {
+                                showNotification(data.error, "error");
+                            }
+                            closeDeleteModal();
+                        })
+                        .catch((error) => {
+                            console.error("Error:", error);
+                            showNotification("เกิดข้อผิดพลาดในการลบ", "error");
+                            closeDeleteModal();
+                        });
+                };
+            } else {
+                console.error("confirmDeleteBtn not found");
+                showNotification("เกิดข้อผิดพลาด: ไม่พบปุ่มยืนยันการลบ", "error");
+            }
         }
 
         function showMoreTypes(typeLimit, brandLimit) {

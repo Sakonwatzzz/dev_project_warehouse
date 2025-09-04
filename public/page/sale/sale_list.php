@@ -1,8 +1,20 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 date_default_timezone_set('Asia/Bangkok');
 $pdo = Database::getInstance()->getConnection();
+
 
 // อ่านค่าจาก URL สำหรับการกรอง
 $search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';

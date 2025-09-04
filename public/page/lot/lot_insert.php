@@ -2,7 +2,18 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 ob_start();
 
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
+
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
 
 // Initialize variables
 $error = null;
@@ -443,8 +454,8 @@ ob_end_flush();
                                         <i class="fas fa-flag text-blue-400 text-base"></i>
                                     </div>
                                     <select name="lot_status_id" id="lot_status_id"
-                                        class="w-full border-2 border-blue-200 rounded-xl pl-10 pr-10 py-2 appearance-none form-input focus:outline-none focus:border-blue-500 transition-all duration-300 bg-blue-50/50"
-                                        required>
+                                        class="w-full border-2 border-blue-200 rounded-xl pl-10 pr-10 py-2 appearance-none form-input focus:outline-none bg-blue-100 cursor-not-allowed"
+                                        disabled>
                                         <option value="">เลือกสถานะ</option>
                                         <?php foreach ($status_lot as $status): ?>
                                             <option value="<?= htmlspecialchars($status['lot_status_id']) ?>"

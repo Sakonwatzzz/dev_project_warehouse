@@ -1,16 +1,65 @@
 <?php
 ob_start();
+
+// ตั้งค่าเซสชันก่อนเริ่มเซสชัน
+ini_set('session.gc_maxlifetime', 86400);
+session_set_cookie_params(86400);
+
+// เริ่มเซสชัน
 session_start();
 
-// สร้าง CSRF token
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+require_once __DIR__ . '../../auth_handler.php';
+require_once __DIR__ . '../../../config/database_server.php';
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
+// ป้องกันแคช
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
+
+// ตรวจสอบโทเคนและเซสชัน
+$accessToken = getToken('access_token');
+$username = 'Unknown';
+$role = 'user';
+
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+        if (!$accessToken) {
+            error_log("navigationbar.php: Failed to refresh token for user $username at " . date('Y-m-d H:i:s'));
+            header('Location: login.php');
+            exit();
+        }
+    } else {
+        error_log("navigationbar.php: Invalid or missing tokens for user $username at " . date('Y-m-d H:i:s'));
+        header('Location: login.php');
+        exit();
+    }
 }
 
-// Function helper
-function csrf_field()
-{
-    return '<input type="hidden" name="csrf_token" value="' . $_SESSION['csrf_token'] . '">';
+// Decode โทเคนเพื่อดึงข้อมูล
+try {
+    $decoded = JWT::decode($accessToken, new Key($secretKey, 'HS256'));
+    $username = $decoded->username ?? 'Unknown';
+    $role = $decoded->role ?? 'user';
+    $_SESSION['logged_in'] = true;
+    $_SESSION['username'] = $username;
+    $_SESSION['role'] = $role;
+} catch (Exception $e) {
+    error_log("navigationbar.php: Token decode error for user $username: " . $e->getMessage());
+    header('Location: login.php');
+    exit();
+}
+
+// ตรวจสอบบทบาท
+if ($role === 'user' || $role === 'Unknown') {
+    error_log("navigationbar.php: Invalid role detected ($role) for user $username at " . date('Y-m-d H:i:s'));
+    header('Location: login.php');
+    exit();
 }
 
 // Add to top of file to get current page and its parts
@@ -27,7 +76,6 @@ function isInSection($current_page, $section_pages)
 
 // Check if we're in dashboard section (for highlighting both home and dashboard)
 $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
-
 ?>
 
 <!DOCTYPE html>
@@ -40,16 +88,37 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
     <link href="../../output.css" rel="stylesheet">
     <link href="../style/navbar.css" rel="stylesheet">
     <title>Admin System</title>
-
 </head>
 
 <body class="min-h-screen font-sans text-gray-800">
+    <!-- Session Expired Alert -->
+    <div id="session-expired" class="hidden bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4 mx-4">
+        เซสชันของคุณหมดอายุ กรุณาล็อกอินใหม่
+    </div>
+
     <!-- Header -->
     <div class="glass-header top-0 z-50 px-4 py-4 shadow-lg">
         <div class="flex items-center justify-between">
             <h1 class="text-white text-xl lg:text-[24px] font-semibold tracking-wide drop-shadow-md">
                 Admin Management System
             </h1>
+
+            <div class="hidden md:flex text-white">
+                <div class="flex items-center gap-3 px-4">
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold text-gray-100"><?php echo htmlspecialchars($username); ?></div>
+                        <div class="text-xs text-gray-100"><?php echo htmlspecialchars($role); ?></div>
+                    </div>
+                </div>
+                <div class="px-4 mt-4">
+                    <a href="../logout.php" class="block text-center bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-300">
+                        ออกจากระบบ
+                    </a>
+                </div>
+            </div>
 
             <!-- Hamburger Menu for Mobile -->
             <button class="lg:hidden bg-white bg-opacity-20 backdrop-blur-md border border-white border-opacity-30 text-white p-3 rounded-xl hover:bg-opacity-30 hover:scale-105 transition-all duration-300"
@@ -63,46 +132,75 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         <!-- Desktop Navbar -->
         <nav class="hidden lg:block mt-4">
             <ul class="flex flex-wrap gap-2">
+                <!-- หน้าแรก (ทุกบทบาทเห็น) -->
                 <li>
                     <a href="?page=bar_index" class="nav-link <?php echo ($main_section == 'dashboard' || $current_page == 'bar_index') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
                         <i class="fas fa-users"></i> หน้าแรก
                     </a>
                 </li>
-                <li>
-                    <a href="?page=bar_product" class="nav-link <?php echo ($main_section == 'product' || $main_section == 'lot' || $main_section == 'warehouse' || $current_page == 'bar_product') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-box"></i> สินค้า
-                    </a>
-                </li>
-                <li>
-                    <a href="?page=bar_personnel" class="nav-link <?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-users"></i> บุคลากร
-                    </a>
-                </li>
-                <li>
-                    <a href="?page=bar_member" class="nav-link <?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-user-friends"></i> สมาชิก
-                    </a>
-                </li>
-                <li>
-                    <a href="?page=bar_supplier" class="nav-link <?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-truck"></i> Supplier
-                    </a>
-                </li>
-                <li>
-                    <a href="?page=bar_store" class="nav-link <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-store"></i> ร้านค้า
-                    </a>
-                </li>
-                <li>
-                    <a href="?page=bar_sale" class="nav-link <?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-cash-register"></i> ขาย
-                    </a>
-                </li>
-                <li>
-                    <a href="?page=bar_stock" class="nav-link <?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
-                        <i class="fas fa-warehouse"></i> เช็คสต๊อก
-                    </a>
-                </li>
+
+                <!-- สินค้า (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <li>
+                        <a href="?page=bar_product" class="nav-link <?php echo ($main_section == 'product' || $main_section == 'lot' || $main_section == 'warehouse' || $current_page == 'bar_product') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                            <i class="fas fa-box"></i> สินค้า
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- บุคลากร (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <li>
+                        <a href="?page=bar_personnel" class="nav-link <?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                            <i class="fas fa-users"></i> บุคลากร
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- สมาชิก (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <li>
+                        <a href="?page=bar_member" class="nav-link <?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                            <i class="fas fa-user-friends"></i> สมาชิก
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- Supplier (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <li>
+                        <a href="?page=bar_supplier" class="nav-link <?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                            <i class="fas fa-truck"></i> Supplier
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- ร้านค้า (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <li>
+                        <a href="?page=bar_store" class="nav-link <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                            <i class="fas fa-store"></i> ร้านค้า
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- ขาย (เฉพาะ admin, manager, และ sale) -->
+                <?php if (checkRole('admin') || checkRole('manager') || checkRole('sale')): ?>
+                    <li>
+                        <a href="?page=bar_sale" class="nav-link <?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                            <i class="fas fa-cash-register"></i> ขาย
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- เช็คสต๊อก (เฉพาะ admin, manager, และ warehouse) -->
+                <?php if (checkRole('admin') || checkRole('manager') || checkRole('warehouse')): ?>
+                    <li>
+                        <a href="?page=bar_stock" class="nav-link <?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?> text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2">
+                            <i class="fas fa-warehouse"></i> เช็คสต๊อก
+                        </a>
+                    </li>
+                <?php endif; ?>
             </ul>
         </nav>
     </div>
@@ -124,10 +222,10 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         </div>
 
         <!-- Enhanced Navigation Menu -->
-        <div class="px-4 pb-6 ">
-            <div class="space-y-2 pt-4  ">
-                <!-- Dashboard -->
-                <a href="?page=bar_index" class="sidebar-item  <?php echo $is_dashboard ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium ">
+        <div class="px-4 pb-6">
+            <div class="space-y-2 pt-4">
+                <!-- หน้าแรก (ทุกบทบาทเห็น) -->
+                <a href="?page=bar_index" class="sidebar-item <?php echo $is_dashboard ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
                     <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                         <i class="fas fa-home text-blue-600"></i>
                     </div>
@@ -137,82 +235,96 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                     </div>
                 </a>
 
-                <!-- Products -->
-                <a href="?page=bar_product" class="sidebar-item <?php echo ($main_section == 'product' || $main_section == 'lot' || $main_section == 'warehouse' || $current_page == 'bar_product') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
-                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-box text-blue-600"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold">สินค้า</div>
-                        <div class="text-xs text-gray-500">Products Management</div>
-                    </div>
-                </a>
+                <!-- สินค้า (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <a href="?page=bar_product" class="sidebar-item <?php echo ($main_section == 'product' || $main_section == 'lot' || $main_section == 'warehouse' || $current_page == 'bar_product') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                        <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-box text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold">สินค้า</div>
+                            <div class="text-xs text-gray-500">Products Management</div>
+                        </div>
+                    </a>
+                <?php endif; ?>
 
-                <!-- Personnel -->
-                <a href="?page=bar_personnel" class="sidebar-item <?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
-                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-users text-blue-600"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold">บุคลากร</div>
-                        <div class="text-xs text-gray-500">Staff Management</div>
-                    </div>
-                </a>
+                <!-- บุคลากร (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <a href="?page=bar_personnel" class="sidebar-item <?php echo ($main_section == 'personnel' || $current_page == 'bar_personnel') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                        <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold">บุคลากร</div>
+                            <div class="text-xs text-gray-500">Staff Management</div>
+                        </div>
+                    </a>
+                <?php endif; ?>
 
-                <!-- Members -->
-                <a href="?page=bar_member" class="sidebar-item <?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
-                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-user-friends text-blue-600"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold">สมาชิก</div>
-                        <div class="text-xs text-gray-500">Members Management</div>
-                    </div>
-                </a>
+                <!-- สมาชิก (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <a href="?page=bar_member" class="sidebar-item <?php echo ($main_section == 'member' || $current_page == 'bar_member') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                        <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user-friends text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold">สมาชิก</div>
+                            <div class="text-xs text-gray-500">Members Management</div>
+                        </div>
+                    </a>
+                <?php endif; ?>
 
-                <!-- Suppliers -->
-                <a href="?page=bar_supplier" class="sidebar-item <?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
-                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-truck text-blue-600"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold">Supplier</div>
-                        <div class="text-xs text-gray-500">Supplier Management</div>
-                    </div>
-                </a>
+                <!-- Supplier (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <a href="?page=bar_supplier" class="sidebar-item <?php echo ($main_section == 'supplier' || $current_page == 'bar_supplier') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                        <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-truck text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold">Supplier</div>
+                            <div class="text-xs text-gray-500">Supplier Management</div>
+                        </div>
+                    </a>
+                <?php endif; ?>
 
-                <!-- Store -->
-                <a href="?page=bar_store" class="sidebar-item <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
-                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-store text-blue-600"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold">ร้านค้า</div>
-                        <div class="text-xs text-gray-500">Store Management</div>
-                    </div>
-                </a>
+                <!-- ร้านค้า (เฉพาะ admin และ manager) -->
+                <?php if (checkRole('admin') || checkRole('manager')): ?>
+                    <a href="?page=bar_store" class="sidebar-item <?php echo ($main_section == 'store' || $current_page == 'bar_store') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                        <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-store text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold">ร้านค้า</div>
+                            <div class="text-xs text-gray-500">Store Management</div>
+                        </div>
+                    </a>
+                <?php endif; ?>
 
-                <!-- Sales -->
-                <a href="?page=bar_sale" class="sidebar-item <?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
-                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-cash-register text-blue-600"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold">ขาย</div>
-                        <div class="text-xs text-gray-500">Sales Management</div>
-                    </div>
-                </a>
+                <!-- ขาย (เฉพาะ admin, manager, และ sale) -->
+                <?php if (checkRole('admin') || checkRole('manager') || checkRole('sale')): ?>
+                    <a href="?page=bar_sale" class="sidebar-item <?php echo ($main_section == 'sale' || $current_page == 'bar_sale') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                        <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-cash-register text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold">ขาย</div>
+                            <div class="text-xs text-gray-500">Sales Management</div>
+                        </div>
+                    </a>
+                <?php endif; ?>
 
-                <!-- Stock -->
-                <a href="?page=bar_stock" class="sidebar-item <?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
-                    <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-warehouse text-blue-600"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold">เช็คสต๊อก</div>
-                        <div class="text-xs text-gray-500">Stock Management</div>
-                    </div>
-                </a>
+                <!-- เช็คสต๊อก (เฉพาะ admin, manager, และ warehouse) -->
+                <?php if (checkRole('admin') || checkRole('manager') || checkRole('warehouse')): ?>
+                    <a href="?page=bar_stock" class="sidebar-item <?php echo ($main_section == 'stock' || $current_page == 'bar_stock') ? 'active' : ''; ?> flex items-center gap-4 px-4 py-3 rounded-xl text-gray-700 font-medium">
+                        <div class="sidebar-icon w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-warehouse text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold">เช็คสต๊อก</div>
+                            <div class="text-xs text-gray-500">Stock Management</div>
+                        </div>
+                    </a>
+                <?php endif; ?>
             </div>
 
             <!-- Sidebar Footer -->
@@ -222,9 +334,16 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
                         <i class="fas fa-user text-white"></i>
                     </div>
                     <div>
-                        <div class="font-semibold text-gray-700">Admin User</div>
-                        <div class="text-xs text-gray-500">Administrator</div>
+                        <div class="font-semibold text-gray-700"><?php echo htmlspecialchars($username); ?></div>
+                        <div class="text-xs text-gray-500"><?php echo htmlspecialchars($role); ?></div>
                     </div>
+                </div>
+                <div class="mt-4 px-4 w-full">
+                    <form action="../logout.php" method="POST">
+                        <button type="submit" class="w-full block text-center bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-300">
+                            ออกจากระบบ
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -236,351 +355,318 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
         onclick="toggleSidebar()"></div>
 
     <!-- Main Content -->
-    <main class=" min-h-screen">
+    <main class="min-h-screen">
         <div class="">
             <?php
             // Get page parameter and set defaults
-            $page = $_GET['page'] ?? 'dashboard'; // Default to dashboard when no page is specified
+            $page = $_GET['page'] ?? 'dashboard';
             $allowed_pages = ['bar_index', 'bar_product', 'bar_store', 'bar_personnel', 'bar_member', 'bar_supplier', 'bar_sale', 'bar_stock'];
 
-            $dashboard_pages = [
-                'dashboard'
-            ];
-            $product_pages = [
-                'product_list',
-                'product_insert',
-                'product_type',
-                'product_brand',
-                'product_brandupdate',
-                'product_detail',
-                'product_update',
-                'product_type_update',
-                'product_typegroup',
-                'product_brandgroup'
-            ];
-            $warehouse_page = [
-                'warehouse_list',
-                'warehouse_insert',
-                'warehouse_update'
-            ];
-            $lot_pages = [
-                'lot_insert',
-                'lot_list',
-                'lot_insert',
-                'lot_productlist',
-                'lot_productlistmove',
-                'lot_productinsert',
-                'lot_productupdate',
-                'lot_update',
-                'lot_detail',
-                'lot_productdetail',
-                'lot_listdetail',
-                'lot_listinsertcopy',
-                'supplier_lot',
-                'personnel_lot',
-                'lot_insertout',
-                'lot_listdetailout',
-                'lot_warehouseinout',
-                'lot_detailmove'
-            ];
-            $member_pages = [
-                'member_list',
-                'member_insert',
-                'member_type',
-                'member_detail',
-                'member_group',
-                'member_update',
-                'member_type_update',
-                'select_member_dropdown'
-            ];
-            $personnel_pages = [
-                'personnel_detail',
-                'personnel_group',
-                'personnel_insert',
-                'personnel_list',
-                'personnel_type',
-                'personnel_update',
-                'personnel_type_update',
-                'select_personnel_dropdown'
-            ];
-            $supplier_pages = [
-                'supplier_list',
-                'supplier_update',
-                'supplier_insert',
-                'supplier_detail',
-            ];
-            $store_pages = [
-                'store_list',
-                'store_insert',
-            ];
-            $sale_pages = [
-                'sale_add',
-                'sale_list',
-                'sale_bill',
-                'sale_insert',
-                'sale_detail',
-                'sale_output',
-                'sale_inserttest'
-            ];
-            $stock_pages = [
-                'stock_insert',
-                'stock_list'
-            ];
+            $dashboard_pages = ['dashboard'];
+            $product_pages = ['product_list', 'product_insert', 'product_type', 'product_brand', 'product_brandupdate', 'product_detail', 'product_update', 'product_type_update', 'product_typegroup', 'product_brandgroup'];
+            $warehouse_page = ['warehouse_list', 'warehouse_insert', 'warehouse_update'];
+            $lot_pages = ['lot_insert', 'lot_list', 'lot_productlist', 'lot_productlistmove', 'lot_productinsert', 'lot_productupdate', 'lot_update', 'lot_detail', 'lot_productdetail', 'lot_listdetail', 'lot_listinsertcopy', 'supplier_lot', 'personnel_lot', 'lot_insertout', 'lot_listdetailout', 'lot_warehouseinout', 'lot_detailmove'];
+            $member_pages = ['member_list', 'member_insert', 'member_type', 'member_detail', 'member_group', 'member_update', 'member_type_update', 'select_member_dropdown'];
+            $personnel_pages = ['personnel_detail', 'personnel_group', 'personnel_insert', 'personnel_list', 'personnel_type', 'personnel_update', 'personnel_type_update', 'select_personnel_dropdown'];
+            $supplier_pages = ['supplier_list', 'supplier_update', 'supplier_insert', 'supplier_detail'];
+            $store_pages = ['store_list', 'store_insert'];
+            $sale_pages = ['sale_add', 'sale_list', 'sale_bill', 'sale_insert', 'sale_detail', 'sale_output', 'sale_inserttest'];
+            $stock_pages = ['stock_insert', 'stock_list'];
 
             if ($page) {
                 $parts = explode('_', $page);
                 $prefix = $parts[0] ?? null;
                 $module = $parts[1] ?? null;
 
-                // If dashboard or bar_index, show dashboard UI
-                if ($page == 'dashboard' || $page == 'bar_index') {
-            ?>
-
-            <?php
-                    $barfile = __DIR__ . "/bar_index.php";
-                    if (file_exists($barfile)) {
-                        include $barfile;
-                    } else {
-                        echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                    }
-                    $filepath = __DIR__ . "/../page/dashboard/dashboard.php";
-                    if (file_exists($filepath)) {
-                        include $filepath;
-                    } else {
-                        echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</div>";
-                    }
+                // Normalize module group
+                $module_group = '';
+                if ($page === 'dashboard' || $page === 'bar_index') {
+                    $module_group = 'dashboard';
+                } elseif ($prefix === 'bar') {
+                    $module_group = $module;
                 } else {
-                    if (in_array($page, $allowed_pages)) {
-                        $basefile = __DIR__ . "/$page.php";
-                        if (file_exists($basefile)) {
-                            include $basefile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($basefile) . "</div>";
-                        }
-                    }
+                    $module_group = $prefix;
+                }
 
-                    $basePath = __DIR__ . "/../page";
+                // Map to effective group (e.g., lot and warehouse are part of product)
+                $effective_group = $module_group;
+                if (in_array($module_group, ['product', 'lot', 'warehouse'])) {
+                    $effective_group = 'product';
+                }
 
-                    if ($prefix === 'bar') {
-                        $folderMapping = [
-                            'product' => 'product',
-                            'supplier' => 'supplier',
-                            'personnel' => 'personnel',
-                            'member' => 'member',
-                            'lot' => 'lot',
-                            'sale' => 'sale',
-                            'stock' => 'stock',
-                            'store' => 'store'
-                        ];
+                // Check role based on effective group
+                $no_access = true;
+                if ($effective_group === 'dashboard') {
+                    $no_access = false;
+                } elseif ($effective_group === 'product' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'personnel' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'member' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'supplier' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'store' && (checkRole('admin') || checkRole('manager'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'sale' && (checkRole('admin') || checkRole('manager') || checkRole('sale'))) {
+                    $no_access = false;
+                } elseif ($effective_group === 'stock' && (checkRole('admin') || checkRole('manager') || checkRole('warehouse'))) {
+                    $no_access = false;
+                }
 
-                        if (isset($folderMapping[$module])) {
-                            $folderName = $folderMapping[$module];
-
-                            if ($module === 'product') {
-                                $action = $parts[2] ?? 'list';
-                                $subaction = $parts[3] ?? null;
-
-                                $filepath = "$basePath/$folderName/";
-                                if ($subaction) {
-                                    $filepath .= "{$folderName}_{$action}_{$subaction}.php";
-                                } else {
-                                    $filepath .= "{$folderName}_{$action}.php";
-                                }
-                            } else {
-                                $filepath = "$basePath/$folderName/{$folderName}_list.php";
-                            }
-                        }
-                    } elseif ($prefix === 'dashboard' && in_array($page, $dashboard_pages)) {
+                if ($no_access) {
+                    echo "<div class='text-red-600 mx-4'>ไม่มีสิทธิ์เข้าถึงหน้านี้</div>";
+                } else {
+                    // If dashboard or bar_index, show dashboard UI
+                    if ($page == 'dashboard' || $page == 'bar_index') {
                         $barfile = __DIR__ . "/bar_index.php";
                         if (file_exists($barfile)) {
                             include $barfile;
                         } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            error_log("navigationbar.php: File not found: $barfile");
+                            echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
                         }
-                        $action = $parts[1] ?? '';
-                        $filepath = "$basePath/dashboard/dashboard.php";
-
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    } elseif ($prefix === 'member' && in_array($page, $member_pages)) {
-                        $barfile = __DIR__ . "/bar_member.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
+                        $filepath = __DIR__ . "/../page/dashboard/dashboard.php";
+                        if (file_exists($filepath)) {
+                            include $filepath;
                         } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            error_log("navigationbar.php: File not found: $filepath");
+                            echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</div>";
                         }
-                        $action = $parts[1] ?? 'list';
-                        $filepath = "$basePath/member/member_{$action}.php";
+                    } else {
+                        if (in_array($page, $allowed_pages)) {
+                            $basefile = __DIR__ . "/$page.php";
+                            if (file_exists($basefile)) {
+                                include $basefile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $basefile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($basefile) . "</div>";
+                            }
+                        }
 
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    } elseif ($prefix === 'product' && in_array($page, $product_pages)) {
-                        $barfile = __DIR__ . "/bar_product.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $action = $parts[1] ?? 'list';
-                        if ($action) {
-                            $filepath = "$basePath/product/product_{$action}.php";
-                        }
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    } elseif ($prefix === 'warehouse' && in_array($page, $warehouse_page)) {
-                        $barfile = __DIR__ . "/bar_product.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $action = $parts[1] ?? 'list';
-                        $filepath = "$basePath/warehouse/warehouse_{$action}.php";
+                        $basePath = __DIR__ . "/../page";
 
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    } elseif ($prefix === 'lot' && in_array($page, $lot_pages)) {
-                        $barfile = __DIR__ . "/bar_product.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $action = $parts[1] ?? 'list';
-                        $filepath = "$basePath/lot/lot_{$action}.php";
+                        if ($prefix === 'bar') {
+                            $folderMapping = [
+                                'product' => 'product',
+                                'supplier' => 'supplier',
+                                'personnel' => 'personnel',
+                                'member' => 'member',
+                                'lot' => 'lot',
+                                'sale' => 'sale',
+                                'stock' => 'stock',
+                                'store' => 'store'
+                            ];
 
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    } elseif ($prefix === 'warehouse' && $page === 'warehouse_lot') {
-                        $barfile = __DIR__ . "/bar_product.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $filepath = "$basePath/lot/warehouse_lot.php";
+                            if (isset($folderMapping[$module])) {
+                                $folderName = $folderMapping[$module];
 
-                        if (isset($_GET['warehouse_id'])) {
-                            $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
+                                if ($module === 'product') {
+                                    $action = $parts[2] ?? 'list';
+                                    $subaction = $parts[3] ?? null;
+                                    $filepath = "$basePath/$folderName/";
+                                    if ($subaction) {
+                                        $filepath .= "{$folderName}_{$action}_{$subaction}.php";
+                                    } else {
+                                        $filepath .= "{$folderName}_{$action}.php";
+                                    }
+                                } else {
+                                    $filepath = "$basePath/$folderName/{$folderName}_list.php";
+                                }
+                            }
+                        } elseif ($prefix === 'dashboard' && in_array($page, $dashboard_pages)) {
+                            $barfile = __DIR__ . "/bar_index.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? '';
+                            $filepath = "$basePath/dashboard/dashboard.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'member' && in_array($page, $member_pages)) {
+                            $barfile = __DIR__ . "/bar_member.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'list';
+                            $filepath = "$basePath/member/member_{$action}.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'product' && in_array($page, $product_pages)) {
+                            $barfile = __DIR__ . "/bar_product.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'list';
+                            if ($action) {
+                                $filepath = "$basePath/product/product_{$action}.php";
+                            }
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'warehouse' && in_array($page, $warehouse_page)) {
+                            $barfile = __DIR__ . "/bar_product.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'list';
+                            $filepath = "$basePath/warehouse/warehouse_{$action}.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'lot' && in_array($page, $lot_pages)) {
+                            $barfile = __DIR__ . "/bar_product.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'list';
+                            $filepath = "$basePath/lot/lot_{$action}.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'warehouse' && $page === 'warehouse_lot') {
+                            $barfile = __DIR__ . "/bar_product.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $filepath = "$basePath/lot/warehouse_lot.php";
+                            if (isset($_GET['warehouse_id'])) {
+                                $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
+                            }
+                        } elseif ($prefix === 'warehouse' && $page === 'warehouse_move') {
+                            $barfile = __DIR__ . "/bar_product.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $filepath = "$basePath/lot/warehouse_move.php";
+                            if (isset($_GET['warehouse_id'])) {
+                                $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
+                            }
+                        } elseif ($prefix === 'supplier' && $page === 'supplier_lot') {
+                            $barfile = __DIR__ . "/bar_product.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $filepath = "$basePath/lot/supplier_lot.php";
+                            if (isset($_GET['supplier_id'])) {
+                                $_REQUEST['supplier_id'] = $_GET['supplier_id'];
+                            }
+                        } elseif ($prefix === 'personnel' && $page === 'personnel_lot') {
+                            $barfile = __DIR__ . "/bar_product.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $filepath = "$basePath/lot/personnel_lot.php";
+                            if (isset($_GET['personnel_id'])) {
+                                $_REQUEST['personnel_id'] = $_GET['personnel_id'];
+                            }
+                        } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
+                            $barfile = __DIR__ . "/bar_personnel.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'list';
+                            $filepath = "$basePath/personnel/personnel_{$action}.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'supplier' && in_array($page, $supplier_pages)) {
+                            $barfile = __DIR__ . "/bar_supplier.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'list';
+                            $filepath = "$basePath/supplier/supplier_{$action}.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'store' && in_array($page, $store_pages)) {
+                            $barfile = __DIR__ . "/bar_store.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'list';
+                            $filepath = "$basePath/store/store_{$action}.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'sale' && in_array($page, $sale_pages)) {
+                            $barfile = __DIR__ . "/bar_sale.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'add';
+                            $filepath = "$basePath/sale/sale_{$action}.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
+                        } elseif ($prefix === 'stock' && in_array($page, $stock_pages)) {
+                            $barfile = __DIR__ . "/bar_stock.php";
+                            if (file_exists($barfile)) {
+                                include $barfile;
+                            } else {
+                                error_log("navigationbar.php: File not found: $barfile");
+                                echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                            }
+                            $action = $parts[1] ?? 'insert';
+                            $filepath = "$basePath/stock/stock_{$action}.php";
+                            if (isset($_GET['id'])) {
+                                $_REQUEST['id'] = $_GET['id'];
+                            }
                         }
-                    } elseif ($prefix === 'warehouse' && $page === 'warehouse_move') {
-                        $barfile = __DIR__ . "/bar_product.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
+                        if (isset($filepath) && file_exists($filepath)) {
+                            include $filepath;
+                        } else if (isset($filepath)) {
+                            error_log("navigationbar.php: File not found: $filepath");
+                            echo "<div class='text-red-600 mx-4'>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</div>";
                         }
-                        $filepath = "$basePath/lot/warehouse_move.php";
-
-                        if (isset($_GET['warehouse_id'])) {
-                            $_REQUEST['warehouse_id'] = $_GET['warehouse_id'];
-                        }
-                    } elseif ($prefix === 'supplier' && $page === 'supplier_lot') {
-                        $barfile = __DIR__ . "/bar_product.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $filepath = "$basePath/lot/supplier_lot.php";
-
-                        if (isset($_GET['supplier_id'])) {
-                            $_REQUEST['supplier_id'] = $_GET['supplier_id'];
-                        }
-                    } elseif ($prefix === 'personnel' && $page === 'personnel_lot') {
-                        $barfile = __DIR__ . "/bar_product.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $filepath = "$basePath/lot/personnel_lot.php";
-
-                        if (isset($_GET['personnel_id'])) {
-                            $_REQUEST['personnel_id'] = $_GET['personnel_id'];
-                        }
-                    } elseif ($prefix === 'personnel' && in_array($page, $personnel_pages)) {
-                        $barfile = __DIR__ . "/bar_personnel.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $action = $parts[1] ?? 'list';
-                        $filepath = "$basePath/personnel/personnel_{$action}.php";
-
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    } elseif ($prefix === 'supplier' && in_array($page, $supplier_pages)) {
-                        $barfile = __DIR__ . "/bar_supplier.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $action = $parts[1] ?? 'list';
-                        $filepath = "$basePath/supplier/supplier_{$action}.php";
-
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    }
-                    elseif ($prefix === 'store' && in_array($page, $store_pages)) {
-                        $barfile = __DIR__ . "/bar_store.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $action = $parts[1] ?? 'list';
-                        $filepath = "$basePath/store/store_{$action}.php";
-
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    } elseif ($prefix === 'sale' && in_array($page, $sale_pages)) {
-                        $barfile = __DIR__ . "/bar_sale.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $action = $parts[1] ?? 'add';
-                        $filepath = "$basePath/sale/sale_{$action}.php";
-
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    } elseif ($prefix === 'stock' && in_array($page, $stock_pages)) {
-                        $barfile = __DIR__ . "/bar_stock.php";
-                        if (file_exists($barfile)) {
-                            include $barfile;
-                        } else {
-                            echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($barfile) . "</div>";
-                        }
-                        $action = $parts[1] ?? 'insert';
-                        $filepath = "$basePath/stock/stock_{$action}.php";
-
-                        if (isset($_GET['id'])) {
-                            $_REQUEST['id'] = $_GET['id'];
-                        }
-                    }
-                    if (isset($filepath) && file_exists($filepath)) {
-                        include $filepath;
-                    } else if (isset($filepath)) {
-                        echo "<div class='text-red-600'>ไม่พบไฟล์: " . htmlspecialchars($filepath) . "</div>";
                     }
                 }
             } else {
-                echo "<div class='text-red-600'>ไม่พบเพจที่คุณต้องการ</div>";
+                error_log("navigationbar.php: Invalid page requested: $page");
+                echo "<div class='text-red-600 mx-4'>ไม่พบเพจที่คุณต้องการ</div>";
             }
-
             ob_end_flush();
             ?>
         </div>
@@ -588,37 +674,38 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
 
     <!-- Enhanced JavaScript -->
     <script>
+        // document.addEventListener('DOMContentLoaded', () => {
+        //     console.log('Navbar and Sidebar initialized');
+        //     const navItems = document.querySelectorAll('.nav-link');
+        //     const sidebarItems = document.querySelectorAll('.sidebar-item');
+        //     console.log(`Found ${navItems.length} nav items and ${sidebarItems.length} sidebar items`);
+        //     sidebarItems.forEach(item => {
+        //         console.log(`Sidebar item: ${item.querySelector('.font-semibold').textContent}`);
+        //     });
+        // });
+
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay');
             const hamburger = document.querySelector('button[aria-controls="sidebar"]');
-
             const isOpen = sidebar.classList.contains('active');
 
+            console.log(`Toggling sidebar: ${isOpen ? 'closing' : 'opening'}`);
             if (isOpen) {
-                // Close sidebar
                 sidebar.classList.remove('active');
                 overlay.classList.remove('opacity-100', 'visible');
                 overlay.classList.add('opacity-0', 'invisible');
                 hamburger.setAttribute('aria-expanded', 'false');
-                hamburger.innerHTML = '<div class="loading"></div>';
-                setTimeout(() => {
-                    hamburger.innerHTML = '<i class="fas fa-bars text-lg"></i>';
-                }, 300);
+                hamburger.innerHTML = '<i class="fas fa-bars text-lg"></i>';
             } else {
-                // Open sidebar
                 sidebar.classList.add('active');
                 overlay.classList.remove('opacity-0', 'invisible');
                 overlay.classList.add('opacity-100', 'visible');
                 hamburger.setAttribute('aria-expanded', 'true');
-                hamburger.innerHTML = '<div class="loading"></div>';
-                setTimeout(() => {
-                    hamburger.innerHTML = '<i class="fas fa-times text-lg"></i>';
-                }, 300);
+                hamburger.innerHTML = '<i class="fas fa-times text-lg"></i>';
             }
         }
 
-        // Close sidebar with Escape key
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 const sidebar = document.getElementById('sidebar');
@@ -635,7 +722,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             }
         });
 
-        // Add loading effects to navigation links without preventing navigation
         document.querySelectorAll('a[href^="?"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
                 this.style.opacity = '0.7';
@@ -645,7 +731,6 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             });
         });
 
-        // Intersection Observer for animations
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
@@ -659,21 +744,25 @@ $is_dashboard = ($current_page == 'dashboard' || $current_page == 'bar_index');
             });
         }, observerOptions);
 
-        // Observe dashboard cards
         document.querySelectorAll('.dashboard-card').forEach(card => {
             observer.observe(card);
         });
 
-        // Auto-close sidebar when clicking on navigation items (mobile)
         document.querySelectorAll('.sidebar-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                if (window.innerWidth < 1024) { // lg breakpoint
+                if (window.innerWidth < 1024) {
                     setTimeout(() => {
                         toggleSidebar();
                     }, 300);
                 }
             });
         });
+
+        // แสดงแจ้งเตือนเมื่อเซสชันหมดอายุ
+        if (<?php echo json_encode($role === 'Unknown' || !$accessToken || $role === 'user'); ?>) {
+            document.getElementById('session-expired').classList.remove('hidden');
+            setTimeout(() => window.location.href = 'login.php', 3000);
+        }
     </script>
 </body>
 

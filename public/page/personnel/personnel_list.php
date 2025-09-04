@@ -1,7 +1,18 @@
 <?php
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
+
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
 
 // Session Management
 if (!isset($_SESSION)) {
@@ -11,7 +22,7 @@ if (!isset($_SESSION)) {
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 86400)) {
     session_unset();
     session_destroy();
     $query_params = http_build_query(['timeout' => 1, 'page' => 'personnel_list'] + ($_GET ?? []));
@@ -155,7 +166,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $params = [$name, $username, $type_id, $address, $phone];
             if ($password !== '') {
                 $query .= ", personnel_password = ?";
-                $params[] = password_hash($password, PASSWORD_DEFAULT);
+                $params[] = $password;
+                // $params[] = password_hash($password, PASSWORD_DEFAULT);
             }
             $query .= " WHERE personnel_id = ?";
             $params[] = $id;

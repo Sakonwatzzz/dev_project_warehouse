@@ -2,7 +2,7 @@
 require_once __DIR__ . '../../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 
 try {
     $incomplete_mode = isset($_GET['mode']) && $_GET['mode'] === 'incomplete';
@@ -184,9 +184,9 @@ try {
                                         class="bg-yellow-500 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-600 transition text-sm hover-lift">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button onclick="deleteProduct('<?php echo htmlspecialchars($product_list['product_id']); ?>')"
+                                    <button type="button" onclick="confirmDelete('<?php echo htmlspecialchars($product_list['product_id'], ENT_QUOTES, 'UTF-8'); ?>')"
                                         class="bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition text-sm hover-lift">
-                                        <i class="fas fa-trash"></i>
+                                        <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </div>
                             </td>

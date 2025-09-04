@@ -4,7 +4,20 @@ require_once __DIR__ . '../../../../config/database_server.php';
 $pdo = Database::getInstance()->getConnection();
 date_default_timezone_set('Asia/Bangkok');
 
-// ตรวจสอบ session ()
+
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
+// ตรวจสอบ session (คงเดิม)
+
 // if (!isset($_SESSION['personnel_id']) || !is_numeric($_SESSION['personnel_id'])) {
 //     header("Location: login.php?error=กรุณาเข้าสู่ระบบ");
 //     exit;
@@ -15,8 +28,9 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Check session timeout ()
-// if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+
+// Check session timeout (คงเดิม)
+// if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 86400)) {
 //     session_unset();
 //     session_destroy();
 //     $query_params = http_build_query(['timeout' => 1, 'page' => 'stock_list'] + ($_GET ?? []));

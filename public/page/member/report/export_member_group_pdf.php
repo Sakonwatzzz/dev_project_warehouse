@@ -5,7 +5,7 @@ session_start();
 date_default_timezone_set('Asia/Bangkok');
 $pdo = Database::getInstance()->getConnection(); 
 
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 86400)) {
     session_unset();
     session_destroy();
     header("Location: /?page=login&timeout=1");

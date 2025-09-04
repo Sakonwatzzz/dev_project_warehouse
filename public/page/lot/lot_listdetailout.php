@@ -5,6 +5,17 @@ ob_start();
 
 $pdo = Database::getInstance()->getConnection(); 
 
+$accessToken = getToken('access_token');
+if (!$accessToken || !validateToken($accessToken)) {
+    $refreshToken = getToken('refresh_token');
+    if ($refreshToken && validateToken($refreshToken)) {
+        $accessToken = refreshToken($refreshToken);
+    } else {
+        header('Location: login.php');
+        exit();
+    }
+}
+
 // รับค่า lot_id และ warehouse_id จาก URL
 $lot_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $warehouse_id = isset($_GET['warehouse_id']) ? $_GET['warehouse_id'] : null;
@@ -169,12 +180,10 @@ try {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
         }
 
         .btn:hover {
             opacity: 0.9;
-            transform: translateY(-1px);
         }
 
         .modal {
@@ -393,13 +402,6 @@ try {
                     </button>
                 </div>
             <?php endif; ?>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex justify-between mt-6">
-            <a href="?page=lot_insertout" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shadow">
-                <i class="fas fa-arrow-left mr-2"></i>กลับ
-            </a>
         </div>
     </div>
 
