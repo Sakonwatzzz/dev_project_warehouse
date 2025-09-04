@@ -153,6 +153,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 }
+
+try {
+    $count_query = "SELECT COUNT(*) as total_count FROM supplier";
+    $params = [];
+    $stmt = $pdo->prepare($count_query);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $total_records = (int)$stmt->fetchColumn();
+    error_log("Total Records: $total_records");
+} catch (PDOException $e) {
+    error_log("Count supplier error: " . $e->getMessage());
+    die("เกิดข้อผิดพลาดในการนับข้อมูล: " . htmlspecialchars($e->getMessage()));
+}
 ?>
 
 <!DOCTYPE html>
@@ -173,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
             <div class="flex flex-col w-full md:flex-row md:w-auto items-center space-y-2 md:space-y-0 md:space-x-4">
                 <span id="totalRecords" class="inline-flex items-center w-full md:w-auto px-4 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold justify-center md:justify-start">
-                    <i class="fas fa-users mr-2"></i> <span id="recordCount">0</span> รายการ
+                    <i class="fas fa-users mr-2"></i> <?php echo $total_records; ?> รายการ
                 </span>
                 <button onclick="showAddModal()" class="btn-primary text-white py-2 px-4 rounded-lg font-medium hover-lift w-full md:w-auto">
                     <i class="fas fa-plus mr-2"></i> เพิ่มผู้ส่งมอบ
@@ -227,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             </div>
             <div class="flex-1 ml-4 pr-4 py-4">
                 <p id="notificationTitle" class="text-sm font-medium text-gray-900"></p>
-                <p id="notificationMessage" class="mt-1 text-sm textNigeria
+                <p id="notificationMessage" class="mt-1 text-sm text-gray-500 "></p>
                 <p id="notificationMessage" class="mt-1 text-sm text-gray-500"></p>
             </div>
             <button onclick="hideNotification()" class="mr-4 text-gray-400 hover:text-gray-500">
@@ -375,3 +390,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <script src="/page/supplier/function/supplier.js"></script>
 </body>
 </html>
+
+
