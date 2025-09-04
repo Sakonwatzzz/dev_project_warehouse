@@ -1,9 +1,7 @@
-// sale_payment.js
-let dynamicNetAmount = 0;
-let dynamicVatAmount = 0;
-let dynamicTotalAmount = 0;
-
 $(document).ready(function () {
+  let dynamicNetAmount = 0;
+  let dynamicVatAmount = 0;
+  let dynamicTotalAmount = 0;
   const Toast = Swal.mixin({
     toast: true,
     position: "top",
@@ -17,9 +15,7 @@ $(document).ready(function () {
     },
   });
 
-  // ดึง saleId จาก DOM
   const saleId = $('input[name="sale_id"]').val() || "";
-
   if (!saleId) {
     console.error("sale_id is not defined");
     Swal.fire({
@@ -35,7 +31,6 @@ $(document).ready(function () {
       console.warn("DOM element .sale-net-amount not found");
       return;
     }
-    // ใช้ parseFloat และลบตัวอักษรที่ไม่ใช่ตัวเลข
     dynamicNetAmount =
       parseFloat(
         $(".sale-net-amount")
@@ -53,8 +48,53 @@ $(document).ready(function () {
         $(".total-amount")
           .text()
           .replace(/[^0-9.-]+/g, "")
-      ) || 0; // แก้ .sale_total-amount เป็น .total-amount
+      ) || 0;
+    if (
+      dynamicNetAmount === 1 ||
+      dynamicVatAmount === 1 ||
+      dynamicTotalAmount === 1
+    ) {
+      console.warn("Suspicious value 1.00 detected in resetPaymentValues", {
+        dynamicNetAmount,
+        dynamicVatAmount,
+        dynamicTotalAmount,
+      });
+    }
+    dynamicNetAmount =
+      parseFloat(
+        $(".sale-net-amount")
+          .text()
+          .replace(/[^0-9.-]+/g, "")
+      ) || 0;
+    if (dynamicNetAmount === 1) {
+      console.error("Force reset suspicious net 1.00 to 0");
+      dynamicNetAmount = 0;
+    }
+    // ทำคล้ายสำหรับ vat และ total
+    dynamicVatAmount =
+      parseFloat(
+        $(".sale-vat-amount")
+          .text()
+          .replace(/[^0-9.-]+/g, "")
+      ) || 0;
+    if (dynamicVatAmount === 1) dynamicVatAmount = 0;
+    dynamicTotalAmount =
+      parseFloat(
+        $(".total-amount")
+          .text()
+          .replace(/[^0-9.-]+/g, "")
+      ) || 0;
+    if (dynamicTotalAmount === 1) dynamicTotalAmount = 0;
+
+    // เพิ่ม strict regex check
+    const netText = $(".sale-net-amount").text().trim();
+    if (!/^\d+\.\d{2} บาท$/.test(netText)) {
+      // เช็คว่า text เป็นรูปแบบ xx.xx บาท เท่านั้น
+      console.warn("Invalid net text format:", netText);
+      dynamicNetAmount = 0;
+    }
     console.log("resetPaymentValues:", {
+      saleId,
       dynamicNetAmount,
       dynamicVatAmount,
       dynamicTotalAmount,
@@ -63,24 +103,21 @@ $(document).ready(function () {
   }
 
   function calculateChange() {
-    console.log("Calculating change, dynamicTotalAmount:", dynamicTotalAmount);
-    const paid = parseFloat($("#sale_paid_amount").val()) || 0; // แก้ $sale_paid_amount เป็น $('#sale_paid_amount')
+    const paid = parseFloat($("#sale_paid_amount").val()) || 0;
     const total = dynamicTotalAmount;
     let change = paid - total;
-
     if (change < 0) {
       $("#sale_change_amount").val("เงินไม่พอ");
       $("#print_receipt").prop("disabled", true);
-      // Toast.fire({
-      //   icon: "warning",
-      //   title: "จำนวนเงินไม่เพียงพอ",
-      // });
       return;
     } else {
       $("#sale_change_amount").val(change.toFixed(2));
       $("#print_receipt").prop("disabled", false);
     }
-
+    if (paid === 1 || total === 1) {
+      console.error("Suspicious 1.00 in calculateChange, aborting update");
+      return; // หยุดไม่ส่ง AJAX ถ้า 1.00
+    }
     const requestData = {
       sale_id: saleId,
       sale_net_amount: dynamicNetAmount,
@@ -90,7 +127,6 @@ $(document).ready(function () {
       sale_change_amount: change >= 0 ? change : 0,
     };
     console.log("Sending AJAX request with data:", requestData);
-
     $.ajax({
       url: "page/sale/api/api_update_payment.php",
       method: "POST",
@@ -103,9 +139,9 @@ $(document).ready(function () {
             response.updated_total &&
             response.updated_total !== dynamicTotalAmount
           ) {
-            dynamicTotalAmount = parseFloat(response.updated_total);
+            dynamicTotalAmount = parseFloat(response.updated_total) || 0;
             $(".total-amount").text(dynamicTotalAmount.toFixed(2) + " บาท");
-            calculateChange(); // Recalculate ถ้ามี override
+            calculateChange();
             Toast.fire({
               icon: "info",
               title: "ยอดรวมถูกปรับให้ตรงกับฐานข้อมูล",
@@ -159,42 +195,28 @@ $(document).ready(function () {
       });
       return;
     }
-
-    // อัปเดตตัวแปร global จาก saleNetAmount ที่ได้รับ
     dynamicNetAmount = parseFloat(netAmount.toFixed(2));
     dynamicVatAmount = parseFloat((dynamicNetAmount * 0.07).toFixed(2));
     dynamicTotalAmount = parseFloat(
       (dynamicNetAmount + dynamicVatAmount).toFixed(2)
     );
-
-    // อัปเดต DOM
+    if (
+      dynamicNetAmount === 1 ||
+      dynamicVatAmount === 1 ||
+      dynamicTotalAmount === 1
+    ) {
+      console.warn("Suspicious value 1.00 detected in productListUpdated", {
+        dynamicNetAmount,
+        dynamicVatAmount,
+        dynamicTotalAmount,
+      });
+    }
     $(".sale-net-amount").text(dynamicNetAmount.toFixed(2) + " บาท");
     $(".sale-vat-amount").text(dynamicVatAmount.toFixed(2) + " บาท");
     $(".total-amount").text(dynamicTotalAmount.toFixed(2) + " บาท");
-
-    console.log("Updated dynamic values:", {
-      dynamicNetAmount,
-      dynamicVatAmount,
-      dynamicTotalAmount,
-    });
-
-    // เรียก calculateChange เพื่ออัปเดตเงินทอน
     calculateChange();
-
-    // ตรวจสอบสถานะปุ่ม
-    const saleStatusId = parseInt($('input[name="sale_status_id"]').val()) || 2;
-    if (saleStatusId === 1) {
-      $("#calculate_change")
-        .prop("disabled", true)
-        .addClass("opacity-50 cursor-not-allowed");
-    } else {
-      $("#calculate_change")
-        .prop("disabled", false)
-        .removeClass("opacity-50 cursor-not-allowed");
-    }
   });
 
-  // $(document).on("billSwitched", resetPaymentValues);
   $(document).on("billSwitched", function () {
     resetPaymentValues();
     $.ajax({
@@ -207,6 +229,17 @@ $(document).ready(function () {
           dynamicNetAmount = parseFloat(response.sale_net_amount) || 0;
           dynamicVatAmount = parseFloat(response.sale_vat_amount) || 0;
           dynamicTotalAmount = parseFloat(response.sale_total_amount) || 0;
+          if (
+            dynamicNetAmount === 1 ||
+            dynamicVatAmount === 1 ||
+            dynamicTotalAmount === 1
+          ) {
+            console.warn("Suspicious value 1.00 detected in billSwitched", {
+              dynamicNetAmount,
+              dynamicVatAmount,
+              dynamicTotalAmount,
+            });
+          }
           $(".sale-net-amount").text(dynamicNetAmount.toFixed(2) + " บาท");
           $(".sale-vat-amount").text(dynamicVatAmount.toFixed(2) + " บาท");
           $(".total-amount").text(dynamicTotalAmount.toFixed(2) + " บาท");
@@ -232,6 +265,5 @@ $(document).ready(function () {
     });
   });
 
-  // Initial check
   resetPaymentValues();
 });

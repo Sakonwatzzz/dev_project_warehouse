@@ -40,9 +40,14 @@ $(document).ready(function () {
                         </head>
                         <body class="p-4">
                             <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
-                                <h1 class="text-xl font-bold text-center">Sampeng Buriram</h1>
-                                <p class="text-center text-sm">จำหน่ายสินค้าราคาปลีกและส่ง</p>
-                                <p class="text-center text-sm">เลขที่บิล: #${
+                                <h1 class="text-xl font-bold text-center">บริษัท สำเพ็งเจริญการค้า จำกัด</h1>
+                                <p class="text-center text-sm">145 หมู่ 13 บ้านยายอ่อน ตำบลชุมเห็ด</p>
+                                <p class="text-center text-sm">อำเภอเมือง จังหวัดบุรีรัมย์ 31000</p>
+                                <p class="text-center text-sm">โทร.083-2456397 แอดมินประสานงาน</p>
+                                <p class="text-center text-sm">โทร.097-2456528 คุณฝน</p>
+                                <p class="text-center text-sm">LINE : กลุ่ม@sampengburiram</p>
+                                <p class="text-center text-sm">ใบกำภาษีอย่างยอ/ใบเสร็จรับเงิน</p>
+                                <p class="text-center text-sm">เลขที่: #${
                                   receipt.sale_id
                                 }</p>
                                 <p class="text-center text-sm">วันที่: ${
@@ -97,7 +102,8 @@ $(document).ready(function () {
                   )} บาท</p>
                   <p>ยอดรวมสุทธิ: ${parseFloat(
                     receipt.sale_total_amount
-                  ).toFixed(2)} บาท</p>
+                  )
+                  .toFixed(2)} บาท</p>
                   <p>เงินที่ชำระ: ${parseFloat(
                     receipt.sale_paid_amount
                   ).toFixed(2)} บาท</p>

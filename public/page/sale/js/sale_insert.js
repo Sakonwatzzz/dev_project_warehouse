@@ -228,10 +228,10 @@ $(document).ready(function () {
         success: function (response) {
           //console.log("Insert product response:", response); // Debug
           if (response.status === "success") {
-            Toast.fire({
-              icon: "success",
-              title: response.message,
-            });
+            // Toast.fire({
+            //   icon: "success",
+            //   title: response.message,
+            // });
             updateProductTable();
             $("#form_add_product")[0].reset();
             $("#product_info").addClass("hidden").empty();

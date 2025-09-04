@@ -10,9 +10,9 @@ try {
 //     error_log("CSRF token generated: " . $_SESSION['csrf_token']);
 // }
 // คำนวณ VAT สำหรับการแสดงผลเริ่มต้น
-$sale_net_amount = $sale_total_amount;
-$sale_vat_amount = $sale_net_amount * 0.07;
-$sale_total_amount = $sale_net_amount + $sale_vat_amount;
+// $sale_net_amount = $sale_total_amount;
+// $sale_vat_amount = $sale_net_amount * 0.07;
+// $sale_total_amount = $sale_net_amount + $sale_vat_amount;
 
 // เพิ่มการแสดงผลข้อผิดพลาดสำหรับการดีบักชั่วคราวตั้งค่า display_errors เป็น 1 ในไฟล์เพื่อดูข้อผิดพลาดโดยตรง
 // ini_set('display_errors', 1);
@@ -114,9 +114,6 @@ if (!$sale_id) {
     // บนหน้าจอแสดงผลจะแสดงว่า {"status":"error","message":"\u0e01\u0e23\u0e38\u0e13\u0e32\u0e23\u0e30\u0e1a\u0e38 sale_id"}
     die(json_encode(['status' => 'error', 'message' => 'กรุณาระบุ sale_id']));
 }
-
-
-
 
 /**
  * Helper function to adjust lot_product remain
@@ -242,10 +239,10 @@ try {
 // Fetch members, personnel, and sale status
 $members = $pdo->query("SELECT member_id, member_name FROM member ORDER BY member_name");
 
-$default_id = 3;
-$stmt = $pdo->prepare("SELECT * FROM personnel WHERE personnel_id = ?");
-$stmt->execute([$default_id]);
-$personnels = $stmt->fetch(PDO::FETCH_ASSOC);
+// $default_id = 3;
+// $stmt = $pdo->prepare("SELECT * FROM personnel WHERE personnel_id = ?");
+// $stmt->execute([$default_id]);
+// $personnels = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $sale_status_result = $pdo->query("SELECT sale_status_id, sale_status_name FROM sale_status");
 
@@ -617,6 +614,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                                         <input type="text" id="member_search"
                                             class="p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             placeholder="ค้นหาสมาชิก"
+
                                             <?php echo ($sale_data['sale_status_id'] == 1) ? 'disabled' : ''; ?>>
                                         <input type="hidden" name="member_id" id="member_id"
                                             <?php echo ($sale_data['sale_status_id'] == 1) ? 'disabled' : ''; ?>>
@@ -652,7 +650,7 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                             <span class="font-medium text-sm">VAT (7%):</span>
                             <span class="text-sm sale-vat-amount"><?php echo number_format($sale_vat_amount, 2); ?> บาท</span>
                         </div>
-                        <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-base">
+                        <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-semibold text-xl">
                             <span>ยอดรวมสุทธิ:</span>
                             <span type="number" id="sale_total_amount" class="text-blue-700 total-amount"><?php echo number_format($sale_total_amount, 2); ?>
                                 บาท</span>
@@ -660,21 +658,22 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
 
                         <div class="flex flex-row space-x-4 items-end pb-6">
                             <div class="flex-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินที่ชำระ
+                                <label class="block text-xl font-medium text-gray-700 mb-1">เงินที่ชำระ
                                     (บาท):</label>
-                                <input type="number" id="sale_paid_amount" value="<?php echo htmlspecialchars($sale_data['sale_paid_amount'] ?? ''); ?>" 
-                                    class="p-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    step="0.01" placeholder="ป้อนจำนวนเงิน">
+                                <input type="number" id="sale_paid_amount" name="sale_paid_amount" value="<?php echo number_format($sale_paid_amount, 2, '.', ''); ?>"
+                                    class="p-2 w-full text-xl border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="ป้อนจำนวนเงิน">
+
                             </div>
                             <div class="flex-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
+                                <label class="block text-xl font-medium text-gray-700 mb-1">เงินทอน (บาท):</label>
                                 <input type="text" id="sale_change_amount" value="<?php echo number_format($sale_change_amount) ?>"
-                                    class="p-2 w-full text-sm bg-gray-50 border border-gray-300 rounded-lg text-blue-700 font-semibold"
+                                    class="p-2 w-full text-xl bg-gray-50 border border-gray-300 rounded-md text-blue-700 font-semibold"
                                     readonly>
                             </div>
                             <div>
                                 <button id="calculate_change"
-                                    class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center">
+                                    class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center hidden">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -689,21 +688,24 @@ $sale_status_name = $sale_data['sale_status_name'] ?? 'กำลังขาย'
                         <!-- ปุ่มพิมพ์ใบเสร็จ (เริ่มต้นซ่อน) -->
                         <button id="print_receipt"
                             class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center <?php echo ($sale_data['sale_status_id'] == 1) ? '' : 'hidden'; ?>">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                             </svg>
                             พิมพ์ใบเสร็จ
                         </button>
-
                         <!-- ปุ่มยืนยันรายการขาย -->
                         <button type="submit" form="confirm-sale-form" id="confirm-sale-btn"
-                            class="w-full py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center">
-                            <span class="loading-spinner hidden">กำลังประมวลผล...</span>
-                            <span class="btn-text">
-                                ยืนยันรายการขาย
-                            </span>
+                            class="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors  flex items-center justify-center <?php echo $sale_data['sale_status_id'] == 1 ? 'opacity-50 cursor-not-allowed' : ''; ?>"
+                            <?php echo $sale_data['sale_status_id'] == 1 ? 'disabled' : ''; ?>>
+                            <svg class="w-6 h-6 text-gray-200 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 3v4a1 1 0 0 1-1 1H5m4 6 2 2 4-4m4-8v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7.914a1 1 0 0 1 .293-.707l3.914-3.914A1 1 0 0 1 9.914 3H18a1 1 0 0 1 1 1Z" />
+                            </svg>
+
+                            <span class="btn-text">ยืนยันการขาย</span>
+                            <span class="loading-spinner hidden">กำลังโหลด...</span>
                         </button>
+
                     </div>
                     </form>
 

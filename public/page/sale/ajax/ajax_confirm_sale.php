@@ -33,17 +33,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $member_id = null;
         }
         $sale_net_amount = isset($_POST['sale_net_amount']) ? (float) $_POST['sale_net_amount'] :
-        $sale_vat_amount = isset($_POST['sale_vat_amount']) ? (float) $_POST['sale_vat_amount'] :
-        $sale_total_amount = isset($_POST['sale_total_amount']) ? (float) $_POST['sale_total_amount'] :
-        $sale_paid_amount = isset($_POST['sale_paid_amount']) ? (float) $_POST['sale_paid_amount'] :
-        $sale_change_amount = isset($_POST['sale_change_amount']) ? (float) $_POST['sale_change_amount'] :
+            $sale_vat_amount = isset($_POST['sale_vat_amount']) ? (float) $_POST['sale_vat_amount'] :
+            $sale_total_amount = isset($_POST['sale_total_amount']) ? (float) $_POST['sale_total_amount'] :
+            $sale_paid_amount = isset($_POST['sale_paid_amount']) ? (float) $_POST['sale_paid_amount'] :
+            $sale_change_amount = isset($_POST['sale_change_amount']) ? (float) $_POST['sale_change_amount'] :
 
             error_log("Confirm sale: sale_id = " . ($sale_id ?? 'null'));
 
         if (empty($sale_id)) {
             throw new Exception("ไม่พบ sale_id ในคำขอ กรุณาเปิดบิลและเพิ่มข้อมูลการขาย");
         }
+        if (!isset($sale_paid_amount) || $sale_paid_amount <= 0) {
+            throw new Exception("กรุณากรอกจำนวนเงินที่ชำระ");
+        }
 
+        if (!isset($sale_total_amount) || $sale_paid_amount < $sale_total_amount) {
+            throw new Exception("จำนวนเงินที่ชำระไม่เพียงพอ (ต้องมากกว่าหรือเท่ากับยอดรวม: " . number_format($sale_total_amount, 2) . " บาท)");
+        }
         // ตรวจสอบสถานะบิล
         $check_sale = $pdo->prepare("SELECT sale_status_id FROM sale WHERE sale_id = ?");
         $check_sale->execute([$sale_id]);
@@ -73,6 +79,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $check_stmt->execute([$sale_id]);
         $invalid_products = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Recalculate to verify
+        $stmt = $pdo->prepare("SELECT SUM(sale_product_qty * sale_product_price) as calculated_net FROM sale_product WHERE sale_id = ?");
+        $stmt->execute([$sale_id]);
+        $calculated_net = (float)($stmt->fetchColumn() ?: 0);
+        $calculated_net_rounded = round($calculated_net, 2, PHP_ROUND_HALF_UP);  // ใช้ HALF_UP เพื่อ avoid edge case
+        $calculated_vat = round($calculated_net_rounded * 0.07, 2, PHP_ROUND_HALF_UP);
+        $calculated_total = round($calculated_net_rounded + $calculated_vat, 2, PHP_ROUND_HALF_UP);
+
+        if ($calculated_net_rounded == 1.00 || $calculated_vat == 1.00 || $calculated_total == 1.00) {
+            throw new Exception("พบค่าผิดปกติ 1.00 กรุณาตรวจสอบสินค้าก่อนยืนยัน");
+        }
+
+        // ถ้า POST ไม่ match calculated, ใช้ calculated แทน (เหมือน api_update_payment)
+        if (round($sale_net_amount, 2) !== $calculated_net_rounded) {
+            $sale_net_amount = $calculated_net_rounded;
+            $sale_vat_amount = $calculated_vat;
+            $sale_total_amount = $calculated_total;
+        }
+
+
+        // คำนวณ sale_change_amount ก่อนใช้
+        $sale_change_amount = round($sale_paid_amount - $sale_total_amount, 2, PHP_ROUND_HALF_UP);
+        if ($sale_change_amount == 1.00) {
+            error_log("Error: Suspicious calculated change 1.00 for sale_id=$sale_id");
+            throw new Exception("พบเงินทอนผิดปกติ (1.00)");
+        }
         if (count($invalid_products) > 0) {
             $invalid_list = '';
             foreach ($invalid_products as $product) {
