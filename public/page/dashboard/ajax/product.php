@@ -35,10 +35,11 @@ try {
     $total_records_sale = (int)$stmt->fetchColumn();
 
     // นับยอดขายวันนี้
-    $stmt = $pdo->prepare("SELECT SUM(sale_total_amount) FROM sale WHERE DATE(sale_date) = CURDATE()");
-    $stmt->execute();
+    $today = date('Y-m-d');
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(sale_total_amount), 0) FROM sale WHERE DATE(sale_date) = ? AND sale_status_id = 1");
+    $stmt->execute([$today]);
     $total_sale_today = (float)$stmt->fetchColumn();
-
+    
     // สินค้าใกล้หมด
     $query = "
         SELECT 

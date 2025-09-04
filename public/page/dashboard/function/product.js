@@ -115,7 +115,7 @@ function renderTopProductsChart(topProducts) {
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             const label = context.label || '';
                             const value = context.parsed;
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -140,7 +140,10 @@ function loadCounts(timeframe = 'monthly') {
             document.getElementById('totalCountDisplay').textContent = data.total_count || 0;
             document.getElementById('totalCountLotDisplay').textContent = data.total_count_lot || 0;
             document.getElementById('totalCountMemberDisplay').textContent = data.total_count_member || 0;
-            document.getElementById('totalCountSaleTodayDisplay').textContent = data.total_sale_today ? data.total_sale_today.toLocaleString('th-TH') : '0';
+            document.getElementById('totalCountSaleTodayDisplay').textContent =
+                (data.total_sale_today && data.total_sale_today > 0)
+                    ? data.total_sale_today.toLocaleString('th-TH')
+                    : '0';
             document.getElementById('totalCountSaleDisplay').textContent = data.total_count_sale || 0;
 
             // อัปเดตตารางสินค้าใกล้หมด
