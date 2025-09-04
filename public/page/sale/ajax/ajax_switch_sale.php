@@ -82,7 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         'message' => 'คำขอไม่ถูกต้อง'
     ]);
 }
-
+$stmt = $pdo->prepare("SELECT 1 FROM sale WHERE sale_id = ?");
+$stmt->execute([$new_sale_id]);
+if (!$stmt->fetchColumn()) {
+    throw new Exception("บิล #$new_sale_id ไม่พบในฐานข้อมูล");
+}
 // Flush output and exit
 ob_end_flush();
 exit();

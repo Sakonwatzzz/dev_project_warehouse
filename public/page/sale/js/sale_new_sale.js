@@ -21,8 +21,10 @@ $(document).ready(function () {
                         icon: 'success',
                         title: response.message,
                         showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
+                        position:'top-end',
+                        timer: 1000
+                    })
+                    .then(() => {
                         //ถ้าสำเร็จให้เปลี่ยนหน้าไปยัง URL ที่ส่งกลับมา
                         window.location.href = response.redirect;
                     });

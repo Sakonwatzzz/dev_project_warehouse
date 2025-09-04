@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '../../../../../config/database_server.php';
 require_once __DIR__ . '../../../../../vendor/autoload.php';
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 session_start();
 date_default_timezone_set('Asia/Bangkok');
 
@@ -22,65 +22,118 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 }
 $_SESSION['LAST_ACTIVITY'] = time();
 
-// CSRF token validation
-// if (!isset($_GET['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_GET['csrf_token'])) {
-//     header('HTTP/1.1 403 Forbidden');
-//     echo 'Invalid CSRF token';
-//     exit;
-// }
+// Verify CSRF token
+function verifyCsrfToken($token)
+{
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+// Handle POST data
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
+if (!$data || !isset($data['csrf_token']) || !verifyCsrfToken($data['csrf_token'])) {
+    error_log("CSRF Validation Failed: Session Token: " . ($_SESSION['csrf_token'] ?? 'unset') . ", POST Token: " . ($data['csrf_token'] ?? 'unset'));
+    header('HTTP/1.1 403 Forbidden');
+    echo json_encode(['error' => 'Invalid CSRF token']);
+    exit;
+}
+
+// Handle search parameters
+$search = isset($data['search']) ? trim($data['search']) : '';
+$start_date = isset($data['start_date']) ? htmlspecialchars($data['start_date']) : '';
+$end_date = isset($data['end_date']) ? htmlspecialchars($data['end_date']) : '';
+$date_range = isset($data['date_range']) ? htmlspecialchars($data['date_range']) : 'this_year';
+
+if ($date_range === 'custom' && empty($start_date)) {
+    $start_date = date('Y-m-d');
+}
+if ($date_range === 'custom' && empty($end_date)) {
+    $end_date = date('Y-m-d');
+}
+
+// Validate date format
+if ($date_range === 'custom' && $start_date && $end_date) {
+    try {
+        $start = new DateTime($start_date);
+        $end = new DateTime($end_date);
+        if ($start > $end) {
+            header('HTTP/1.1 400 Bad Request');
+            echo json_encode(['error' => 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด']);
+            exit;
+        }
+    } catch (Exception $e) {
+        header('HTTP/1.1 400 Bad Request');
+        echo json_encode(['error' => 'รูปแบบวันที่ไม่ถูกต้อง']);
+        exit;
+    }
+}
+
+// Build WHERE conditions and parameters
+$where_conditions = [];
+$params = [];
+
+if ($search) {
+    $where_conditions[] = "(sc.stock_check_id LIKE :search OR p.product_name LIKE :search OR w.warehouse_name LIKE :search OR per.personnel_name LIKE :search)";
+    $params[':search'] = "%$search%";
+}
+
+if ($date_range === 'today') {
+    $where_conditions[] = "DATE(s.stock_date) = CURDATE()";
+} elseif ($date_range === 'this_month') {
+    $where_conditions[] = "YEAR(s.stock_date) = YEAR(CURDATE()) AND MONTH(s.stock_date) = MONTH(CURDATE())";
+} elseif ($date_range === 'this_year') {
+    $where_conditions[] = "YEAR(s.stock_date) = YEAR(CURDATE())";
+} elseif ($date_range === 'custom' && $start_date && $end_date) {
+    $where_conditions[] = "DATE(s.stock_date) BETWEEN :start_date AND :end_date";
+    $params[':start_date'] = $start_date;
+    $params[':end_date'] = $end_date;
+}
+
+$where_clause = !empty($where_conditions) ? 'WHERE s.check_status_id = 2 AND ' . implode(' AND ', $where_conditions) : 'WHERE s.check_status_id = 2';
 
 try {
-    // Handle search parameters
-    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
     // Build the main query
     $query = "
         SELECT 
             sc.stock_check_id,
-            p.product_id,
-            p.product_name,
+            sc.product_id AS stock_product_id,
+            p.product_id AS product_table_id,
+            COALESCE(p.product_name, 'ไม่ระบุ') AS product_name,
             sc.stock_check_system,
             sc.stock_check_actual,
             sc.stock_check_remark_id,
-            scr.stock_check_remark_name, 
+            scr.stock_check_remark_name,
             w.warehouse_name,
             s.stock_date,
             per.personnel_name
         FROM stock_check sc
-        LEFT JOIN product p ON sc.product_id = p.product_id
+        INNER JOIN product p ON sc.product_id = p.product_id
         LEFT JOIN warehouse w ON sc.warehouse_id = w.warehouse_id
         LEFT JOIN stock s ON sc.stock_id = s.stock_id
         LEFT JOIN personnel per ON s.personnel_id = per.personnel_id
         LEFT JOIN stock_check_status scs ON s.check_status_id = scs.check_status_id
-        LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id  -- เพิ่มการ JOIN
-        WHERE s.check_status_id = 2";
-    //         AND s.stock_date >= :today_start 
-    //         AND s.stock_date <= :today_end
-
-
-    // Set date parameters
-    // $params = [
-    //     ':today_start' => date('Y-m-d 00:00:00'),
-    //     ':today_end' => date('Y-m-d 23:59:59')
-    // ];
-
-    // Add search filter if provided
-    if ($search) {
-        $query .= " AND (sc.stock_check_id LIKE :search 
-                    OR p.product_name LIKE :search 
-                    OR w.warehouse_name LIKE :search)";
-        // $params[':search'] = "%$search%";
-    }
-
-    $query .= " ORDER BY s.stock_date DESC";
+        LEFT JOIN stock_check_remark scr ON sc.stock_check_remark_id = scr.stock_check_remark_id
+        $where_clause
+        ORDER BY s.stock_date DESC";
 
     // Execute query
     $stmt = $pdo->prepare($query);
-    // foreach ($params as $key => $value) {
-    //     $stmt->bindValue($key, $value);
-    // }
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
     $stmt->execute();
     $stock_checks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Log query and results for debugging
+    error_log("Excel Export Query: $query with params: " . json_encode($params));
+    error_log("Excel Export Results: " . json_encode(array_map(function ($row) {
+        return [
+            'stock_check_id' => $row['stock_check_id'],
+            'stock_product_id' => $row['stock_product_id'],
+            'product_table_id' => $row['product_table_id'],
+            'product_name' => $row['product_name']
+        ];
+    }, $stock_checks)));
 
     // Check if query returned results
     if (!$stock_checks) {
@@ -154,8 +207,8 @@ try {
     ];
 
     foreach ($stock_checks as $index => $stock) {
-        $system_qty = (int) $stock['stock_check_system'];
-        $actual_qty = (int) $stock['stock_check_actual'];
+        $system_qty = (int) ($stock['stock_check_system'] ?? 0);
+        $actual_qty = (int) ($stock['stock_check_actual'] ?? 0);
         $difference = $actual_qty - $system_qty;
 
         // Update totals
@@ -167,22 +220,20 @@ try {
             $totals['positive'] += $difference;
         }
 
-        // Handle long product names
+        // Use stock_product_id from stock_check
+        $product_id = $stock['stock_product_id'] ?? 'N/A';
         $product_name = $stock['product_name'];
-        if (strlen($product_name) > 255) {
-            $product_name = substr($product_name, 0, 252) . '...';
-        }
 
         // Format remark
         $remark = !empty($stock['stock_check_remark_name'])
-            ? substr($stock['stock_check_remark_name'], 0, 255)
+            ? mb_substr($stock['stock_check_remark_name'], 0, 50, 'UTF-8')
             : '-';
 
         // Format difference with sign
         $diff_text = ($difference > 0 ? '+' : '') . number_format($difference);
 
         // Set cell values
-        $sheet->setCellValueExplicit('A' . $row, $stock['product_id'], DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('A' . $row, $product_id, DataType::TYPE_STRING);
         $sheet->setCellValue('B' . $row, $product_name);
         $sheet->setCellValue('C' . $row, number_format($system_qty));
         $sheet->setCellValue('D' . $row, number_format($actual_qty));
@@ -242,8 +293,8 @@ try {
         // Conditional formatting for total positive difference
         if ($totals['positive'] > 0) {
             $sheet->getStyle('E' . $row)->getFont()->getColor()->setARGB('FF228B22');
-        } elseif ($totals['positive'] == 0) {
-            $sheet->getStyle('E' . $row)->getFont()->getColor()->setARGB('FF000000');
+        } elseif ($totals['positive'] < 0) {
+            $sheet->getStyle('E' . $row)->getFont()->getColor()->setARGB('FFDC143C');
         }
 
         $row++;
@@ -264,12 +315,12 @@ try {
         $summary_items = [
             'จำนวนรายการสินค้าตรวจสอบทั้งหมด: ' . count($stock_checks) . ' รายการ',
             'จำนวนสินค้าคงเหลือจากรายการที่ตรวจสอบจากระบบ: ' . number_format($totals['system']) . ' ชิ้น',
-            'จำนวนสินค้าที่นับได้จริงรวมทั้งหมด: ' . number_format($totals['actual']),
-            'จำนวนสินค้าที่เกินรวมทั้งหมด: ' . ($totals['positive'] > 0 ? '' : '') . number_format($totals['positive']),
-            'จำนวนสินค้าที่ขาดรวมทั้งหมด: ' . ($totals['negative'] > 0 ? '' : '') . number_format($totals['negative'])
+            'จำนวนสินค้าที่นับได้จริงรวมทั้งหมด: ' . number_format($totals['actual']) . ' ชิ้น',
+            'จำนวนสินค้าที่เกินรวมทั้งหมด: ' . ($totals['positive'] > 0 ? '+' : '') . number_format($totals['positive']) . ' ชิ้น',
+            'จำนวนสินค้าที่ขาดรวมทั้งหมด: ' . number_format(abs($totals['negative'])) . ' ชิ้น'
         ];
 
-        foreach ($summary_items as $index => $item) {
+        foreach ($summary_items as $item) {
             $sheet->setCellValue('A' . $row, $item);
             $sheet->mergeCells('A' . $row . ':F' . $row);
             $sheet->getStyle('A' . $row)->getFont()->setSize(12)->setName('TH SarabunPSK');
@@ -277,16 +328,6 @@ try {
             $sheet->getRowDimension($row)->setRowHeight(20);
             $row++;
         }
-
-        // // Show shortage if exists
-        // if ($totals['negative'] < 0) {
-        //     $sheet->setCellValue('A' . $row, 'ส่วนขาดทั้งหมด: ' . number_format($totals['negative']));
-        //     $sheet->mergeCells('A' . $row . ':F' . $row);
-        //     $sheet->getStyle('A' . $row)->getFont()->setSize(12)->setName('TH SarabunPSK')->setBold(true);
-        //     $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FFDC143C');
-        //     $sheet->getStyle('A' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFF0F0');
-        //     $sheet->getRowDimension($row)->setRowHeight(20);
-        // }
     } else {
         // No data message
         $sheet->setCellValue('A' . $row, 'ไม่พบข้อมูลการเช็คสต๊อก');
@@ -342,6 +383,6 @@ try {
 } catch (Exception $e) {
     error_log("Error in export_stock_excel.php: " . $e->getMessage());
     header('HTTP/1.1 500 Internal Server Error');
-    echo 'เกิดข้อผิดพลาด: ' . htmlspecialchars($e->getMessage());
+    echo json_encode(['error' => 'เกิดข้อผิดพลาด: ' . htmlspecialchars($e->getMessage())]);
     exit;
 }

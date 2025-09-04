@@ -16,7 +16,7 @@ try {
     ob_end_flush();
     exit();
 }
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
@@ -62,5 +62,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         'message' => 'Invalid request'
     ]);
     exit();
+}
+
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM sale");
+$stmt->execute();
+$sale_count = $stmt->fetchColumn();
+if ($sale_count == 0) {
+    unset($_SESSION['active_sales']);
+    unset($_SESSION['current_sale_id']);
+    unset($_SESSION['payment_details']);
+    error_log("Cleared all sessions due to empty DB");
 }
 ?>

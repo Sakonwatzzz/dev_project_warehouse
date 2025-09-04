@@ -53,7 +53,7 @@ if (!$accessToken || !validateToken($accessToken)) {
                         <span>แสดงรายการขาย(ลูกค้า)</span>
                     </button>
                 </a>
-                <a href="?page=sale_inserttest" class="button-link w-24 lg:w-28">
+                <a href="?page=sale_inserttest" class="button-link w-24 lg:w-28" hidden>
                     <button class="<?php echo ($current_page == 'sale_inserttest') ? 'active' : ''; ?> w-full h-20 flex flex-col items-center justify-center rounded-md transition-all duration-200 text-xs font-bold" aria-label="หน้าการขายสินค้า(ทดลอง4)">
                         <i class="fas fa-flask text-xl mb-1"></i>
                         <span>หน้าการขายสินค้า(ทดลอง4)</span>
