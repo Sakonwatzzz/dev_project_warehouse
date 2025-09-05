@@ -2,7 +2,7 @@
 require_once __DIR__ . '../../../../config/database_server.php';
 date_default_timezone_set('Asia/Bangkok');
 
-$pdo = Database::getInstance()->getConnection(); 
+$pdo = Database::getInstance()->getConnection();
 
 $accessToken = getToken('access_token');
 if (!$accessToken || !validateToken($accessToken)) {
@@ -34,7 +34,8 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
 $_SESSION['LAST_ACTIVITY'] = time();
 
 // Database Functions
-function fetchData($pdo, $query, $params = []) {
+function fetchData($pdo, $query, $params = [])
+{
     try {
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
@@ -45,11 +46,13 @@ function fetchData($pdo, $query, $params = []) {
     }
 }
 
-function verifyCsrfToken($token) {
+function verifyCsrfToken($token)
+{
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-function validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, $supplier_id, $pdo, $exclude_id = null) {
+function validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, $supplier_id, $pdo, $exclude_id = null)
+{
     $errors = [];
     if (empty($lot_name) || strlen($lot_name) > 255) {
         $errors[] = 'ชื่อล็อตต้องไม่ว่างและมีความยาวไม่เกิน 255 ตัวอักษร';
@@ -87,7 +90,8 @@ function validateLotData($lot_name, $lot_detail, $lot_status_id, $warehouse_id, 
     return $errors;
 }
 
-function checkLotDependencies($pdo, $lot_id) {
+function checkLotDependencies($pdo, $lot_id)
+{
     $dependencies = [];
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM lot_product WHERE lot_id = ?");
     $stmt->execute([$lot_id]);
@@ -151,6 +155,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -160,7 +165,9 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <link href="../output.css" rel="stylesheet">
     <link href="../style/page_list.css" rel="stylesheet">
+    <meta name="csrf-token" content="<?= $_SESSION['csrf_token'] ?? '' ?>">
 </head>
+
 <body class="bg-gradient-to-br from-blue-50 to-white min-h-screen font-sans text-base">
     <div class="container mx-auto px-4 py-8">
         <!-- Header and Search Section -->
@@ -250,4 +257,5 @@ try {
 
     <script src="../page/lot/function/lot_list.js"></script>
 </body>
+
 </html>

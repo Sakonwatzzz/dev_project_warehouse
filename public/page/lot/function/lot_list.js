@@ -1,3 +1,5 @@
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
 function showDeleteModal() {
   document.getElementById("deleteModal").classList.remove("hidden");
 }
@@ -115,7 +117,7 @@ function goToPage(pageNum) {
 function exportPDF() {
   const startDate = document.getElementById("start_date").value;
   const endDate = document.getElementById("end_date").value;
-  let url = "../page/lot/report/export_lot_pdf.php";
+  let url = "../page/lot/ajax/report/export_lot_list_pdf.php";
   const urlParams = new URLSearchParams();
   if (startDate) urlParams.set("start_date", startDate);
   if (endDate) urlParams.set("end_date", endDate);
@@ -126,7 +128,7 @@ function exportPDF() {
 function exportExcel() {
   const startDate = document.getElementById("start_date").value;
   const endDate = document.getElementById("end_date").value;
-  let url = "../page/lot/report/export_lot_excel.php";
+  let url = "../page/lot/ajax/report/export_lot_list_excel.php";
   const urlParams = new URLSearchParams();
   if (startDate) urlParams.set("start_date", startDate);
   if (endDate) urlParams.set("end_date", endDate);

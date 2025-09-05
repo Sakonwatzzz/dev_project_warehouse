@@ -159,6 +159,7 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <link href="../output.css" rel="stylesheet">
     <link href="../style/page_list.css" rel="stylesheet">
+    <meta name="csrf-token" content="<?= $_SESSION['csrf_token'] ?? '' ?>">
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-white min-h-screen font-sans text-base">
     <div class="container mx-auto px-4 py-8">

@@ -185,6 +185,7 @@ try {
     <title>ประวัติรายการเช็คสต๊อกสินค้า</title>
     <link rel="stylesheet" href="../../output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         body {
             font-family: 'Sarabun', sans-serif;
