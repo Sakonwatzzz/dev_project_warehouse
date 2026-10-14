@@ -13,5 +13,21 @@ services:
     ports:
       - "3388:3306"
 
+  phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      container_name: warehouse_ems_phpmyadmin
+      restart: always
+      environment:
+        PMA_HOST: db
+        PMA_PORT: 3306
+        PMA_USER: root
+        PMA_PASSWORD: jay&tar_emswarehouse         # ใส่รหัส root เดียวกับ MYSQL_ROOT_PASSWORD
+        # หรือจะใช้ user warehouse ก็ได้
+        # PMA_USER: warehouse
+        # PMA_PASSWORD: ------
+      ports:
+        - "8080:80"                  # เปิดที่ http://localhost:8080
+      depends_on:
+        - db
 volumes:
   db_data:
